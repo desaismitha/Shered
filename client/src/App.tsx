@@ -18,38 +18,8 @@ import GroupDetailsPage from "@/pages/group-details-page";
 import NewGroupPage from "@/pages/groups/new";
 import ExpensesPage from "@/pages/expenses-page";
 import MessagesPage from "@/pages/messages-page";
-// Use inline components as temporary workaround
-const ForgotPasswordPage = () => (
-  <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-    <div className="w-full max-w-md bg-white rounded-lg shadow-md p-6">
-      <h1 className="text-2xl font-bold mb-4">Reset Password</h1>
-      <p className="mb-4">Enter your email to receive a password reset link.</p>
-      <div>
-        <label className="block mb-2">Email</label>
-        <input type="email" className="w-full p-2 border rounded mb-4" placeholder="your@email.com" />
-      </div>
-      <button className="w-full bg-primary-600 text-white py-2 rounded">Send Reset Link</button>
-    </div>
-  </div>
-);
-
-const ResetPasswordPage = () => (
-  <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-    <div className="w-full max-w-md bg-white rounded-lg shadow-md p-6">
-      <h1 className="text-2xl font-bold mb-4">Create New Password</h1>
-      <p className="mb-4">Enter a new password for your account.</p>
-      <div>
-        <label className="block mb-2">New Password</label>
-        <input type="password" className="w-full p-2 border rounded mb-2" />
-      </div>
-      <div>
-        <label className="block mb-2">Confirm Password</label>
-        <input type="password" className="w-full p-2 border rounded mb-4" />
-      </div>
-      <button className="w-full bg-primary-600 text-white py-2 rounded">Update Password</button>
-    </div>
-  </div>
-);
+import ForgotPasswordPage from "@/pages/forgot-password";
+import ResetPasswordPage from "@/pages/reset-password";
 import { DbResetFloatingButton } from "@/components/ui/db-reset-floating-button";
 import { Route } from "wouter";
 
