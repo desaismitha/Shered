@@ -547,7 +547,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Trip update failed" });
       }
       
-      res.json(updatedTrip);
+      // Include access level in the response like the GET endpoint does
+      res.json({
+        ...updatedTrip,
+        _accessLevel: 'owner' // Since we've confirmed owner access above
+      });
     } catch (err) {
       console.error("Trip update error:", err);
       next(err);

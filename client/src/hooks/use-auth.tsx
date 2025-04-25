@@ -1,4 +1,4 @@
-import { createContext, ReactNode, useContext } from "react";
+import { createContext, ReactNode, useContext, useEffect } from "react";
 import {
   useQuery,
   useMutation,
@@ -35,8 +35,10 @@ type LoginData = z.infer<typeof loginSchema>;
 type RegisterData = z.infer<typeof registerSchema>;
 
 export const AuthContext = createContext<AuthContextType | null>(null);
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
+  
   const {
     data: user,
     error,
@@ -44,29 +46,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   } = useQuery<User | null, Error>({
     queryKey: ["/api/user"],
     queryFn: getQueryFn({ on401: "returnNull" }),
-    onSuccess: (user) => {
-      // Store user ID for permission checks when app first loads
-      if (user) {
-        localStorage.setItem('userId', user.id.toString());
-      }
-    }
   });
+  
+  // Store userId in localStorage
+  useEffect(() => {
+    if (user) {
+      localStorage.setItem('userId', user.id.toString());
+    }
+  }, [user]);
 
-  const loginMutation = useMutation({
-    mutationFn: async (credentials: LoginData) => {
+  // Login mutation
+  const loginMutation = useMutation<User, Error, LoginData>({
+    mutationFn: async (credentials) => {
       const res = await apiRequest("POST", "/api/login", credentials);
       return await res.json();
     },
-    onSuccess: (user: User) => {
-      queryClient.setQueryData(["/api/user"], user);
-      // Store user ID for permission checks
-      localStorage.setItem('userId', user.id.toString());
+    onSuccess: (userData) => {
+      queryClient.setQueryData(["/api/user"], userData);
+      localStorage.setItem('userId', userData.id.toString());
       toast({
         title: "Login successful",
-        description: `Welcome back, ${user.displayName || user.username}!`,
+        description: `Welcome back, ${userData.displayName || userData.username}!`,
       });
     },
-    onError: (error: Error) => {
+    onError: (error) => {
       toast({
         title: "Login failed",
         description: error.message,
@@ -75,23 +78,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
   });
 
-  const registerMutation = useMutation({
-    mutationFn: async (credentials: RegisterData) => {
+  // Registration mutation
+  const registerMutation = useMutation<User, Error, RegisterData>({
+    mutationFn: async (credentials) => {
       // Remove confirmPassword before sending to API
       const { confirmPassword, ...userToRegister } = credentials;
       const res = await apiRequest("POST", "/api/register", userToRegister);
       return await res.json();
     },
-    onSuccess: (user: User) => {
-      queryClient.setQueryData(["/api/user"], user);
-      // Store user ID for permission checks
-      localStorage.setItem('userId', user.id.toString());
+    onSuccess: (userData) => {
+      queryClient.setQueryData(["/api/user"], userData);
+      localStorage.setItem('userId', userData.id.toString());
       toast({
         title: "Registration successful",
-        description: `Welcome, ${user.displayName || user.username}!`,
+        description: `Welcome, ${userData.displayName || userData.username}!`,
       });
     },
-    onError: (error: Error) => {
+    onError: (error) => {
       toast({
         title: "Registration failed",
         description: error.message,
@@ -100,19 +103,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
   });
 
-  const logoutMutation = useMutation({
+  // Logout mutation
+  const logoutMutation = useMutation<void, Error, void>({
     mutationFn: async () => {
       await apiRequest("POST", "/api/logout");
     },
     onSuccess: () => {
       queryClient.setQueryData(["/api/user"], null);
-      // Remove user ID from localStorage
       localStorage.removeItem('userId');
       toast({
         title: "Logged out successfully",
       });
     },
-    onError: (error: Error) => {
+    onError: (error) => {
       toast({
         title: "Logout failed",
         description: error.message,
