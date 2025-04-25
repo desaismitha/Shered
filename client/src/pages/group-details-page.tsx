@@ -110,7 +110,12 @@ export default function GroupDetailsPage() {
   // Schema for inviting a new user (who doesn't have an account yet)
   const inviteUserSchema = z.object({
     email: z.string().email("Please enter a valid email address"),
-    phoneNumber: z.string().optional(),
+    phoneNumber: z.string()
+      .refine(
+        val => !val || val.replace(/\D/g, "").length === 10,
+        { message: "Phone number must be exactly 10 digits" }
+      )
+      .optional(),
     role: z.enum(["member", "admin"]).default("member"),
   });
 
