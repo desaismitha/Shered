@@ -252,7 +252,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Not a member of this group" });
       }
       
+      // Get trips for this group
       const trips = await storage.getTripsByGroupId(groupId);
+      console.log(`Trips for group ${groupId}:`, JSON.stringify(trips));
+      
+      // Make sure we're returning Trip objects and not Group objects
+      if (trips.length > 0 && !trips[0].destination) {
+        console.error("ERROR: Trips data doesn't have destination field:", trips);
+      }
+      
       res.json(trips);
     } catch (err) {
       next(err);

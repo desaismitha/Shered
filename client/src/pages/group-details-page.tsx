@@ -60,6 +60,12 @@ export default function GroupDetailsPage() {
   const { data: trips, isLoading: isLoadingTrips } = useQuery<Trip[]>({
     queryKey: ["/api/groups", groupId, "trips"],
     enabled: !!groupId,
+    onSuccess: (data) => {
+      console.log("Group trips data:", data);
+    },
+    onError: (error) => {
+      console.error("Error fetching group trips:", error);
+    }
   });
 
   // Get all users for member details
