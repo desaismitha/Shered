@@ -349,6 +349,11 @@ export default function TripDetailsPage() {
 
   // Format date range
   const formatDateRange = (startDate: string | Date | null | undefined, endDate: string | Date | null | undefined) => {
+    // Check for the special case date (2099-12-31) which we use to indicate "no date"
+    if (startDate && typeof startDate === 'string' && startDate.includes('2099')) {
+      return "Date not specified";
+    }
+    
     // Handle null or undefined dates
     if (!startDate || !endDate) {
       return "Date not specified";
@@ -357,6 +362,11 @@ export default function TripDetailsPage() {
     try {
       const start = new Date(startDate);
       const end = new Date(endDate);
+      
+      // Check for special placeholder dates
+      if (start.getFullYear() >= 2099 || end.getFullYear() >= 2099) {
+        return "Date not specified";
+      }
       
       // Validate dates
       if (isNaN(start.getTime()) || isNaN(end.getTime())) {
@@ -551,7 +561,9 @@ export default function TripDetailsPage() {
                                 <div className="p-4 border-b md:border-b-0 md:border-r">
                                   <p className="text-sm text-neutral-500 mb-1">Start Date</p>
                                   <p className="font-medium">
-                                    {trip.startDate ? format(new Date(trip.startDate), 'MMMM d, yyyy') : 'Not specified'}
+                                    {trip.startDate && !String(trip.startDate).includes('2099') 
+                                      ? format(new Date(trip.startDate), 'MMMM d, yyyy') 
+                                      : 'Not specified'}
                                   </p>
                                 </div>
                                 <div className="p-4">

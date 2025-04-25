@@ -82,9 +82,13 @@ export default function BasicTripEditPage() {
       // SIMPLIFIED APPROACH: Update everything in one request using the standard API
       console.log("Updating trip with all fields in a single request");
       
-      // Format dates as needed, null for empty strings, ISO string for dates
-      const formattedStartDate = startDate ? `${startDate}T12:00:00.000Z` : null;
-      const formattedEndDate = endDate ? `${endDate}T12:00:00.000Z` : null;
+      // Format dates - use far future default date when clearing (2099-12-31)
+      // This is because our database schema requires NOT NULL for dates
+      const DEFAULT_DATE = '2099-12-31T12:00:00.000Z';
+      
+      // Use actual date if present, otherwise use default future date (never null)
+      const formattedStartDate = startDate ? `${startDate}T12:00:00.000Z` : DEFAULT_DATE;
+      const formattedEndDate = endDate ? `${endDate}T12:00:00.000Z` : DEFAULT_DATE;
       
       // Create a complete payload with all fields
       const fullPayload = {
