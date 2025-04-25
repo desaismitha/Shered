@@ -48,6 +48,7 @@ export function MobileMenu({ isOpen, onClose }: { isOpen: boolean; onClose: () =
     { icon: LayoutDashboard, label: "Dashboard", href: "/" },
     { icon: Users, label: "My Groups", href: "/groups" },
     { icon: Calendar, label: "Upcoming Trips", href: "/trips" },
+    { icon: Navigation, label: "Active Trips", href: "/active-trips" },
     { icon: Car, label: "My Vehicles", href: "/vehicles" },
     { icon: DollarSign, label: "Expenses", href: "/expenses" },
     { icon: MessageSquare, label: "Messages", href: "/messages" },
@@ -147,6 +148,7 @@ export function MobileNav() {
     { icon: LayoutDashboard, label: "Dashboard", href: "/" },
     { icon: Users, label: "Groups", href: "/groups" },
     { icon: Calendar, label: "Trips", href: "/trips" },
+    { icon: Navigation, label: "Active", href: "/active-trips" },
     { icon: MessageSquare, label: "Messages", href: "/messages" },
   ];
 

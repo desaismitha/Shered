@@ -593,6 +593,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       next(err);
     }
   });
+  
+  // Get active trips (in-progress) for the current user
+  app.get("/api/trips/active", async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+      
+      // Get base trip data
+      const trips = await storage.getTripsByUserId(req.user.id);
+      
+      // Filter to only in-progress trips
+      const activeTrips = trips.filter(trip => trip.status === 'in-progress');
+      
+      // Enhance each trip with access level information
+      const activeTripsWithAccessLevels = activeTrips.map(trip => {
+        // If user is the creator, they're the owner
+        const isOwner = String(trip.createdBy) === String(req.user.id);
+        
+        return {
+          ...trip,
+          _accessLevel: isOwner ? 'owner' : 'member'
+        };
+      });
+      
+      console.log(`Returning ${activeTripsWithAccessLevels.length} active trips with access levels`);
+      res.json(activeTripsWithAccessLevels);
+    } catch (err) {
+      console.error("Error fetching active trips list:", err);
+      next(err);
+    }
+  });
 
   app.put("/api/trips/:id", async (req, res, next) => {
     try {
