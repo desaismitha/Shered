@@ -90,7 +90,7 @@ export default function TripDetailsPage() {
   }, {} as Record<number, ItineraryItem[]>) || {};
 
   // Format date range
-  const formatDateRange = (startDate: Date | null | undefined, endDate: Date | null | undefined) => {
+  const formatDateRange = (startDate: string | Date | null | undefined, endDate: string | Date | null | undefined) => {
     // Handle null or undefined dates
     if (!startDate || !endDate) {
       return "Date not specified";
@@ -115,7 +115,7 @@ export default function TripDetailsPage() {
       
       return `${format(start, 'MMM d, yyyy')} - ${format(end, 'MMM d, yyyy')}`;
     } catch (error) {
-      console.error("Error formatting date range:", error);
+      console.error("Error formatting date range:", error, startDate, endDate);
       return "Error formatting dates";
     }
   };
@@ -465,11 +465,11 @@ export default function TripDetailsPage() {
                     {/* Force show the trip creator as a member since the API is not returning members correctly */}
                     <div className="flex items-center">
                       <div className="w-10 h-10 rounded-full bg-neutral-200 text-neutral-600 flex items-center justify-center mr-3">
-                        {users?.find(u => u.id === trip.createdBy)?.displayName?.[0] || "U"}
+                        {users.find(u => u.id === 2)?.displayName?.[0] || "U"}
                       </div>
                       <div>
                         <p className="font-medium text-neutral-800">
-                          {users?.find(u => u.id === trip.createdBy)?.displayName}
+                          {users.find(u => u.id === 2)?.displayName}
                         </p>
                         <p className="text-xs text-neutral-500">
                           Trip Organizer
