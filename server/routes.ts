@@ -409,56 +409,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/trips/:id", async (req, res, next) => {
     try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
-      
       const tripId = parseInt(req.params.id);
-      console.log(`Fetching trip ${tripId} for user ${req.user.id}`);
+      console.log(`Fetching trip ${tripId} for user ${req.user?.id || 'unknown'}`);
       
+      // Use our reusable trip access check function with built-in retry logic
+      const hasAccess = await checkTripAccess(req, tripId, res, next);
+      if (!hasAccess) {
+        console.log(`Access denied to trip ${tripId}`);
+        return; // Response already sent by checkTripAccess
+      }
+      
+      // If we get here, access check passed, so get the trip details
       const trip = await storage.getTrip(tripId);
-      
-      if (!trip) {
-        console.log(`Trip ${tripId} not found`);
-        return res.status(404).json({ message: "Trip not found" });
-      }
-      
-      console.log(`Found trip:`, trip);
-      console.log(`User ID: ${req.user.id}, Trip creator: ${trip.createdBy}, Group ID: ${trip.groupId}`);
-      
-      // First check if user is the creator - creators always have access
-      if (trip.createdBy === req.user.id) {
-        console.log("User is trip creator, granting access");
-        return res.json(trip);
-      }
-      
-      // If trip belongs to a group, check if user is a member
-      if (trip.groupId) {
-        console.log(`Trip belongs to group ${trip.groupId}, checking membership`);
-        try {
-          const members = await storage.getGroupMembers(trip.groupId);
-          console.log(`Group members:`, members);
-          const isMember = members.some(member => member.userId === req.user.id);
-          
-          if (isMember) {
-            console.log("User is group member, granting access");
-            return res.json(trip);
-          }
-          
-          console.log("User is not a group member, access denied");
-          return res.status(403).json({ message: "Access denied: Not a member of this group" });
-        } catch (groupErr) {
-          console.error(`Database error getting group members: ${groupErr}`);
-          // In case of DB error, still grant access to the trip creator (already checked above)
-          // For other users, show an explicit error about the DB connection issue
-          return res.status(503).json({ 
-            message: "Database connection error - Please try again later",
-            error: groupErr.message
-          });
-        }
-      }
-      
-      // If we get here, user is neither creator nor group member
-      console.log("Access denied: User is not trip creator or group member");
-      return res.status(403).json({ message: "Access denied" });
+      console.log(`Trip data for ID ${tripId}:`, trip);
+      res.json(trip);
     } catch (err) {
       console.error("Error in trip details:", err);
       next(err);
@@ -502,34 +466,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Itinerary Items
   app.post("/api/trips/:id/itinerary", async (req, res, next) => {
     try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
-      
       const tripId = parseInt(req.params.id);
-      const trip = await storage.getTrip(tripId);
       
-      if (!trip) {
-        return res.status(404).json({ message: "Trip not found" });
+      // Use our reusable trip access check function with built-in retry logic
+      const hasAccess = await checkTripAccess(req, tripId, res, next);
+      if (!hasAccess) {
+        return; // Response already sent by checkTripAccess
       }
       
-      // First check if user is the creator - creators always have access
-      if (trip.createdBy === req.user.id) {
-        // Continue with item creation below
-      } 
-      // If trip belongs to a group, check if user is a member
-      else if (trip.groupId) {
-        const members = await storage.getGroupMembers(trip.groupId);
-        const isMember = members.some(member => member.userId === req.user.id);
-        
-        if (!isMember) {
-          // If not a member, access is denied
-          return res.status(403).json({ message: "Access denied: Not a member of this group" });
-        }
-      } 
-      // If not creator and not a group trip, access denied
-      else {
-        return res.status(403).json({ message: "Access denied" });
-      }
-      
+      // If we have access, create the itinerary item
       const validatedData = insertItineraryItemSchema.parse({
         ...req.body,
         tripId,
@@ -545,42 +490,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/trips/:id/itinerary", async (req, res, next) => {
     try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
-      
       const tripId = parseInt(req.params.id);
-      const trip = await storage.getTrip(tripId);
       
-      if (!trip) {
-        return res.status(404).json({ message: "Trip not found" });
+      // Use our reusable trip access check function with built-in retry logic
+      const hasAccess = await checkTripAccess(req, tripId, res, next);
+      if (!hasAccess) {
+        return; // Response already sent by checkTripAccess
       }
       
-      // First check if user is the creator - creators always have access
-      if (trip.createdBy === req.user.id) {
-        const items = await storage.getItineraryItemsByTripId(tripId);
-        return res.json(items);
-      }
-      
-      // If trip belongs to a group, check if user is a member
-      if (trip.groupId) {
-        try {
-          const members = await storage.getGroupMembers(trip.groupId);
-          const isMember = members.some(member => member.userId === req.user.id);
-          
-          if (isMember) {
-            const items = await storage.getItineraryItemsByTripId(tripId);
-            return res.json(items);
-          }
-        } catch (groupErr) {
-          console.error(`Failed to get group members: ${groupErr}`);
-          // If we can't get group members due to DB error, but user is authenticated,
-          // grant access if they're the trip creator (we already checked above)
-          // For other users, deny access
-          return res.status(403).json({ message: "Access denied - Database connection issue" });
-        }
-      }
-      
-      // If we get here, access is denied
-      return res.status(403).json({ message: "Access denied" });
+      // If we have access, get the itinerary items
+      const items = await storage.getItineraryItemsByTripId(tripId);
+      res.json(items);
     } catch (err) {
       console.error(`Error in itinerary retrieval: ${err}`);
       next(err);
@@ -590,34 +510,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Expenses
   app.post("/api/trips/:id/expenses", async (req, res, next) => {
     try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
-      
       const tripId = parseInt(req.params.id);
-      const trip = await storage.getTrip(tripId);
       
-      if (!trip) {
-        return res.status(404).json({ message: "Trip not found" });
+      // Use our reusable trip access check function with built-in retry logic
+      const hasAccess = await checkTripAccess(req, tripId, res, next);
+      if (!hasAccess) {
+        return; // Response already sent by checkTripAccess
       }
       
-      // First check if user is the creator - creators always have access
-      if (trip.createdBy === req.user.id) {
-        // Continue with expense creation below
-      } 
-      // If trip belongs to a group, check if user is a member
-      else if (trip.groupId) {
-        const members = await storage.getGroupMembers(trip.groupId);
-        const isMember = members.some(member => member.userId === req.user.id);
-        
-        if (!isMember) {
-          // If not a member, access is denied
-          return res.status(403).json({ message: "Access denied: Not a member of this group" });
-        }
-      } 
-      // If not creator and not a group trip, access denied
-      else {
-        return res.status(403).json({ message: "Access denied" });
-      }
-      
+      // If we have access, create the expense
       const validatedData = insertExpenseSchema.parse({
         ...req.body,
         tripId,
@@ -633,45 +534,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/trips/:id/expenses", async (req, res, next) => {
     try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
-      
       const tripId = parseInt(req.params.id);
-      const trip = await storage.getTrip(tripId);
       
-      if (!trip) {
-        return res.status(404).json({ message: "Trip not found" });
+      // Use our reusable trip access check function with built-in retry logic
+      const hasAccess = await checkTripAccess(req, tripId, res, next);
+      if (!hasAccess) {
+        return; // Response already sent by checkTripAccess
       }
       
-      // First check if user is the creator - creators always have access
-      if (trip.createdBy === req.user.id) {
-        const expenses = await storage.getExpensesByTripId(tripId);
-        return res.json(expenses);
-      }
-      
-      // If trip belongs to a group, check if user is a member
-      if (trip.groupId) {
-        try {
-          const members = await storage.getGroupMembers(trip.groupId);
-          const isMember = members.some(member => member.userId === req.user.id);
-          
-          if (isMember) {
-            const expenses = await storage.getExpensesByTripId(tripId);
-            return res.json(expenses);
-          }
-        } catch (error) {
-          const groupErr = error as Error;
-          console.error(`Failed to get group members: ${groupErr}`);
-          // If we can't get group members due to DB error, but user is authenticated,
-          // deny access with explicit error
-          return res.status(503).json({ 
-            message: "Database connection error - Please try again later",
-            error: groupErr.message
-          });
-        }
-      }
-      
-      // If we get here, access is denied
-      return res.status(403).json({ message: "Access denied" });
+      // If we have access, get the expenses
+      const expenses = await storage.getExpensesByTripId(tripId);
+      res.json(expenses);
     } catch (err) {
       console.error(`Error in expenses retrieval: ${err}`);
       next(err);
