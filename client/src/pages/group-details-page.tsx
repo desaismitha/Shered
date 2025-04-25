@@ -140,22 +140,57 @@ export default function GroupDetailsPage() {
   // Mutation for adding existing members
   const addMemberMutation = useMutation({
     mutationFn: async (values: AddMemberValues) => {
-      // First, we need to get the user ID by username
-      const userRes = await apiRequest("GET", `/api/users/by-username/${values.username}`);
-      const foundUser = await userRes.json();
-      
-      if (!foundUser || !foundUser.id) {
-        throw new Error("User not found");
+      try {
+        // First, we need to get the user ID by username
+        const userRes = await apiRequest("GET", `/api/users/by-username/${values.username}`);
+        
+        // Handle 404 response specifically
+        if (userRes.status === 404) {
+          throw new Error(`User '${values.username}' does not exist. Please check the username and try again.`);
+        }
+        
+        // Handle other error responses
+        if (!userRes.ok) {
+          throw new Error(`Server error: ${userRes.statusText}`);
+        }
+        
+        const foundUser = await userRes.json();
+        
+        if (!foundUser || !foundUser.id) {
+          throw new Error(`User '${values.username}' was found but has invalid data.`);
+        }
+        
+        // Check if user is already a member of the group
+        const isAlreadyMember = groupMembers?.some(member => {
+          // Check if the member is a GroupMember object or a Group object
+          if ('userId' in member) {
+            return member.userId === foundUser.id;
+          }
+          return false;
+        });
+        
+        if (isAlreadyMember) {
+          throw new Error(`User '${values.username}' is already a member of this group.`);
+        }
+        
+        // Add the user to the group
+        const memberData: InsertGroupMember = {
+          groupId: groupId,
+          userId: foundUser.id,
+          role: values.role,
+        };
+        
+        const res = await apiRequest("POST", `/api/groups/${groupId}/members`, memberData);
+        
+        if (!res.ok) {
+          throw new Error(`Failed to add member: ${res.statusText}`);
+        }
+        
+        return await res.json();
+      } catch (error) {
+        // Re-throw the error to be handled by onError
+        throw error;
       }
-      
-      const memberData: InsertGroupMember = {
-        groupId: groupId,
-        userId: foundUser.id,
-        role: values.role,
-      };
-      
-      const res = await apiRequest("POST", `/api/groups/${groupId}/members`, memberData);
-      return await res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/groups", groupId, "members"] });
@@ -166,10 +201,10 @@ export default function GroupDetailsPage() {
       setIsAddMemberOpen(false);
       addMemberForm.reset();
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast({
-        title: "Error",
-        description: `Failed to add member: ${error.message}`,
+        title: "User Not Found",
+        description: error.message,
         variant: "destructive",
       });
     },
@@ -178,8 +213,32 @@ export default function GroupDetailsPage() {
   // Mutation for inviting new users
   const inviteUserMutation = useMutation({
     mutationFn: async (values: InviteUserValues) => {
-      const res = await apiRequest("POST", `/api/groups/${groupId}/invite`, values);
-      return await res.json();
+      try {
+        // Check if user with this email already exists
+        const userCheckRes = await apiRequest("GET", `/api/users/by-email/${encodeURIComponent(values.email)}`);
+        
+        if (userCheckRes.ok) {
+          // User already exists, prompt to add the user directly
+          const existingUser = await userCheckRes.json();
+          throw new Error(`A user with email '${values.email}' already exists. Please use the "Existing User" tab to add them by username.`);
+        }
+        
+        // Send the invitation
+        const res = await apiRequest("POST", `/api/groups/${groupId}/invite`, values);
+        
+        if (!res.ok) {
+          if (res.status === 429) {
+            throw new Error("Too many invitation attempts. Please try again later.");
+          } else {
+            throw new Error(`Server error: ${res.statusText}`);
+          }
+        }
+        
+        return await res.json();
+      } catch (error) {
+        // Re-throw the error
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/groups", groupId, "members"] });
@@ -190,10 +249,10 @@ export default function GroupDetailsPage() {
       setIsAddMemberOpen(false);
       inviteUserForm.reset();
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast({
-        title: "Error",
-        description: `Failed to send invitation: ${error.message}`,
+        title: "Invitation Failed",
+        description: error.message,
         variant: "destructive",
       });
     },
