@@ -330,7 +330,7 @@ export function TripForm() {
           </Button>
           <Button 
             type="submit" 
-            disabled={mutation.isPending || !groups || groups.length === 0}
+            disabled={mutation.isPending || !form.watch("groupId")}
           >
             {mutation.isPending ? "Creating..." : "Create Trip"}
           </Button>

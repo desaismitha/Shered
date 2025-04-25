@@ -171,15 +171,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         createdBy: req.user.id
       });
       
-      // Check if user is a member of the group
-      const groupId = validatedData.groupId;
-      const members = await storage.getGroupMembers(groupId);
-      const isMember = members.some(member => member.userId === req.user.id);
-      
-      if (!isMember) {
-        return res.status(403).json({ message: "Not a member of this group" });
-      }
-      
+      // Any authenticated user can create a trip
       const trip = await storage.createTrip(validatedData);
       res.status(201).json(trip);
     } catch (err) {
@@ -209,12 +201,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Trip not found" });
       }
       
-      // Check if user is a member of the group associated with this trip
-      const members = await storage.getGroupMembers(trip.groupId);
-      const isMember = members.some(member => member.userId === req.user.id);
-      
-      if (!isMember) {
-        return res.status(403).json({ message: "Access denied" });
+      // If trip belongs to a group, check if user is a member
+      if (trip.groupId) {
+        const members = await storage.getGroupMembers(trip.groupId);
+        const isMember = members.some(member => member.userId === req.user.id);
+        
+        if (!isMember) {
+          return res.status(403).json({ message: "Access denied" });
+        }
+      } else {
+        // If trip doesn't belong to a group, check if user is the creator
+        if (trip.createdBy !== req.user.id) {
+          return res.status(403).json({ message: "Access denied" });
+        }
       }
       
       res.json(trip);
@@ -261,11 +260,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Trip not found" });
       }
       
-      // Check if user is a member of the group associated with this trip
-      const members = await storage.getGroupMembers(trip.groupId);
-      const isMember = members.some(member => member.userId === req.user.id);
+      // Check access permissions
+      let hasAccess = false;
       
-      if (!isMember) {
+      if (trip.groupId) {
+        // For group trips, check if user is a member
+        const members = await storage.getGroupMembers(trip.groupId);
+        hasAccess = members.some(member => member.userId === req.user.id);
+      } else {
+        // For personal trips, check if user is the creator
+        hasAccess = trip.createdBy === req.user.id;
+      }
+      
+      if (!hasAccess) {
         return res.status(403).json({ message: "Access denied" });
       }
       
