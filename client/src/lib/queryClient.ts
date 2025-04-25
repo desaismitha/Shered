@@ -34,16 +34,41 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const res = await fetch(queryKey[0] as string, {
+    // Form the URL from query key components
+    const baseUrl = queryKey[0] as string;
+    const url = queryKey.length > 1 
+      ? `${baseUrl}/${queryKey[1]}${queryKey.length > 2 ? `/${queryKey[2]}` : ''}`
+      : baseUrl;
+    
+    console.log(`[Query] Fetching: ${url}`);
+    
+    const res = await fetch(url, {
       credentials: "include",
     });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
+      console.log(`[Query] Got 401 for ${url}, returning null as requested`);
       return null;
     }
 
     await throwIfResNotOk(res);
-    return await res.json();
+    const data = await res.json();
+    
+    // For trip queries, ensure access level is preserved and add a fallback
+    if (baseUrl === '/api/trips' && queryKey.length > 1) {
+      const userId = localStorage.getItem('userId'); // We'll use this as a fallback
+      
+      // If it's a trip detail query (has an ID), modify the response to include access level
+      if (typeof data === 'object' && data && !data._accessLevel) {
+        console.log(`[Query] Enhancing trip response with access level info`);
+        // If user is the creator, mark as owner
+        const isOwner = data.createdBy?.toString() === userId?.toString();
+        data._accessLevel = isOwner ? 'owner' : 'member';
+      }
+    }
+    
+    console.log(`[Query] Response for ${url}:`, data);
+    return data;
   };
 
 export const queryClient = new QueryClient({

@@ -44,6 +44,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   } = useQuery<User | null, Error>({
     queryKey: ["/api/user"],
     queryFn: getQueryFn({ on401: "returnNull" }),
+    onSuccess: (user) => {
+      // Store user ID for permission checks when app first loads
+      if (user) {
+        localStorage.setItem('userId', user.id.toString());
+      }
+    }
   });
 
   const loginMutation = useMutation({
@@ -53,6 +59,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: (user: User) => {
       queryClient.setQueryData(["/api/user"], user);
+      // Store user ID for permission checks
+      localStorage.setItem('userId', user.id.toString());
       toast({
         title: "Login successful",
         description: `Welcome back, ${user.displayName || user.username}!`,
@@ -76,6 +84,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: (user: User) => {
       queryClient.setQueryData(["/api/user"], user);
+      // Store user ID for permission checks
+      localStorage.setItem('userId', user.id.toString());
       toast({
         title: "Registration successful",
         description: `Welcome, ${user.displayName || user.username}!`,
@@ -96,6 +106,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: () => {
       queryClient.setQueryData(["/api/user"], null);
+      // Remove user ID from localStorage
+      localStorage.removeItem('userId');
       toast({
         title: "Logged out successfully",
       });
