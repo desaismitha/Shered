@@ -258,14 +258,17 @@ export default function TripDetailsPage() {
   const [isAddingItinerary, setIsAddingItinerary] = useState(false);
   const [isAddingExpense, setIsAddingExpense] = useState(false);
   
-  // Check URL for edit=true parameter
-  const searchParams = new URLSearchParams(location.split('?')[1] || '');
-  const shouldStartEditing = searchParams.get('edit') === 'true';
+  // Check URL for edit=true parameter - using window.location to get the full URL
+  // This ensures we capture query parameters correctly even with Wouter routing
+  const fullUrl = window.location.href;
+  const urlObj = new URL(fullUrl);
+  const shouldStartEditing = urlObj.searchParams.get('edit') === 'true';
   
   // Debug URL parameters
   console.log("URL params check:", {
     fullLocation: location,
-    parsedParams: Object.fromEntries(searchParams.entries()),
+    windowLocation: fullUrl,
+    searchParams: Object.fromEntries(urlObj.searchParams.entries()),
     shouldStartEditing
   });
   
@@ -278,18 +281,27 @@ export default function TripDetailsPage() {
     enabled: !!tripId,
   });
   
-  // Debug the trip access level
+  // Use an effect to check if we need to be in edit mode
   useEffect(() => {
-    if (trip) {
-      console.log("Trip access level:", trip._accessLevel);
+    // When the component mounts or shouldStartEditing changes
+    if (trip && trip._accessLevel === 'owner') {
+      // Re-check URL params directly from window.location
+      // This ensures the latest query params are used even if they change
+      const currentUrl = new URL(window.location.href);
+      const editMode = currentUrl.searchParams.get('edit') === 'true';
       
-      // If URL has edit=true parameter and the trip is loaded, activate edit mode
-      if (shouldStartEditing && trip._accessLevel === 'owner') {
-        console.log("Activating edit mode from URL parameter");
+      console.log("Trip access level:", trip._accessLevel);
+      console.log("Edit mode check:", {
+        editQueryParam: currentUrl.searchParams.get('edit'),
+        shouldActivateEdit: editMode
+      });
+      
+      if (editMode) {
+        console.log("Activating edit mode from URL parameter!");
         setIsEditingTrip(true);
       }
     }
-  }, [trip, shouldStartEditing]);
+  }, [trip]);
 
   // Get itinerary items
   const { data: itineraryItems, isLoading: isLoadingItinerary } = useQuery<ItineraryItem[]>({
