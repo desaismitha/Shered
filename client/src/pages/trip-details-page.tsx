@@ -507,6 +507,7 @@ export default function TripDetailsPage() {
                 <TabsTrigger value="itinerary">Itinerary</TabsTrigger>
                 <TabsTrigger value="expenses">Expenses</TabsTrigger>
                 <TabsTrigger value="vehicles">Vehicles</TabsTrigger>
+                <TabsTrigger value="drivers">Drivers</TabsTrigger>
               </TabsList>
               
               {/* Trip Info tab */}
@@ -751,6 +752,24 @@ export default function TripDetailsPage() {
                   <CardContent>
                     {trip && trip._accessLevel && (
                       <TripVehicleList tripId={tripId} accessLevel={trip._accessLevel} />
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              
+              {/* Drivers tab */}
+              <TabsContent value="drivers">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Driver Information</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {trip && trip._accessLevel && user && (
+                      <DriverInfoSection 
+                        user={user} 
+                        tripId={tripId} 
+                        accessLevel={trip._accessLevel} 
+                      />
                     )}
                   </CardContent>
                 </Card>
