@@ -30,73 +30,65 @@ interface Trip extends BaseTrip {
 // Simple edit form component to edit trip directly on the details page
 function TripQuickEdit({ trip, onSuccess }: { trip: Trip, onSuccess: () => void }) {
   const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
+  
+  // Simple state values for all fields
   const [name, setName] = useState(trip.name);
   const [destination, setDestination] = useState(trip.destination);
+  const [status, setStatus] = useState(trip.status || 'planning');
   
-  // Parse dates from the trip object with timezone handling
-  const parseDate = (dateStr: string | Date | null | undefined) => {
+  // Simplified date handling - directly use string values in ISO format
+  const formatDefaultDate = (dateStr: string | Date | null | undefined) => {
     if (!dateStr) return '';
     try {
       const date = new Date(dateStr);
-      // Format as YYYY-MM-DD for input type="date"
-      return format(date, 'yyyy-MM-dd');
+      return isNaN(date.getTime()) ? '' : format(date, 'yyyy-MM-dd');
     } catch (e) {
-      console.error("Error parsing date:", e);
+      console.error("Date parsing error:", e);
       return '';
     }
   };
   
-  const [startDate, setStartDate] = useState(parseDate(trip.startDate));
-  const [endDate, setEndDate] = useState(parseDate(trip.endDate));
-  const [status, setStatus] = useState(trip.status || 'planning');
-  const [loading, setLoading] = useState(false);
+  const [startDate, setStartDate] = useState(formatDefaultDate(trip.startDate));
+  const [endDate, setEndDate] = useState(formatDefaultDate(trip.endDate));
+  
+  console.log("Initial form values:", {
+    name,
+    destination,
+    startDate,
+    endDate,
+    status,
+    tripStartDate: trip.startDate,
+    tripEndDate: trip.endDate
+  });
   
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     
     try {
-      // Format dates for API submission
-      // Whether the user has entered a date or not, we always send a value
-      // This ensures null is properly sent when a date is cleared
-      
-      // Process startDate (from YYYY-MM-DD string to date object)
-      let startDateIso = null;
-      if (startDate && startDate.trim() !== '') {
-        // Create a date at noon to avoid timezone issues
-        const startDateTime = new Date(startDate + 'T12:00:00Z');
-        startDateIso = startDateTime.toISOString();
-        console.log("Parsed start date:", startDate, "->", startDateTime, "->", startDateIso);
-      }
-      
-      // Process endDate (from YYYY-MM-DD string to date object)
-      let endDateIso = null;
-      if (endDate && endDate.trim() !== '') {
-        // Create a date at noon to avoid timezone issues
-        const endDateTime = new Date(endDate + 'T12:00:00Z');
-        endDateIso = endDateTime.toISOString();
-        console.log("Parsed end date:", endDate, "->", endDateTime, "->", endDateIso);
-      }
-      
-      // Build a complete payload with all fields, ensuring we explicitly send nulls for empty dates
-      const payload = {
+      console.log("Form submitted with values:", {
         name,
         destination,
-        startDate: startDateIso,
-        endDate: endDateIso,
+        startDate,
+        endDate,
+        status
+      });
+      
+      // Create the basic payload
+      const payload: any = {
+        name,
+        destination,
         status
       };
       
-      console.log("Final date values:", {
-        rawStartDate: startDate,
-        rawEndDate: endDate,
-        formattedStartDate: startDateIso,
-        formattedEndDate: endDateIso
-      });
+      // Add date handling with explicit null handling
+      payload.startDate = startDate ? `${startDate}T12:00:00Z` : null;
+      payload.endDate = endDate ? `${endDate}T12:00:00Z` : null;
       
       console.log("Sending trip update with payload:", payload);
       
-      // Make a direct fetch request
+      // Use the fetch API directly (no React Query)
       const response = await fetch(`/api/trips/${trip.id}`, {
         method: 'PUT',
         headers: {
@@ -106,11 +98,31 @@ function TripQuickEdit({ trip, onSuccess }: { trip: Trip, onSuccess: () => void 
         credentials: 'include',
       });
       
-      const text = await response.text();
-      console.log(`Server response (${response.status}):`, text);
+      // Better response handling
+      let responseData;
+      try {
+        // Try to parse as JSON first
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          responseData = await response.json();
+        } else {
+          responseData = await response.text();
+        }
+      } catch (err) {
+        responseData = await response.text();
+      }
+      
+      console.log("Server response:", {
+        status: response.status,
+        data: responseData
+      });
       
       if (!response.ok) {
-        throw new Error(`Server returned ${response.status}: ${text.substring(0, 100)}`);
+        throw new Error(`Server returned ${response.status}: ${
+          typeof responseData === 'string' 
+            ? responseData.substring(0, 100) 
+            : JSON.stringify(responseData)
+        }`);
       }
       
       // Success
