@@ -275,8 +275,14 @@ export default function TripDetailsPage() {
   useEffect(() => {
     if (trip) {
       console.log("Trip access level:", trip._accessLevel);
+      
+      // If URL has edit=true parameter and the trip is loaded, activate edit mode
+      if (shouldStartEditing && trip._accessLevel === 'owner') {
+        console.log("Activating edit mode from URL parameter");
+        setIsEditingTrip(true);
+      }
     }
-  }, [trip]);
+  }, [trip, shouldStartEditing]);
 
   // Get itinerary items
   const { data: itineraryItems, isLoading: isLoadingItinerary } = useQuery<ItineraryItem[]>({
