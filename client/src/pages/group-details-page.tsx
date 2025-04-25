@@ -285,7 +285,24 @@ export default function GroupDetailsPage() {
   };
   
   const onInviteUserSubmit = (values: InviteUserValues) => {
-    inviteUserMutation.mutate(values);
+    // Phone validation - ensure it's exactly 10 digits if provided
+    const phoneNumber = values.phoneNumber ? values.phoneNumber.replace(/\D/g, '') : values.phoneNumber;
+    
+    if (phoneNumber && phoneNumber.length !== 10) {
+      inviteUserForm.setError("phoneNumber", {
+        type: "manual",
+        message: "Phone number must be exactly 10 digits"
+      });
+      return;
+    }
+    
+    // Update the value with the cleaned phone number
+    const updatedValues = {
+      ...values,
+      phoneNumber: phoneNumber
+    };
+    
+    inviteUserMutation.mutate(updatedValues);
   };
 
   if (isLoadingGroup) {
@@ -483,12 +500,35 @@ export default function GroupDetailsPage() {
                             <label className="text-sm font-medium" htmlFor="invite-phone">
                               Phone Number (Optional)
                             </label>
-                            <Input
-                              id="invite-phone"
-                              placeholder="10 digits only (e.g., 5551234567)"
-                              value={inviteUserForm.watch("phoneNumber") || ""}
-                              onChange={(e) => inviteUserForm.setValue("phoneNumber", e.target.value)}
-                            />
+                            <div className="relative">
+                              <Input
+                                id="invite-phone"
+                                placeholder="10 digits only (e.g., 5551234567)"
+                                value={inviteUserForm.watch("phoneNumber") || ""}
+                                maxLength={10}
+                                onKeyPress={(e) => {
+                                  // Only allow number keys
+                                  if (!/[0-9]/.test(e.key)) {
+                                    e.preventDefault();
+                                  }
+                                }}
+                                onChange={(e) => {
+                                  // Only allow digits
+                                  const digitsOnly = e.target.value.replace(/\D/g, '');
+                                  inviteUserForm.setValue("phoneNumber", digitsOnly);
+                                  
+                                  // Clear phone number error when editing
+                                  if (inviteUserForm.formState.errors.phoneNumber) {
+                                    inviteUserForm.clearErrors("phoneNumber");
+                                  }
+                                }}
+                              />
+                              {inviteUserForm.watch("phoneNumber") && (
+                                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs">
+                                  {(inviteUserForm.watch("phoneNumber")?.length || 0)}/10
+                                </div>
+                              )}
+                            </div>
                             <p className="text-xs text-muted-foreground">
                               Must be exactly 10 digits (formatting will be handled)
                             </p>
