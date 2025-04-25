@@ -282,8 +282,15 @@ export default function TripDetailsPage() {
     shouldStartEditing
   });
   
+  // Get tab from URL query parameter
+  const tabParam = urlObj.searchParams.get('tab');
+  const defaultTab = tabParam && ['info', 'itinerary', 'expenses', 'vehicles', 'drivers', 'tracking'].includes(tabParam) 
+    ? tabParam 
+    : 'info';
+    
   const [isEditingTrip, setIsEditingTrip] = useState(shouldStartEditing);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [activeTab, setActiveTab] = useState(defaultTab);
 
   // Get trip details directly from the specific endpoint to get access level info
   const { data: trip, isLoading: isLoadingTrip, refetch: refetchTrip } = useQuery<Trip>({
@@ -497,6 +504,17 @@ export default function TripDetailsPage() {
   useEffect(() => {
     console.log("Expenses data:", expenses);
   }, [expenses]);
+  
+  // Listen for URL changes to update tab
+  useEffect(() => {
+    const currentUrl = new URL(window.location.href);
+    const tabFromUrl = currentUrl.searchParams.get('tab');
+    
+    if (tabFromUrl && ['info', 'itinerary', 'expenses', 'vehicles', 'drivers', 'tracking'].includes(tabFromUrl)) {
+      console.log("Setting active tab from URL parameter:", tabFromUrl);
+      setActiveTab(tabFromUrl);
+    }
+  }, [location]); // Update when location changes
 
   // Filter transportation activities (with fromLocation and toLocation)
   const transportActivities = itineraryItems?.filter(item => 
@@ -650,7 +668,7 @@ export default function TripDetailsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left column - Itinerary and expenses */}
           <div className="lg:col-span-2">
-            <Tabs defaultValue="info">
+            <Tabs defaultValue={activeTab} onValueChange={(value) => setActiveTab(value)}>
               <TabsList>
                 <TabsTrigger value="info">Trip Info</TabsTrigger>
                 <TabsTrigger value="itinerary">Itinerary</TabsTrigger>
