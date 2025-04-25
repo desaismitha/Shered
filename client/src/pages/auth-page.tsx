@@ -2,7 +2,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useAuth } from "@/hooks/use-auth";
-import { useLocation, Redirect } from "wouter";
+import { useLocation, Redirect, Link } from "wouter";
 import { useState } from "react";
 import { Plane } from "lucide-react";
 
@@ -175,7 +175,14 @@ export default function AuthPage() {
                       name="password"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Password</FormLabel>
+                          <div className="flex items-center justify-between">
+                            <FormLabel>Password</FormLabel>
+                            <Link href="/forgot-password">
+                              <Button variant="link" className="px-0 text-sm h-auto" type="button">
+                                Forgot password?
+                              </Button>
+                            </Link>
+                          </div>
                           <FormControl>
                             <Input type="password" placeholder="Password" {...field} />
                           </FormControl>

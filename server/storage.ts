@@ -1,7 +1,7 @@
 import { users, groups, groupMembers, trips, itineraryItems, expenses, messages } from "@shared/schema";
 import type { User, InsertUser, Group, InsertGroup, GroupMember, InsertGroupMember, Trip, InsertTrip, ItineraryItem, InsertItineraryItem, Expense, InsertExpense, Message, InsertMessage } from "@shared/schema";
 import session from "express-session";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, inArray, gt } from "drizzle-orm";
 import { db, pool, attemptReconnect, checkDbConnection } from "./db";
 import connectPg from "connect-pg-simple";
 
