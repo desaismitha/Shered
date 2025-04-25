@@ -1,7 +1,7 @@
 import { users, groups, groupMembers, trips, itineraryItems, expenses, messages, vehicles, tripVehicles } from "@shared/schema";
 import type { User, InsertUser, Group, InsertGroup, GroupMember, InsertGroupMember, Trip, InsertTrip, ItineraryItem, InsertItineraryItem, Expense, InsertExpense, Message, InsertMessage, Vehicle, InsertVehicle, TripVehicle, InsertTripVehicle } from "@shared/schema";
 import session from "express-session";
-import { eq, and, inArray, gt } from "drizzle-orm";
+import { eq, ne, and, inArray, gt } from "drizzle-orm";
 import { db, pool, attemptReconnect, checkDbConnection } from "./db";
 import connectPg from "connect-pg-simple";
 
@@ -64,6 +64,7 @@ export interface IStorage {
   assignVehicleToTrip(tripVehicle: InsertTripVehicle): Promise<TripVehicle>;
   removeTripVehicle(id: number): Promise<boolean>;
   getTripVehicles(tripId: number): Promise<TripVehicle[]>;
+  updateTripVehicle(id: number, data: Partial<InsertTripVehicle>): Promise<TripVehicle | undefined>;
   
   // Session store
   sessionStore: any;
@@ -598,6 +599,49 @@ export class DatabaseStorage implements IStorage {
     return this.executeDbOperation(async () => {
       return await db.select().from(tripVehicles)
         .where(eq(tripVehicles.tripId, tripId));
+    });
+  }
+  
+  async updateTripVehicle(id: number, data: Partial<InsertTripVehicle>): Promise<TripVehicle | undefined> {
+    return this.executeDbOperation(async () => {
+      console.log("[STORAGE] Updating trip vehicle:", id, "with data:", JSON.stringify(data));
+      
+      // First check if trip vehicle exists
+      const tripVehicleList = await db.select().from(tripVehicles).where(eq(tripVehicles.id, id));
+      if (!tripVehicleList.length) {
+        console.error(`[STORAGE] Trip vehicle with ID ${id} not found`);
+        return undefined;
+      }
+      
+      // Make a copy of data to avoid modifying the original
+      const updateData = { ...data };
+      
+      // Never update these fields
+      delete updateData.tripId;
+      delete updateData.vehicleId;
+      
+      // If setting this as main, unset other vehicles as main
+      if (updateData.isMain) {
+        const tripId = tripVehicleList[0].tripId;
+        await db.update(tripVehicles)
+          .set({ isMain: false })
+          .where(
+            and(
+              eq(tripVehicles.tripId, tripId),
+              ne(tripVehicles.id, id)
+            )
+          );
+      }
+      
+      // Execute the update
+      const [updatedTripVehicle] = await db
+        .update(tripVehicles)
+        .set(updateData)
+        .where(eq(tripVehicles.id, id))
+        .returning();
+      
+      console.log("[STORAGE] Updated trip vehicle result:", JSON.stringify(updatedTripVehicle));
+      return updatedTripVehicle;
     });
   }
 }
