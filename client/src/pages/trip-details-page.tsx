@@ -6,11 +6,6 @@ import { useParams, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { format } from "date-fns";
-
-// Extended Trip type with access level from the backend
-interface Trip extends BaseTrip {
-  _accessLevel?: 'owner' | 'member';
-}
 import { 
   Calendar, MapPin, Users, PlusIcon, PencilIcon, 
   DollarSign, ClipboardList, Info, ArrowLeft
@@ -27,6 +22,110 @@ import { ExpenseCard } from "@/components/expenses/expense-card";
 import { ExpenseForm } from "@/components/expenses/expense-form";
 import { useToast } from "@/hooks/use-toast";
 
+// Extended Trip type with access level from the backend
+interface Trip extends BaseTrip {
+  _accessLevel?: 'owner' | 'member';
+}
+
+// Simple edit form component to edit trip directly on the details page
+function TripQuickEdit({ trip, onSuccess }: { trip: Trip, onSuccess: () => void }) {
+  const { toast } = useToast();
+  const [name, setName] = useState(trip.name);
+  const [destination, setDestination] = useState(trip.destination);
+  const [loading, setLoading] = useState(false);
+  
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    
+    try {
+      // Build a minimal payload with just what we're changing
+      const payload = {
+        name,
+        destination
+      };
+      
+      console.log("Sending trip update with payload:", payload);
+      
+      // Make a direct fetch request
+      const response = await fetch(`/api/trips/${trip.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+        credentials: 'include',
+      });
+      
+      const text = await response.text();
+      console.log(`Server response (${response.status}):`, text);
+      
+      if (!response.ok) {
+        throw new Error(`Server returned ${response.status}: ${text.substring(0, 100)}`);
+      }
+      
+      // Success
+      toast({
+        title: "Trip updated",
+        description: "Trip details have been updated successfully!"
+      });
+      
+      // Let parent know to refresh data
+      onSuccess();
+    } catch (error) {
+      console.error("Failed to update trip:", error);
+      toast({
+        title: "Update failed",
+        description: error instanceof Error ? error.message : "Unknown error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }
+  
+  return (
+    <div className="p-4 border rounded-md bg-white">
+      <h3 className="text-lg font-semibold mb-4">Quick Edit Trip</h3>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            Trip Name
+          </label>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="w-full p-2 border rounded-md"
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            Destination
+          </label>
+          <input
+            type="text"
+            value={destination}
+            onChange={(e) => setDestination(e.target.value)}
+            className="w-full p-2 border rounded-md"
+            required
+          />
+        </div>
+        <div className="flex justify-end">
+          <button
+            type="submit"
+            disabled={loading}
+            className="bg-primary text-white px-4 py-2 rounded-md hover:bg-primary/90 disabled:opacity-50"
+          >
+            {loading ? "Saving..." : "Save Changes"}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
 export default function TripDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const tripId = parseInt(id);
@@ -35,9 +134,11 @@ export default function TripDetailsPage() {
   const { toast } = useToast();
   const [isAddingItinerary, setIsAddingItinerary] = useState(false);
   const [isAddingExpense, setIsAddingExpense] = useState(false);
+  const [isEditingTrip, setIsEditingTrip] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   // Get trip details directly from the specific endpoint to get access level info
-  const { data: trip, isLoading: isLoadingTrip } = useQuery<Trip>({
+  const { data: trip, isLoading: isLoadingTrip, refetch: refetchTrip } = useQuery<Trip>({
     queryKey: ["/api/trips", tripId],
     enabled: !!tripId,
   });
@@ -88,6 +189,12 @@ export default function TripDetailsPage() {
     queryKey: ["/api/users"],
     enabled: !!groupMembers,
   });
+  
+  // Handler for successful trip edit
+  const handleTripEditSuccess = () => {
+    setIsEditingTrip(false);
+    refetchTrip();
+  };
   
   // Debug output
   useEffect(() => {
@@ -274,6 +381,69 @@ export default function TripDetailsPage() {
                 <TabsTrigger value="expenses">Expenses</TabsTrigger>
               </TabsList>
               
+              {/* Trip Info tab */}
+              <TabsContent value="info">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between">
+                    <CardTitle>Trip Information</CardTitle>
+                    {trip._accessLevel === 'owner' && !isEditingTrip && (
+                      <Button 
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setIsEditingTrip(true)}
+                      >
+                        <PencilIcon className="h-4 w-4 mr-2" />
+                        Edit Trip
+                      </Button>
+                    )}
+                  </CardHeader>
+                  <CardContent>
+                    {isEditingTrip ? (
+                      <TripQuickEdit trip={trip} onSuccess={handleTripEditSuccess} />
+                    ) : (
+                      <>
+                        {trip.description ? (
+                          <div className="mb-6">
+                            <h3 className="font-medium text-neutral-800 mb-2">Description</h3>
+                            <p className="text-neutral-600">{trip.description}</p>
+                          </div>
+                        ) : null}
+                        
+                        <div className="space-y-4">
+                          <div>
+                            <h3 className="font-medium text-neutral-800 mb-2">Trip Details</h3>
+                            <div className="border rounded-md overflow-hidden">
+                              <div className="grid grid-cols-1 md:grid-cols-2">
+                                <div className="p-4 border-b md:border-r">
+                                  <p className="text-sm text-neutral-500 mb-1">Trip Name</p>
+                                  <p className="font-medium">{trip.name}</p>
+                                </div>
+                                <div className="p-4 border-b">
+                                  <p className="text-sm text-neutral-500 mb-1">Destination</p>
+                                  <p className="font-medium">{trip.destination}</p>
+                                </div>
+                                <div className="p-4 border-b md:border-b-0 md:border-r">
+                                  <p className="text-sm text-neutral-500 mb-1">Start Date</p>
+                                  <p className="font-medium">
+                                    {trip.startDate ? format(new Date(trip.startDate), 'MMMM d, yyyy') : 'Not specified'}
+                                  </p>
+                                </div>
+                                <div className="p-4">
+                                  <p className="text-sm text-neutral-500 mb-1">End Date</p>
+                                  <p className="font-medium">
+                                    {trip.endDate ? format(new Date(trip.endDate), 'MMMM d, yyyy') : 'Not specified'}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              
               {/* Itinerary tab */}
               <TabsContent value="itinerary">
                 <Card>
@@ -407,13 +577,10 @@ export default function TripDetailsPage() {
                       <div className="space-y-4">
                         {expenses
                           .sort((a, b) => {
-                            if (!a.date || !b.date) return 0;
-                            try {
-                              return new Date(b.date).getTime() - new Date(a.date).getTime();
-                            } catch (err) {
-                              console.error("Error sorting dates:", err);
-                              return 0;
-                            }
+                            // Sort by date descending (most recent first)
+                            const dateA = a.createdAt ? new Date(a.createdAt) : new Date(0);
+                            const dateB = b.createdAt ? new Date(b.createdAt) : new Date(0);
+                            return dateB.getTime() - dateA.getTime();
                           })
                           .map(expense => (
                             <ExpenseCard 
@@ -427,8 +594,8 @@ export default function TripDetailsPage() {
                     ) : (
                       <div className="text-center py-8">
                         <DollarSign className="h-12 w-12 text-neutral-300 mx-auto mb-3" />
-                        <h3 className="text-lg font-medium text-neutral-700 mb-1">No expenses added yet</h3>
-                        <p className="text-neutral-500 mb-6">Track your trip spending by adding expenses</p>
+                        <h3 className="text-lg font-medium text-neutral-700 mb-1">No expenses yet</h3>
+                        <p className="text-neutral-500 mb-6">Start tracking trip expenses</p>
                         {trip._accessLevel && (
                           <Button onClick={() => setIsAddingExpense(true)}>
                             <PlusIcon className="h-4 w-4 mr-2" />
@@ -437,54 +604,6 @@ export default function TripDetailsPage() {
                         )}
                       </div>
                     )}
-                  </CardContent>
-                </Card>
-              </TabsContent>
-              
-              {/* Trip Info tab */}
-              <TabsContent value="info">
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle>Trip Information</CardTitle>
-                    {trip._accessLevel === 'owner' && (
-                      <Button 
-                        size="sm"
-                        variant="outline"
-                        onClick={() => navigate(`/trips/edit/${trip.id}`)}
-                      >
-                        <PencilIcon className="h-4 w-4 mr-2" />
-                        Edit Trip
-                      </Button>
-                    )}
-                  </CardHeader>
-                  <CardContent>
-                    {trip.description ? (
-                      <div className="mb-6">
-                        <h3 className="font-medium text-neutral-800 mb-2">Description</h3>
-                        <p className="text-neutral-600">{trip.description}</p>
-                      </div>
-                    ) : (
-                      <div className="mb-6">
-                        <h3 className="font-medium text-neutral-800 mb-2">Description</h3>
-                        <p className="text-neutral-500 italic">No description added</p>
-                      </div>
-                    )}
-                    
-                    <div className="mb-6">
-                      <h3 className="font-medium text-neutral-800 mb-2">Date</h3>
-                      <div className="flex items-center text-neutral-600">
-                        <Calendar className="h-4 w-4 mr-2 text-neutral-500" />
-                        {formatDateRange(trip.startDate, trip.endDate)}
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <h3 className="font-medium text-neutral-800 mb-2">Location</h3>
-                      <div className="flex items-center text-neutral-600">
-                        <MapPin className="h-4 w-4 mr-2 text-neutral-500" />
-                        {trip.destination}
-                      </div>
-                    </div>
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -498,11 +617,11 @@ export default function TripDetailsPage() {
                 <CardTitle>Trip Members</CardTitle>
               </CardHeader>
               <CardContent>
-                {isLoadingGroupMembers ? (
-                  <div className="space-y-4">
+                {isLoadingGroupMembers || isLoadingUsers ? (
+                  <div className="space-y-3">
                     {[...Array(3)].map((_, i) => (
-                      <div key={i} className="flex items-center">
-                        <Skeleton className="h-10 w-10 rounded-full mr-3" />
+                      <div key={i} className="flex items-center space-x-3">
+                        <Skeleton className="h-10 w-10 rounded-full" />
                         <div>
                           <Skeleton className="h-4 w-24 mb-1" />
                           <Skeleton className="h-3 w-16" />
@@ -510,38 +629,29 @@ export default function TripDetailsPage() {
                       </div>
                     ))}
                   </div>
-                ) : trip && users ? (
-                  <div className="space-y-4">
-                    {/* Force show the trip creator as a member since the API is not returning members correctly */}
-                    <div className="flex items-center">
-                      <div className="w-10 h-10 rounded-full bg-neutral-200 text-neutral-600 flex items-center justify-center mr-3">
-                        {users.find(u => u.id === trip.createdBy)?.displayName?.[0] || "U"}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium text-neutral-800">
-                            {users.find(u => u.id === trip.createdBy)?.displayName}
-                          </p>
-                          {trip._accessLevel === 'owner' ? (
-                            <Badge variant="outline" className="text-xs py-0 h-5 bg-amber-50 text-amber-800 border-amber-200">
-                              You
-                            </Badge>
-                          ) : null}
+                ) : groupMembers && groupMembers.length > 0 ? (
+                  <div className="space-y-3">
+                    {groupMembers.map(member => {
+                      const memberUser = users?.find(u => u.id === member.userId);
+                      return (
+                        <div key={member.id} className="flex items-center space-x-3">
+                          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium">
+                            {memberUser?.displayName?.charAt(0) || memberUser?.username?.charAt(0) || '?'}
+                          </div>
+                          <div>
+                            <p className="font-medium">
+                              {memberUser?.displayName || memberUser?.username || 'Unknown user'}
+                            </p>
+                            <p className="text-sm text-neutral-500">
+                              {member.userId === trip.createdBy ? "Trip Organizer" : "Member"}
+                            </p>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <p className="text-xs text-neutral-500">
-                            Trip Organizer
-                          </p>
-                          <Badge variant="secondary" className="text-xs py-0 h-5">
-                            Admin
-                          </Badge>
-                        </div>
-                      </div>
-                    </div>
+                      );
+                    })}
                   </div>
                 ) : (
-                  <div className="text-center py-6">
-                    <Users className="h-8 w-8 text-neutral-300 mx-auto mb-2" />
+                  <div className="text-center py-4">
                     <p className="text-neutral-500">No members found</p>
                   </div>
                 )}
