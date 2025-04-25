@@ -376,12 +376,43 @@ export class DatabaseStorage implements IStorage {
         
         console.log("[STORAGE] Final update data:", JSON.stringify(updateData));
         
-        // Execute the update
-        const [updatedTrip] = await db
-          .update(trips)
-          .set(updateData)
-          .where(eq(trips.id, id))
-          .returning();
+        // Execute the update - make absolutely sure we include startLocation by hardcoding it if needed
+        // This is a workaround for an apparent issue with the updateData object
+        let missingStartLocation = false;
+        if (tripData.startLocation !== undefined && updateData.startLocation === undefined) {
+          console.log("[STORAGE] PROBLEM DETECTED: startLocation was in tripData but not in updateData. Force-adding it.");
+          updateData.startLocation = tripData.startLocation;
+          missingStartLocation = true;
+        }
+        
+        // Directly log all properties and values of updateData object
+        console.log("[STORAGE] updateData object properties:");
+        for (const key in updateData) {
+          console.log(`${key}: ${updateData[key]}`);
+        }
+        
+        // If we're still missing startLocation but we know it should be set, use a direct update
+        let updatedTrip;
+        if (missingStartLocation) {
+          console.log("[STORAGE] Using direct column reference for startLocation");
+          const [result] = await db
+            .update(trips)
+            .set({
+              ...updateData,
+              startLocation: tripData.startLocation
+            })
+            .where(eq(trips.id, id))
+            .returning();
+          updatedTrip = result;
+        } else {
+          // Normal update
+          const [result] = await db
+            .update(trips)
+            .set(updateData)
+            .where(eq(trips.id, id))
+            .returning();
+          updatedTrip = result;
+        }
         
         console.log("[STORAGE] Updated trip result:", JSON.stringify(updatedTrip));
         return updatedTrip;
