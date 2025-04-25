@@ -13,10 +13,30 @@ export function ExpenseCard({ expense, users }: ExpenseCardProps) {
   // Find the user who paid
   const paidByUser = users.find(user => user.id === expense.paidBy);
   
+  // Parse splitAmong - it could be either an array or a JSON string
+  let splitAmongArray: number[] = [];
+  
+  try {
+    if (typeof expense.splitAmong === 'string') {
+      // Parse the JSON string to get the array
+      splitAmongArray = JSON.parse(expense.splitAmong);
+      console.log("Parsed splitAmong from string:", splitAmongArray);
+    } else if (Array.isArray(expense.splitAmong)) {
+      // It's already an array
+      splitAmongArray = expense.splitAmong;
+      console.log("Using splitAmong array directly:", splitAmongArray);
+    } else {
+      // Default to empty array if undefined or other type
+      console.log("Using default empty array for splitAmong");
+    }
+  } catch (err) {
+    console.error("Error parsing splitAmong:", err);
+    // Default to empty array if parsing fails
+  }
+  
   // Calculate cost per person
-  const splitAmong = expense.splitAmong || [];
-  const perPersonAmount = splitAmong.length > 0 
-    ? expense.amount / splitAmong.length 
+  const perPersonAmount = splitAmongArray.length > 0 
+    ? expense.amount / splitAmongArray.length 
     : expense.amount;
 
   return (
@@ -56,8 +76,8 @@ export function ExpenseCard({ expense, users }: ExpenseCardProps) {
               </span>
             </p>
             <p className="text-sm text-neutral-600">
-              Split among {splitAmong.length} people
-              {splitAmong.length > 0 && (
+              Split among {splitAmongArray.length} people
+              {splitAmongArray.length > 0 && (
                 <span className="ml-1">
                   (${(perPersonAmount / 100).toFixed(2)} each)
                 </span>
@@ -66,7 +86,7 @@ export function ExpenseCard({ expense, users }: ExpenseCardProps) {
           </div>
           
           <div className="flex -space-x-2">
-            {splitAmong.slice(0, 5).map((userId, index) => {
+            {splitAmongArray.slice(0, 5).map((userId, index) => {
               const user = users.find(u => u.id === userId);
               return (
                 <div 
@@ -79,9 +99,9 @@ export function ExpenseCard({ expense, users }: ExpenseCardProps) {
               );
             })}
             
-            {splitAmong.length > 5 && (
+            {splitAmongArray.length > 5 && (
               <div className="w-8 h-8 rounded-full bg-neutral-200 border-2 border-white flex items-center justify-center text-xs text-neutral-600">
-                +{splitAmong.length - 5}
+                +{splitAmongArray.length - 5}
               </div>
             )}
           </div>
