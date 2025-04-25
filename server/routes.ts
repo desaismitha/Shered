@@ -523,22 +523,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Authorization check passed - User is the creator of this trip");
       
       try {
-        // Create a modified schema that accepts date strings
-        const modifiedTripSchema = insertTripSchema
-          .extend({
-            id: z.number().optional(),
-            startDate: z.union([
-              z.string().transform(val => new Date(val)),
-              z.date()
-            ]),
-            endDate: z.union([
-              z.string().transform(val => new Date(val)),
-              z.date()
-            ]),
-            createdBy: z.number().optional(), // Make createdBy optional
-            createdAt: z.date().optional() // Make createdAt optional
-          })
-          .partial();
+        // Create a simplified schema that accepts date strings and null values directly
+        // This avoids complex transformations that might cause issues
+        const modifiedTripSchema = z.object({
+          id: z.number().optional(),
+          name: z.string().optional(),
+          destination: z.string().optional(),
+          description: z.string().nullable().optional(),
+          imageUrl: z.string().nullable().optional(),
+          status: z.string().optional(),
+          startDate: z.union([z.string(), z.date(), z.null()]).optional(),
+          endDate: z.union([z.string(), z.date(), z.null()]).optional(),
+          groupId: z.number().optional(),
+          createdBy: z.number().optional(),
+          createdAt: z.date().optional()
+        });
         
         // Validate the request data
         const parsedData = modifiedTripSchema.safeParse(req.body);

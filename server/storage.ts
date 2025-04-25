@@ -32,7 +32,7 @@ export interface IStorage {
   // Trip methods
   createTrip(trip: InsertTrip): Promise<Trip>;
   getTrip(id: number): Promise<Trip | undefined>;
-  updateTrip(id: number, trip: Partial<InsertTrip>): Promise<Trip | undefined>;
+  updateTrip(id: number, trip: Record<string, any>): Promise<Trip | undefined>;
   getTripsByUserId(userId: number): Promise<Trip[]>;
   getTripsByGroupId(groupId: number): Promise<Trip[]>;
   
@@ -186,7 +186,7 @@ export class DatabaseStorage implements IStorage {
     }, 2); // Try up to 2 retries for this critical method
   }
   
-  async updateTrip(id: number, tripData: Partial<InsertTrip>): Promise<Trip | undefined> {
+  async updateTrip(id: number, tripData: Record<string, any>): Promise<Trip | undefined> {
     return this.executeDbOperation(async () => {
       try {
         console.log("[STORAGE] Updating trip: ", id, "with data:", JSON.stringify(tripData));
@@ -209,16 +209,34 @@ export class DatabaseStorage implements IStorage {
         if (tripData.status !== undefined) updateData.status = tripData.status;
         if (tripData.groupId !== undefined) updateData.groupId = tripData.groupId;
         
-        // Handle dates specially to ensure they're Date objects
-        // Important: checking for undefined/null separately (startDate could be present but null)
+        // Very simple date handling - pass the values directly to the database
+        // This avoids any transformation issues
         if (tripData.startDate !== undefined) {
-          console.log("[STORAGE] Processing startDate:", tripData.startDate, typeof tripData.startDate);
-          updateData.startDate = tripData.startDate ? new Date(tripData.startDate) : null;
+          console.log("[STORAGE] Raw startDate:", tripData.startDate, typeof tripData.startDate);
+          
+          // If it's a string or Date, use it directly
+          // If it's null or empty string, set to null
+          if (tripData.startDate === null || tripData.startDate === '') {
+            updateData.startDate = null;
+            console.log("[STORAGE] Setting startDate to NULL");
+          } else {
+            updateData.startDate = tripData.startDate;
+            console.log("[STORAGE] Using startDate as-is:", updateData.startDate);
+          }
         }
         
         if (tripData.endDate !== undefined) {
-          console.log("[STORAGE] Processing endDate:", tripData.endDate, typeof tripData.endDate);
-          updateData.endDate = tripData.endDate ? new Date(tripData.endDate) : null;
+          console.log("[STORAGE] Raw endDate:", tripData.endDate, typeof tripData.endDate);
+          
+          // If it's a string or Date, use it directly
+          // If it's null or empty string, set to null
+          if (tripData.endDate === null || tripData.endDate === '') {
+            updateData.endDate = null;
+            console.log("[STORAGE] Setting endDate to NULL");
+          } else {
+            updateData.endDate = tripData.endDate;
+            console.log("[STORAGE] Using endDate as-is:", updateData.endDate);
+          }
         }
         
         // Never update the creator or creation date

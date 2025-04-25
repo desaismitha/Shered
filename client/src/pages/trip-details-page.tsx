@@ -75,16 +75,22 @@ function TripQuickEdit({ trip, onSuccess }: { trip: Trip, onSuccess: () => void 
         status
       });
       
-      // Create the basic payload
-      const payload: any = {
+      // Create full payload with explicit null values for dates
+      const payload = {
         name,
         destination,
-        status
+        status,
+        startDate: startDate ? `${startDate}T12:00:00Z` : null,
+        endDate: endDate ? `${endDate}T12:00:00Z` : null
       };
       
-      // Add date handling with explicit null handling
-      payload.startDate = startDate ? `${startDate}T12:00:00Z` : null;
-      payload.endDate = endDate ? `${endDate}T12:00:00Z` : null;
+      // Extra debugging for date values
+      console.log("Date strings before submit:", {
+        startDate,
+        endDate,
+        formattedStart: payload.startDate,
+        formattedEnd: payload.endDate
+      });
       
       console.log("Sending trip update with payload:", payload);
       
