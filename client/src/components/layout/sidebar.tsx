@@ -1,6 +1,6 @@
 import { useAuth } from "@/hooks/use-auth";
 import { Link, useLocation } from "wouter";
-import { Plane, LayoutDashboard, Users, Calendar, DollarSign, MessageSquare, Settings, LogOut } from "lucide-react";
+import { Plane, LayoutDashboard, Users, Calendar, DollarSign, MessageSquare, Settings, LogOut, Car } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DbResetButton } from "@/components/ui/db-reset-button";
 
@@ -16,6 +16,7 @@ export function Sidebar() {
     { icon: LayoutDashboard, label: "Dashboard", href: "/" },
     { icon: Users, label: "My Groups", href: "/groups" },
     { icon: Calendar, label: "Upcoming Trips", href: "/trips" },
+    { icon: Car, label: "My Vehicles", href: "/vehicles" },
     { icon: DollarSign, label: "Expenses", href: "/expenses" },
     { icon: MessageSquare, label: "Messages", href: "/messages" },
   ];
