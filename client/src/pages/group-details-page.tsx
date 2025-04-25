@@ -109,14 +109,8 @@ export default function GroupDetailsPage() {
 
   // Schema for inviting a new user (who doesn't have an account yet)
   const inviteUserSchema = z.object({
-    email: z.string()
-      .min(1, "Email is required")
-      .email("Please enter a valid email address"),
-    phoneNumber: z.string()
-      .optional()
-      .refine(val => !val || /^\+?[0-9\s\(\)-]{7,}$/.test(val), {
-        message: "Please enter a valid phone number"
-      }),
+    email: z.string().email("Please enter a valid email address"),
+    phoneNumber: z.string().optional(),
     role: z.enum(["member", "admin"]).default("member"),
   });
 
@@ -438,41 +432,43 @@ export default function GroupDetailsPage() {
                     ) : (
                       <Form {...inviteUserForm}>
                         <form onSubmit={inviteUserForm.handleSubmit(onInviteUserSubmit)} className="space-y-4">
-                          <FormField
-                            control={inviteUserForm.control}
-                            name="email"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Email Address</FormLabel>
-                                <FormControl>
-                                  <Input 
-                                    type="text" 
-                                    placeholder="email@example.com" 
-                                    {...field} 
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium" htmlFor="invite-email">
+                              Email Address
+                            </label>
+                            <input
+                              id="invite-email"
+                              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                              type="text"
+                              placeholder="email@example.com"
+                              value={inviteUserForm.watch("email")}
+                              onChange={(e) => inviteUserForm.setValue("email", e.target.value)}
+                            />
+                            {inviteUserForm.formState.errors.email && (
+                              <p className="text-sm font-medium text-destructive">
+                                {inviteUserForm.formState.errors.email.message}
+                              </p>
                             )}
-                          />
+                          </div>
                           
-                          <FormField
-                            control={inviteUserForm.control}
-                            name="phoneNumber"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Phone Number (Optional)</FormLabel>
-                                <FormControl>
-                                  <Input 
-                                    type="text" 
-                                    placeholder="+1 (555) 123-4567" 
-                                    {...field} 
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium" htmlFor="invite-phone">
+                              Phone Number (Optional)
+                            </label>
+                            <input
+                              id="invite-phone"
+                              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                              type="text"
+                              placeholder="+1 (555) 123-4567"
+                              value={inviteUserForm.watch("phoneNumber") || ""}
+                              onChange={(e) => inviteUserForm.setValue("phoneNumber", e.target.value)}
+                            />
+                            {inviteUserForm.formState.errors.phoneNumber && (
+                              <p className="text-sm font-medium text-destructive">
+                                {inviteUserForm.formState.errors.phoneNumber.message}
+                              </p>
                             )}
-                          />
+                          </div>
                           
                           <FormField
                             control={inviteUserForm.control}
