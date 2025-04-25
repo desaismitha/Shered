@@ -720,18 +720,21 @@ export default function TripDetailsPage() {
                 <div className="space-y-4 py-2">
                   {itineraryItems.map((item) => (
                     <div key={item.id} className="flex items-start space-x-3 border-b pb-3">
-                      <Checkbox 
-                        id={`itinerary-${item.id}`}
-                        checked={selectedItineraryIds.includes(item.id)}
-                        onCheckedChange={() => toggleItinerarySelection(item.id)}
-                      />
-                      <div>
-                        <label 
-                          htmlFor={`itinerary-${item.id}`}
-                          className="font-medium cursor-pointer"
-                        >
+                      <div 
+                        className={`h-5 w-5 border border-gray-300 rounded flex items-center justify-center cursor-pointer ${
+                          selectedItineraryIds.includes(item.id) ? 'bg-primary border-primary' : 'bg-white'
+                        }`}
+                        onClick={() => toggleItinerarySelection(item.id)}
+                      >
+                        {selectedItineraryIds.includes(item.id) && (
+                          <div className="text-white text-xs">✓</div>
+                        )}
+                      </div>
+                      
+                      <div className="flex-1" onClick={() => toggleItinerarySelection(item.id)}>
+                        <div className="font-medium cursor-pointer">
                           {item.title}
-                        </label>
+                        </div>
                         <div className="text-sm text-muted-foreground">
                           {item.fromLocation && item.toLocation && (
                             <div className="mt-1">
