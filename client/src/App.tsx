@@ -17,6 +17,7 @@ import GroupDetailsPage from "@/pages/group-details-page";
 import NewGroupPage from "@/pages/groups/new";
 import ExpensesPage from "@/pages/expenses-page";
 import MessagesPage from "@/pages/messages-page";
+import { DbResetFloatingButton } from "@/components/ui/db-reset-floating-button";
 import { Route } from "wouter";
 
 function Router() {
@@ -45,6 +46,7 @@ function App() {
         <TooltipProvider>
           <Toaster />
           <Router />
+          <DbResetFloatingButton />
         </TooltipProvider>
       </AuthProvider>
     </QueryClientProvider>
