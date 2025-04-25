@@ -1,10 +1,12 @@
-import { Calendar, Users } from "lucide-react";
+import { Calendar, Users, Edit } from "lucide-react";
 import { format } from "date-fns";
 import { Trip } from "@shared/schema";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { GroupMember, User } from "@shared/schema";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/use-auth";
 
 interface TripCardProps {
   trip: Trip;
@@ -13,6 +15,9 @@ interface TripCardProps {
 export function TripCard({ trip }: TripCardProps) {
   // Debug output
   console.log("TripCard received trip data:", trip);
+  
+  const { user } = useAuth();
+  const [, navigate] = useLocation();
   
   // Get group members to display avatars
   const { data: groupMembers } = useQuery<GroupMember[]>({
@@ -24,6 +29,9 @@ export function TripCard({ trip }: TripCardProps) {
     queryKey: ["/api/users"],
     enabled: !!groupMembers,
   });
+  
+  // Check if user is the creator or admin
+  const isCreator = user?.id === trip.createdBy;
   
   const formatDateRange = (startDate: Date | string | null, endDate: Date | string | null) => {
     // Handle missing or invalid dates
@@ -137,12 +145,25 @@ export function TripCard({ trip }: TripCardProps) {
               </div>
             )}
           </div>
-          <Link 
-            href={`/trips/${trip.id}`}
-            className="text-primary-600 hover:text-primary-700 text-sm font-medium"
-          >
-            View Details
-          </Link>
+          <div className="flex items-center space-x-2">
+            {isCreator && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="flex items-center gap-1 text-neutral-500 hover:text-primary-600"
+                onClick={() => navigate(`/trips/edit/${trip.id}`)}
+              >
+                <Edit className="h-3 w-3" />
+                <span className="text-xs">Edit</span>
+              </Button>
+            )}
+            <Link 
+              href={`/trips/${trip.id}`}
+              className="text-primary-600 hover:text-primary-700 text-sm font-medium"
+            >
+              View Details
+            </Link>
+          </div>
         </div>
       </div>
     </div>
