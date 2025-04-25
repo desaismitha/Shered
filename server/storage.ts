@@ -210,8 +210,16 @@ export class DatabaseStorage implements IStorage {
         if (tripData.groupId !== undefined) updateData.groupId = tripData.groupId;
         
         // Handle dates specially to ensure they're Date objects
-        if (tripData.startDate) updateData.startDate = new Date(tripData.startDate);
-        if (tripData.endDate) updateData.endDate = new Date(tripData.endDate);
+        // Important: checking for undefined/null separately (startDate could be present but null)
+        if (tripData.startDate !== undefined) {
+          console.log("[STORAGE] Processing startDate:", tripData.startDate, typeof tripData.startDate);
+          updateData.startDate = tripData.startDate ? new Date(tripData.startDate) : null;
+        }
+        
+        if (tripData.endDate !== undefined) {
+          console.log("[STORAGE] Processing endDate:", tripData.endDate, typeof tripData.endDate);
+          updateData.endDate = tripData.endDate ? new Date(tripData.endDate) : null;
+        }
         
         // Never update the creator or creation date
         delete updateData.createdBy;
@@ -273,19 +281,32 @@ export class DatabaseStorage implements IStorage {
   // Expense methods
   async createExpense(insertExpense: InsertExpense): Promise<Expense> {
     return this.executeDbOperation(async () => {
-      // Make sure we're sending valid data to the database
-      const validExpenseData = {
-        tripId: insertExpense.tripId,
-        title: insertExpense.title,
-        amount: insertExpense.amount,
-        paidBy: insertExpense.paidBy,
-        splitAmong: insertExpense.splitAmong,
-        date: insertExpense.date || null,
-        category: insertExpense.category || null,
-      };
-      
-      const [expense] = await db.insert(expenses).values(validExpenseData).returning();
-      return expense;
+      try {
+        console.log("[STORAGE] Creating expense with data:", JSON.stringify(insertExpense));
+        
+        // Insert directly using the insertExpense data - Drizzle will validate types
+        // Make sure splitAmong is properly formatted as an array
+        const splitAmong = Array.isArray(insertExpense.splitAmong) 
+          ? insertExpense.splitAmong 
+          : [];
+        
+        // Insert with properly typed data
+        const [expense] = await db.insert(expenses).values({
+          tripId: insertExpense.tripId,
+          title: insertExpense.title,
+          amount: insertExpense.amount,
+          paidBy: insertExpense.paidBy,
+          splitAmong: splitAmong,
+          date: insertExpense.date || new Date(),
+          category: insertExpense.category || null,
+        }).returning();
+        
+        console.log("[STORAGE] Expense created:", JSON.stringify(expense));
+        return expense;
+      } catch (error) {
+        console.error("[STORAGE] Error creating expense:", error);
+        throw error;
+      }
     });
   }
 
