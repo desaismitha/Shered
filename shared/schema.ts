@@ -52,6 +52,7 @@ export const insertGroupMemberSchema = createInsertSchema(groupMembers).omit({
 export const trips = pgTable("trips", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
+  startLocation: text("start_location"),
   destination: text("destination").notNull(),
   startDate: timestamp("start_date").notNull(),
   endDate: timestamp("end_date").notNull(),
@@ -117,6 +118,41 @@ export const insertMessageSchema = createInsertSchema(messages).omit({
   createdAt: true,
 });
 
+// Vehicle schema
+export const vehicles = pgTable("vehicles", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  make: text("make").notNull(),
+  model: text("model").notNull(),
+  year: integer("year"),
+  licensePlate: text("license_plate"),
+  color: text("color"),
+  capacity: integer("capacity").default(5),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertVehicleSchema = createInsertSchema(vehicles).omit({
+  id: true,
+  createdAt: true,
+});
+
+// Trip vehicle association
+export const tripVehicles = pgTable("trip_vehicles", {
+  id: serial("id").primaryKey(),
+  tripId: integer("trip_id").notNull().references(() => trips.id),
+  vehicleId: integer("vehicle_id").notNull().references(() => vehicles.id),
+  isMain: boolean("is_main").default(true),
+  assignedTo: integer("assigned_to").references(() => users.id),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertTripVehicleSchema = createInsertSchema(tripVehicles).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   groups: many(groups, { relationName: "user_groups" }),
@@ -125,6 +161,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   itineraryItems: many(itineraryItems, { relationName: "user_itinerary_items" }),
   expenses: many(expenses, { relationName: "user_expenses" }),
   messages: many(messages, { relationName: "user_messages" }),
+  vehicles: many(vehicles, { relationName: "user_vehicles" }),
 }));
 
 export const groupsRelations = relations(groups, ({ one, many }) => ({
@@ -164,6 +201,7 @@ export const tripsRelations = relations(trips, ({ one, many }) => ({
   }),
   itineraryItems: many(itineraryItems, { relationName: "trip_itinerary" }),
   expenses: many(expenses, { relationName: "trip_expenses" }),
+  vehicles: many(tripVehicles, { relationName: "trip_vehicles" }),
 }));
 
 export const itineraryItemsRelations = relations(itineraryItems, ({ one }) => ({
@@ -205,6 +243,32 @@ export const messagesRelations = relations(messages, ({ one }) => ({
   }),
 }));
 
+export const vehiclesRelations = relations(vehicles, ({ one, many }) => ({
+  owner: one(users, {
+    fields: [vehicles.userId],
+    references: [users.id],
+    relationName: "user_vehicles",
+  }),
+  trips: many(tripVehicles, { relationName: "vehicle_trips" }),
+}));
+
+export const tripVehiclesRelations = relations(tripVehicles, ({ one }) => ({
+  trip: one(trips, {
+    fields: [tripVehicles.tripId],
+    references: [trips.id],
+    relationName: "trip_vehicles",
+  }),
+  vehicle: one(vehicles, {
+    fields: [tripVehicles.vehicleId],
+    references: [vehicles.id],
+    relationName: "vehicle_trips",
+  }),
+  assignee: one(users, {
+    fields: [tripVehicles.assignedTo],
+    references: [users.id],
+  }),
+}));
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -226,3 +290,9 @@ export type InsertExpense = z.infer<typeof insertExpenseSchema>;
 
 export type Message = typeof messages.$inferSelect;
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
+
+export type Vehicle = typeof vehicles.$inferSelect;
+export type InsertVehicle = z.infer<typeof insertVehicleSchema>;
+
+export type TripVehicle = typeof tripVehicles.$inferSelect;
+export type InsertTripVehicle = z.infer<typeof insertTripVehicleSchema>;
