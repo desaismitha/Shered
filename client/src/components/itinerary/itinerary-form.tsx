@@ -6,6 +6,7 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
 
 import {
   Form,
@@ -14,10 +15,40 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ArrowRightIcon } from "lucide-react";
+
+// Define weekday options
+const weekdays = [
+  { value: "mon", label: "Monday" },
+  { value: "tue", label: "Tuesday" },
+  { value: "wed", label: "Wednesday" },
+  { value: "thu", label: "Thursday" },
+  { value: "fri", label: "Friday" },
+  { value: "sat", label: "Saturday" },
+  { value: "sun", label: "Sunday" },
+];
+
+// Define recurrence pattern options
+const recurrencePatterns = [
+  { value: "daily", label: "Daily" },
+  { value: "weekdays", label: "Weekdays (Mon-Fri)" },
+  { value: "weekends", label: "Weekends (Sat-Sun)" },
+  { value: "specific-days", label: "Specific days" },
+];
 
 // Extend the itinerary item schema for the form
 const itineraryFormSchema = insertItineraryItemSchema.extend({
@@ -26,6 +57,11 @@ const itineraryFormSchema = insertItineraryItemSchema.extend({
     invalid_type_error: "Day must be a number",
   }).min(1, "Day must be at least 1"),
   title: z.string().min(2, "Title must be at least 2 characters"),
+  isRecurring: z.boolean().default(false),
+  recurrencePattern: z.string().optional(),
+  recurrenceDays: z.array(z.string()).optional(),
+  fromLocation: z.string().optional(),
+  toLocation: z.string().optional(),
 });
 
 type ItineraryFormValues = z.infer<typeof itineraryFormSchema>;
@@ -39,6 +75,9 @@ interface ItineraryFormProps {
 export function ItineraryForm({ tripId, onSuccess, onCancel }: ItineraryFormProps) {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurrencePattern, setRecurrencePattern] = useState<string>('daily');
+  const [isPickupDropoff, setIsPickupDropoff] = useState(false);
 
   // Form setup
   const form = useForm<ItineraryFormValues>({
@@ -51,6 +90,11 @@ export function ItineraryForm({ tripId, onSuccess, onCancel }: ItineraryFormProp
       location: "",
       startTime: "",
       endTime: "",
+      isRecurring: false,
+      recurrencePattern: "daily",
+      recurrenceDays: [],
+      fromLocation: "",
+      toLocation: "",
       createdBy: user?.id || 0,
     },
   });
@@ -79,6 +123,38 @@ export function ItineraryForm({ tripId, onSuccess, onCancel }: ItineraryFormProp
   });
 
   const onSubmit = (values: ItineraryFormValues) => {
+    // Format title for pickup/dropoff activities
+    if (isPickupDropoff && values.fromLocation && values.toLocation) {
+      values.title = `Travel: ${values.fromLocation} to ${values.toLocation}`;
+    }
+    
+    // Clean up recurrence data for non-recurring events
+    if (!values.isRecurring) {
+      values.recurrencePattern = undefined;
+      values.recurrenceDays = undefined;
+    }
+    
+    // Verify specific-days has selected days
+    if (values.isRecurring && values.recurrencePattern === 'specific-days' && 
+        (!values.recurrenceDays || values.recurrenceDays.length === 0)) {
+      toast({
+        title: "Error",
+        description: "Please select at least one day for your recurring event",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Convert recurrenceDays array to string for storage
+    if (values.recurrenceDays && values.recurrenceDays.length > 0) {
+      const recurrenceDaysString = JSON.stringify(values.recurrenceDays);
+      values = {
+        ...values,
+        recurrenceDays: recurrenceDaysString as any,
+      };
+    }
+    
+    // Submit the form
     mutation.mutate(values);
   };
 
@@ -184,6 +260,175 @@ export function ItineraryForm({ tripId, onSuccess, onCancel }: ItineraryFormProp
             </FormItem>
           )}
         />
+
+        {/* Pickup and Dropoff Option */}
+        <div className="border p-4 rounded-md bg-slate-50">
+          <div className="flex items-center space-x-2 mb-4">
+            <Switch 
+              id="pickup-dropoff"
+              checked={isPickupDropoff}
+              onCheckedChange={(checked) => {
+                setIsPickupDropoff(checked);
+                if (!checked) {
+                  form.setValue('fromLocation', '');
+                  form.setValue('toLocation', '');
+                }
+              }}
+            />
+            <label htmlFor="pickup-dropoff" className="text-sm font-medium">
+              This is a transportation activity (pickup/dropoff)
+            </label>
+          </div>
+
+          {isPickupDropoff && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+              <FormField
+                control={form.control}
+                name="fromLocation"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Pickup Location</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Starting point" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="toLocation"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Dropoff Location</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Destination" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Recurring Option */}
+        <div className="border p-4 rounded-md bg-slate-50">
+          <div className="flex items-center space-x-2 mb-4">
+            <FormField
+              control={form.control}
+              name="isRecurring"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center space-x-2 space-y-0">
+                  <FormControl>
+                    <Switch 
+                      checked={field.value}
+                      onCheckedChange={(checked) => {
+                        field.onChange(checked);
+                        setIsRecurring(checked);
+                        if (!checked) {
+                          form.setValue('recurrencePattern', 'daily');
+                          form.setValue('recurrenceDays', []);
+                        }
+                      }}
+                    />
+                  </FormControl>
+                  <FormLabel className="text-sm font-medium">
+                    This is a recurring activity
+                  </FormLabel>
+                </FormItem>
+              )}
+            />
+          </div>
+
+          {isRecurring && (
+            <div className="space-y-4 mt-2">
+              <FormField
+                control={form.control}
+                name="recurrencePattern"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Recurrence Pattern</FormLabel>
+                    <Select
+                      onValueChange={(value) => {
+                        field.onChange(value);
+                        setRecurrencePattern(value);
+                      }}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a pattern" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {recurrencePatterns.map((pattern) => (
+                          <SelectItem key={pattern.value} value={pattern.value}>
+                            {pattern.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {recurrencePattern === 'specific-days' && (
+                <FormField
+                  control={form.control}
+                  name="recurrenceDays"
+                  render={() => (
+                    <FormItem>
+                      <div className="mb-2">
+                        <FormLabel>Select Days</FormLabel>
+                        <FormDescription>Choose the days this event repeats</FormDescription>
+                      </div>
+                      <div className="grid grid-cols-3 md:grid-cols-4 gap-2">
+                        {weekdays.map((day) => (
+                          <FormField
+                            key={day.value}
+                            control={form.control}
+                            name="recurrenceDays"
+                            render={({ field }) => {
+                              return (
+                                <FormItem
+                                  key={day.value}
+                                  className="flex flex-row items-center space-x-2 space-y-0"
+                                >
+                                  <FormControl>
+                                    <Checkbox
+                                      checked={field.value?.includes(day.value)}
+                                      onCheckedChange={(checked) => {
+                                        const currentValues = field.value || [];
+                                        return checked
+                                          ? field.onChange([...currentValues, day.value])
+                                          : field.onChange(
+                                              currentValues.filter(
+                                                (value) => value !== day.value
+                                              )
+                                            );
+                                      }}
+                                    />
+                                  </FormControl>
+                                  <FormLabel className="text-sm font-normal">
+                                    {day.label}
+                                  </FormLabel>
+                                </FormItem>
+                              );
+                            }}
+                          />
+                        ))}
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+            </div>
+          )}
+        </div>
 
         <div className="flex justify-end space-x-2">
           <Button 
