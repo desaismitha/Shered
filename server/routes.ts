@@ -974,6 +974,107 @@ export async function registerRoutes(app: Express): Promise<Server> {
       next(err);
     }
   });
+  
+  // Get a single itinerary item
+  app.get("/api/itinerary/:id", async (req, res, next) => {
+    try {
+      const itemId = parseInt(req.params.id);
+      
+      // Get the item first
+      const item = await storage.getItineraryItem(itemId);
+      
+      if (!item) {
+        return res.status(404).json({ message: "Itinerary item not found" });
+      }
+      
+      // Use our reusable trip access check function with improved logging
+      const accessLevel = await checkTripAccess(req, item.tripId, res, next, "[ITINERARY_ITEM_VIEW] ");
+      
+      if (accessLevel === null) {
+        return; // Response already sent by checkTripAccess
+      }
+      
+      // If we have access, return the item
+      res.json(item);
+    } catch (err) {
+      console.error(`Error in itinerary item retrieval: ${err}`);
+      next(err);
+    }
+  });
+  
+  // Update an itinerary item
+  app.patch("/api/itinerary/:id", async (req, res, next) => {
+    try {
+      const itemId = parseInt(req.params.id);
+      
+      // Get the item first to check if it exists and get its tripId
+      const item = await storage.getItineraryItem(itemId);
+      
+      if (!item) {
+        return res.status(404).json({ message: "Itinerary item not found" });
+      }
+      
+      // Only trip owners can update itinerary items
+      const accessLevel = await checkTripAccess(req, item.tripId, res, next, "[ITINERARY_UPDATE] ");
+      
+      // Only owner can update an itinerary item
+      if (accessLevel !== 'owner') {
+        return res.status(403).json({ message: "You don't have permission to update this itinerary item" });
+      }
+      
+      // Validate the update data - accept partial schema
+      const validatedData = insertItineraryItemSchema.partial().parse(req.body);
+      
+      // Don't allow changing tripId
+      delete validatedData.tripId;
+      
+      // Update the item
+      const updatedItem = await storage.updateItineraryItem(itemId, validatedData);
+      
+      if (!updatedItem) {
+        return res.status(500).json({ message: "Failed to update itinerary item" });
+      }
+      
+      res.json(updatedItem);
+    } catch (err) {
+      console.error(`Error in itinerary item update: ${err}`);
+      next(err);
+    }
+  });
+  
+  // Delete an itinerary item
+  app.delete("/api/itinerary/:id", async (req, res, next) => {
+    try {
+      const itemId = parseInt(req.params.id);
+      
+      // Get the item first to check if it exists and get its tripId
+      const item = await storage.getItineraryItem(itemId);
+      
+      if (!item) {
+        return res.status(404).json({ message: "Itinerary item not found" });
+      }
+      
+      // Only trip owners can delete itinerary items
+      const accessLevel = await checkTripAccess(req, item.tripId, res, next, "[ITINERARY_DELETE] ");
+      
+      // Only owner can delete an itinerary item
+      if (accessLevel !== 'owner') {
+        return res.status(403).json({ message: "You don't have permission to delete this itinerary item" });
+      }
+      
+      // Delete the item
+      const success = await storage.deleteItineraryItem(itemId);
+      
+      if (!success) {
+        return res.status(500).json({ message: "Failed to delete itinerary item" });
+      }
+      
+      res.status(204).end();
+    } catch (err) {
+      console.error(`Error in itinerary item deletion: ${err}`);
+      next(err);
+    }
+  });
 
   // Expenses
   app.post("/api/trips/:id/expenses", async (req, res, next) => {

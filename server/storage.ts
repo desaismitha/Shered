@@ -446,6 +446,83 @@ export class DatabaseStorage implements IStorage {
       });
     });
   }
+  
+  async getItineraryItem(id: number): Promise<ItineraryItem | undefined> {
+    return this.executeDbOperation(async () => {
+      const [item] = await db.select().from(itineraryItems).where(eq(itineraryItems.id, id));
+      
+      if (!item) {
+        return undefined;
+      }
+      
+      // Process item to handle stored data formats
+      const processedItem = { ...item };
+      
+      // Parse recurrenceDays if it's a string
+      if (processedItem.recurrenceDays && typeof processedItem.recurrenceDays === 'string') {
+        try {
+          processedItem.recurrenceDays = JSON.parse(processedItem.recurrenceDays);
+        } catch (error) {
+          console.error(`[STORAGE] Error parsing recurrenceDays for item ${item.id}:`, error);
+          // Keep as is if parsing fails
+        }
+      }
+      
+      return processedItem;
+    });
+  }
+  
+  async updateItineraryItem(id: number, itemData: Partial<InsertItineraryItem>): Promise<ItineraryItem | undefined> {
+    return this.executeDbOperation(async () => {
+      // Process the item data before updating
+      console.log("[STORAGE] Updating itinerary item with data:", JSON.stringify(itemData));
+      
+      // Create a copy of the data for manipulation
+      const updateData = { ...itemData };
+      
+      // Handle recurrence days if they're passed as an array
+      if (updateData.recurrenceDays && Array.isArray(updateData.recurrenceDays)) {
+        updateData.recurrenceDays = JSON.stringify(updateData.recurrenceDays);
+      }
+      
+      // Update the data
+      const [item] = await db.update(itineraryItems)
+        .set(updateData)
+        .where(eq(itineraryItems.id, id))
+        .returning();
+      
+      if (!item) {
+        return undefined;
+      }
+      
+      // Process the returned item to handle stored data formats
+      const processedItem = { ...item };
+      
+      // Parse recurrenceDays if it's a string
+      if (processedItem.recurrenceDays && typeof processedItem.recurrenceDays === 'string') {
+        try {
+          processedItem.recurrenceDays = JSON.parse(processedItem.recurrenceDays);
+        } catch (error) {
+          console.error(`[STORAGE] Error parsing recurrenceDays for item ${item.id}:`, error);
+          // Keep as is if parsing fails
+        }
+      }
+      
+      console.log("[STORAGE] Itinerary item updated:", JSON.stringify(processedItem));
+      return processedItem;
+    });
+  }
+  
+  async deleteItineraryItem(id: number): Promise<boolean> {
+    return this.executeDbOperation(async () => {
+      console.log(`[STORAGE] Deleting itinerary item with id ${id}`);
+      const result = await db.delete(itineraryItems).where(eq(itineraryItems.id, id));
+      const rowCount = result.rowCount || 0;
+      const success = rowCount > 0;
+      console.log(`[STORAGE] Itinerary item deletion result: ${success ? 'successful' : 'failed'}`);
+      return success;
+    });
+  }
 
   // Expense methods
   async createExpense(insertExpense: InsertExpense): Promise<Expense> {
