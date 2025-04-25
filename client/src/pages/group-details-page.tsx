@@ -52,10 +52,14 @@ export default function GroupDetailsPage() {
   });
 
   // Get all users for member details
-  const { data: users } = useQuery<User[]>({
+  const { data: users, isLoading: isLoadingUsers } = useQuery<User[]>({
     queryKey: ["/api/users"],
     enabled: !!groupMembers,
   });
+  
+  // Debug output
+  console.log("Group details - Users data:", users);
+  console.log("Group details - Group members:", groupMembers);
 
   // Check if current user is admin
   const isAdmin = groupMembers?.some(
