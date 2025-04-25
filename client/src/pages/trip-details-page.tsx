@@ -41,9 +41,17 @@ import { DriverInfoSection } from "@/components/user/driver-info-section";
 import { TripDriverAssignment } from "@/components/user/trip-driver-assignment";
 import { useToast } from "@/hooks/use-toast";
 
-// Extended Trip type with access level from the backend
+// Extended Trip type with access level and location data
 interface Trip extends BaseTrip {
   _accessLevel?: 'owner' | 'member';
+  
+  // Optional coordinates for start location (can be added in future improvements)
+  startLocationLat?: number;
+  startLocationLong?: number;
+  
+  // Optional coordinates for destination (can be added in future improvements)
+  destinationLat?: number;
+  destinationLong?: number;
 }
 
 // Simple edit form component to edit trip directly on the details page
@@ -391,8 +399,9 @@ export default function TripDetailsPage() {
   // States for itinerary selection and tracking
   const [showItinerarySelector, setShowItinerarySelector] = useState(false);
   const [selectedItineraryIds, setSelectedItineraryIds] = useState<number[]>([]);
-  const [selectedItineraryItems, setSelectedItineraryItems] = useState<ItineraryItem[]>([]);
+  const [selectedItineraryItems, setSelectedItineraryItems] = useState<(ItineraryItem & { isCompleted?: boolean })[]>([]);
   const [currentItineraryStep, setCurrentItineraryStep] = useState(0);
+  const [isCompletingItineraryItem, setIsCompletingItineraryItem] = useState(false);
 
   // Trip tracking mutations
   const startTripMutation = useMutation({
@@ -535,6 +544,44 @@ export default function TripDetailsPage() {
   // Function to complete trip
   const handleCompleteTrip = () => {
     completeTripMutation.mutate({});
+  };
+  
+  // Function to toggle the completion status of a specific itinerary item
+  const handleToggleItineraryItemCompletion = (itemId: number) => {
+    if (isCompletingItineraryItem) return;
+    
+    setIsCompletingItineraryItem(true);
+    
+    // Update the local state immediately for a responsive UI
+    setSelectedItineraryItems(prev => 
+      prev.map(item => 
+        item.id === itemId 
+          ? { ...item, isCompleted: !item.isCompleted } 
+          : item
+      )
+    );
+    
+    // If you want to persist this to the backend, you can add a mutation here
+    // For now, we'll just update the local state
+    
+    // Simulate a delay to show the completing state
+    setTimeout(() => {
+      setIsCompletingItineraryItem(false);
+      
+      // If all items are completed, you could suggest completing the trip
+      const allCompleted = selectedItineraryItems.every(item => 
+        item.id === itemId 
+          ? !item.isCompleted // Use the new value (opposite of current)
+          : item.isCompleted === true
+      );
+      
+      if (allCompleted) {
+        toast({
+          title: "All items completed",
+          description: "You've completed all itinerary items. You can now complete the trip.",
+        });
+      }
+    }, 500);
   };
   
   // Function to update current location
@@ -1475,6 +1522,32 @@ export default function TripDetailsPage() {
                           </div>
                         </div>
                       </div>
+                        
+                      {/* Trip start and end location information */}
+                      <div className="mb-6">
+                        <h3 className="font-medium text-neutral-800 mb-2">Trip Route</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="bg-background border rounded-lg p-4">
+                            <h3 className="text-sm font-medium text-muted-foreground mb-1">
+                              <MapPin className="h-4 w-4 inline mr-1 text-green-600" />
+                              Start Location
+                            </h3>
+                            <p className="text-lg font-medium">
+                              {trip.startLocation || 'Not specified'}
+                            </p>
+                          </div>
+                          
+                          <div className="bg-background border rounded-lg p-4">
+                            <h3 className="text-sm font-medium text-muted-foreground mb-1">
+                              <MapPin className="h-4 w-4 inline mr-1 text-red-600" />
+                              Destination
+                            </h3>
+                            <p className="text-lg font-medium">
+                              {trip.destination || 'Not specified'}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
                       
                       {/* Error alert if location update fails */}
                       {locationUpdateError && (
@@ -1506,6 +1579,56 @@ export default function TripDetailsPage() {
                               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                             />
+                            
+                            {/* Show marker for start location if coordinates available or geocoded later */}
+                            {trip.startLocation && (
+                              <Marker 
+                                position={[
+                                  trip.startLocationLat || (trip.currentLatitude ? trip.currentLatitude - 0.01 : 40.7028), 
+                                  trip.startLocationLong || (trip.currentLongitude ? trip.currentLongitude - 0.01 : -74.0160)
+                                ]}
+                                icon={new L.Icon({
+                                  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+                                  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                                  iconSize: [25, 41],
+                                  iconAnchor: [12, 41],
+                                  popupAnchor: [1, -34],
+                                  shadowSize: [41, 41]
+                                })}
+                              >
+                                <Popup>
+                                  <div>
+                                    <strong>Start: {trip.startLocation}</strong><br />
+                                    <span>Starting point of the trip</span>
+                                  </div>
+                                </Popup>
+                              </Marker>
+                            )}
+                            
+                            {/* Show marker for destination */}
+                            {trip.destination && (
+                              <Marker 
+                                position={[
+                                  trip.destinationLat || (trip.currentLatitude ? trip.currentLatitude + 0.01 : 40.7228), 
+                                  trip.destinationLong || (trip.currentLongitude ? trip.currentLongitude + 0.01 : -73.9960)
+                                ]}
+                                icon={new L.Icon({
+                                  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+                                  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                                  iconSize: [25, 41],
+                                  iconAnchor: [12, 41],
+                                  popupAnchor: [1, -34],
+                                  shadowSize: [41, 41]
+                                })}
+                              >
+                                <Popup>
+                                  <div>
+                                    <strong>Destination: {trip.destination}</strong><br />
+                                    <span>Final destination of the trip</span>
+                                  </div>
+                                </Popup>
+                              </Marker>
+                            )}
                             
                             {/* Show marker for current location */}
                             {trip.currentLatitude && trip.currentLongitude && (
@@ -1584,39 +1707,66 @@ export default function TripDetailsPage() {
                                 </div>
                               </div>
                               
-                              <div className="flex justify-between mt-4 pt-3 border-t">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => setCurrentItineraryStep(prev => Math.max(0, prev - 1))}
-                                  disabled={currentItineraryStep === 0}
-                                >
-                                  <ArrowLeft className="h-4 w-4 mr-1" /> Previous
-                                </Button>
+                              <div className="flex flex-col gap-3">
+                                <div className="flex justify-between mt-4 pt-3 border-t">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setCurrentItineraryStep(prev => Math.max(0, prev - 1))}
+                                    disabled={currentItineraryStep === 0}
+                                  >
+                                    <ArrowLeft className="h-4 w-4 mr-1" /> Previous
+                                  </Button>
+                                  
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="bg-primary-50 hover:bg-primary-100 border-primary-200"
+                                    onClick={() => getCurrentLocation()}
+                                    disabled={isLocationUpdating}
+                                  >
+                                    <Navigation className="h-4 w-4 mr-1" />
+                                    {isLocationUpdating ? 'Updating...' : 'Update Location'}
+                                  </Button>
+                                  
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                      if (currentItineraryStep < selectedItineraryItems.length - 1) {
+                                        setCurrentItineraryStep(prev => prev + 1);
+                                      }
+                                    }}
+                                    disabled={currentItineraryStep === selectedItineraryItems.length - 1}
+                                  >
+                                    Next <ArrowRight className="h-4 w-4 ml-1" />
+                                  </Button>
+                                </div>
                                 
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="bg-primary-50 hover:bg-primary-100 border-primary-200"
-                                  onClick={() => getCurrentLocation()}
-                                  disabled={isLocationUpdating}
-                                >
-                                  <Navigation className="h-4 w-4 mr-1" />
-                                  {isLocationUpdating ? 'Updating...' : 'Update Location'}
-                                </Button>
-                                
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => {
-                                    if (currentItineraryStep < selectedItineraryItems.length - 1) {
-                                      setCurrentItineraryStep(prev => prev + 1);
+                                {/* Mark itinerary item as completed button */}
+                                <div className="flex justify-center">
+                                  <Button
+                                    variant={selectedItineraryItems[currentItineraryStep].isCompleted ? "ghost" : "outline"}
+                                    size="sm"
+                                    className={selectedItineraryItems[currentItineraryStep].isCompleted 
+                                      ? "bg-green-50 text-green-700 hover:bg-green-100 border-green-200" 
+                                      : "bg-background border-dashed"
                                     }
-                                  }}
-                                  disabled={currentItineraryStep === selectedItineraryItems.length - 1}
-                                >
-                                  Next <ArrowRight className="h-4 w-4 ml-1" />
-                                </Button>
+                                    onClick={() => handleToggleItineraryItemCompletion(selectedItineraryItems[currentItineraryStep].id)}
+                                  >
+                                    {selectedItineraryItems[currentItineraryStep].isCompleted ? (
+                                      <>
+                                        <Check className="h-4 w-4 mr-1 text-green-600" />
+                                        Completed
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Check className="h-4 w-4 mr-1" />
+                                        Mark as Completed
+                                      </>
+                                    )}
+                                  </Button>
+                                </div>
                               </div>
                             </div>
                           )}
