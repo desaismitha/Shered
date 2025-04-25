@@ -60,8 +60,6 @@ const itineraryFormSchema = insertItineraryItemSchema.extend({
   isRecurring: z.boolean().default(false),
   recurrencePattern: z.string().optional(),
   recurrenceDays: z.array(z.string()).optional(),
-  fromLocation: z.string().optional(),
-  toLocation: z.string().optional(),
 });
 
 type ItineraryFormValues = z.infer<typeof itineraryFormSchema>;
@@ -77,7 +75,6 @@ export function ItineraryForm({ tripId, onSuccess, onCancel }: ItineraryFormProp
   const { toast } = useToast();
   const [isRecurring, setIsRecurring] = useState(false);
   const [recurrencePattern, setRecurrencePattern] = useState<string>('daily');
-  const [isPickupDropoff, setIsPickupDropoff] = useState(false);
 
   // Form setup
   const form = useForm<ItineraryFormValues>({
@@ -93,8 +90,6 @@ export function ItineraryForm({ tripId, onSuccess, onCancel }: ItineraryFormProp
       isRecurring: false,
       recurrencePattern: "daily",
       recurrenceDays: [],
-      fromLocation: "",
-      toLocation: "",
       createdBy: user?.id || 0,
     },
   });
@@ -123,11 +118,6 @@ export function ItineraryForm({ tripId, onSuccess, onCancel }: ItineraryFormProp
   });
 
   const onSubmit = (values: ItineraryFormValues) => {
-    // Format title for pickup/dropoff activities
-    if (isPickupDropoff && values.fromLocation && values.toLocation) {
-      values.title = `Travel: ${values.fromLocation} to ${values.toLocation}`;
-    }
-    
     // Clean up recurrence data for non-recurring events
     if (!values.isRecurring) {
       values.recurrencePattern = undefined;
@@ -161,6 +151,7 @@ export function ItineraryForm({ tripId, onSuccess, onCancel }: ItineraryFormProp
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        {/* Day and Time Selection */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <FormField
             control={form.control}
@@ -215,105 +206,7 @@ export function ItineraryForm({ tripId, onSuccess, onCancel }: ItineraryFormProp
           />
         </div>
 
-        <FormField
-          control={form.control}
-          name="title"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Activity Title</FormLabel>
-              <FormControl>
-                <Input placeholder="Visit the Eiffel Tower" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="location"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Location (optional)</FormLabel>
-              <FormControl>
-                <Input placeholder="Champ de Mars, Paris" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="description"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Description (optional)</FormLabel>
-              <FormControl>
-                <Textarea 
-                  placeholder="Notes about this activity" 
-                  className="resize-none" 
-                  {...field} 
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {/* Pickup and Dropoff Option */}
-        <div className="border p-4 rounded-md bg-slate-50">
-          <div className="flex items-center space-x-2 mb-4">
-            <Switch 
-              id="pickup-dropoff"
-              checked={isPickupDropoff}
-              onCheckedChange={(checked) => {
-                setIsPickupDropoff(checked);
-                if (!checked) {
-                  form.setValue('fromLocation', '');
-                  form.setValue('toLocation', '');
-                }
-              }}
-            />
-            <label htmlFor="pickup-dropoff" className="text-sm font-medium">
-              This is a transportation activity (pickup/dropoff)
-            </label>
-          </div>
-
-          {isPickupDropoff && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-              <FormField
-                control={form.control}
-                name="fromLocation"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Pickup Location</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Starting point" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="toLocation"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Dropoff Location</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Destination" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-          )}
-        </div>
-
-        {/* Recurring Option */}
+        {/* Recurring Activity Settings */}
         <div className="border p-4 rounded-md bg-slate-50">
           <div className="flex items-center space-x-2 mb-4">
             <FormField
@@ -429,6 +322,53 @@ export function ItineraryForm({ tripId, onSuccess, onCancel }: ItineraryFormProp
             </div>
           )}
         </div>
+
+        {/* Activity Details */}
+        <FormField
+          control={form.control}
+          name="title"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Activity Title</FormLabel>
+              <FormControl>
+                <Input placeholder="Visit the Eiffel Tower" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="location"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Location (optional)</FormLabel>
+              <FormControl>
+                <Input placeholder="Champ de Mars, Paris" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="description"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Description (optional)</FormLabel>
+              <FormControl>
+                <Textarea 
+                  placeholder="Notes about this activity" 
+                  className="resize-none" 
+                  {...field} 
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <div className="flex justify-end space-x-2">
           <Button 
