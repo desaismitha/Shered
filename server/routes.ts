@@ -220,10 +220,86 @@ export async function registerRoutes(app: Express): Promise<Server> {
         username: usersTable.username,
         displayName: usersTable.displayName,
         email: usersTable.email,
-        createdAt: usersTable.createdAt
+        createdAt: usersTable.createdAt,
+        licenseNumber: usersTable.licenseNumber,
+        licenseState: usersTable.licenseState,
+        licenseExpiry: usersTable.licenseExpiry,
+        isEligibleDriver: usersTable.isEligibleDriver,
       }).from(usersTable);
       
       res.json(usersList);
+    } catch (err) {
+      next(err);
+    }
+  });
+  
+  // Driver license routes
+  app.put("/api/users/:userId/license", async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+      
+      const userId = parseInt(req.params.userId);
+      
+      // Only allow users to update their own license info
+      if (userId !== req.user.id) {
+        return res.status(403).json({ message: "Not authorized to update this user's license" });
+      }
+
+      const { licenseNumber, licenseState, licenseExpiry, isEligibleDriver } = req.body;
+      
+      if (!licenseNumber || !licenseState || !licenseExpiry) {
+        return res.status(400).json({ message: "Missing required license information" });
+      }
+
+      // Update the user's license information
+      const result = await db.update(usersTable)
+        .set({
+          licenseNumber,
+          licenseState,
+          licenseExpiry: new Date(licenseExpiry),
+          isEligibleDriver: isEligibleDriver === undefined ? true : !!isEligibleDriver,
+        })
+        .where(eq(usersTable.id, userId))
+        .returning();
+      
+      if (!result || result.length === 0) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Remove password from response
+      const { password, ...updatedUser } = result[0];
+      res.json(updatedUser);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  app.put("/api/users/:userId/license/toggle-eligibility", async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+      
+      const userId = parseInt(req.params.userId);
+      
+      // Only allow users to update their own eligibility
+      if (userId !== req.user.id) {
+        return res.status(403).json({ message: "Not authorized to update this user's driver status" });
+      }
+
+      const { isEligibleDriver } = req.body;
+      
+      // Update just the eligibility status
+      const result = await db.update(usersTable)
+        .set({ isEligibleDriver: !!isEligibleDriver })
+        .where(eq(usersTable.id, userId))
+        .returning();
+      
+      if (!result || result.length === 0) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Remove password from response
+      const { password, ...updatedUser } = result[0];
+      res.json(updatedUser);
     } catch (err) {
       next(err);
     }

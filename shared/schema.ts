@@ -13,6 +13,11 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow(),
   resetToken: text("reset_token"),
   resetTokenExpiry: timestamp("reset_token_expiry"),
+  // Driver license information
+  licenseNumber: text("license_number"),
+  licenseState: text("license_state"),
+  licenseExpiry: timestamp("license_expiry"),
+  isEligibleDriver: boolean("is_eligible_driver").default(false),
 });
 
 export const insertUserSchema = createInsertSchema(users).omit({
