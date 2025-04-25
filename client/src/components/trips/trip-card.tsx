@@ -1,0 +1,130 @@
+import { Calendar } from "lucide-react";
+import { format } from "date-fns";
+import { Trip } from "@shared/schema";
+import { Link } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+import { GroupMember, User } from "@shared/schema";
+import { Badge } from "@/components/ui/badge";
+
+interface TripCardProps {
+  trip: Trip;
+}
+
+export function TripCard({ trip }: TripCardProps) {
+  // Get group members to display avatars
+  const { data: groupMembers } = useQuery<GroupMember[]>({
+    queryKey: ["/api/groups", trip.groupId, "members"],
+  });
+
+  // Get users for member details
+  const { data: users } = useQuery<User[]>({
+    queryKey: ["/api/users"],
+    enabled: !!groupMembers,
+  });
+  
+  const formatDateRange = (startDate: Date, endDate: Date) => {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    
+    if (start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()) {
+      return `${format(start, 'MMM d')} - ${format(end, 'MMM d, yyyy')}`;
+    }
+    
+    if (start.getFullYear() === end.getFullYear()) {
+      return `${format(start, 'MMM d')} - ${format(end, 'MMM d, yyyy')}`;
+    }
+    
+    return `${format(start, 'MMM d, yyyy')} - ${format(end, 'MMM d, yyyy')}`;
+  };
+  
+  // Get status badge color
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'planning':
+        return 'bg-orange-100 text-orange-800';
+      case 'confirmed':
+        return 'bg-emerald-100 text-emerald-800';
+      case 'upcoming':
+        return 'bg-primary-100 text-primary-800';
+      case 'completed':
+        return 'bg-neutral-100 text-neutral-800';
+      case 'cancelled':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-neutral-100 text-neutral-800';
+    }
+  };
+
+  return (
+    <div className="bg-white shadow rounded-lg overflow-hidden hover:shadow-md transition-shadow">
+      <div className="h-48 w-full overflow-hidden relative bg-primary-200">
+        {trip.imageUrl ? (
+          <img 
+            src={trip.imageUrl} 
+            alt={trip.destination} 
+            className="w-full h-full object-cover" 
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-r from-primary-400 to-primary-600" />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end">
+          <div className="p-4 text-white">
+            <h3 className="font-bold text-lg">{trip.destination}</h3>
+            <div className="flex items-center mt-1">
+              <Calendar className="mr-1 h-4 w-4" />
+              <span className="text-sm">
+                {formatDateRange(trip.startDate, trip.endDate)}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="p-4">
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-neutral-500">
+            <Users className="inline-block mr-1 h-4 w-4" />
+            {trip.name} ({groupMembers?.length || 0} members)
+          </div>
+          <Badge className={getStatusColor(trip.status)}>
+            {trip.status.charAt(0).toUpperCase() + trip.status.slice(1)}
+          </Badge>
+        </div>
+        <div className="mt-3 flex items-center justify-between">
+          <div className="flex -space-x-2">
+            {groupMembers && users ? (
+              groupMembers.slice(0, 4).map((member, index) => {
+                const user = users.find(u => u.id === member.userId);
+                return (
+                  <div 
+                    key={member.id}
+                    className="w-7 h-7 rounded-full bg-neutral-300 border-2 border-white flex items-center justify-center text-xs text-neutral-600"
+                  >
+                    {user?.displayName?.[0] || user?.username?.[0] || "U"}
+                  </div>
+                );
+              })
+            ) : (
+              Array(3).fill(0).map((_, index) => (
+                <div 
+                  key={index}
+                  className="w-7 h-7 rounded-full bg-neutral-300 border-2 border-white flex items-center justify-center text-xs text-neutral-600"
+                />
+              ))
+            )}
+            {groupMembers && groupMembers.length > 4 && (
+              <div className="w-7 h-7 rounded-full bg-neutral-200 border-2 border-white flex items-center justify-center text-xs text-neutral-600">
+                +{groupMembers.length - 4}
+              </div>
+            )}
+          </div>
+          <Link 
+            href={`/trips/${trip.id}`}
+            className="text-primary-600 hover:text-primary-700 text-sm font-medium"
+          >
+            View Details
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
