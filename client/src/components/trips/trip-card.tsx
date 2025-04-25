@@ -11,6 +11,9 @@ interface TripCardProps {
 }
 
 export function TripCard({ trip }: TripCardProps) {
+  // Debug output
+  console.log("TripCard received trip data:", trip);
+  
   // Get group members to display avatars
   const { data: groupMembers } = useQuery<GroupMember[]>({
     queryKey: ["/api/groups", trip.groupId, "members"],
