@@ -356,17 +356,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // If trip belongs to a group, check if user is a member
       if (trip.groupId) {
         console.log(`Trip belongs to group ${trip.groupId}, checking membership`);
-        const members = await storage.getGroupMembers(trip.groupId);
-        console.log(`Group members:`, members);
-        const isMember = members.some(member => member.userId === req.user.id);
-        
-        if (isMember) {
-          console.log("User is group member, granting access");
-          return res.json(trip);
+        try {
+          const members = await storage.getGroupMembers(trip.groupId);
+          console.log(`Group members:`, members);
+          const isMember = members.some(member => member.userId === req.user.id);
+          
+          if (isMember) {
+            console.log("User is group member, granting access");
+            return res.json(trip);
+          }
+          
+          console.log("User is not a group member, access denied");
+          return res.status(403).json({ message: "Access denied: Not a member of this group" });
+        } catch (groupErr) {
+          console.error(`Database error getting group members: ${groupErr}`);
+          // In case of DB error, still grant access to the trip creator (already checked above)
+          // For other users, show an explicit error about the DB connection issue
+          return res.status(503).json({ 
+            message: "Database connection error - Please try again later",
+            error: groupErr.message
+          });
         }
-        
-        console.log("User is not a group member, access denied");
-        return res.status(403).json({ message: "Access denied: Not a member of this group" });
       }
       
       // If we get here, user is neither creator nor group member
@@ -475,18 +485,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // If trip belongs to a group, check if user is a member
       if (trip.groupId) {
-        const members = await storage.getGroupMembers(trip.groupId);
-        const isMember = members.some(member => member.userId === req.user.id);
-        
-        if (isMember) {
-          const items = await storage.getItineraryItemsByTripId(tripId);
-          return res.json(items);
+        try {
+          const members = await storage.getGroupMembers(trip.groupId);
+          const isMember = members.some(member => member.userId === req.user.id);
+          
+          if (isMember) {
+            const items = await storage.getItineraryItemsByTripId(tripId);
+            return res.json(items);
+          }
+        } catch (groupErr) {
+          console.error(`Failed to get group members: ${groupErr}`);
+          // If we can't get group members due to DB error, but user is authenticated,
+          // grant access if they're the trip creator (we already checked above)
+          // For other users, deny access
+          return res.status(403).json({ message: "Access denied - Database connection issue" });
         }
       }
       
       // If we get here, access is denied
       return res.status(403).json({ message: "Access denied" });
     } catch (err) {
+      console.error(`Error in itinerary retrieval: ${err}`);
       next(err);
     }
   });
@@ -554,18 +573,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // If trip belongs to a group, check if user is a member
       if (trip.groupId) {
-        const members = await storage.getGroupMembers(trip.groupId);
-        const isMember = members.some(member => member.userId === req.user.id);
-        
-        if (isMember) {
-          const expenses = await storage.getExpensesByTripId(tripId);
-          return res.json(expenses);
+        try {
+          const members = await storage.getGroupMembers(trip.groupId);
+          const isMember = members.some(member => member.userId === req.user.id);
+          
+          if (isMember) {
+            const expenses = await storage.getExpensesByTripId(tripId);
+            return res.json(expenses);
+          }
+        } catch (error) {
+          const groupErr = error as Error;
+          console.error(`Failed to get group members: ${groupErr}`);
+          // If we can't get group members due to DB error, but user is authenticated,
+          // deny access with explicit error
+          return res.status(503).json({ 
+            message: "Database connection error - Please try again later",
+            error: groupErr.message
+          });
         }
       }
       
       // If we get here, access is denied
       return res.status(403).json({ message: "Access denied" });
     } catch (err) {
+      console.error(`Error in expenses retrieval: ${err}`);
       next(err);
     }
   });
@@ -626,16 +657,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Check if user is a member of the group
-      const members = await storage.getGroupMembers(groupId);
-      const isMember = members.some(member => member.userId === req.user.id);
-      
-      if (!isMember) {
-        return res.status(403).json({ message: "Not a member of this group" });
+      try {
+        const members = await storage.getGroupMembers(groupId);
+        const isMember = members.some(member => member.userId === req.user.id);
+        
+        if (!isMember) {
+          return res.status(403).json({ message: "Not a member of this group" });
+        }
+        
+        const messages = await storage.getMessagesByGroupId(groupId);
+        res.json(messages);
+      } catch (groupErr) {
+        console.error(`Database error getting group members: ${groupErr}`);
+        return res.status(503).json({ 
+          message: "Database connection error - Please try again later",
+          error: groupErr.message
+        });
       }
-      
-      const messages = await storage.getMessagesByGroupId(groupId);
-      res.json(messages);
     } catch (err) {
+      console.error(`Error in messages retrieval: ${err}`);
       next(err);
     }
   });
