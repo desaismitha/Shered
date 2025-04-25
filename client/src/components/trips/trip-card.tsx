@@ -1,4 +1,4 @@
-import { Calendar } from "lucide-react";
+import { Calendar, Users } from "lucide-react";
 import { format } from "date-fns";
 import { Trip } from "@shared/schema";
 import { Link } from "wouter";
@@ -22,23 +22,40 @@ export function TripCard({ trip }: TripCardProps) {
     enabled: !!groupMembers,
   });
   
-  const formatDateRange = (startDate: Date, endDate: Date) => {
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    
-    if (start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()) {
-      return `${format(start, 'MMM d')} - ${format(end, 'MMM d, yyyy')}`;
+  const formatDateRange = (startDate: Date | string | null, endDate: Date | string | null) => {
+    // Handle missing or invalid dates
+    if (!startDate || !endDate) {
+      return "Date not specified";
     }
     
-    if (start.getFullYear() === end.getFullYear()) {
-      return `${format(start, 'MMM d')} - ${format(end, 'MMM d, yyyy')}`;
+    try {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      
+      // Check if dates are valid
+      if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+        return "Invalid date";
+      }
+      
+      if (start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()) {
+        return `${format(start, 'MMM d')} - ${format(end, 'MMM d, yyyy')}`;
+      }
+      
+      if (start.getFullYear() === end.getFullYear()) {
+        return `${format(start, 'MMM d')} - ${format(end, 'MMM d, yyyy')}`;
+      }
+      
+      return `${format(start, 'MMM d, yyyy')} - ${format(end, 'MMM d, yyyy')}`;
+    } catch (error) {
+      console.error("Error formatting date range:", error);
+      return "Invalid date format";
     }
-    
-    return `${format(start, 'MMM d, yyyy')} - ${format(end, 'MMM d, yyyy')}`;
   };
   
   // Get status badge color
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string | null | undefined) => {
+    if (!status) return 'bg-neutral-100 text-neutral-800';
+    
     switch (status.toLowerCase()) {
       case 'planning':
         return 'bg-orange-100 text-orange-800';
@@ -61,7 +78,7 @@ export function TripCard({ trip }: TripCardProps) {
         {trip.imageUrl ? (
           <img 
             src={trip.imageUrl} 
-            alt={trip.destination} 
+            alt={trip.destination || 'Trip destination'} 
             className="w-full h-full object-cover" 
           />
         ) : (
@@ -69,7 +86,7 @@ export function TripCard({ trip }: TripCardProps) {
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end">
           <div className="p-4 text-white">
-            <h3 className="font-bold text-lg">{trip.destination}</h3>
+            <h3 className="font-bold text-lg">{trip.destination || 'Unnamed destination'}</h3>
             <div className="flex items-center mt-1">
               <Calendar className="mr-1 h-4 w-4" />
               <span className="text-sm">
@@ -83,10 +100,10 @@ export function TripCard({ trip }: TripCardProps) {
         <div className="flex items-center justify-between">
           <div className="text-sm text-neutral-500">
             <Users className="inline-block mr-1 h-4 w-4" />
-            {trip.name} ({groupMembers?.length || 0} members)
+            {trip.name || 'Unnamed trip'} ({groupMembers?.length || 0} members)
           </div>
           <Badge className={getStatusColor(trip.status)}>
-            {trip.status.charAt(0).toUpperCase() + trip.status.slice(1)}
+            {trip.status ? (trip.status.charAt(0).toUpperCase() + trip.status.slice(1)) : 'Unknown'}
           </Badge>
         </div>
         <div className="mt-3 flex items-center justify-between">
