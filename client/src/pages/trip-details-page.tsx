@@ -47,10 +47,15 @@ export default function TripDetailsPage() {
   });
 
   // Get expenses
-  const { data: expenses, isLoading: isLoadingExpenses } = useQuery<Expense[]>({
+  const { data: expensesData, isLoading: isLoadingExpenses } = useQuery<any[]>({
     queryKey: ["/api/trips", tripId, "expenses"],
     enabled: !!tripId,
   });
+  
+  // Filter out any non-expense items from the expenses array
+  const expenses = expensesData?.filter(item => 
+    item && typeof item === 'object' && 'amount' in item
+  ) as Expense[] || [];
 
   // Get group members
   // In the API, group members doesn't return what it's supposed to,
@@ -90,6 +95,11 @@ export default function TripDetailsPage() {
     console.log("Trip start date:", trip?.startDate);
     console.log("Trip end date:", trip?.endDate);
   }, [itineraryItems, trip]);
+  
+  // Debug expenses
+  useEffect(() => {
+    console.log("Expenses data:", expenses);
+  }, [expenses]);
 
   // Group itinerary items by day
   const itemsByDay = itineraryItems?.reduce((acc, item) => {
