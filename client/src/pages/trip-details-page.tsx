@@ -422,7 +422,14 @@ export default function TripDetailsPage() {
         // Sort items by day
         const items = [...data.selectedItineraryItems];
         items.sort((a, b) => a.day - b.day);
-        setSelectedItineraryItems(items);
+        
+        // Initialize each item with isCompleted property set to false
+        const itemsWithCompletionStatus = items.map(item => ({ 
+          ...item, 
+          isCompleted: false 
+        }));
+        
+        setSelectedItineraryItems(itemsWithCompletionStatus);
         setCurrentItineraryStep(0);
       }
       

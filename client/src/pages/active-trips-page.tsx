@@ -110,6 +110,18 @@ export default function ActiveTripsPage() {
                       <span className="font-medium mr-2">Dates:</span>
                       {formatDateRange(trip.startDate, trip.endDate)}
                     </p>
+                    {trip.startLocation && (
+                      <p className="flex items-center mt-2">
+                        <span className="font-medium mr-2">From:</span>
+                        <span className="text-neutral-800">{trip.startLocation}</span>
+                      </p>
+                    )}
+                    {trip.destination && (
+                      <p className="flex items-center mt-2">
+                        <span className="font-medium mr-2">To:</span>
+                        <span className="text-neutral-800">{trip.destination}</span>
+                      </p>
+                    )}
                     {trip.currentLatitude && trip.currentLongitude && (
                       <p className="flex items-center mt-2">
                         <span className="font-medium mr-2">Last Update:</span>
