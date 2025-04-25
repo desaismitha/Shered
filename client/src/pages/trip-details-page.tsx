@@ -58,15 +58,28 @@ function TripQuickEdit({ trip, onSuccess }: { trip: Trip, onSuccess: () => void 
     try {
       // Format dates for API submission
       // startDate and endDate will be in YYYY-MM-DD format from the date input
-      const startDateTime = startDate ? new Date(startDate) : null;
-      const endDateTime = endDate ? new Date(endDate) : null;
+      let startDateTime = null;
+      let endDateTime = null;
       
+      if (startDate) {
+        // Create a date at noon to avoid timezone issues
+        startDateTime = new Date(startDate + 'T12:00:00Z');
+        console.log("Parsed start date:", startDate, "->", startDateTime);
+      }
+      
+      if (endDate) {
+        // Create a date at noon to avoid timezone issues
+        endDateTime = new Date(endDate + 'T12:00:00Z');
+        console.log("Parsed end date:", endDate, "->", endDateTime);
+      }
+      
+      // Convert dates to ISO strings for the server
       // Build a complete payload with all fields
       const payload = {
         name,
         destination,
-        startDate: startDateTime,
-        endDate: endDateTime,
+        startDate: startDateTime ? startDateTime.toISOString() : null,
+        endDate: endDateTime ? endDateTime.toISOString() : null,
         status
       };
       
