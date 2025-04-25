@@ -32,10 +32,13 @@ export default function TripDetailsPage() {
   const [isAddingExpense, setIsAddingExpense] = useState(false);
 
   // Get trip details
-  const { data: trip, isLoading: isLoadingTrip } = useQuery<Trip>({
-    queryKey: ["/api/trips", tripId],
+  const { data: trips, isLoading: isLoadingTrip } = useQuery<Trip[]>({
+    queryKey: ["/api/trips"],
     enabled: !!tripId,
   });
+  
+  // Extract the specific trip we want
+  const trip = trips?.find(t => t.id === tripId);
 
   // Get itinerary items
   const { data: itineraryItems, isLoading: isLoadingItinerary } = useQuery<ItineraryItem[]>({
