@@ -9,7 +9,7 @@ import { format } from "date-fns";
 import { isSpecialDateMarker, formatDateRange } from "@/lib/utils";
 import { 
   Calendar, CalendarRange, MapPin, Users, PlusIcon, PencilIcon, 
-  DollarSign, ClipboardList, Info, ArrowLeft
+  DollarSign, ClipboardList, Info, ArrowLeft, Car
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -21,6 +21,7 @@ import { ItineraryItem as ItineraryItemComponent } from "@/components/itinerary/
 import { ItineraryForm } from "@/components/itinerary/itinerary-form";
 import { ExpenseCard } from "@/components/expenses/expense-card";
 import { ExpenseForm } from "@/components/expenses/expense-form";
+import { TripVehicleList } from "@/components/vehicles/trip-vehicle-list";
 import { useToast } from "@/hooks/use-toast";
 
 // Extended Trip type with access level from the backend
@@ -504,6 +505,7 @@ export default function TripDetailsPage() {
                 <TabsTrigger value="info">Trip Info</TabsTrigger>
                 <TabsTrigger value="itinerary">Itinerary</TabsTrigger>
                 <TabsTrigger value="expenses">Expenses</TabsTrigger>
+                <TabsTrigger value="vehicles">Vehicles</TabsTrigger>
               </TabsList>
               
               {/* Trip Info tab */}
@@ -734,6 +736,20 @@ export default function TripDetailsPage() {
                           </Button>
                         )}
                       </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              
+              {/* Vehicles tab */}
+              <TabsContent value="vehicles">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Trip Vehicles</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {trip && trip._accessLevel && (
+                      <TripVehicleList tripId={tripId} accessLevel={trip._accessLevel} />
                     )}
                   </CardContent>
                 </Card>

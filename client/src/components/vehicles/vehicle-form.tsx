@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { Vehicle, InsertVehicle } from "@shared/schema";
+import { Vehicle } from "@shared/schema";
 
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -12,22 +12,16 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 
-// Extend the vehicle schema with validation
+// Form schema for vehicle creation/editing
 const vehicleFormSchema = z.object({
   make: z.string().min(1, "Make is required"),
   model: z.string().min(1, "Model is required"),
-  year: z.string().refine(val => !val || !isNaN(Number(val)), {
-    message: "Year must be a valid number"
-  }).transform(val => val ? parseInt(val) : null).optional(),
+  year: z.coerce.number().positive().int().nullable().optional(),
   licensePlate: z.string().optional(),
   color: z.string().optional(),
-  capacity: z.string().refine(val => !val || !isNaN(Number(val)), {
-    message: "Capacity must be a valid number"
-  }).transform(val => val ? parseInt(val) : 5).optional(),
+  capacity: z.coerce.number().positive().int().optional(),
   notes: z.string().optional(),
 });
-
-type VehicleFormValues = z.infer<typeof vehicleFormSchema>;
 
 interface VehicleFormProps {
   vehicle?: Vehicle;
@@ -38,9 +32,10 @@ interface VehicleFormProps {
 export function VehicleForm({ vehicle, onSuccess, onCancel }: VehicleFormProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  
-  // Initialize form with default values or existing vehicle data
-  const form = useForm<VehicleFormValues>({
+  const isEditing = !!vehicle;
+
+  // Initialize the form with default values or current vehicle data
+  const form = useForm({
     resolver: zodResolver(vehicleFormSchema),
     defaultValues: {
       make: vehicle?.make || "",
@@ -48,47 +43,73 @@ export function VehicleForm({ vehicle, onSuccess, onCancel }: VehicleFormProps) 
       year: vehicle?.year ? String(vehicle.year) : "",
       licensePlate: vehicle?.licensePlate || "",
       color: vehicle?.color || "",
-      capacity: vehicle?.capacity ? String(vehicle.capacity) : "5",
+      capacity: vehicle?.capacity ? String(vehicle.capacity) : "",
       notes: vehicle?.notes || "",
     },
   });
 
-  // Create or update mutation
-  const mutation = useMutation({
-    mutationFn: async (values: VehicleFormValues) => {
-      // Convert values to match the expected API format
-      const vehicleData: Partial<InsertVehicle> = {
-        make: values.make,
-        model: values.model,
-        year: values.year || undefined,
+  // Create mutation for adding a vehicle
+  const createMutation = useMutation({
+    mutationFn: async (values: z.infer<typeof vehicleFormSchema>) => {
+      // Convert empty strings to undefined
+      const data = {
+        ...values,
         licensePlate: values.licensePlate || undefined,
-        color: values.color || undefined,
-        capacity: values.capacity || 5,
+        color: values.color || undefined, 
         notes: values.notes || undefined,
+        // Convert string number to actual number or undefined
+        year: values.year ? Number(values.year) : undefined,
+        capacity: values.capacity ? Number(values.capacity) : undefined,
       };
-
-      if (vehicle) {
-        // Update existing vehicle
-        const res = await apiRequest("PATCH", `/api/vehicles/${vehicle.id}`, vehicleData);
-        return await res.json();
-      } else {
-        // Create new vehicle
-        const res = await apiRequest("POST", "/api/vehicles", vehicleData);
-        return await res.json();
-      }
+      
+      const res = await apiRequest("POST", "/api/vehicles", data);
+      return await res.json();
     },
     onSuccess: () => {
-      // Invalidate the vehicles query to refresh the data
       queryClient.invalidateQueries({ queryKey: ['/api/vehicles'] });
-      
       toast({
-        title: vehicle ? "Vehicle updated" : "Vehicle added",
-        description: vehicle 
-          ? "Your vehicle information has been updated successfully." 
-          : "Your vehicle has been added successfully.",
+        title: "Vehicle added",
+        description: "Your vehicle has been added successfully!",
       });
+      form.reset();
+      if (onSuccess) {
+        onSuccess();
+      }
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Update mutation for editing a vehicle
+  const updateMutation = useMutation({
+    mutationFn: async (values: z.infer<typeof vehicleFormSchema>) => {
+      if (!vehicle) return null;
       
-      // Call the success callback if provided
+      // Convert empty strings to undefined
+      const data = {
+        ...values,
+        licensePlate: values.licensePlate || undefined,
+        color: values.color || undefined, 
+        notes: values.notes || undefined,
+        // Convert string number to actual number or undefined
+        year: values.year ? Number(values.year) : undefined,
+        capacity: values.capacity ? Number(values.capacity) : undefined,
+      };
+      
+      const res = await apiRequest("PUT", `/api/vehicles/${vehicle.id}`, data);
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/vehicles'] });
+      toast({
+        title: "Vehicle updated",
+        description: "Your vehicle has been updated successfully!",
+      });
       if (onSuccess) {
         onSuccess();
       }
@@ -103,8 +124,12 @@ export function VehicleForm({ vehicle, onSuccess, onCancel }: VehicleFormProps) 
   });
 
   // Form submission handler
-  function onSubmit(values: VehicleFormValues) {
-    mutation.mutate(values);
+  function onSubmit(values: z.infer<typeof vehicleFormSchema>) {
+    if (isEditing) {
+      updateMutation.mutate(values);
+    } else {
+      createMutation.mutate(values);
+    }
   }
 
   return (
@@ -118,7 +143,7 @@ export function VehicleForm({ vehicle, onSuccess, onCancel }: VehicleFormProps) 
               <FormItem>
                 <FormLabel>Make*</FormLabel>
                 <FormControl>
-                  <Input placeholder="e.g., Toyota" {...field} />
+                  <Input placeholder="Toyota, Honda, etc." {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -132,14 +157,14 @@ export function VehicleForm({ vehicle, onSuccess, onCancel }: VehicleFormProps) 
               <FormItem>
                 <FormLabel>Model*</FormLabel>
                 <FormControl>
-                  <Input placeholder="e.g., Camry" {...field} />
+                  <Input placeholder="Camry, Civic, etc." {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <FormField
             control={form.control}
@@ -148,7 +173,17 @@ export function VehicleForm({ vehicle, onSuccess, onCancel }: VehicleFormProps) 
               <FormItem>
                 <FormLabel>Year</FormLabel>
                 <FormControl>
-                  <Input placeholder="e.g., 2023" {...field} />
+                  <Input 
+                    type="number" 
+                    placeholder="2023" 
+                    {...field} 
+                    value={field.value || ''}
+                    onChange={(e) => {
+                      // Allow empty string
+                      const value = e.target.value === '' ? '' : e.target.value;
+                      field.onChange(value);
+                    }}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -162,7 +197,7 @@ export function VehicleForm({ vehicle, onSuccess, onCancel }: VehicleFormProps) 
               <FormItem>
                 <FormLabel>Color</FormLabel>
                 <FormControl>
-                  <Input placeholder="e.g., Silver" {...field} />
+                  <Input placeholder="Blue, Red, etc." {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -174,9 +209,19 @@ export function VehicleForm({ vehicle, onSuccess, onCancel }: VehicleFormProps) 
             name="capacity"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Passenger Capacity</FormLabel>
+                <FormLabel>Capacity</FormLabel>
                 <FormControl>
-                  <Input placeholder="e.g., 5" {...field} />
+                  <Input 
+                    type="number" 
+                    placeholder="4" 
+                    {...field} 
+                    value={field.value || ''}
+                    onChange={(e) => {
+                      // Allow empty string
+                      const value = e.target.value === '' ? '' : e.target.value;
+                      field.onChange(value);
+                    }}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -191,7 +236,7 @@ export function VehicleForm({ vehicle, onSuccess, onCancel }: VehicleFormProps) 
             <FormItem>
               <FormLabel>License Plate</FormLabel>
               <FormControl>
-                <Input placeholder="e.g., ABC-123" {...field} />
+                <Input placeholder="ABC-123" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -206,7 +251,7 @@ export function VehicleForm({ vehicle, onSuccess, onCancel }: VehicleFormProps) 
               <FormLabel>Notes</FormLabel>
               <FormControl>
                 <Textarea 
-                  placeholder="Any additional information about this vehicle" 
+                  placeholder="Any additional information about the vehicle" 
                   {...field} 
                   rows={3}
                 />
@@ -224,9 +269,12 @@ export function VehicleForm({ vehicle, onSuccess, onCancel }: VehicleFormProps) 
           )}
           <Button 
             type="submit" 
-            disabled={mutation.isPending}
+            disabled={createMutation.isPending || updateMutation.isPending}
           >
-            {mutation.isPending ? "Saving..." : (vehicle ? "Update Vehicle" : "Add Vehicle")}
+            {isEditing 
+              ? (updateMutation.isPending ? "Updating..." : "Update Vehicle")
+              : (createMutation.isPending ? "Adding..." : "Add Vehicle")
+            }
           </Button>
         </div>
       </form>
