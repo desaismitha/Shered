@@ -1,6 +1,11 @@
 import { Calendar, Users, Edit } from "lucide-react";
 import { format } from "date-fns";
-import { Trip } from "@shared/schema";
+import { Trip as BaseTrip } from "@shared/schema";
+
+// Extend the Trip type to include the _accessLevel property
+interface Trip extends BaseTrip {
+  _accessLevel?: 'owner' | 'member' | null;
+}
 import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { GroupMember, User } from "@shared/schema";
@@ -30,8 +35,12 @@ export function TripCard({ trip }: TripCardProps) {
     enabled: !!groupMembers,
   });
   
-  // Check if user is the creator or admin
-  const isCreator = user?.id === trip.createdBy;
+  // Check if user is the creator or admin - use the _accessLevel now
+  // Use the _accessLevel from API response or fall back to direct ID comparison
+  const isCreator = trip._accessLevel === 'owner' || user?.id === trip.createdBy;
+  
+  // Log access level for debugging
+  console.log("Trip access level:", trip._accessLevel);
   
   const formatDateRange = (startDate: Date | string | null, endDate: Date | string | null) => {
     // Handle missing or invalid dates

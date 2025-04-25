@@ -161,13 +161,12 @@ export default function EditTripPage() {
   
   // Check if user is allowed to edit this trip using the access level from the API
   // The API now returns _accessLevel field: 'owner', 'member', or undefined
-  const hasEditPermission = trip?._accessLevel === 'owner';
+  const hasEditPermission = trip?._accessLevel === 'owner' || user?.id === trip?.createdBy;
   
   // Debug access level information
   useEffect(() => {
     if (trip) {
       console.log("EDIT TRIP PAGE - Access level check:", { 
-        accessLevel: trip._accessLevel,
         hasEditPermission,
         tripData: trip
       });
