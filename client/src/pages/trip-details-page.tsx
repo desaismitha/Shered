@@ -10,7 +10,7 @@ import { isSpecialDateMarker, formatDateRange } from "@/lib/utils";
 import { 
   Calendar, CalendarRange, MapPin, Users, PlusIcon, PencilIcon, 
   DollarSign, ClipboardList, Info, ArrowLeft, Car, UserCheck, ArrowRight,
-  Map, Navigation, PlayCircle, StopCircle, Share2, Check
+  Map, Navigation, PlayCircle, StopCircle, Share2, Check, X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -694,17 +694,28 @@ export default function TripDetailsPage() {
 
   return (
     <AppShell>
-      {/* Itinerary selection dialog */}
+      {/* Itinerary selection dialog - with higher z-index to appear above the map */}
       {showItinerarySelector && (
-        <Dialog open={showItinerarySelector} onOpenChange={setShowItinerarySelector}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Select Itinerary Items</DialogTitle>
-              <DialogDescription>
-                Choose which itinerary items you want to include in this trip tracking session.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="max-h-[60vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/50 z-[1000] flex items-center justify-center" onClick={() => setShowItinerarySelector(false)}>
+          <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold">Select Itinerary Items</h2>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => setShowItinerarySelector(false)}
+                className="h-8 w-8 rounded-full"
+              >
+                <span className="sr-only">Close</span>
+                ✖
+              </Button>
+            </div>
+            
+            <p className="text-neutral-500 mb-4">
+              Choose which itinerary items you want to include in this trip tracking session.
+            </p>
+            
+            <div className="flex-1 overflow-y-auto mb-6">
               {itineraryItems && itineraryItems.length > 0 ? (
                 <div className="space-y-4 py-2">
                   {itineraryItems.map((item) => (
@@ -743,7 +754,8 @@ export default function TripDetailsPage() {
                 </div>
               )}
             </div>
-            <DialogFooter className="flex sm:justify-between">
+            
+            <div className="flex justify-between pt-3 border-t">
               <Button
                 type="button"
                 variant="outline"
@@ -772,9 +784,9 @@ export default function TripDetailsPage() {
                   {startTripMutation.isPending ? 'Starting...' : 'Start Trip'}
                 </Button>
               </div>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+            </div>
+          </div>
+        </div>
       )}
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
