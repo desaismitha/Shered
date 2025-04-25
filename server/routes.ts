@@ -39,15 +39,28 @@ async function checkTripAccess(
       console.log(`Trip creator: ${trip.createdBy}, User ID: ${req.user.id}`);
       
       // Check if the user created the trip or has the proper access
-      if (trip.createdBy === req.user.id) {
+      // Convert both IDs to strings for consistent comparison
+      const creatorId = String(trip.createdBy);
+      const userId = String(req.user.id);
+      
+      console.log(`Trip creator ID: ${trip.createdBy} (${typeof trip.createdBy}), User ID: ${req.user.id} (${typeof req.user.id})`);
+      console.log(`String comparison - Creator: ${creatorId}, User: ${userId}`);
+      console.log(`Are they equal as strings? ${creatorId === userId}`);
+      
+      if (creatorId === userId) {
+        console.log("User is the creator of the trip - access granted");
         return true; // User created the trip, they have access
       }
       
       // If there's a group associated with the trip, check group membership
       if (trip.groupId) {
         try {
+          console.log(`User ${req.user.id} checking membership in group ${trip.groupId}`);
           const groupMembers = await storage.getGroupMembers(trip.groupId);
-          const isMember = groupMembers.some(member => member.userId === req.user.id);
+          console.log(`Group members for ${trip.groupId}:`, JSON.stringify(groupMembers));
+          // Use string comparison for consistent behavior
+          const isMember = groupMembers.some(member => String(member.userId) === String(req.user.id));
+          console.log(`Group membership check for user ${req.user.id} in group ${trip.groupId}: ${isMember}`);
           
           if (isMember) {
             return true; // User is a member of the group, they have access
@@ -457,8 +470,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Only the creator can edit the trip
-      if (existingTrip.createdBy !== req.user?.id) {
-        console.log(`Edit permission denied: Trip creator ${existingTrip.createdBy}, User ${req.user?.id}`);
+      // Convert both IDs to strings to ensure consistent comparison
+      const creatorId = String(existingTrip.createdBy);
+      const userId = String(req.user?.id);
+      
+      console.log(`Edit permission check: Trip creator ${creatorId}, User ${userId}`);
+      console.log(`Are they equal as strings? ${creatorId === userId}`);
+      
+      if (creatorId !== userId) {
+        console.log(`Edit permission denied: Trip creator ${existingTrip.createdBy} (${typeof existingTrip.createdBy}), User ${req.user?.id} (${typeof req.user?.id})`);
         return res.status(403).json({ message: "You are not authorized to edit this trip" });
       }
       
