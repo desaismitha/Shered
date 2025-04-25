@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ItineraryItem as ItineraryItemComponent } from "@/components/itinerary/itinerary-item";
 import { ItineraryForm } from "@/components/itinerary/itinerary-form";
@@ -23,6 +23,7 @@ import { ExpenseCard } from "@/components/expenses/expense-card";
 import { ExpenseForm } from "@/components/expenses/expense-form";
 import { TripVehicleList } from "@/components/vehicles/trip-vehicle-list";
 import { DriverInfoSection } from "@/components/user/driver-info-section";
+import { TripDriverAssignment } from "@/components/user/trip-driver-assignment";
 import { useToast } from "@/hooks/use-toast";
 
 // Extended Trip type with access level from the backend
@@ -759,20 +760,39 @@ export default function TripDetailsPage() {
               
               {/* Drivers tab */}
               <TabsContent value="drivers">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Driver Information</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {trip && trip._accessLevel && user && (
-                      <DriverInfoSection 
-                        user={user} 
-                        tripId={tripId} 
-                        accessLevel={trip._accessLevel} 
-                      />
-                    )}
-                  </CardContent>
-                </Card>
+                <div className="space-y-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Your Driver Information</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {trip && trip._accessLevel && user && (
+                        <DriverInfoSection 
+                          user={user} 
+                          tripId={tripId} 
+                          accessLevel={trip._accessLevel} 
+                        />
+                      )}
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Driver Assignments</CardTitle>
+                      <CardDescription>
+                        Manage which drivers are assigned to vehicles for this trip
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {trip && trip._accessLevel && (
+                        <TripDriverAssignment 
+                          tripId={tripId} 
+                          accessLevel={trip._accessLevel} 
+                        />
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
               </TabsContent>
             </Tabs>
           </div>
