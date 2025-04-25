@@ -1390,12 +1390,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Update trip with new location
-      const updatedTrip = await storage.updateTrip(tripId, {
+      // Create update data object with explicit properties to avoid issues
+      const locationUpdateData = {
         currentLatitude: latitude,
         currentLongitude: longitude,
         lastLocationUpdate: new Date(),
         distanceTraveled: distance
-      });
+      };
+      
+      // Log the update data for debugging
+      console.log("Location update data:", locationUpdateData);
+      
+      const updatedTrip = await storage.updateTrip(tripId, locationUpdateData);
       
       if (!updatedTrip) {
         return res.status(500).json({ error: "Failed to update trip location" });

@@ -391,6 +391,12 @@ export class DatabaseStorage implements IStorage {
           console.log(`${key}: ${updateData[key]}`);
         }
         
+        // Check if updateData is completely empty and throw an error
+        if (Object.keys(updateData).length === 0) {
+          console.error("[STORAGE] ERROR: updateData is empty!");
+          throw new Error("No values to set - empty update object");
+        }
+        
         // If we're still missing startLocation but we know it should be set, use a direct update
         let updatedTrip;
         if (missingStartLocation) {
