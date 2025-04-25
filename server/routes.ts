@@ -147,9 +147,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Group not found" });
       }
       
-      // Check if user is a member of the group
+      // Get group members
       const members = await storage.getGroupMembers(groupId);
+      console.log("Group members from DB:", members);
+      
+      // Check if user is a member of the group
       const isMember = members.some(member => member.userId === req.user.id);
+      console.log("Is member check:", { userId: req.user.id, isMember, members });
       
       if (!isMember) {
         return res.status(403).json({ message: "Not a member of this group" });
