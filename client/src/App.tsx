@@ -37,18 +37,10 @@ function Router() {
       <ProtectedRoute path="/groups" component={GroupsPage} />
       <ProtectedRoute path="/expenses" component={ExpensesPage} />
       <ProtectedRoute path="/messages" component={MessagesPage} />
-      <Route path="/auth">
-        <AuthPage />
-      </Route>
-      <Route path="/forgot-password">
-        <ForgotPasswordPage />
-      </Route>
-      <Route path="/reset-password/:token">
-        <ResetPasswordPage />
-      </Route>
-      <Route>
-        <NotFound />
-      </Route>
+      <Route path="/auth" component={AuthPage} />
+      <Route path="/forgot-password" component={() => <ForgotPasswordPage />} />
+      <Route path="/reset-password/:token" component={(params: any) => <ResetPasswordPage />} />
+      <Route component={NotFound} />
     </Switch>
   );
 }
