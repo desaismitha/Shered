@@ -166,7 +166,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       if (!req.isAuthenticated()) return res.sendStatus(401);
       
-      const validatedData = insertTripSchema.parse({
+      // Create a modified schema that accepts ISO date strings
+      const modifiedTripSchema = insertTripSchema.extend({
+        startDate: z.string().transform(val => new Date(val)),
+        endDate: z.string().transform(val => new Date(val))
+      });
+      
+      const validatedData = modifiedTripSchema.parse({
         ...req.body,
         createdBy: req.user.id
       });
@@ -175,6 +181,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const trip = await storage.createTrip(validatedData);
       res.status(201).json(trip);
     } catch (err) {
+      console.error("Trip creation error:", err);
       next(err);
     }
   });
