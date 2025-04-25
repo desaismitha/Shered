@@ -522,36 +522,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log("Authorization check passed - User is the creator of this trip");
       
-      // Create a modified schema that accepts date strings
-      const modifiedTripSchema = insertTripSchema
-        .extend({
-          id: z.number(),
-          startDate: z.union([
-            z.string().transform(val => new Date(val)),
-            z.date()
-          ]),
-          endDate: z.union([
-            z.string().transform(val => new Date(val)),
-            z.date()
-          ])
-        })
-        .partial()
-        .required({ id: true });
-      
-      // Validate the request data
-      const validatedData = modifiedTripSchema.parse(req.body);
-      
-      // Update the trip
-      const updatedTrip = await storage.updateTrip(tripId, validatedData);
-      if (!updatedTrip) {
-        return res.status(404).json({ message: "Trip update failed" });
+      try {
+        // Create a modified schema that accepts date strings
+        const modifiedTripSchema = insertTripSchema
+          .extend({
+            id: z.number().optional(),
+            startDate: z.union([
+              z.string().transform(val => new Date(val)),
+              z.date()
+            ]),
+            endDate: z.union([
+              z.string().transform(val => new Date(val)),
+              z.date()
+            ]),
+            createdBy: z.number().optional(), // Make createdBy optional
+            createdAt: z.date().optional() // Make createdAt optional
+          })
+          .partial();
+        
+        // Validate the request data
+        const parsedData = modifiedTripSchema.safeParse(req.body);
+        
+        if (!parsedData.success) {
+          console.error("Validation error:", parsedData.error);
+          return res.status(400).json({ 
+            message: "Invalid trip data", 
+            errors: parsedData.error.format()
+          });
+        }
+        
+        const validatedData = parsedData.data;
+        console.log("Validated data:", validatedData);
+        
+        // Update the trip
+        const updatedTrip = await storage.updateTrip(tripId, validatedData);
+        if (!updatedTrip) {
+          console.error("Trip update failed - not found or database error");
+          return res.status(404).json({ message: "Trip update failed - trip not found" });
+        }
+        
+        console.log("Trip updated successfully:", updatedTrip);
+        
+        // Include access level in the response like the GET endpoint does
+        res.json({
+          ...updatedTrip,
+          _accessLevel: 'owner' // Since we've confirmed owner access above
+        });
+      } catch (validationErr) {
+        console.error("Validation or data processing error:", validationErr);
+        res.status(400).json({ 
+          message: "Error processing trip data", 
+          error: validationErr instanceof Error ? validationErr.message : "Unknown error"
+        });
       }
-      
-      // Include access level in the response like the GET endpoint does
-      res.json({
-        ...updatedTrip,
-        _accessLevel: 'owner' // Since we've confirmed owner access above
-      });
     } catch (err) {
       console.error("Trip update error:", err);
       next(err);

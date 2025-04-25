@@ -188,21 +188,50 @@ export class DatabaseStorage implements IStorage {
   
   async updateTrip(id: number, tripData: Partial<InsertTrip>): Promise<Trip | undefined> {
     return this.executeDbOperation(async () => {
-      const existingTrip = await this.getTrip(id);
-      if (!existingTrip) return undefined;
-      
-      const [updatedTrip] = await db
-        .update(trips)
-        .set({
-          ...tripData,
-          // Convert date strings to Date objects if present
-          startDate: tripData.startDate ? new Date(tripData.startDate) : undefined,
-          endDate: tripData.endDate ? new Date(tripData.endDate) : undefined
-        })
-        .where(eq(trips.id, id))
-        .returning();
-      
-      return updatedTrip;
+      try {
+        console.log("[STORAGE] Updating trip: ", id, "with data:", JSON.stringify(tripData));
+        
+        // First check if trip exists
+        const existingTrip = await this.getTrip(id);
+        if (!existingTrip) {
+          console.error(`[STORAGE] Trip with ID ${id} not found`);
+          return undefined;
+        }
+        
+        // Extract data we want to update, preserving original values for fields not included
+        const updateData: Record<string, any> = {};
+        
+        // Only include fields that are present in tripData
+        if (tripData.name !== undefined) updateData.name = tripData.name;
+        if (tripData.destination !== undefined) updateData.destination = tripData.destination;
+        if (tripData.description !== undefined) updateData.description = tripData.description;
+        if (tripData.imageUrl !== undefined) updateData.imageUrl = tripData.imageUrl;
+        if (tripData.status !== undefined) updateData.status = tripData.status;
+        if (tripData.groupId !== undefined) updateData.groupId = tripData.groupId;
+        
+        // Handle dates specially to ensure they're Date objects
+        if (tripData.startDate) updateData.startDate = new Date(tripData.startDate);
+        if (tripData.endDate) updateData.endDate = new Date(tripData.endDate);
+        
+        // Never update the creator or creation date
+        delete updateData.createdBy;
+        delete updateData.createdAt;
+        
+        console.log("[STORAGE] Final update data:", JSON.stringify(updateData));
+        
+        // Execute the update
+        const [updatedTrip] = await db
+          .update(trips)
+          .set(updateData)
+          .where(eq(trips.id, id))
+          .returning();
+        
+        console.log("[STORAGE] Updated trip result:", JSON.stringify(updatedTrip));
+        return updatedTrip;
+      } catch (error) {
+        console.error("[STORAGE] Error updating trip:", error);
+        throw error;
+      }
     }, 2);
   }
 

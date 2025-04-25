@@ -110,21 +110,51 @@ export default function EditTripPage() {
   }, [trip, form]);
   
   // Update trip mutation
-  const updateMutation = useMutation({
+  const updateMutation = useMutation<Trip, Error, TripUpdateValues>({
     mutationFn: async (values: TripUpdateValues) => {
-      const res = await apiRequest("PUT", `/api/trips/${tripId}`, values);
-      return await res.json();
+      console.log("MUTATION - Making API request with values:", values);
+      try {
+        // Format dates as ISO strings to ensure proper serialization
+        const formattedValues = {
+          ...values,
+          startDate: values.startDate.toISOString(),
+          endDate: values.endDate.toISOString(),
+        };
+        
+        console.log("MUTATION - Formatted values:", formattedValues);
+        const res = await apiRequest("PUT", `/api/trips/${tripId}`, formattedValues);
+        console.log("MUTATION - Response status:", res.status);
+        
+        // Try to parse response body even if there's an error
+        const responseText = await res.text();
+        console.log("MUTATION - Response text:", responseText);
+        
+        if (!res.ok) {
+          throw new Error(`Error ${res.status}: ${responseText}`);
+        }
+        
+        // If response was ok, parse it as JSON
+        return JSON.parse(responseText);
+      } catch (err) {
+        console.error("MUTATION - Error in API request:", err);
+        throw err;
+      }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log("MUTATION - Success! Updated trip:", data);
       toast({
         title: "Trip updated",
         description: "Your trip has been updated successfully",
       });
+      // Invalidate all trip-related queries to refresh data
       queryClient.invalidateQueries({ queryKey: ["/api/trips"] });
       queryClient.invalidateQueries({ queryKey: ["/api/trips", tripId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/groups"] });
+      // Navigate back to trip details page
       navigate(`/trips/${tripId}`);
     },
     onError: (error: Error) => {
+      console.error("MUTATION - Error updating trip:", error);
       toast({
         title: "Error updating trip",
         description: error.message,
@@ -144,19 +174,32 @@ export default function EditTripPage() {
       return;
     }
     
-    // Make sure we use the original creator ID, not the current user ID
-    const updateData = {
-      ...values,
-      createdBy: trip.createdBy, // IMPORTANT: Keep the original creator
-    };
-    
-    console.log("EDIT TRIP - Form values:", values);
-    console.log("EDIT TRIP - Trip data:", trip);
-    console.log("EDIT TRIP - Access level:", trip._accessLevel);
-    console.log("EDIT TRIP - Has edit permission:", hasEditPermission);
-    console.log("EDIT TRIP - Data to be sent:", updateData);
-    
-    updateMutation.mutate(updateData);
+    try {
+      // Make sure we use the original creator ID, not the current user ID
+      const updateData = {
+        ...values,
+        createdBy: trip.createdBy, // IMPORTANT: Keep the original creator
+      };
+      
+      console.log("EDIT TRIP - Form values:", values);
+      console.log("EDIT TRIP - Trip data:", trip);
+      console.log("EDIT TRIP - Access level:", trip._accessLevel);
+      console.log("EDIT TRIP - Has edit permission:", hasEditPermission);
+      console.log("EDIT TRIP - Data to be sent:", updateData);
+      
+      // Debug URL and request format
+      console.log(`EDIT TRIP - API Call: PUT /api/trips/${tripId}`);
+      
+      // Execute the update
+      updateMutation.mutate(updateData);
+    } catch (error) {
+      console.error("Error in trip edit submit handler:", error);
+      toast({
+        title: "Form submission error",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive",
+      });
+    }
   };
   
   // Check if user is allowed to edit this trip using the access level from the API
