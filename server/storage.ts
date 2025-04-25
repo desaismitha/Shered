@@ -2,8 +2,16 @@ import { users, groups, groupMembers, trips, itineraryItems, expenses, messages 
 import type { User, InsertUser, Group, InsertGroup, GroupMember, InsertGroupMember, Trip, InsertTrip, ItineraryItem, InsertItineraryItem, Expense, InsertExpense, Message, InsertMessage } from "@shared/schema";
 import session from "express-session";
 import { eq, and, inArray } from "drizzle-orm";
-import { db, pool } from "./db";
+import { db, pool, attemptReconnect, checkDbConnection } from "./db";
 import connectPg from "connect-pg-simple";
+
+// Create a custom database error class
+class DatabaseConnectionError extends Error {
+  constructor(message = "Database connection error") {
+    super(message);
+    this.name = "DatabaseConnectionError";
+  }
+}
 
 const PostgresSessionStore = connectPg(session);
 
@@ -55,157 +63,224 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
+  // Helper method to execute database operations with error handling
+  private async executeDbOperation<T>(operation: () => Promise<T>, retries = 1): Promise<T> {
+    try {
+      return await operation();
+    } catch (error) {
+      console.error('Database operation error:', error);
+      
+      const err = error as Error;
+      const isConnectionError = 
+        err.message.includes('terminating connection') || 
+        err.message.includes('connection terminated') ||
+        err.message.includes('ECONNREFUSED') ||
+        err.message.includes('ETIMEDOUT');
+      
+      if (isConnectionError && retries > 0) {
+        console.log(`Attempting to reconnect and retry operation (${retries} retries left)...`);
+        // Try to reconnect
+        const reconnected = await attemptReconnect(1, 500);
+        if (reconnected) {
+          // If reconnection successful, retry the operation
+          return this.executeDbOperation(operation, retries - 1);
+        }
+      }
+      
+      // Either not a connection error or reconnection failed
+      throw err;
+    }
+  }
+
   // User methods
   async getUser(id: number): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user;
+    return this.executeDbOperation(async () => {
+      const [user] = await db.select().from(users).where(eq(users.id, id));
+      return user;
+    });
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
-    return user;
+    return this.executeDbOperation(async () => {
+      const [user] = await db.select().from(users).where(eq(users.username, username));
+      return user;
+    });
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const [user] = await db.insert(users).values(insertUser).returning();
-    return user;
+    return this.executeDbOperation(async () => {
+      const [user] = await db.insert(users).values(insertUser).returning();
+      return user;
+    });
   }
   
   async getAllUsers(): Promise<User[]> {
-    return await db.select().from(users);
+    return this.executeDbOperation(async () => {
+      return await db.select().from(users);
+    });
   }
 
   // Group methods
   async createGroup(insertGroup: InsertGroup): Promise<Group> {
-    const [group] = await db.insert(groups).values(insertGroup).returning();
-    
-    // Automatically add creator as a member with "admin" role
-    await this.addUserToGroup({
-      groupId: group.id,
-      userId: insertGroup.createdBy,
-      role: "admin"
+    return this.executeDbOperation(async () => {
+      const [group] = await db.insert(groups).values(insertGroup).returning();
+      
+      // Automatically add creator as a member with "admin" role
+      await this.addUserToGroup({
+        groupId: group.id,
+        userId: insertGroup.createdBy,
+        role: "admin"
+      });
+      
+      return group;
     });
-    
-    return group;
   }
 
   async getGroup(id: number): Promise<Group | undefined> {
-    const [group] = await db.select().from(groups).where(eq(groups.id, id));
-    return group;
+    return this.executeDbOperation(async () => {
+      const [group] = await db.select().from(groups).where(eq(groups.id, id));
+      return group;
+    });
   }
 
   async getGroupsByUserId(userId: number): Promise<Group[]> {
-    // Get group IDs the user is a member of
-    const memberships = await db.select().from(groupMembers).where(eq(groupMembers.userId, userId));
-    const groupIds = memberships.map(m => m.groupId);
-    
-    if (groupIds.length === 0) {
-      return [];
-    }
-    
-    // Get the groups
-    return await db.select().from(groups).where(inArray(groups.id, groupIds));
+    return this.executeDbOperation(async () => {
+      // Get group IDs the user is a member of
+      const memberships = await db.select().from(groupMembers).where(eq(groupMembers.userId, userId));
+      const groupIds = memberships.map(m => m.groupId);
+      
+      if (groupIds.length === 0) {
+        return [];
+      }
+      
+      // Get the groups
+      return await db.select().from(groups).where(inArray(groups.id, groupIds));
+    });
   }
 
   async addUserToGroup(insertGroupMember: InsertGroupMember): Promise<GroupMember> {
-    const [member] = await db.insert(groupMembers).values(insertGroupMember).returning();
-    return member;
+    return this.executeDbOperation(async () => {
+      const [member] = await db.insert(groupMembers).values(insertGroupMember).returning();
+      return member;
+    });
   }
 
   async getGroupMembers(groupId: number): Promise<GroupMember[]> {
-    return await db.select().from(groupMembers).where(eq(groupMembers.groupId, groupId));
+    return this.executeDbOperation(async () => {
+      return await db.select().from(groupMembers).where(eq(groupMembers.groupId, groupId));
+    }, 2); // Try up to 2 retries for this critical method
   }
 
   // Trip methods
   async createTrip(insertTrip: InsertTrip): Promise<Trip> {
-    const [trip] = await db.insert(trips).values(insertTrip).returning();
-    return trip;
+    return this.executeDbOperation(async () => {
+      const [trip] = await db.insert(trips).values(insertTrip).returning();
+      return trip;
+    });
   }
 
   async getTrip(id: number): Promise<Trip | undefined> {
-    const [trip] = await db.select().from(trips).where(eq(trips.id, id));
-    return trip;
+    return this.executeDbOperation(async () => {
+      const [trip] = await db.select().from(trips).where(eq(trips.id, id));
+      return trip;
+    }, 2); // Try up to 2 retries for this critical method
   }
   
   async updateTrip(id: number, tripData: Partial<InsertTrip>): Promise<Trip | undefined> {
-    const existingTrip = await this.getTrip(id);
-    if (!existingTrip) return undefined;
-    
-    const [updatedTrip] = await db
-      .update(trips)
-      .set({
-        ...tripData,
-        // Convert date strings to Date objects if present
-        startDate: tripData.startDate ? new Date(tripData.startDate) : undefined,
-        endDate: tripData.endDate ? new Date(tripData.endDate) : undefined
-      })
-      .where(eq(trips.id, id))
-      .returning();
-    
-    return updatedTrip;
+    return this.executeDbOperation(async () => {
+      const existingTrip = await this.getTrip(id);
+      if (!existingTrip) return undefined;
+      
+      const [updatedTrip] = await db
+        .update(trips)
+        .set({
+          ...tripData,
+          // Convert date strings to Date objects if present
+          startDate: tripData.startDate ? new Date(tripData.startDate) : undefined,
+          endDate: tripData.endDate ? new Date(tripData.endDate) : undefined
+        })
+        .where(eq(trips.id, id))
+        .returning();
+      
+      return updatedTrip;
+    }, 2);
   }
 
   async getTripsByUserId(userId: number): Promise<Trip[]> {
-    // Get all groups the user is a member of
-    const memberships = await db.select().from(groupMembers).where(eq(groupMembers.userId, userId));
-    const groupIds = memberships.map(m => m.groupId);
-    
-    if (groupIds.length === 0) {
-      return [];
-    }
-    
-    // Get all trips associated with those groups
-    return await db.select().from(trips).where(inArray(trips.groupId, groupIds));
+    return this.executeDbOperation(async () => {
+      // Get all groups the user is a member of
+      const memberships = await db.select().from(groupMembers).where(eq(groupMembers.userId, userId));
+      const groupIds = memberships.map(m => m.groupId);
+      
+      if (groupIds.length === 0) {
+        return [];
+      }
+      
+      // Get all trips associated with those groups
+      return await db.select().from(trips).where(inArray(trips.groupId, groupIds));
+    }, 2);
   }
 
   async getTripsByGroupId(groupId: number): Promise<Trip[]> {
-    return await db.select().from(trips).where(eq(trips.groupId, groupId));
+    return this.executeDbOperation(async () => {
+      return await db.select().from(trips).where(eq(trips.groupId, groupId));
+    }, 2);
   }
 
   // Itinerary methods
   async createItineraryItem(insertItem: InsertItineraryItem): Promise<ItineraryItem> {
-    const [item] = await db.insert(itineraryItems).values(insertItem).returning();
-    return item;
+    return this.executeDbOperation(async () => {
+      const [item] = await db.insert(itineraryItems).values(insertItem).returning();
+      return item;
+    });
   }
 
   async getItineraryItemsByTripId(tripId: number): Promise<ItineraryItem[]> {
-    return await db.select().from(itineraryItems).where(eq(itineraryItems.tripId, tripId));
+    return this.executeDbOperation(async () => {
+      return await db.select().from(itineraryItems).where(eq(itineraryItems.tripId, tripId));
+    });
   }
 
   // Expense methods
   async createExpense(insertExpense: InsertExpense): Promise<Expense> {
-    // Make sure we're sending valid data to the database
-    const validExpenseData = {
-      tripId: insertExpense.tripId,
-      title: insertExpense.title,
-      amount: insertExpense.amount,
-      paidBy: insertExpense.paidBy,
-      splitAmong: insertExpense.splitAmong,
-      date: insertExpense.date || null,
-      category: insertExpense.category || null,
-    };
-    
-    const [expense] = await db.insert(expenses).values(validExpenseData).returning();
-    return expense;
+    return this.executeDbOperation(async () => {
+      // Make sure we're sending valid data to the database
+      const validExpenseData = {
+        tripId: insertExpense.tripId,
+        title: insertExpense.title,
+        amount: insertExpense.amount,
+        paidBy: insertExpense.paidBy,
+        splitAmong: insertExpense.splitAmong,
+        date: insertExpense.date || null,
+        category: insertExpense.category || null,
+      };
+      
+      const [expense] = await db.insert(expenses).values(validExpenseData).returning();
+      return expense;
+    });
   }
 
   async getExpensesByTripId(tripId: number): Promise<Expense[]> {
-    return await db.select().from(expenses).where(eq(expenses.tripId, tripId));
+    return this.executeDbOperation(async () => {
+      return await db.select().from(expenses).where(eq(expenses.tripId, tripId));
+    });
   }
 
   async getExpensesByUserId(userId: number): Promise<Expense[]> {
-    // Find expenses where the user paid
-    const userExpenses = await db.select().from(expenses).where(eq(expenses.paidBy, userId));
-    
-    // For PostgreSQL, we need a more specific approach to search in arrays
-    // This is a simplified approach that gets all expenses and filters in-memory
-    // In a production app, we might want a more efficient SQL query
-    const allExpenses = await db.select().from(expenses);
-    const splitExpenses = allExpenses.filter(expense => 
-      expense.splitAmong.includes(userId) && expense.paidBy !== userId
-    );
-    
-    return [...userExpenses, ...splitExpenses];
+    return this.executeDbOperation(async () => {
+      // Find expenses where the user paid
+      const userExpenses = await db.select().from(expenses).where(eq(expenses.paidBy, userId));
+      
+      // For PostgreSQL, we need a more specific approach to search in arrays
+      // This is a simplified approach that gets all expenses and filters in-memory
+      // In a production app, we might want a more efficient SQL query
+      const allExpenses = await db.select().from(expenses);
+      const splitExpenses = allExpenses.filter(expense => 
+        expense.splitAmong.includes(userId) && expense.paidBy !== userId
+      );
+      
+      return [...userExpenses, ...splitExpenses];
+    });
   }
 
   // Message methods
