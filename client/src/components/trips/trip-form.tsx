@@ -293,7 +293,12 @@ export function TripForm() {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Travel Group</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value?.toString()}>
+              <Select 
+                onValueChange={(value) => {
+                  // Convert string to number before setting the value
+                  field.onChange(value ? parseInt(value) : null);
+                }} 
+                defaultValue={field.value?.toString()}>
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Select a group" />
