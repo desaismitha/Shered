@@ -1,11 +1,16 @@
 import { useEffect, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Trip, ItineraryItem, Expense, User, GroupMember } from "@shared/schema";
+import { Trip as BaseTrip, ItineraryItem, Expense, User, GroupMember } from "@shared/schema";
 import { AppShell } from "@/components/layout/app-shell";
 import { useParams, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { format } from "date-fns";
+
+// Extended Trip type with access level from the backend
+interface Trip extends BaseTrip {
+  _accessLevel?: 'owner' | 'member';
+}
 import { 
   Calendar, MapPin, Users, PlusIcon, PencilIcon, 
   DollarSign, ClipboardList, Info, ArrowLeft
@@ -31,14 +36,18 @@ export default function TripDetailsPage() {
   const [isAddingItinerary, setIsAddingItinerary] = useState(false);
   const [isAddingExpense, setIsAddingExpense] = useState(false);
 
-  // Get trip details
-  const { data: trips, isLoading: isLoadingTrip } = useQuery<Trip[]>({
-    queryKey: ["/api/trips"],
+  // Get trip details directly from the specific endpoint to get access level info
+  const { data: trip, isLoading: isLoadingTrip } = useQuery<Trip>({
+    queryKey: ["/api/trips", tripId],
     enabled: !!tripId,
   });
   
-  // Extract the specific trip we want
-  const trip = trips?.find(t => t.id === tripId);
+  // Debug the trip access level
+  useEffect(() => {
+    if (trip) {
+      console.log("Trip access level:", trip._accessLevel);
+    }
+  }, [trip]);
 
   // Get itinerary items
   const { data: itineraryItems, isLoading: isLoadingItinerary } = useQuery<ItineraryItem[]>({
@@ -270,7 +279,7 @@ export default function TripDetailsPage() {
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle>Trip Itinerary</CardTitle>
-                    {!isAddingItinerary && (
+                    {!isAddingItinerary && trip._accessLevel && (
                       <Button 
                         size="sm"
                         onClick={() => setIsAddingItinerary(true)}
@@ -336,10 +345,12 @@ export default function TripDetailsPage() {
                         <ClipboardList className="h-12 w-12 text-neutral-300 mx-auto mb-3" />
                         <h3 className="text-lg font-medium text-neutral-700 mb-1">No itinerary items yet</h3>
                         <p className="text-neutral-500 mb-6">Start planning your trip by adding activities</p>
-                        <Button onClick={() => setIsAddingItinerary(true)}>
-                          <PlusIcon className="h-4 w-4 mr-2" />
-                          Add First Item
-                        </Button>
+                        {trip._accessLevel && (
+                          <Button onClick={() => setIsAddingItinerary(true)}>
+                            <PlusIcon className="h-4 w-4 mr-2" />
+                            Add First Item
+                          </Button>
+                        )}
                       </div>
                     )}
                   </CardContent>
@@ -358,7 +369,7 @@ export default function TripDetailsPage() {
                         </p>
                       )}
                     </div>
-                    {!isAddingExpense && (
+                    {!isAddingExpense && trip._accessLevel && (
                       <Button 
                         size="sm"
                         onClick={() => setIsAddingExpense(true)}
@@ -433,7 +444,7 @@ export default function TripDetailsPage() {
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle>Trip Information</CardTitle>
-                    {user?.id === trip.createdBy && (
+                    {trip._accessLevel === 'owner' && (
                       <Button 
                         size="sm"
                         variant="outline"
