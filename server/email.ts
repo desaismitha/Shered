@@ -79,3 +79,52 @@ export async function sendGroupInvitation(
     html
   });
 }
+
+export async function sendPasswordResetEmail(
+  email: string,
+  username: string,
+  resetLink: string
+): Promise<boolean> {
+  const fromEmail = 'noreply@travelgroupr.com';
+  const subject = 'Password Reset for TravelGroupr';
+  
+  const text = `
+    Hi ${username},
+    
+    We received a request to reset your password for your TravelGroupr account.
+    
+    To reset your password, please visit:
+    ${resetLink}
+    
+    This link will expire in 1 hour.
+    
+    If you didn't request this, you can safely ignore this email.
+    
+    Best regards,
+    The TravelGroupr Team
+  `;
+  
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2>Reset Your TravelGroupr Password</h2>
+      <p>Hi <strong>${username}</strong>,</p>
+      <p>We received a request to reset your password for your TravelGroupr account.</p>
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="${resetLink}" style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold;">
+          Reset Password
+        </a>
+      </div>
+      <p>This link will expire in 1 hour.</p>
+      <p>If you didn't request this, you can safely ignore this email.</p>
+      <p>Best regards,<br>The TravelGroupr Team</p>
+    </div>
+  `;
+  
+  return sendEmail({
+    to: email,
+    from: fromEmail,
+    subject,
+    text,
+    html
+  });
+}

@@ -19,8 +19,12 @@ export interface IStorage {
   // User methods
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   getAllUsers(): Promise<User[]>;
+  createPasswordResetToken(userId: number, token: string, expiry: Date): Promise<boolean>;
+  getUserByResetToken(token: string): Promise<User | undefined>;
+  updateUserPassword(userId: number, newPassword: string): Promise<boolean>;
 
   // Group methods
   createGroup(group: InsertGroup): Promise<Group>;
@@ -114,9 +118,66 @@ export class DatabaseStorage implements IStorage {
     });
   }
   
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    return this.executeDbOperation(async () => {
+      const [user] = await db.select().from(users).where(eq(users.email, email));
+      return user;
+    });
+  }
+
   async getAllUsers(): Promise<User[]> {
     return this.executeDbOperation(async () => {
       return await db.select().from(users);
+    });
+  }
+  
+  async createPasswordResetToken(userId: number, token: string, expiry: Date): Promise<boolean> {
+    return this.executeDbOperation(async () => {
+      const result = await db
+        .update(users)
+        .set({ 
+          resetToken: token,
+          resetTokenExpiry: expiry
+        })
+        .where(eq(users.id, userId))
+        .returning({ id: users.id });
+      
+      return result.length > 0;
+    });
+  }
+  
+  async getUserByResetToken(token: string): Promise<User | undefined> {
+    return this.executeDbOperation(async () => {
+      // Find user with this token where expiry is in the future
+      const now = new Date();
+      
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(
+          and(
+            eq(users.resetToken, token),
+            gt(users.resetTokenExpiry as any, now)
+          )
+        );
+      
+      return user;
+    });
+  }
+  
+  async updateUserPassword(userId: number, newPassword: string): Promise<boolean> {
+    return this.executeDbOperation(async () => {
+      const result = await db
+        .update(users)
+        .set({ 
+          password: newPassword,
+          resetToken: null,
+          resetTokenExpiry: null
+        })
+        .where(eq(users.id, userId))
+        .returning({ id: users.id });
+      
+      return result.length > 0;
     });
   }
 
