@@ -59,7 +59,8 @@ const itineraryFormSchema = insertItineraryItemSchema.extend({
   title: z.string().min(2, "Title must be at least 2 characters"),
   isRecurring: z.boolean().default(false),
   recurrencePattern: z.string().optional(),
-  recurrenceDays: z.array(z.string()).optional(),
+  // This will handle both string (from DB) and array (from form) values
+  recurrenceDays: z.union([z.array(z.string()), z.string()]).optional(),
 });
 
 type ItineraryFormValues = z.infer<typeof itineraryFormSchema>;
@@ -136,16 +137,17 @@ export function ItineraryForm({ tripId, onSuccess, onCancel }: ItineraryFormProp
     }
     
     // Convert recurrenceDays array to string for storage
+    let formValues = {...values};
     if (values.recurrenceDays && values.recurrenceDays.length > 0) {
       const recurrenceDaysString = JSON.stringify(values.recurrenceDays);
-      values = {
-        ...values,
-        recurrenceDays: recurrenceDaysString as any,
+      formValues = {
+        ...formValues,
+        recurrenceDays: recurrenceDaysString,
       };
     }
     
     // Submit the form
-    mutation.mutate(values);
+    mutation.mutate(formValues as any);
   };
 
   return (
