@@ -42,17 +42,16 @@ export function GroupForm() {
 
   // Create group mutation
   const mutation = useMutation({
-    mutationFn: async (values: GroupFormValues) => {
+    mutationFn: async (values: InsertGroup) => {
       console.log("Making API request to create group:", values);
-      try {
-        const res = await apiRequest("POST", "/api/groups", values);
-        const jsonResponse = await res.json();
-        console.log("API response:", jsonResponse);
-        return jsonResponse;
-      } catch (error) {
-        console.error("API request failed:", error);
-        throw error;
+      const res = await apiRequest("POST", "/api/groups", values);
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(errorText || "Failed to create group");
       }
+      const jsonResponse = await res.json();
+      console.log("API response:", jsonResponse);
+      return jsonResponse;
     },
     onSuccess: (data) => {
       console.log("Group created successfully:", data);
@@ -63,7 +62,7 @@ export function GroupForm() {
       });
       navigate(`/groups/${data.id}`);
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       console.error("Group creation error:", error);
       toast({
         title: "Error",
@@ -79,32 +78,36 @@ export function GroupForm() {
     
     if (!user) {
       console.error("User is not authenticated");
+      toast({
+        title: "Error",
+        description: "You must be logged in to create a group",
+        variant: "destructive",
+      });
       return;
     }
     
-    // Add createdBy
-    const createGroup: InsertGroup = {
-      ...values,
-      createdBy: user.id,
-    };
-    
-    console.log("Submitting group creation:", createGroup);
-    mutation.mutate(createGroup);
+    try {
+      // Add createdBy to the form values
+      const createGroup: InsertGroup = {
+        ...values,
+        createdBy: user.id,
+      };
+      
+      console.log("Submitting group creation:", createGroup);
+      mutation.mutate(createGroup);
+    } catch (error) {
+      console.error("Error during form submission:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create group. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
-  // Function to manually handle form submission
-  const handleManualSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log("Manual form submission triggered");
-    
-    // Validate form
-    const result = form.handleSubmit(onSubmit)();
-    console.log("Form validation result:", result);
-  };
-  
   return (
     <Form {...form}>
-      <form onSubmit={handleManualSubmit} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <FormField
           control={form.control}
           name="name"
@@ -148,7 +151,6 @@ export function GroupForm() {
           <Button 
             type="submit" 
             disabled={mutation.isPending}
-            onClick={() => console.log("Create Group button clicked")}
           >
             {mutation.isPending ? "Creating..." : "Create Group"}
           </Button>
