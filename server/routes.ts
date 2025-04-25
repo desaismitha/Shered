@@ -1194,6 +1194,153 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Trip tracking endpoints
+  app.post("/api/trips/:id/start", async (req, res, next) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    
+    try {
+      const tripId = Number(req.params.id);
+      
+      // Check if user is the owner or member of trip
+      const accessLevel = await checkTripAccess(req, tripId, res, next, "[TRIP_START] ");
+      if (!accessLevel) {
+        return; // Error response already sent
+      }
+      
+      if (accessLevel !== 'owner') {
+        return res.status(403).json({ error: "Only trip owners can start tracking" });
+      }
+      
+      // Update trip status to in-progress
+      const updatedTrip = await storage.updateTrip(tripId, { 
+        status: 'in-progress',
+        lastLocationUpdate: new Date()
+      });
+      
+      if (!updatedTrip) {
+        return res.status(500).json({ error: "Failed to start trip tracking" });
+      }
+      
+      return res.status(200).json({ 
+        message: "Trip tracking started",
+        trip: {
+          ...updatedTrip,
+          _accessLevel: accessLevel
+        }
+      });
+    } catch (error) {
+      console.error("Error starting trip:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+  
+  app.post("/api/trips/:id/update-location", async (req, res, next) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    
+    try {
+      const tripId = Number(req.params.id);
+      const { latitude, longitude } = req.body;
+      
+      if (typeof latitude !== 'number' || typeof longitude !== 'number') {
+        return res.status(400).json({ error: "Invalid location data" });
+      }
+      
+      // Check if user is the owner or member of trip
+      const accessLevel = await checkTripAccess(req, tripId, res, next, "[TRIP_UPDATE_LOCATION] ");
+      if (!accessLevel) {
+        return; // Error response already sent
+      }
+      
+      if (accessLevel !== 'owner') {
+        return res.status(403).json({ error: "Only trip owners can update location" });
+      }
+      
+      // Get current trip data
+      const trip = await storage.getTrip(tripId);
+      
+      if (!trip) {
+        return res.status(404).json({ error: "Trip not found" });
+      }
+      
+      // Calculate distance if previous coordinates exist
+      let distance = trip.distanceTraveled || 0;
+      if (trip.currentLatitude && trip.currentLongitude) {
+        const newDistance = calculateDistance(
+          trip.currentLatitude, 
+          trip.currentLongitude, 
+          latitude, 
+          longitude
+        );
+        distance += newDistance;
+      }
+      
+      // Update trip with new location
+      const updatedTrip = await storage.updateTrip(tripId, {
+        currentLatitude: latitude,
+        currentLongitude: longitude,
+        lastLocationUpdate: new Date(),
+        distanceTraveled: distance
+      });
+      
+      if (!updatedTrip) {
+        return res.status(500).json({ error: "Failed to update trip location" });
+      }
+      
+      return res.status(200).json({
+        message: "Trip location updated",
+        trip: {
+          ...updatedTrip,
+          _accessLevel: accessLevel
+        }
+      });
+    } catch (error) {
+      console.error("Error updating trip location:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+  
+  app.post("/api/trips/:id/complete", async (req, res, next) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    
+    try {
+      const tripId = Number(req.params.id);
+      
+      // Check if user is the owner or member of trip
+      const accessLevel = await checkTripAccess(req, tripId, res, next, "[TRIP_COMPLETE] ");
+      if (!accessLevel) {
+        return; // Error response already sent
+      }
+      
+      if (accessLevel !== 'owner') {
+        return res.status(403).json({ error: "Only trip owners can complete trips" });
+      }
+      
+      // Update trip status to completed
+      const updatedTrip = await storage.updateTrip(tripId, { status: 'completed' });
+      
+      if (!updatedTrip) {
+        return res.status(500).json({ error: "Failed to complete trip" });
+      }
+      
+      return res.status(200).json({
+        message: "Trip completed",
+        trip: {
+          ...updatedTrip,
+          _accessLevel: accessLevel
+        }
+      });
+    } catch (error) {
+      console.error("Error completing trip:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   app.get("/api/expenses", async (req, res, next) => {
     try {
       if (!req.isAuthenticated()) return res.sendStatus(401);

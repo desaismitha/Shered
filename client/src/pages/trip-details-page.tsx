@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Trip as BaseTrip, ItineraryItem, Expense, User, GroupMember } from "@shared/schema";
 import { AppShell } from "@/components/layout/app-shell";
@@ -9,7 +9,8 @@ import { format, addDays } from "date-fns";
 import { isSpecialDateMarker, formatDateRange } from "@/lib/utils";
 import { 
   Calendar, CalendarRange, MapPin, Users, PlusIcon, PencilIcon, 
-  DollarSign, ClipboardList, Info, ArrowLeft, Car, UserCheck, ArrowRight
+  DollarSign, ClipboardList, Info, ArrowLeft, Car, UserCheck, ArrowRight,
+  Map, Navigation, PlayCircle, StopCircle, Share2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -17,6 +18,11 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+// Import Leaflet map components
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import { ItineraryItem as ItineraryItemComponent } from "@/components/itinerary/itinerary-item";
 import { ItineraryForm } from "@/components/itinerary/itinerary-form";
 import { ExpenseCard } from "@/components/expenses/expense-card";
