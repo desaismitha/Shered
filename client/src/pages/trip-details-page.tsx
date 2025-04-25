@@ -87,7 +87,11 @@ export default function TripDetailsPage() {
   };
 
   // Get trip status badge color
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string | null | undefined) => {
+    if (!status) {
+      return 'bg-neutral-100 text-neutral-800';
+    }
+    
     switch (status.toLowerCase()) {
       case 'planning':
         return 'bg-orange-100 text-orange-800';
@@ -161,7 +165,7 @@ export default function TripDetailsPage() {
             </Button>
             
             <Badge className={getStatusColor(trip.status)}>
-              {trip.status.charAt(0).toUpperCase() + trip.status.slice(1)}
+              {trip.status ? trip.status.charAt(0).toUpperCase() + trip.status.slice(1) : 'Unknown'}
             </Badge>
           </div>
           
