@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Trip, ItineraryItem, Expense, User } from "@shared/schema";
+import { Trip, ItineraryItem, Expense, User, GroupMember } from "@shared/schema";
 import { AppShell } from "@/components/layout/app-shell";
 import { useParams, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
@@ -50,7 +50,7 @@ export default function TripDetailsPage() {
   });
 
   // Get group members
-  const { data: groupMembers, isLoading: isLoadingGroupMembers } = useQuery({
+  const { data: groupMembers, isLoading: isLoadingGroupMembers } = useQuery<GroupMember[]>({
     queryKey: ["/api/groups", trip?.groupId, "members"],
     enabled: !!trip?.groupId,
   });
@@ -71,19 +71,34 @@ export default function TripDetailsPage() {
   }, {} as Record<number, ItineraryItem[]>) || {};
 
   // Format date range
-  const formatDateRange = (startDate: Date, endDate: Date) => {
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    
-    if (start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()) {
-      return `${format(start, 'MMM d')} - ${format(end, 'd, yyyy')}`;
+  const formatDateRange = (startDate: Date | null | undefined, endDate: Date | null | undefined) => {
+    // Handle null or undefined dates
+    if (!startDate || !endDate) {
+      return "Date not specified";
     }
     
-    if (start.getFullYear() === end.getFullYear()) {
-      return `${format(start, 'MMM d')} - ${format(end, 'MMM d, yyyy')}`;
+    try {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      
+      // Validate dates
+      if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+        return "Invalid date range";
+      }
+      
+      if (start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()) {
+        return `${format(start, 'MMM d')} - ${format(end, 'd, yyyy')}`;
+      }
+      
+      if (start.getFullYear() === end.getFullYear()) {
+        return `${format(start, 'MMM d')} - ${format(end, 'MMM d, yyyy')}`;
+      }
+      
+      return `${format(start, 'MMM d, yyyy')} - ${format(end, 'MMM d, yyyy')}`;
+    } catch (error) {
+      console.error("Error formatting date range:", error);
+      return "Error formatting dates";
     }
-    
-    return `${format(start, 'MMM d, yyyy')} - ${format(end, 'MMM d, yyyy')}`;
   };
 
   // Get trip status badge color
@@ -334,7 +349,15 @@ export default function TripDetailsPage() {
                     ) : expenses && expenses.length > 0 ? (
                       <div className="space-y-4">
                         {expenses
-                          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                          .sort((a, b) => {
+                            if (!a.date || !b.date) return 0;
+                            try {
+                              return new Date(b.date).getTime() - new Date(a.date).getTime();
+                            } catch (err) {
+                              console.error("Error sorting dates:", err);
+                              return 0;
+                            }
+                          })
                           .map(expense => (
                             <ExpenseCard 
                               key={expense.id} 
@@ -432,7 +455,7 @@ export default function TripDetailsPage() {
                               {memberUser?.displayName || memberUser?.username || "Unknown User"}
                             </p>
                             <p className="text-xs text-neutral-500">
-                              {member.role.charAt(0).toUpperCase() + member.role.slice(1)}
+                              {member.role ? member.role.charAt(0).toUpperCase() + member.role.slice(1) : 'Member'}
                             </p>
                           </div>
                         </div>
