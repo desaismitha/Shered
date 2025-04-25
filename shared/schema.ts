@@ -84,6 +84,11 @@ export const itineraryItems = pgTable("itinerary_items", {
   location: text("location"),
   startTime: text("start_time"),
   endTime: text("end_time"),
+  isRecurring: boolean("is_recurring").default(false),
+  recurrencePattern: text("recurrence_pattern"), // Values like "daily", "weekdays", "weekends", "specific-days"
+  recurrenceDays: text("recurrence_days"), // JSON array of days (e.g., ["mon","tue","wed"])
+  fromLocation: text("from_location"), // For pickup/dropoff use case
+  toLocation: text("to_location"), // For pickup/dropoff use case
   createdBy: integer("created_by").notNull().references(() => users.id),
 });
 
