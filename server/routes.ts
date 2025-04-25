@@ -1,8 +1,9 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { db } from "./db";
 import { setupAuth } from "./auth";
-import { insertGroupSchema, insertTripSchema, insertItineraryItemSchema, insertExpenseSchema, insertMessageSchema, insertGroupMemberSchema } from "@shared/schema";
+import { insertGroupSchema, insertTripSchema, insertItineraryItemSchema, insertExpenseSchema, insertMessageSchema, insertGroupMemberSchema, users as usersTable } from "@shared/schema";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -10,6 +11,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
 
   // API routes
+  // Users
+  app.get("/api/users", async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+      
+      // In a production app, we might want to implement pagination here
+      // For now, we'll just return all users with sensitive fields removed
+      const usersList = await db.select({
+        id: usersTable.id,
+        username: usersTable.username,
+        displayName: usersTable.displayName,
+        email: usersTable.email,
+        createdAt: usersTable.createdAt
+      }).from(usersTable);
+      
+      res.json(usersList);
+    } catch (err) {
+      next(err);
+    }
+  });
+  
+  app.get("/api/users/by-username/:username", async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+      
+      const user = await storage.getUserByUsername(req.params.username);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Remove sensitive fields
+      const { password, ...userWithoutPassword } = user;
+      res.json(userWithoutPassword);
+    } catch (err) {
+      next(err);
+    }
+  });
+  
   // Groups
   app.post("/api/groups", async (req, res, next) => {
     try {

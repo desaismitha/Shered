@@ -44,7 +44,7 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
-  sessionStore: session.SessionStore;
+  sessionStore: any;
 
   constructor() {
     this.sessionStore = new PostgresSessionStore({ 
@@ -150,7 +150,18 @@ export class DatabaseStorage implements IStorage {
 
   // Expense methods
   async createExpense(insertExpense: InsertExpense): Promise<Expense> {
-    const [expense] = await db.insert(expenses).values(insertExpense).returning();
+    // Make sure we're sending valid data to the database
+    const validExpenseData = {
+      tripId: insertExpense.tripId,
+      title: insertExpense.title,
+      amount: insertExpense.amount,
+      paidBy: insertExpense.paidBy,
+      splitAmong: insertExpense.splitAmong,
+      date: insertExpense.date || null,
+      category: insertExpense.category || null,
+    };
+    
+    const [expense] = await db.insert(expenses).values(validExpenseData).returning();
     return expense;
   }
 
@@ -159,13 +170,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getExpensesByUserId(userId: number): Promise<Expense[]> {
-    // This is more complex with a JSON column
-    // We need to find expenses where the user paid or is in the splitAmong array
+    // Find expenses where the user paid
     const userExpenses = await db.select().from(expenses).where(eq(expenses.paidBy, userId));
     
-    // This won't work exactly like this in all databases - for a production app, we might need 
-    // a different approach depending on the database used
-    // For now, we'll get all expenses and filter in memory
+    // For PostgreSQL, we need a more specific approach to search in arrays
+    // This is a simplified approach that gets all expenses and filters in-memory
+    // In a production app, we might want a more efficient SQL query
     const allExpenses = await db.select().from(expenses);
     const splitExpenses = allExpenses.filter(expense => 
       expense.splitAmong.includes(userId) && expense.paidBy !== userId
