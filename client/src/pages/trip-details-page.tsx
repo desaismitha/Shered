@@ -38,10 +38,21 @@ function TripQuickEdit({ trip, onSuccess }: { trip: Trip, onSuccess: () => void 
   const [status, setStatus] = useState(trip.status || 'planning');
   
   // Simplified date handling - directly use string values in ISO format
+  // Also handle our special marker date (2099-12-31)
   const formatDefaultDate = (dateStr: string | Date | null | undefined) => {
     if (!dateStr) return '';
+    
+    // Check for our special marker date
+    if (typeof dateStr === 'string' && dateStr.includes('2099')) {
+      return '';
+    }
+    
     try {
       const date = new Date(dateStr);
+      // Check for year 2099 (our marker for "no date")
+      if (date.getFullYear() >= 2099) {
+        return '';
+      }
       return isNaN(date.getTime()) ? '' : format(date, 'yyyy-MM-dd');
     } catch (e) {
       console.error("Date parsing error:", e);
@@ -569,7 +580,9 @@ export default function TripDetailsPage() {
                                 <div className="p-4">
                                   <p className="text-sm text-neutral-500 mb-1">End Date</p>
                                   <p className="font-medium">
-                                    {trip.endDate ? format(new Date(trip.endDate), 'MMMM d, yyyy') : 'Not specified'}
+                                    {trip.endDate && !String(trip.endDate).includes('2099') 
+                                      ? format(new Date(trip.endDate), 'MMMM d, yyyy') 
+                                      : 'Not specified'}
                                   </p>
                                 </div>
                               </div>

@@ -214,11 +214,21 @@ export class DatabaseStorage implements IStorage {
         if (tripData.startDate !== undefined) {
           console.log("[STORAGE] Raw startDate:", tripData.startDate, typeof tripData.startDate);
           
-          // If it's null or empty string, set to null
+          // We need to handle the case where dates should be NULL but our schema has NOT NULL constraints
+          // Use 2099-12-31 as a special marker date that we'll handle in the UI
+          const DEFAULT_DATE = new Date('2099-12-31T23:59:59Z');
+          
+          // If it's null or empty string, use our special marker date
           if (tripData.startDate === null || tripData.startDate === '') {
-            updateData.startDate = null;
-            console.log("[STORAGE] Setting startDate to NULL");
-          } else {
+            updateData.startDate = DEFAULT_DATE;
+            console.log("[STORAGE] Setting startDate to marker date:", DEFAULT_DATE);
+          } 
+          // Check if it contains our special marker string
+          else if (typeof tripData.startDate === 'string' && tripData.startDate.includes('2099')) {
+            updateData.startDate = DEFAULT_DATE;
+            console.log("[STORAGE] Special marker date detected, using:", DEFAULT_DATE);
+          } 
+          else {
             // Convert string to Date object
             try {
               // If it's already a Date object, this is fine
@@ -230,8 +240,8 @@ export class DatabaseStorage implements IStorage {
               console.log("[STORAGE] Converted startDate to Date:", updateData.startDate);
             } catch (err) {
               console.error("[STORAGE] Error converting startDate to Date:", err);
-              // Use null as fallback
-              updateData.startDate = null;
+              // Use the marker date as fallback
+              updateData.startDate = DEFAULT_DATE;
             }
           }
         }
@@ -239,11 +249,21 @@ export class DatabaseStorage implements IStorage {
         if (tripData.endDate !== undefined) {
           console.log("[STORAGE] Raw endDate:", tripData.endDate, typeof tripData.endDate);
           
-          // If it's null or empty string, set to null
+          // We need to handle the case where dates should be NULL but our schema has NOT NULL constraints
+          // Use 2099-12-31 as a special marker date that we'll handle in the UI
+          const DEFAULT_DATE = new Date('2099-12-31T23:59:59Z');
+          
+          // If it's null or empty string, use our special marker date
           if (tripData.endDate === null || tripData.endDate === '') {
-            updateData.endDate = null;
-            console.log("[STORAGE] Setting endDate to NULL");
-          } else {
+            updateData.endDate = DEFAULT_DATE;
+            console.log("[STORAGE] Setting endDate to marker date:", DEFAULT_DATE);
+          }
+          // Check if it contains our special marker string
+          else if (typeof tripData.endDate === 'string' && tripData.endDate.includes('2099')) {
+            updateData.endDate = DEFAULT_DATE;
+            console.log("[STORAGE] Special marker date detected, using:", DEFAULT_DATE);
+          } 
+          else {
             // Convert string to Date object
             try {
               // If it's already a Date object, this is fine
@@ -255,8 +275,8 @@ export class DatabaseStorage implements IStorage {
               console.log("[STORAGE] Converted endDate to Date:", updateData.endDate);
             } catch (err) {
               console.error("[STORAGE] Error converting endDate to Date:", err);
-              // Use null as fallback
-              updateData.endDate = null;
+              // Use the marker date as fallback
+              updateData.endDate = DEFAULT_DATE;
             }
           }
         }

@@ -87,8 +87,16 @@ export default function BasicTripEditPage() {
       const DEFAULT_DATE = '2099-12-31T12:00:00.000Z';
       
       // Use actual date if present, otherwise use default future date (never null)
+      // Only send a real date if the user has provided one, otherwise use our special marker
       const formattedStartDate = startDate ? `${startDate}T12:00:00.000Z` : DEFAULT_DATE;
       const formattedEndDate = endDate ? `${endDate}T12:00:00.000Z` : DEFAULT_DATE;
+      
+      console.log("Using formatted dates:", {
+        originalStartDate: startDate,
+        originalEndDate: endDate,
+        formattedStartDate,
+        formattedEndDate
+      });
       
       // Create a complete payload with all fields
       const fullPayload = {
