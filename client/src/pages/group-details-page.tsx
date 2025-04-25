@@ -208,11 +208,22 @@ export default function GroupDetailsPage() {
     mutationFn: async (values: InviteUserValues) => {
       try {
         // Check if user with this email already exists using our new hook
-        const existingUser = await lookupByEmail(values.email);
-        
-        if (existingUser) {
-          // User already exists, prompt to add the user directly
-          throw new Error(`A user with email '${values.email}' already exists. Please use the "Existing User" tab to add them by username.`);
+        try {
+          const existingUser = await lookupByEmail(values.email);
+          
+          if (existingUser) {
+            // User already exists, prompt to add the user directly
+            throw new Error(`A user with email '${values.email}' already exists. Please use the "Existing User" tab to add them by username.`);
+          }
+        } catch (error: any) {
+          // Only ignore 404 errors (expected for new users)
+          if (error.message && error.message.includes('not found')) {
+            // This is expected for new users - proceed with invitation
+            console.log(`Email lookup for ${values.email}: User not found, proceeding with invitation`);
+          } else {
+            // For other errors, re-throw so they're handled properly
+            throw error;
+          }
         }
         
         // Send the invitation
@@ -221,8 +232,6 @@ export default function GroupDetailsPage() {
         if (!res.ok) {
           if (res.status === 429) {
             throw new Error("Too many invitation attempts. Please try again later.");
-          } else if (res.status === 404) {
-            throw new Error(`User with email '${values.email}' not found.`);
           } else {
             throw new Error(`Server error: ${res.statusText}`);
           }
@@ -242,7 +251,8 @@ export default function GroupDetailsPage() {
         toast({
           title: "User Invited",
           description: "Email notifications are disabled. Please notify the user directly about this invitation.",
-          variant: "warning",
+          // Using destructive variant as warning is not defined
+          variant: "destructive",
           duration: 5000,
         });
       } else {
