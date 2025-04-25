@@ -405,33 +405,22 @@ export class DatabaseStorage implements IStorage {
       try {
         console.log("[STORAGE] Creating expense with data:", JSON.stringify(insertExpense));
         
-        // Handle the splitAmong array - PostgreSQL requires a specific format for arrays
-        // The format should be '{1,2,3}' for an array of numbers
-        let splitAmongValue;
-        try {
-          if (Array.isArray(insertExpense.splitAmong)) {
-            // Format as PostgreSQL array literal: {1,2,3}
-            // This is the specific format PostgreSQL expects
-            const pgArrayFormat = '{' + insertExpense.splitAmong.join(',') + '}';
-            splitAmongValue = pgArrayFormat;
-            console.log("[STORAGE] Prepared splitAmong PostgreSQL array:", splitAmongValue);
-          } else {
-            // Default to empty array if not provided or invalid
-            splitAmongValue = '{}';
-            console.log("[STORAGE] Using default empty PostgreSQL array for splitAmong");
-          }
-        } catch (err) {
-          console.error("[STORAGE] Error processing splitAmong array:", err);
-          splitAmongValue = '{}';
-        }
+        // Handle the splitAmong array
+        // For JSON field, we just need to pass the JavaScript array directly
+        // Drizzle ORM will handle the serialization properly
+        const splitAmongArray = Array.isArray(insertExpense.splitAmong) 
+          ? insertExpense.splitAmong 
+          : [];
+          
+        console.log("[STORAGE] Using splitAmong as regular JavaScript array:", splitAmongArray);
         
-        // Insert with properly typed data
+        // Insert the data, letting Drizzle handle the proper JSON serialization
         const [expense] = await db.insert(expenses).values({
           tripId: insertExpense.tripId,
           title: insertExpense.title,
           amount: insertExpense.amount,
           paidBy: insertExpense.paidBy,
-          splitAmong: splitAmongValue as any, // Cast to any since we're manually handling the serialization
+          splitAmong: splitAmongArray, // Pass the array directly for JSON column
           date: insertExpense.date || new Date(),
           category: insertExpense.category || null,
         }).returning();
@@ -456,54 +445,37 @@ export class DatabaseStorage implements IStorage {
       // Find expenses where the user paid
       const userExpenses = await db.select().from(expenses).where(eq(expenses.paidBy, userId));
       
-      // Get all expenses and process the JSON splitAmong field
+      // Get all expenses
       const allExpenses = await db.select().from(expenses);
       
-      // Process the result to ensure splitAmong is properly handled
-      const processedExpenses = allExpenses.map(expense => {
-        // Ensure splitAmong is properly parsed as an array
-        if (typeof expense.splitAmong === 'string') {
-          try {
-            // For PostgreSQL arrays in format {1,2,3}, convert to JavaScript array
-            const pgArray = expense.splitAmong as string;
-            // Remove the braces and split by comma
-            const arrayContent = pgArray.replace(/^\{|\}$/g, '');
-            
-            // If it's an empty array or empty string
-            if (!arrayContent.trim()) {
-              return {
-                ...expense,
-                splitAmong: []
-              };
-            }
-            
-            // Convert to array of numbers
-            const numArray = arrayContent.split(',').map(num => parseInt(num.trim(), 10));
-            
-            return {
-              ...expense,
-              splitAmong: numArray
-            };
-          } catch (err) {
-            console.error('[STORAGE] Error parsing splitAmong PostgreSQL array:', err);
-            return {
-              ...expense,
-              splitAmong: []
-            };
-          }
-        }
-        return expense;
-      });
-      
-      // Filter to find expenses where userId is in the splitAmong array
-      const splitExpenses = processedExpenses.filter(expense => {
+      // Process the expenses to find those where the user is in the splitAmong array
+      // For JSON column, the data should already be deserialized by Drizzle
+      const splitExpenses = allExpenses.filter(expense => {
         try {
-          const splitArray = Array.isArray(expense.splitAmong) 
-            ? expense.splitAmong 
-            : [];
-          return splitArray.includes(userId) && expense.paidBy !== userId;
+          // Safely access splitAmong array
+          const splitArray = expense.splitAmong;
+          
+          // Check if splitAmong is an array and contains the userId
+          if (Array.isArray(splitArray)) {
+            return splitArray.includes(userId) && expense.paidBy !== userId;
+          }
+          
+          // Handle the case where it might be stored as a string (for compatibility)
+          if (typeof splitArray === 'string') {
+            try {
+              const parsedArray = JSON.parse(splitArray);
+              return Array.isArray(parsedArray) && 
+                     parsedArray.includes(userId) && 
+                     expense.paidBy !== userId;
+            } catch (err) {
+              console.error('[STORAGE] Error parsing splitAmong JSON string:', err);
+              return false;
+            }
+          }
+          
+          return false;
         } catch (err) {
-          console.error('[STORAGE] Error checking splitAmong array:', err);
+          console.error('[STORAGE] Error checking splitAmong:', err);
           return false;
         }
       });
