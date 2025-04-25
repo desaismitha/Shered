@@ -429,10 +429,12 @@ export default function TripDetailsPage() {
                         <DollarSign className="h-12 w-12 text-neutral-300 mx-auto mb-3" />
                         <h3 className="text-lg font-medium text-neutral-700 mb-1">No expenses added yet</h3>
                         <p className="text-neutral-500 mb-6">Track your trip spending by adding expenses</p>
-                        <Button onClick={() => setIsAddingExpense(true)}>
-                          <PlusIcon className="h-4 w-4 mr-2" />
-                          Add First Expense
-                        </Button>
+                        {trip._accessLevel && (
+                          <Button onClick={() => setIsAddingExpense(true)}>
+                            <PlusIcon className="h-4 w-4 mr-2" />
+                            Add First Expense
+                          </Button>
+                        )}
                       </div>
                     )}
                   </CardContent>

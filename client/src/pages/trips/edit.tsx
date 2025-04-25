@@ -4,7 +4,12 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Trip, insertTripSchema, InsertTrip } from "@shared/schema";
+import { Trip as BaseTrip, insertTripSchema, InsertTrip } from "@shared/schema";
+
+// Extend the Trip interface to include access level information
+interface Trip extends BaseTrip {
+  _accessLevel?: 'owner' | 'member';
+}
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -67,7 +72,7 @@ export default function EditTripPage() {
   });
   
   // Fetch user's groups for the dropdown
-  const { data: groups, isLoading: isLoadingGroups } = useQuery({
+  const { data: groups = [], isLoading: isLoadingGroups } = useQuery<any[]>({
     queryKey: ["/api/groups"],
   });
   
@@ -130,10 +135,10 @@ export default function EditTripPage() {
   
   // Handle form submission
   const onSubmit = (values: TripUpdateValues) => {
-    if (!user?.id || !trip?.createdBy) {
+    if (!trip || !hasEditPermission) {
       toast({
-        title: "Error",
-        description: "User ID or trip creator information is missing",
+        title: "Permission error",
+        description: "You don't have permission to edit this trip",
         variant: "destructive",
       });
       return;
@@ -146,39 +151,32 @@ export default function EditTripPage() {
     };
     
     console.log("EDIT TRIP - Form values:", values);
-    console.log("EDIT TRIP - Current user:", user);
     console.log("EDIT TRIP - Trip data:", trip);
-    console.log("EDIT TRIP - Is creator check:", isCreator); 
-    console.log("EDIT TRIP - Types comparison:", {
-      tripCreatedBy: trip ? typeof trip.createdBy : "undefined",
-      userId: user ? typeof user.id : "undefined"
-    });
+    console.log("EDIT TRIP - Access level:", trip._accessLevel);
+    console.log("EDIT TRIP - Has edit permission:", hasEditPermission);
     console.log("EDIT TRIP - Data to be sent:", updateData);
     
     updateMutation.mutate(updateData);
   };
   
-  // Check if user is allowed to edit this trip
-  // Using string comparison for consistency with server-side check
-  const isCreator = trip && user && String(trip.createdBy) === String(user.id);
+  // Check if user is allowed to edit this trip using the access level from the API
+  // The API now returns _accessLevel field: 'owner', 'member', or undefined
+  const hasEditPermission = trip?._accessLevel === 'owner';
   
-  // Move this check to useEffect so it only runs after trip data is fully loaded
+  // Debug access level information
   useEffect(() => {
-    if (trip && user) {
-      console.log("EDIT TRIP PAGE - Creator check:", { 
-        tripCreatedBy: trip.createdBy, 
-        userId: user.id,
-        typeTripCreatedBy: typeof trip.createdBy,
-        typeUserId: typeof user.id,
-        equalRaw: trip.createdBy === user.id,
-        equalString: String(trip.createdBy) === String(user.id)
+    if (trip) {
+      console.log("EDIT TRIP PAGE - Access level check:", { 
+        accessLevel: trip._accessLevel,
+        hasEditPermission,
+        tripData: trip
       });
     }
-  }, [trip, user]);
+  }, [trip, hasEditPermission]);
   
   useEffect(() => {
-    // Redirect if not the creator
-    if (trip && user && !isCreator) {
+    // Redirect if not the owner
+    if (trip && !hasEditPermission) {
       toast({
         title: "Access denied",
         description: "You can only edit trips you created",
@@ -186,7 +184,7 @@ export default function EditTripPage() {
       });
       navigate(`/trips/${tripId}`);
     }
-  }, [trip, user, isCreator, navigate, toast, tripId]);
+  }, [trip, hasEditPermission, navigate, toast, tripId]);
   
   return (
     <AppShell>
