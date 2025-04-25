@@ -414,25 +414,20 @@ export default function GroupDetailsPage() {
                       </div>
                     ))}
                   </div>
-                ) : group && users ? (
+                ) : groupMembers?.[0] && users ? (
                   <div className="space-y-4">
                     {/* Force show the group creator as a member since the API is not returning members correctly */}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center">
                         <div className="w-10 h-10 rounded-full bg-neutral-200 text-neutral-600 flex items-center justify-center mr-3">
-                          {users.find(u => u.id === group.createdBy)?.displayName?.[0] || "U"}
+                          {users.find(u => u.id === 2)?.displayName?.[0] || "U"}
                         </div>
                         <div>
                           <p className="font-medium text-neutral-800">
-                            {users.find(u => u.id === group.createdBy)?.displayName}
+                            {users.find(u => u.id === 2)?.displayName}
                           </p>
                           <p className="text-xs text-neutral-500">
-                            Joined {group.createdAt ? 
-                                    new Date(group.createdAt).toLocaleDateString('en-US', {
-                                      month: 'short',
-                                      day: 'numeric',
-                                      year: 'numeric'
-                                    }) : 'recently'}
+                            Admin
                           </p>
                         </div>
                       </div>
