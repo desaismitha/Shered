@@ -10,7 +10,7 @@ import { isSpecialDateMarker, formatDateRange } from "@/lib/utils";
 import { 
   Calendar, CalendarRange, MapPin, Users, PlusIcon, PencilIcon, 
   DollarSign, ClipboardList, Info, ArrowLeft, Car, UserCheck, ArrowRight,
-  Map, Navigation, PlayCircle, StopCircle, Share2
+  Map, Navigation, PlayCircle, StopCircle, Share2, Check
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -19,6 +19,15 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogFooter, 
+  DialogHeader, 
+  DialogTitle 
+} from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 // Import Leaflet map components
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
@@ -451,7 +460,13 @@ export default function TripDetailsPage() {
   
   // Function to start trip tracking
   const handleStartTracking = () => {
-    startTripMutation.mutate();
+    // If there are itinerary items, show the selector dialog
+    if (itineraryItems && itineraryItems.length > 0) {
+      setShowItinerarySelector(true);
+    } else {
+      // If no itinerary items, just start tracking
+      startTripMutation.mutate();
+    }
   };
   
   // Function to complete trip
@@ -642,8 +657,107 @@ export default function TripDetailsPage() {
     );
   }
 
+  // Handle itinerary selection toggle
+  const toggleItinerarySelection = (itemId: number) => {
+    setSelectedItineraryIds(prev => {
+      if (prev.includes(itemId)) {
+        return prev.filter(id => id !== itemId);
+      } else {
+        return [...prev, itemId];
+      }
+    });
+  };
+
+  // Function to start trip with selected itinerary items
+  const startTripWithSelectedItems = () => {
+    startTripMutation.mutate();
+  };
+
   return (
     <AppShell>
+      {/* Itinerary selection dialog */}
+      {showItinerarySelector && (
+        <Dialog open={showItinerarySelector} onOpenChange={setShowItinerarySelector}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Select Itinerary Items</DialogTitle>
+              <DialogDescription>
+                Choose which itinerary items you want to include in this trip tracking session.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="max-h-[60vh] overflow-y-auto">
+              {itineraryItems && itineraryItems.length > 0 ? (
+                <div className="space-y-4 py-2">
+                  {itineraryItems.map((item) => (
+                    <div key={item.id} className="flex items-start space-x-3 border-b pb-3">
+                      <Checkbox 
+                        id={`itinerary-${item.id}`}
+                        checked={selectedItineraryIds.includes(item.id)}
+                        onCheckedChange={() => toggleItinerarySelection(item.id)}
+                      />
+                      <div>
+                        <label 
+                          htmlFor={`itinerary-${item.id}`}
+                          className="font-medium cursor-pointer"
+                        >
+                          {item.title}
+                        </label>
+                        <div className="text-sm text-muted-foreground">
+                          {item.fromLocation && item.toLocation && (
+                            <div className="mt-1">
+                              <span className="text-neutral-500">Travel: </span>
+                              {item.fromLocation} to {item.toLocation}
+                            </div>
+                          )}
+                          <div className="mt-1">
+                            <span className="text-neutral-500">Day: </span>
+                            {item.day}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="py-6 text-center text-muted-foreground">
+                  No itinerary items found for this trip.
+                </div>
+              )}
+            </div>
+            <DialogFooter className="flex sm:justify-between">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowItinerarySelector(false)}
+              >
+                Cancel
+              </Button>
+              <div className="flex space-x-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    // Select all items
+                    if (itineraryItems) {
+                      setSelectedItineraryIds(itineraryItems.map(item => item.id));
+                    }
+                  }}
+                >
+                  Select All
+                </Button>
+                <Button
+                  type="button"
+                  onClick={startTripWithSelectedItems}
+                  disabled={startTripMutation.isPending}
+                >
+                  {startTripMutation.isPending ? 'Starting...' : 'Start Trip'}
+                </Button>
+              </div>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Trip header */}
         <div className="mb-6">

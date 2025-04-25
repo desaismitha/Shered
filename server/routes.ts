@@ -1295,6 +1295,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     try {
       const tripId = Number(req.params.id);
+      const { itineraryIds } = req.body;
+      
+      console.log("[TRIP_START] Starting trip tracking for trip:", tripId);
+      if (itineraryIds) {
+        console.log("[TRIP_START] Selected itinerary items:", itineraryIds);
+      }
       
       // Check if user is the owner or member of trip
       const accessLevel = await checkTripAccess(req, tripId, res, next, "[TRIP_START] ");
@@ -1316,12 +1322,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ error: "Failed to start trip tracking" });
       }
       
+      // Store selected itinerary items information if provided
+      let selectedItems = [];
+      if (itineraryIds && Array.isArray(itineraryIds) && itineraryIds.length > 0) {
+        // Get the itinerary items selected for tracking
+        const items = await storage.getItineraryItemsByTripId(tripId);
+        selectedItems = items.filter(item => itineraryIds.includes(item.id));
+        
+        console.log("[TRIP_START] Found selected itinerary items:", 
+          selectedItems.map(item => `${item.id}: ${item.title}`));
+      }
+      
       return res.status(200).json({ 
         message: "Trip tracking started",
         trip: {
           ...updatedTrip,
           _accessLevel: accessLevel
-        }
+        },
+        selectedItineraryItems: selectedItems
       });
     } catch (error) {
       console.error("Error starting trip:", error);
