@@ -109,35 +109,61 @@ export default function EditTripPage() {
     }
   }, [trip, form]);
   
-  // Update trip mutation
-  const updateMutation = useMutation<Trip, Error, TripUpdateValues>({
-    mutationFn: async (values: TripUpdateValues) => {
-      console.log("MUTATION - Making API request with values:", values);
+  // Update trip mutation with a much simpler implementation
+  const updateMutation = useMutation<Trip, Error, any>({
+    mutationFn: async (values: any) => {
+      // Step 1: Log what we're sending
+      console.log(`MUTATION - Preparing to update trip ${tripId}`);
+      console.log("MUTATION - Raw values:", values);
+      
+      // Step 2: Simplify the payload - only include essential fields
+      const payload = {
+        name: values.name,
+        destination: values.destination,
+        startDate: values.startDate instanceof Date 
+          ? values.startDate.toISOString() 
+          : new Date(values.startDate).toISOString(),
+        endDate: values.endDate instanceof Date 
+          ? values.endDate.toISOString() 
+          : new Date(values.endDate).toISOString(),
+        status: values.status,
+        groupId: values.groupId,
+        description: values.description || "",
+        imageUrl: values.imageUrl || "",
+      };
+      
+      // Log the clean payload
+      console.log("MUTATION - Sending payload:", payload);
+      
+      // Step 3: Make the request with simplified error handling
       try {
-        // Format dates as ISO strings to ensure proper serialization
-        const formattedValues = {
-          ...values,
-          startDate: values.startDate.toISOString(),
-          endDate: values.endDate.toISOString(),
-        };
+        // Make request with a simple payload
+        const response = await fetch(`/api/trips/${tripId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+          credentials: 'include',
+        });
         
-        console.log("MUTATION - Formatted values:", formattedValues);
-        const res = await apiRequest("PUT", `/api/trips/${tripId}`, formattedValues);
-        console.log("MUTATION - Response status:", res.status);
+        // Log the response status
+        console.log(`MUTATION - Response status: ${response.status}`);
         
-        // Try to parse response body even if there's an error
-        const responseText = await res.text();
-        console.log("MUTATION - Response text:", responseText);
+        // Try to get the response text regardless of success/failure
+        const text = await response.text();
+        console.log("MUTATION - Response text:", text);
         
-        if (!res.ok) {
-          throw new Error(`Error ${res.status}: ${responseText}`);
+        // Check if response was successful
+        if (!response.ok) {
+          throw new Error(`Server error (${response.status}): ${text}`);
         }
         
-        // If response was ok, parse it as JSON
-        return JSON.parse(responseText);
-      } catch (err) {
-        console.error("MUTATION - Error in API request:", err);
-        throw err;
+        // Parse the response text as JSON
+        return JSON.parse(text);
+      } catch (error) {
+        console.error("MUTATION - Request failed:", error);
+        throw error;
       }
     },
     onSuccess: (data) => {
@@ -175,17 +201,33 @@ export default function EditTripPage() {
     }
     
     try {
-      // Make sure we use the original creator ID, not the current user ID
+      console.log("EDIT TRIP - Original form values:", values);
+      
+      // Ensure dates are proper Date objects (they might be sometimes serialized as strings)
+      if (!(values.startDate instanceof Date)) {
+        values.startDate = new Date(values.startDate);
+      }
+      
+      if (!(values.endDate instanceof Date)) {
+        values.endDate = new Date(values.endDate);
+      }
+      
+      // Create a stripped-down version with only the fields we want to update
       const updateData = {
-        ...values,
-        createdBy: trip.createdBy, // IMPORTANT: Keep the original creator
+        name: values.name,
+        destination: values.destination,
+        startDate: values.startDate,
+        endDate: values.endDate,
+        description: values.description || "", 
+        imageUrl: values.imageUrl || "",
+        status: values.status,
+        groupId: values.groupId,
       };
       
-      console.log("EDIT TRIP - Form values:", values);
+      console.log("EDIT TRIP - Form values after processing:", updateData);
       console.log("EDIT TRIP - Trip data:", trip);
       console.log("EDIT TRIP - Access level:", trip._accessLevel);
       console.log("EDIT TRIP - Has edit permission:", hasEditPermission);
-      console.log("EDIT TRIP - Data to be sent:", updateData);
       
       // Debug URL and request format
       console.log(`EDIT TRIP - API Call: PUT /api/trips/${tripId}`);
