@@ -14,9 +14,13 @@ if (!process.env.DATABASE_URL) {
 // Enhanced connection pool configuration with timeout and error handling
 export const pool = new Pool({ 
   connectionString: process.env.DATABASE_URL,
-  max: 20, // maximum number of clients in the pool
-  idleTimeoutMillis: 30000, // how long a client is allowed to remain idle before being closed
-  connectionTimeoutMillis: 2000, // timeout after which the connection attempt is aborted
+  max: 10, // maximum number of clients in the pool (reduced to prevent connection limits)
+  min: 1, // maintain at least one connection
+  idleTimeoutMillis: 60000, // increased idle timeout to 60s
+  connectionTimeoutMillis: 5000, // increased connection timeout to 5s
+  allowExitOnIdle: false, // don't close idle connections on app exit
+  keepAlive: true, // enable TCP keepalive
+  keepAliveInitialDelayMillis: 30000, // keepalive probe delay in ms
 });
 
 // Add event handlers for connection issues
@@ -51,10 +55,44 @@ export async function checkDbConnection() {
   }
 }
 
+// Try to clean up and close all idle connections
+export async function cleanupConnections() {
+  try {
+    console.log('Attempting to clean up idle database connections...');
+    await pool.end();
+    
+    // Create new pool with the same settings after a brief delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    const newPool = new Pool({ 
+      connectionString: process.env.DATABASE_URL,
+      max: 10,
+      min: 1, 
+      idleTimeoutMillis: 60000,
+      connectionTimeoutMillis: 5000,
+      allowExitOnIdle: false,
+      keepAlive: true,
+      keepAliveInitialDelayMillis: 30000,
+    });
+    
+    // Replace the global pool reference
+    Object.assign(pool, newPool);
+    
+    // Update the drizzle client
+    Object.assign(db, drizzle({ client: pool, schema }));
+    
+    console.log('Database connection pool has been reset');
+    return true;
+  } catch (error) {
+    console.error('Failed to clean up connections:', error);
+    return false;
+  }
+}
+
 // Export a function to attempt reconnection
 export async function attemptReconnect(maxRetries = 5, retryDelay = 2000) {
   let retries = 0;
   
+  // First try the simple reconnection approach
   while (retries < maxRetries) {
     try {
       console.log(`Attempting database reconnection (${retries + 1}/${maxRetries})...`);
@@ -69,9 +107,18 @@ export async function attemptReconnect(maxRetries = 5, retryDelay = 2000) {
     }
     
     retries++;
+    
+    // If we've tried a few times, try a more aggressive approach by resetting the pool
+    if (retries === Math.floor(maxRetries / 2)) {
+      console.log('Trying to reset the connection pool...');
+      await cleanupConnections();
+    }
+    
     if (retries < maxRetries) {
-      console.log(`Waiting ${retryDelay}ms before next retry`);
-      await new Promise(resolve => setTimeout(resolve, retryDelay));
+      // Exponential backoff - increase delay with each retry
+      const backoffDelay = retryDelay * Math.pow(1.5, retries - 1);
+      console.log(`Waiting ${backoffDelay}ms before next retry`);
+      await new Promise(resolve => setTimeout(resolve, backoffDelay));
     }
   }
   

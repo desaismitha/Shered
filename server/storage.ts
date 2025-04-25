@@ -285,14 +285,18 @@ export class DatabaseStorage implements IStorage {
 
   // Message methods
   async createMessage(insertMessage: InsertMessage): Promise<Message> {
-    const [message] = await db.insert(messages).values(insertMessage).returning();
-    return message;
+    return this.executeDbOperation(async () => {
+      const [message] = await db.insert(messages).values(insertMessage).returning();
+      return message;
+    });
   }
 
   async getMessagesByGroupId(groupId: number): Promise<Message[]> {
-    return await db.select().from(messages)
-      .where(eq(messages.groupId, groupId))
-      .orderBy(messages.createdAt);
+    return this.executeDbOperation(async () => {
+      return await db.select().from(messages)
+        .where(eq(messages.groupId, groupId))
+        .orderBy(messages.createdAt);
+    });
   }
 }
 

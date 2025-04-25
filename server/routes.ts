@@ -1,12 +1,89 @@
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { db } from "./db";
+import { db, attemptReconnect } from "./db";
 import { setupAuth } from "./auth";
 import { insertGroupSchema, insertTripSchema, insertItineraryItemSchema, insertExpenseSchema, insertMessageSchema, insertGroupMemberSchema, users as usersTable } from "@shared/schema";
 import { z } from "zod";
 import { sendGroupInvitation } from "./email";
 import crypto from "crypto";
+
+/**
+ * Helper function to check if a user has access to a trip
+ * Handles database connection errors and retry logic
+ */
+async function checkTripAccess(
+  req: Request,
+  tripId: number,
+  res: Response,
+  next: NextFunction
+): Promise<boolean> {
+  const MAX_RETRIES = 3;
+  
+  // Try to get the trip with retry logic
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    try {
+      // First check authentication
+      if (!req.isAuthenticated()) {
+        res.status(401).json({ message: "You must be logged in" });
+        return false;
+      }
+      
+      // Get the trip details
+      const trip = await storage.getTrip(tripId);
+      if (!trip) {
+        res.status(404).json({ message: "Trip not found" });
+        return false;
+      }
+      
+      console.log(`Trip creator: ${trip.createdBy}, User ID: ${req.user.id}`);
+      
+      // Check if the user created the trip or has the proper access
+      if (trip.createdBy === req.user.id) {
+        return true; // User created the trip, they have access
+      }
+      
+      // If there's a group associated with the trip, check group membership
+      if (trip.groupId) {
+        try {
+          const groupMembers = await storage.getGroupMembers(trip.groupId);
+          const isMember = groupMembers.some(member => member.userId === req.user.id);
+          
+          if (isMember) {
+            return true; // User is a member of the group, they have access
+          }
+        } catch (groupErr) {
+          console.error("Error checking group membership:", groupErr);
+          // If group check fails, continue with direct trip comparison
+        }
+      }
+      
+      // User doesn't have access
+      res.status(403).json({ message: "You don't have permission to access this trip" });
+      return false;
+      
+    } catch (error) {
+      console.error(`Error checking trip access (attempt ${attempt + 1}):`, error);
+      
+      // If this is not the last attempt, try to reconnect and retry
+      if (attempt < MAX_RETRIES - 1) {
+        console.log(`Attempting database reconnection before retry...`);
+        await attemptReconnect(1, 500);
+        continue;
+      }
+      
+      // If all attempts failed, send a 503 error
+      res.status(503).json({ 
+        message: "Database connection error. Please try again shortly." 
+      });
+      return false;
+    }
+  }
+  
+  // This should never happen, but just in case
+  res.status(500).json({ message: "Unexpected error checking trip access" });
+  return false;
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication routes
