@@ -205,11 +205,15 @@ export function TripDriverAssignment({ tripId, accessLevel }: TripDriverAssignme
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="none">None (Remove assignment)</SelectItem>
-                        {eligibleDrivers.map((driver) => (
-                          <SelectItem key={driver.id} value={driver.id.toString()}>
-                            {driver.displayName || driver.username}
-                          </SelectItem>
-                        ))}
+                        {eligibleDrivers
+                          .filter(driver => driver.isEligibleDriver && driver.licenseNumber && driver.licenseState && 
+                            driver.licenseExpiry && new Date(driver.licenseExpiry) > new Date())
+                          .map((driver) => (
+                            <SelectItem key={driver.id} value={driver.id.toString()}>
+                              {driver.displayName || driver.username}
+                            </SelectItem>
+                          ))
+                        }
                       </SelectContent>
                     </Select>
                   </div>
@@ -220,33 +224,59 @@ export function TripDriverAssignment({ tripId, accessLevel }: TripDriverAssignme
         </Card>
       )}
       
-      {/* Eligible drivers list */}
+      {/* Drivers list */}
       <div className="mt-6">
-        <h3 className="text-lg font-medium mb-3">Eligible Drivers</h3>
+        <h3 className="text-lg font-medium mb-3">Driver Status</h3>
         <div className="space-y-3">
           {eligibleDrivers.map(driver => {
             const isAssigned = tripVehicles.some(tv => tv.assignedTo === driver.id);
             const assignedVehicle = isAssigned 
               ? vehicles?.find(v => v.id === tripVehicles.find(tv => tv.assignedTo === driver.id)?.vehicleId)
               : null;
-              
+            
+            // Check if driver is truly eligible (has valid license and has opted in)
+            const licenseValid = driver.licenseNumber && driver.licenseState && 
+              driver.licenseExpiry && new Date(driver.licenseExpiry) > new Date();
+            const isTrulyEligible = driver.isEligibleDriver && licenseValid;
+            
             return (
               <div key={driver.id} className="p-3 border rounded-md flex justify-between items-center">
                 <div>
                   <p className="font-medium">{driver.displayName || driver.username}</p>
                   <p className="text-sm text-muted-foreground">
-                    License: {driver.licenseNumber} ({driver.licenseState}) - 
-                    Expires: {format(new Date(driver.licenseExpiry!), "MM/dd/yyyy")}
+                    {driver.licenseNumber ? (
+                      <>
+                        License: {driver.licenseNumber} ({driver.licenseState}) - 
+                        Expires: {format(new Date(driver.licenseExpiry!), "MM/dd/yyyy")}
+                        {!licenseValid && <span className="text-red-500 ml-1">(Expired)</span>}
+                      </>
+                    ) : (
+                      <span className="italic">No license information</span>
+                    )}
                   </p>
                 </div>
                 
-                {isAssigned && assignedVehicle ? (
-                  <Badge className="bg-primary/10 text-primary">
-                    Driving: {assignedVehicle.make} {assignedVehicle.model}
-                  </Badge>
-                ) : (
-                  <Badge variant="outline">Available</Badge>
-                )}
+                <div className="flex items-center gap-2">
+                  {!driver.isEligibleDriver && (
+                    <Badge variant="outline" className="bg-yellow-50 text-yellow-800 border-yellow-200">
+                      Not opted in
+                    </Badge>
+                  )}
+                  
+                  {isAssigned && assignedVehicle ? (
+                    <Badge className="bg-primary/10 text-primary">
+                      Driving: {assignedVehicle.make} {assignedVehicle.model}
+                    </Badge>
+                  ) : isTrulyEligible ? (
+                    <Badge variant="outline" className="bg-green-50 text-green-800 border-green-200">
+                      Available
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="bg-gray-50 text-gray-500 border-gray-200">
+                      Not eligible
+                    </Badge>
+                  )}
+                </div>
               </div>
             );
           })}
