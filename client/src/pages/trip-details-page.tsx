@@ -469,7 +469,7 @@ export default function TripDetailsPage() {
                       <div>
                         <p className="font-medium text-neutral-800">
                           {users.find(u => u.id === trip.createdBy)?.displayName || 
-                           users.find(u => u.id === trip.createdBy)?.username || "Trip Creator"}
+                           users.find(u => u.id === trip.createdBy)?.username}
                         </p>
                         <p className="text-xs text-neutral-500">
                           Trip Organizer

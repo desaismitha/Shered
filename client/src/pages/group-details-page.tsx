@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Group, Trip, GroupMember, User, InsertGroupMember } from "@shared/schema";
+import { format } from "date-fns";
 import { AppShell } from "@/components/layout/app-shell";
 import { useParams, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
@@ -423,10 +424,15 @@ export default function GroupDetailsPage() {
                         <div>
                           <p className="font-medium text-neutral-800">
                             {users.find(u => u.id === group.createdBy)?.displayName || 
-                             users.find(u => u.id === group.createdBy)?.username || "Group Creator"}
+                             users.find(u => u.id === group.createdBy)?.username}
                           </p>
                           <p className="text-xs text-neutral-500">
-                            Joined {new Date(group.createdAt).toLocaleDateString()}
+                            Joined {group.createdAt ? 
+                                    new Date(group.createdAt).toLocaleDateString('en-US', {
+                                      month: 'short',
+                                      day: 'numeric',
+                                      year: 'numeric'
+                                    }) : 'recently'}
                           </p>
                         </div>
                       </div>
