@@ -369,6 +369,11 @@ export class DatabaseStorage implements IStorage {
           endDate: updateData.endDate
         });
         
+        // Check for startLocation specifically
+        console.log("[STORAGE] Is startLocation in updateData?", 'startLocation' in updateData);
+        console.log("[STORAGE] All keys in updateData:", Object.keys(updateData));
+        console.log("[STORAGE] startLocation value directly:", updateData.startLocation);
+        
         console.log("[STORAGE] Final update data:", JSON.stringify(updateData));
         
         // Execute the update
