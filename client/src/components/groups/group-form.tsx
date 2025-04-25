@@ -43,10 +43,19 @@ export function GroupForm() {
   // Create group mutation
   const mutation = useMutation({
     mutationFn: async (values: GroupFormValues) => {
-      const res = await apiRequest("POST", "/api/groups", values);
-      return await res.json();
+      console.log("Making API request to create group:", values);
+      try {
+        const res = await apiRequest("POST", "/api/groups", values);
+        const jsonResponse = await res.json();
+        console.log("API response:", jsonResponse);
+        return jsonResponse;
+      } catch (error) {
+        console.error("API request failed:", error);
+        throw error;
+      }
     },
     onSuccess: (data) => {
+      console.log("Group created successfully:", data);
       queryClient.invalidateQueries({ queryKey: ["/api/groups"] });
       toast({
         title: "Success!",
@@ -55,6 +64,7 @@ export function GroupForm() {
       navigate(`/groups/${data.id}`);
     },
     onError: (error) => {
+      console.error("Group creation error:", error);
       toast({
         title: "Error",
         description: `Failed to create group: ${error.message}`,
@@ -65,7 +75,12 @@ export function GroupForm() {
 
   // Submit handler
   const onSubmit = (values: GroupFormValues) => {
-    if (!user) return;
+    console.log("Form submitted with values:", values);
+    
+    if (!user) {
+      console.error("User is not authenticated");
+      return;
+    }
     
     // Add createdBy
     const createGroup: InsertGroup = {
@@ -73,12 +88,23 @@ export function GroupForm() {
       createdBy: user.id,
     };
     
+    console.log("Submitting group creation:", createGroup);
     mutation.mutate(createGroup);
   };
 
+  // Function to manually handle form submission
+  const handleManualSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log("Manual form submission triggered");
+    
+    // Validate form
+    const result = form.handleSubmit(onSubmit)();
+    console.log("Form validation result:", result);
+  };
+  
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={handleManualSubmit} className="space-y-6">
         <FormField
           control={form.control}
           name="name"
@@ -122,6 +148,7 @@ export function GroupForm() {
           <Button 
             type="submit" 
             disabled={mutation.isPending}
+            onClick={() => console.log("Create Group button clicked")}
           >
             {mutation.isPending ? "Creating..." : "Create Group"}
           </Button>
