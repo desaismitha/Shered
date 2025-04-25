@@ -405,11 +405,23 @@ export class DatabaseStorage implements IStorage {
       try {
         console.log("[STORAGE] Creating expense with data:", JSON.stringify(insertExpense));
         
-        // Insert directly using the insertExpense data - Drizzle will validate types
-        // Make sure splitAmong is properly formatted as an array
-        const splitAmong = Array.isArray(insertExpense.splitAmong) 
-          ? insertExpense.splitAmong 
-          : [];
+        // Handle the splitAmong array - PostgreSQL requires special handling for JSON arrays
+        // We need to ensure it's properly serialized using JSON.stringify
+        let splitAmongValue;
+        try {
+          if (Array.isArray(insertExpense.splitAmong)) {
+            // Properly serialize the array for PostgreSQL json column
+            splitAmongValue = JSON.stringify(insertExpense.splitAmong);
+            console.log("[STORAGE] Prepared splitAmong array:", splitAmongValue);
+          } else {
+            // Default to empty array if not provided or invalid
+            splitAmongValue = '[]';
+            console.log("[STORAGE] Using default empty array for splitAmong");
+          }
+        } catch (err) {
+          console.error("[STORAGE] Error processing splitAmong array:", err);
+          splitAmongValue = '[]';
+        }
         
         // Insert with properly typed data
         const [expense] = await db.insert(expenses).values({
@@ -417,7 +429,7 @@ export class DatabaseStorage implements IStorage {
           title: insertExpense.title,
           amount: insertExpense.amount,
           paidBy: insertExpense.paidBy,
-          splitAmong: splitAmong,
+          splitAmong: splitAmongValue as any, // Cast to any since we're manually handling the serialization
           date: insertExpense.date || new Date(),
           category: insertExpense.category || null,
         }).returning();
@@ -442,13 +454,42 @@ export class DatabaseStorage implements IStorage {
       // Find expenses where the user paid
       const userExpenses = await db.select().from(expenses).where(eq(expenses.paidBy, userId));
       
-      // For PostgreSQL, we need a more specific approach to search in arrays
-      // This is a simplified approach that gets all expenses and filters in-memory
-      // In a production app, we might want a more efficient SQL query
+      // Get all expenses and process the JSON splitAmong field
       const allExpenses = await db.select().from(expenses);
-      const splitExpenses = allExpenses.filter(expense => 
-        expense.splitAmong.includes(userId) && expense.paidBy !== userId
-      );
+      
+      // Process the result to ensure splitAmong is properly handled
+      const processedExpenses = allExpenses.map(expense => {
+        // Ensure splitAmong is properly parsed as an array
+        if (typeof expense.splitAmong === 'string') {
+          try {
+            const parsedArray = JSON.parse(expense.splitAmong as string);
+            return {
+              ...expense,
+              splitAmong: Array.isArray(parsedArray) ? parsedArray : []
+            };
+          } catch (err) {
+            console.error('[STORAGE] Error parsing splitAmong JSON:', err);
+            return {
+              ...expense,
+              splitAmong: []
+            };
+          }
+        }
+        return expense;
+      });
+      
+      // Filter to find expenses where userId is in the splitAmong array
+      const splitExpenses = processedExpenses.filter(expense => {
+        try {
+          const splitArray = Array.isArray(expense.splitAmong) 
+            ? expense.splitAmong 
+            : [];
+          return splitArray.includes(userId) && expense.paidBy !== userId;
+        } catch (err) {
+          console.error('[STORAGE] Error checking splitAmong array:', err);
+          return false;
+        }
+      });
       
       return [...userExpenses, ...splitExpenses];
     });
