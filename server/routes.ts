@@ -1421,6 +1421,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     try {
       const tripId = Number(req.params.id);
+      const { confirmComplete, currentItineraryStep, totalItinerarySteps } = req.body;
       
       // Check if user is the owner or member of trip
       const accessLevel = await checkTripAccess(req, tripId, res, next, "[TRIP_COMPLETE] ");
@@ -1430,6 +1431,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (accessLevel !== 'owner') {
         return res.status(403).json({ error: "Only trip owners can complete trips" });
+      }
+      
+      // Check if there are more itinerary items left
+      console.log("[TRIP_COMPLETE] Current step:", currentItineraryStep, "Total steps:", totalItinerarySteps);
+      
+      if (
+        !confirmComplete && 
+        currentItineraryStep !== undefined && 
+        totalItinerarySteps !== undefined && 
+        currentItineraryStep < totalItinerarySteps - 1
+      ) {
+        return res.status(400).json({ 
+          error: "There are remaining itinerary items that haven't been visited yet",
+          currentStep: currentItineraryStep,
+          totalSteps: totalItinerarySteps,
+          requireConfirmation: true
+        });
       }
       
       // Update trip status to completed

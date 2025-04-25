@@ -8,7 +8,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { format, addDays } from "date-fns";
 import { isSpecialDateMarker, formatDateRange } from "@/lib/utils";
 import { 
-  Calendar, CalendarRange, MapPin, Users, PlusIcon, PencilIcon, 
+  AlertTriangle, Calendar, CalendarRange, MapPin, Users, PlusIcon, PencilIcon, 
   DollarSign, ClipboardList, Info, ArrowLeft, Car, UserCheck, ArrowRight,
   Map, Navigation, PlayCircle, StopCircle, Share2, Check, X
 } from "lucide-react";
@@ -450,9 +450,32 @@ export default function TripDetailsPage() {
     }
   });
   
+  // State for confirmation dialog
+  const [showCompletionConfirmDialog, setShowCompletionConfirmDialog] = useState(false);
+  const [completionError, setCompletionError] = useState<string | null>(null);
+
   const completeTripMutation = useMutation({
-    mutationFn: async () => {
-      const res = await apiRequest("POST", `/api/trips/${tripId}/complete`);
+    mutationFn: async (options?: { confirmComplete?: boolean }) => {
+      const payload = {
+        confirmComplete: options?.confirmComplete || false,
+        currentItineraryStep,
+        totalItinerarySteps: selectedItineraryItems.length
+      };
+      const res = await apiRequest("POST", `/api/trips/${tripId}/complete`, payload);
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        
+        // Check if this is a "remaining items" error that requires confirmation
+        if (errorData.requireConfirmation) {
+          setCompletionError(`You still have ${errorData.totalSteps - errorData.currentStep - 1} itinerary items that haven't been visited yet. Do you want to complete the trip anyway?`);
+          setShowCompletionConfirmDialog(true);
+          throw new Error(errorData.error);
+        }
+        
+        throw new Error(errorData.error || "Failed to complete trip");
+      }
+      
       return await res.json();
     },
     onSuccess: () => {
@@ -460,14 +483,18 @@ export default function TripDetailsPage() {
         title: "Trip completed",
         description: "Trip has been marked as completed!"
       });
+      setShowCompletionConfirmDialog(false);
       queryClient.invalidateQueries({ queryKey: ["/api/trips", tripId] });
     },
     onError: (error) => {
-      toast({
-        title: "Error completing trip",
-        description: error.message,
-        variant: "destructive",
-      });
+      // Only show error toast if it's not the special confirmation error
+      if (!showCompletionConfirmDialog) {
+        toast({
+          title: "Error completing trip",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
     }
   });
   
@@ -484,7 +511,7 @@ export default function TripDetailsPage() {
   
   // Function to complete trip
   const handleCompleteTrip = () => {
-    completeTripMutation.mutate();
+    completeTripMutation.mutate({});
   };
   
   // Function to update current location
@@ -694,6 +721,53 @@ export default function TripDetailsPage() {
 
   return (
     <AppShell>
+      {/* Trip completion confirmation dialog */}
+      {showCompletionConfirmDialog && (
+        <div className="fixed inset-0 bg-black/50 z-[1000] flex items-center justify-center">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold">Unvisited Itinerary Items</h2>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => setShowCompletionConfirmDialog(false)}
+                className="h-8 w-8 rounded-full"
+              >
+                <span className="sr-only">Close</span>
+                ✖
+              </Button>
+            </div>
+            
+            <div className="mb-6">
+              <AlertTriangle className="h-12 w-12 text-amber-500 mx-auto mb-4" />
+              <p className="text-center text-neutral-700 mb-2">
+                {completionError}
+              </p>
+              <p className="text-center text-sm text-neutral-500">
+                Completing the trip now will mark all itinerary items as visited.
+              </p>
+            </div>
+            
+            <div className="flex justify-between space-x-3">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setShowCompletionConfirmDialog(false)}
+              >
+                Cancel
+              </Button>
+              <Button 
+                className="flex-1"
+                onClick={() => completeTripMutation.mutate({ confirmComplete: true })}
+                disabled={completeTripMutation.isPending}
+              >
+                {completeTripMutation.isPending ? "Completing..." : "Complete Anyway"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* Itinerary selection dialog - with higher z-index to appear above the map */}
       {showItinerarySelector && (
         <div className="fixed inset-0 bg-black/50 z-[1000] flex items-center justify-center" onClick={() => setShowItinerarySelector(false)}>
