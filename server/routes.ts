@@ -1232,6 +1232,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update start location - special dedicated endpoint
+  app.post("/api/trips/:id/start-location", async (req, res, next) => {
+    try {
+      console.log("\n==== POST /api/trips/:id/start-location - START LOCATION UPDATE ENDPOINT ====");
+      
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const tripId = parseInt(req.params.id);
+      const userId = req.user!.id;
+      const { startLocation } = req.body;
+      
+      console.log(`Updating start location for trip ${tripId} to "${startLocation}"`);
+      
+      // First verify this user is the trip creator
+      const trip = await storage.getTrip(tripId);
+      
+      if (!trip) {
+        return res.status(404).json({ error: "Trip not found" });
+      }
+      
+      if (trip.createdBy !== userId) {
+        return res.status(403).json({ error: "You must be the trip creator to modify this trip" });
+      }
+      
+      // Direct Drizzle ORM update for the startLocation field only
+      const [updatedTrip] = await db
+        .update(trips)
+        .set({ startLocation: startLocation })
+        .where(eq(trips.id, tripId))
+        .returning();
+      
+      if (!updatedTrip) {
+        return res.status(500).json({ error: "Failed to update start location" });
+      }
+      
+      console.log("Start location updated successfully:", updatedTrip.startLocation);
+      
+      return res.status(200).json({
+        message: "Start location updated successfully",
+        trip: {
+          ...updatedTrip,
+          _accessLevel: 'owner'
+        }
+      });
+    } catch (err) {
+      console.error("ERROR in start-location endpoint:", err);
+      return res.status(500).json({ 
+        error: "Server error", 
+        message: err instanceof Error ? err.message : String(err) 
+      });
+    }
+  });
+
   // Trip tracking endpoints
   app.post("/api/trips/:id/start", async (req, res, next) => {
     if (!req.isAuthenticated()) {
