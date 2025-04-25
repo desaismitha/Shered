@@ -1,7 +1,7 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { db, attemptReconnect } from "./db";
+import { db, attemptReconnect, checkDbConnection, cleanupConnections } from "./db";
 import { setupAuth } from "./auth";
 import { insertGroupSchema, insertTripSchema, insertItineraryItemSchema, insertExpenseSchema, insertMessageSchema, insertGroupMemberSchema, users as usersTable } from "@shared/schema";
 import { z } from "zod";
@@ -88,6 +88,86 @@ async function checkTripAccess(
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication routes
   setupAuth(app);
+  
+  // Database health check endpoint
+  app.get("/api/health", async (req, res) => {
+    try {
+      const dbConnected = await checkDbConnection();
+      const health = {
+        status: dbConnected ? "healthy" : "degraded",
+        timestamp: new Date().toISOString(),
+        dbConnection: dbConnected ? "connected" : "disconnected",
+        environment: process.env.NODE_ENV || "development"
+      };
+      
+      if (!dbConnected) {
+        console.error("Health check failed - Database connection issue");
+        // Attempt to reconnect asynchronously (don't wait)
+        attemptReconnect(3, 1000).catch(err => {
+          console.error("Failed to reconnect during health check:", err);
+        });
+        
+        return res.status(503).json(health);
+      }
+      
+      res.json(health);
+    } catch (error) {
+      const err = error as Error;
+      console.error("Error in health check:", err);
+      res.status(500).json({
+        status: "critical",
+        timestamp: new Date().toISOString(),
+        error: err.message
+      });
+    }
+  });
+  
+  // Manual database connection reset endpoint (admin use only)
+  app.post("/api/admin/db-reset", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+    
+    // In a production app, you'd want to check if the user is an admin
+    // For now, just to demonstrate the functionality, we'll allow any authenticated user
+    try {
+      console.log(`DB reset requested by user ${req.user?.id}`);
+      
+      // First check if we actually have a connection issue
+      const isConnected = await checkDbConnection();
+      if (isConnected) {
+        console.log("Database connection is healthy, but reset was requested");
+      } else {
+        console.log("Database connection is unhealthy, proceeding with reset");
+      }
+      
+      // Attempt to reset the connection pool
+      const resetSuccess = await cleanupConnections();
+      
+      if (resetSuccess) {
+        return res.json({ 
+          success: true, 
+          message: "Database connection pool has been reset",
+          timestamp: new Date().toISOString()
+        });
+      } else {
+        return res.status(500).json({ 
+          success: false, 
+          message: "Failed to reset database connection pool",
+          timestamp: new Date().toISOString()
+        });
+      }
+    } catch (error) {
+      const err = error as Error;
+      console.error("Error during database reset:", err);
+      return res.status(500).json({ 
+        success: false, 
+        message: "Error during database reset",
+        error: err.message,
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
 
   // API routes
   // Users

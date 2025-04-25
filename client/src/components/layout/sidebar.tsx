@@ -2,6 +2,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Link, useLocation } from "wouter";
 import { Plane, LayoutDashboard, Users, Calendar, DollarSign, MessageSquare, Settings, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { DbResetButton } from "@/components/ui/db-reset-button";
 
 export function Sidebar() {
   const { user, logoutMutation } = useAuth();
