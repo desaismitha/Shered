@@ -277,6 +277,7 @@ export class DatabaseStorage implements IStorage {
         
         // Only include fields that are present in tripData
         if (tripData.name !== undefined) updateData.name = tripData.name;
+        if (tripData.startLocation !== undefined) updateData.startLocation = tripData.startLocation;
         if (tripData.destination !== undefined) updateData.destination = tripData.destination;
         if (tripData.description !== undefined) updateData.description = tripData.description;
         if (tripData.imageUrl !== undefined) updateData.imageUrl = tripData.imageUrl;

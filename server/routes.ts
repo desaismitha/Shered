@@ -820,6 +820,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create a processed version of the data with proper date conversions
       const updateData: Record<string, any> = {
         name: req.body.name,
+        startLocation: req.body.startLocation,
         destination: req.body.destination,
         status: req.body.status
       };
