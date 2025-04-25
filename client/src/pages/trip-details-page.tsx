@@ -502,14 +502,25 @@ export default function TripDetailsPage() {
                   <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle>Trip Information</CardTitle>
                     {trip._accessLevel === 'owner' && !isEditingTrip && (
-                      <Button 
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setIsEditingTrip(true)}
-                      >
-                        <PencilIcon className="h-4 w-4 mr-2" />
-                        Edit Trip
-                      </Button>
+                      <div className="flex space-x-2">
+                        <Button 
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setIsEditingTrip(true)}
+                        >
+                          <PencilIcon className="h-4 w-4 mr-2" />
+                          Edit Trip
+                        </Button>
+                        <Button 
+                          size="sm"
+                          variant="outline"
+                          className="bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100"
+                          onClick={() => navigate(`/trips/basic-edit/${trip.id}`)}
+                        >
+                          <CalendarRange className="h-4 w-4 mr-2" />
+                          Simple Edit
+                        </Button>
+                      </div>
                     )}
                   </CardHeader>
                   <CardContent>
