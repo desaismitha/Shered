@@ -50,9 +50,20 @@ export default function TripDetailsPage() {
   });
 
   // Get group members
+  // In the API, group members doesn't return what it's supposed to,
+  // so we're adding the creator to simulate group members until this is fixed
   const { data: groupMembers, isLoading: isLoadingGroupMembers } = useQuery<GroupMember[]>({
     queryKey: ["/api/groups", trip?.groupId, "members"],
-    enabled: !!trip?.groupId,
+    enabled: !!trip?.groupId && !!trip,
+    initialData: trip?.groupId ? [
+      {
+        id: 1,
+        groupId: trip.groupId,
+        userId: trip.createdBy,
+        role: "admin",
+        joinedAt: new Date()
+      }
+    ] : undefined,
   });
 
   // Get all users for names and avatars

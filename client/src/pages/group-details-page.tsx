@@ -39,13 +39,20 @@ export default function GroupDetailsPage() {
     enabled: !!groupId,
   });
 
-  // Get group members
+  // In the API, group members doesn't return what it's supposed to,
+  // so we're adding the creator to simulate group members until this is fixed
   const { data: groupMembers, isLoading: isLoadingGroupMembers } = useQuery<GroupMember[]>({
     queryKey: ["/api/groups", groupId, "members"],
-    enabled: !!groupId,
-    onSuccess: (data) => {
-      console.log("Group members API response:", data);
-    },
+    enabled: !!groupId && !!group,
+    initialData: group ? [
+      {
+        id: 1,
+        groupId: group.id,
+        userId: group.createdBy,
+        role: "admin",
+        joinedAt: new Date()
+      }
+    ] : undefined,
   });
 
   // Get trips for this group
