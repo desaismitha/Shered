@@ -1190,6 +1190,205 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Vehicle management routes
+  // Get user vehicles
+  app.get("/api/vehicles", async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+      
+      const vehicles = await storage.getVehiclesByUserId(req.user.id);
+      res.json(vehicles);
+    } catch (err) {
+      next(err);
+    }
+  });
+  
+  // Get vehicle by ID
+  app.get("/api/vehicles/:id", async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+      
+      const vehicleId = parseInt(req.params.id);
+      const vehicle = await storage.getVehicle(vehicleId);
+      
+      if (!vehicle) {
+        return res.status(404).json({ message: "Vehicle not found" });
+      }
+      
+      // Check if user owns the vehicle
+      if (vehicle.userId !== req.user.id) {
+        return res.status(403).json({ message: "You don't have permission to access this vehicle" });
+      }
+      
+      res.json(vehicle);
+    } catch (err) {
+      next(err);
+    }
+  });
+  
+  // Create vehicle
+  app.post("/api/vehicles", async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+      
+      const validatedData = insertVehicleSchema.parse({
+        ...req.body,
+        userId: req.user.id
+      });
+      
+      const vehicle = await storage.createVehicle(validatedData);
+      res.status(201).json(vehicle);
+    } catch (err) {
+      next(err);
+    }
+  });
+  
+  // Update vehicle
+  app.patch("/api/vehicles/:id", async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+      
+      const vehicleId = parseInt(req.params.id);
+      const vehicle = await storage.getVehicle(vehicleId);
+      
+      if (!vehicle) {
+        return res.status(404).json({ message: "Vehicle not found" });
+      }
+      
+      // Check if user owns the vehicle
+      if (vehicle.userId !== req.user.id) {
+        return res.status(403).json({ message: "You don't have permission to modify this vehicle" });
+      }
+      
+      // Validate the update data - only allow updating these fields
+      const updateData: Record<string, any> = {};
+      if (req.body.make !== undefined) updateData.make = req.body.make;
+      if (req.body.model !== undefined) updateData.model = req.body.model;
+      if (req.body.year !== undefined) updateData.year = req.body.year;
+      if (req.body.licensePlate !== undefined) updateData.licensePlate = req.body.licensePlate;
+      if (req.body.color !== undefined) updateData.color = req.body.color;
+      if (req.body.capacity !== undefined) updateData.capacity = req.body.capacity;
+      if (req.body.notes !== undefined) updateData.notes = req.body.notes;
+      
+      const updatedVehicle = await storage.updateVehicle(vehicleId, updateData);
+      res.json(updatedVehicle);
+    } catch (err) {
+      next(err);
+    }
+  });
+  
+  // Delete vehicle
+  app.delete("/api/vehicles/:id", async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+      
+      const vehicleId = parseInt(req.params.id);
+      const vehicle = await storage.getVehicle(vehicleId);
+      
+      if (!vehicle) {
+        return res.status(404).json({ message: "Vehicle not found" });
+      }
+      
+      // Check if user owns the vehicle
+      if (vehicle.userId !== req.user.id) {
+        return res.status(403).json({ message: "You don't have permission to delete this vehicle" });
+      }
+      
+      const success = await storage.deleteVehicle(vehicleId);
+      
+      if (success) {
+        res.status(200).json({ message: "Vehicle deleted successfully" });
+      } else {
+        res.status(400).json({ message: "Vehicle could not be deleted. It may be assigned to trips." });
+      }
+    } catch (err) {
+      next(err);
+    }
+  });
+  
+  // Trip vehicle management routes
+  // Get vehicles for a trip
+  app.get("/api/trips/:tripId/vehicles", async (req, res, next) => {
+    try {
+      const tripId = parseInt(req.params.tripId);
+      
+      // Check if user has access to this trip
+      const accessLevel = await checkTripAccess(req, tripId, res, next, "[TRIP VEHICLES] ");
+      if (!accessLevel) return; // Response already sent
+      
+      const tripVehicles = await storage.getTripVehicles(tripId);
+      res.json(tripVehicles);
+    } catch (err) {
+      next(err);
+    }
+  });
+  
+  // Assign vehicle to trip
+  app.post("/api/trips/:tripId/vehicles", async (req, res, next) => {
+    try {
+      const tripId = parseInt(req.params.tripId);
+      
+      // Only owner or member can assign vehicles
+      const accessLevel = await checkTripAccess(req, tripId, res, next, "[ASSIGN VEHICLE] ");
+      if (!accessLevel) return; // Response already sent
+      
+      // Check if vehicle belongs to user or is in group members' vehicles
+      const vehicleId = parseInt(req.body.vehicleId);
+      const vehicle = await storage.getVehicle(vehicleId);
+      
+      if (!vehicle) {
+        return res.status(404).json({ message: "Vehicle not found" });
+      }
+      
+      // If not the vehicle owner, check if the trip owner
+      if (vehicle.userId !== req.user.id && accessLevel !== 'owner') {
+        return res.status(403).json({ 
+          message: "You can only assign your own vehicles or must be the trip owner to assign others' vehicles"
+        });
+      }
+      
+      const validatedData = insertTripVehicleSchema.parse({
+        ...req.body,
+        tripId,
+        // Set default for optional fields if not provided
+        isMain: req.body.isMain !== undefined ? req.body.isMain : true,
+        assignedTo: req.body.assignedTo || null,
+        notes: req.body.notes || null
+      });
+      
+      const tripVehicle = await storage.assignVehicleToTrip(validatedData);
+      res.status(201).json(tripVehicle);
+    } catch (err) {
+      next(err);
+    }
+  });
+  
+  // Remove vehicle from trip
+  app.delete("/api/trips/:tripId/vehicles/:id", async (req, res, next) => {
+    try {
+      const tripId = parseInt(req.params.tripId);
+      
+      // Only owner can remove vehicles
+      const accessLevel = await checkTripAccess(req, tripId, res, next, "[REMOVE VEHICLE] ");
+      if (!accessLevel) return; // Response already sent
+      
+      if (accessLevel !== 'owner') {
+        return res.status(403).json({ message: "Only the trip owner can remove vehicles" });
+      }
+      
+      const tripVehicleId = parseInt(req.params.id);
+      const success = await storage.removeTripVehicle(tripVehicleId);
+      
+      if (success) {
+        res.status(200).json({ message: "Vehicle removed from trip successfully" });
+      } else {
+        res.status(400).json({ message: "Vehicle could not be removed from trip" });
+      }
+    } catch (err) {
+      next(err);
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
