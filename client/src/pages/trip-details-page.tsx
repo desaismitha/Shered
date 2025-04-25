@@ -9,7 +9,7 @@ import { format } from "date-fns";
 import { isSpecialDateMarker, formatDateRange } from "@/lib/utils";
 import { 
   Calendar, CalendarRange, MapPin, Users, PlusIcon, PencilIcon, 
-  DollarSign, ClipboardList, Info, ArrowLeft, Car
+  DollarSign, ClipboardList, Info, ArrowLeft, Car, UserCheck
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -22,6 +22,7 @@ import { ItineraryForm } from "@/components/itinerary/itinerary-form";
 import { ExpenseCard } from "@/components/expenses/expense-card";
 import { ExpenseForm } from "@/components/expenses/expense-form";
 import { TripVehicleList } from "@/components/vehicles/trip-vehicle-list";
+import { DriverInfoSection } from "@/components/user/driver-info-section";
 import { useToast } from "@/hooks/use-toast";
 
 // Extended Trip type with access level from the backend
