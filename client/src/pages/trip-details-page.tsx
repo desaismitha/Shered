@@ -45,6 +45,7 @@ function TripQuickEdit({ trip, onSuccess }: { trip: Trip, onSuccess: () => void 
   // Simple state values for all fields
   const [name, setName] = useState(trip.name);
   const [destination, setDestination] = useState(trip.destination);
+  const [startLocation, setStartLocation] = useState(trip.startLocation || '');
   const [status, setStatus] = useState(trip.status || 'planning');
   
   // Simplified date handling - directly use string values in ISO format
@@ -96,6 +97,7 @@ function TripQuickEdit({ trip, onSuccess }: { trip: Trip, onSuccess: () => void 
       const payload = {
         name,
         destination,
+        startLocation,
         status,
         startDate: startDate ? `${startDate}T12:00:00Z` : "2099-12-31T00:00:00Z", // Use marker date for empty dates
         endDate: endDate ? `${endDate}T12:00:00Z` : "2099-12-31T00:00:00Z" // Use marker date for empty dates
@@ -194,6 +196,18 @@ function TripQuickEdit({ trip, onSuccess }: { trip: Trip, onSuccess: () => void 
             onChange={(e) => setDestination(e.target.value)}
             className="w-full p-2 border rounded-md"
             required
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            Start Location
+          </label>
+          <input
+            type="text"
+            value={startLocation}
+            onChange={(e) => setStartLocation(e.target.value)}
+            className="w-full p-2 border rounded-md"
+            placeholder="Enter departure location"
           />
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
