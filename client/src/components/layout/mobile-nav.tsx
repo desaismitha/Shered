@@ -1,7 +1,11 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
-import { Menu, X, Plane, LayoutDashboard, Users, Calendar, DollarSign, MessageSquare, Settings, LogOut, Car } from "lucide-react";
+import { 
+  Menu, X, Plane, LayoutDashboard, Users, Calendar, 
+  DollarSign, MessageSquare, Settings, LogOut, Car,
+  Navigation
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DbResetButton } from "@/components/ui/db-reset-button";
 

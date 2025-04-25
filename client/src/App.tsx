@@ -19,6 +19,7 @@ import NewGroupPage from "@/pages/groups/new";
 import ExpensesPage from "@/pages/expenses-page";
 import MessagesPage from "@/pages/messages-page";
 import VehiclesPage from "@/pages/vehicles-page";
+import ActiveTripsPage from "@/pages/active-trips-page";
 import ForgotPasswordPage from "@/pages/forgot-password";
 import ResetPasswordPage from "@/pages/reset-password";
 import { DbResetFloatingButton } from "@/components/ui/db-reset-floating-button";
@@ -33,6 +34,7 @@ function Router() {
       <ProtectedRoute path="/trips/edit/:id" component={EditTripPage} />
       <ProtectedRoute path="/trips/basic-edit/:id" component={BasicTripEditPage} />
       <ProtectedRoute path="/trips/:id" component={TripDetailsPage} />
+      <ProtectedRoute path="/active-trips" component={ActiveTripsPage} />
       <ProtectedRoute path="/groups/new" component={NewGroupPage} />
       <ProtectedRoute path="/groups/:id" component={GroupDetailsPage} />
       <ProtectedRoute path="/groups" component={GroupsPage} />
