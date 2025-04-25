@@ -388,9 +388,11 @@ export default function TripDetailsPage() {
   const [isLocationUpdating, setIsLocationUpdating] = useState(false);
   const [locationUpdateError, setLocationUpdateError] = useState<string | null>(null);
   
-  // States for itinerary selection in tracking
+  // States for itinerary selection and tracking
   const [showItinerarySelector, setShowItinerarySelector] = useState(false);
   const [selectedItineraryIds, setSelectedItineraryIds] = useState<number[]>([]);
+  const [selectedItineraryItems, setSelectedItineraryItems] = useState<ItineraryItem[]>([]);
+  const [currentItineraryStep, setCurrentItineraryStep] = useState(0);
 
   // Trip tracking mutations
   const startTripMutation = useMutation({
@@ -400,14 +402,25 @@ export default function TripDetailsPage() {
       });
       return await res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast({
         title: "Trip started",
         description: "Trip tracking has been started successfully!"
       });
-      // Reset state
+      
+      // Store the selected itinerary items for step-by-step tracking
+      if (data.selectedItineraryItems && data.selectedItineraryItems.length > 0) {
+        // Sort items by day
+        const items = [...data.selectedItineraryItems];
+        items.sort((a, b) => a.day - b.day);
+        setSelectedItineraryItems(items);
+        setCurrentItineraryStep(0);
+      }
+      
+      // Close the dialog
       setShowItinerarySelector(false);
-      setSelectedItineraryIds([]);
+      
+      // Keep the IDs in state for reference
       queryClient.invalidateQueries({ queryKey: ["/api/trips", tripId] });
     },
     onError: (error) => {
@@ -542,6 +555,12 @@ export default function TripDetailsPage() {
   useEffect(() => {
     console.log("Expenses data:", expenses);
   }, [expenses]);
+  
+  // Debug itinerary tracking
+  useEffect(() => {
+    console.log("Selected itinerary items:", selectedItineraryItems);
+    console.log("Current itinerary step:", currentItineraryStep);
+  }, [selectedItineraryItems, currentItineraryStep]);
   
   // Listen for URL changes to update tab
   useEffect(() => {
@@ -1400,6 +1419,98 @@ export default function TripDetailsPage() {
                         )}
                       </div>
                       
+                      {/* Current Itinerary Step */}
+                      {trip.status === 'in-progress' && selectedItineraryItems.length > 0 && (
+                        <div className="mt-6 border-t pt-6">
+                          <div className="flex items-center justify-between mb-4">
+                            <h3 className="font-medium text-neutral-800">Current Itinerary</h3>
+                            <div className="text-sm text-neutral-500">
+                              Step {currentItineraryStep + 1} of {selectedItineraryItems.length}
+                            </div>
+                          </div>
+                          
+                          {selectedItineraryItems[currentItineraryStep] && (
+                            <div className="border rounded-md p-4 bg-primary-50">
+                              <div className="flex items-start gap-4">
+                                <div className="bg-primary-100 rounded-full p-2 text-primary-800">
+                                  {selectedItineraryItems[currentItineraryStep].fromLocation && 
+                                   selectedItineraryItems[currentItineraryStep].toLocation ? (
+                                    <Car className="h-6 w-6" />
+                                  ) : (
+                                    <MapPin className="h-6 w-6" />
+                                  )}
+                                </div>
+                                <div className="flex-1">
+                                  <h4 className="font-semibold text-lg mb-1">
+                                    {selectedItineraryItems[currentItineraryStep].title}
+                                  </h4>
+                                  
+                                  {selectedItineraryItems[currentItineraryStep].description && (
+                                    <p className="text-neutral-700 mb-2">{selectedItineraryItems[currentItineraryStep].description}</p>
+                                  )}
+                                  
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                                    <div>
+                                      <span className="text-neutral-500">Day: </span>
+                                      <span className="font-medium">{selectedItineraryItems[currentItineraryStep].day}</span>
+                                    </div>
+                                    
+                                    {selectedItineraryItems[currentItineraryStep].location && (
+                                      <div>
+                                        <span className="text-neutral-500">Location: </span>
+                                        <span className="font-medium">{selectedItineraryItems[currentItineraryStep].location}</span>
+                                      </div>
+                                    )}
+                                    
+                                    {selectedItineraryItems[currentItineraryStep].fromLocation && selectedItineraryItems[currentItineraryStep].toLocation && (
+                                      <div className="sm:col-span-2">
+                                        <span className="text-neutral-500">Travel: </span>
+                                        <span className="font-medium">{selectedItineraryItems[currentItineraryStep].fromLocation} to {selectedItineraryItems[currentItineraryStep].toLocation}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              <div className="flex justify-between mt-4 pt-3 border-t">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setCurrentItineraryStep(prev => Math.max(0, prev - 1))}
+                                  disabled={currentItineraryStep === 0}
+                                >
+                                  <ArrowLeft className="h-4 w-4 mr-1" /> Previous
+                                </Button>
+                                
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="bg-primary-50 hover:bg-primary-100 border-primary-200"
+                                  onClick={() => getCurrentLocation()}
+                                  disabled={isLocationUpdating}
+                                >
+                                  <Navigation className="h-4 w-4 mr-1" />
+                                  {isLocationUpdating ? 'Updating...' : 'Update Location'}
+                                </Button>
+                                
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    if (currentItineraryStep < selectedItineraryItems.length - 1) {
+                                      setCurrentItineraryStep(prev => prev + 1);
+                                    }
+                                  }}
+                                  disabled={currentItineraryStep === selectedItineraryItems.length - 1}
+                                >
+                                  Next <ArrowRight className="h-4 w-4 ml-1" />
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
                       {/* Instructions for trip owners */}
                       {trip._accessLevel === 'owner' && (
                         <div className="mt-6">
@@ -1413,6 +1524,9 @@ export default function TripDetailsPage() {
                                 <li>Click "Update Location" to update your current position on the map.</li>
                                 <li>Your location will be saved and the distance traveled will be calculated.</li>
                                 <li>Click "Complete Trip" when you have reached your destination.</li>
+                                {selectedItineraryItems.length > 0 && (
+                                  <li>Use the navigation buttons to move between itinerary steps.</li>
+                                )}
                               </>
                             )}
                             {trip.status === 'completed' && (
