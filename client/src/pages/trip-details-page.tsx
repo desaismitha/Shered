@@ -352,6 +352,124 @@ export default function TripDetailsPage() {
     queryKey: ["/api/users"],
     enabled: !!groupMembers,
   });
+
+  // Trip tracking state and refs
+  const mapRef = useRef<L.Map | null>(null);
+  const [isLocationUpdating, setIsLocationUpdating] = useState(false);
+  const [locationUpdateError, setLocationUpdateError] = useState<string | null>(null);
+  
+  // Trip tracking mutations
+  const startTripMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", `/api/trips/${tripId}/start`);
+      return await res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Trip started",
+        description: "Trip tracking has been started successfully!"
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/trips", tripId] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error starting trip",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+  
+  const updateLocationMutation = useMutation({
+    mutationFn: async (coords: { latitude: number; longitude: number }) => {
+      const res = await apiRequest("POST", `/api/trips/${tripId}/update-location`, coords);
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/trips", tripId] });
+    },
+    onError: (error) => {
+      setLocationUpdateError(error.message);
+      toast({
+        title: "Location update failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+  
+  const completeTripMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", `/api/trips/${tripId}/complete`);
+      return await res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Trip completed",
+        description: "Trip has been marked as completed!"
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/trips", tripId] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error completing trip",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+  
+  // Function to start trip tracking
+  const handleStartTracking = () => {
+    startTripMutation.mutate();
+  };
+  
+  // Function to complete trip
+  const handleCompleteTrip = () => {
+    completeTripMutation.mutate();
+  };
+  
+  // Function to update current location
+  const getCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      setLocationUpdateError("Geolocation is not supported by your browser");
+      return;
+    }
+    
+    setIsLocationUpdating(true);
+    setLocationUpdateError(null);
+    
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        
+        // Update the map center if map is available
+        if (mapRef.current) {
+          mapRef.current.setView([latitude, longitude], 13);
+        }
+        
+        // Send the location update to the server
+        updateLocationMutation.mutate({ latitude, longitude });
+        setIsLocationUpdating(false);
+      },
+      (error) => {
+        console.error("Error getting location:", error);
+        setLocationUpdateError(`Error getting location: ${error.message}`);
+        setIsLocationUpdating(false);
+        
+        toast({
+          title: "Location error",
+          description: error.message,
+          variant: "destructive",
+        });
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      }
+    );
+  };
   
   // Handler for successful trip edit
   const handleTripEditSuccess = () => {
@@ -539,6 +657,7 @@ export default function TripDetailsPage() {
                 <TabsTrigger value="expenses">Expenses</TabsTrigger>
                 <TabsTrigger value="vehicles">Vehicles</TabsTrigger>
                 <TabsTrigger value="drivers">Drivers</TabsTrigger>
+                <TabsTrigger value="tracking">Tracking</TabsTrigger>
               </TabsList>
               
               {/* Trip Info tab */}
@@ -983,6 +1102,169 @@ export default function TripDetailsPage() {
                           tripId={tripId} 
                           accessLevel={trip._accessLevel} 
                         />
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+              </TabsContent>
+              
+              {/* Trip Tracking tab */}
+              <TabsContent value="tracking">
+                <div className="space-y-6">
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between">
+                      <div>
+                        <CardTitle>Trip Tracking</CardTitle>
+                        <CardDescription>
+                          {trip.status === 'in-progress' 
+                            ? 'This trip is currently active. Track your journey on the map.'
+                            : 'Start tracking to monitor your journey on the map.'}
+                        </CardDescription>
+                      </div>
+                      
+                      {trip._accessLevel === 'owner' && (
+                        <div className="flex space-x-2">
+                          {trip.status !== 'in-progress' && trip.status !== 'completed' && (
+                            <Button 
+                              onClick={handleStartTracking}
+                              disabled={startTripMutation.isPending}
+                              variant="outline"
+                            >
+                              <PlayCircle className="h-4 w-4 mr-2" />
+                              {startTripMutation.isPending ? 'Starting...' : 'Start Trip'}
+                            </Button>
+                          )}
+                          
+                          {trip.status === 'in-progress' && (
+                            <>
+                              <Button 
+                                onClick={getCurrentLocation}
+                                disabled={isLocationUpdating}
+                                variant="outline"
+                              >
+                                <Navigation className="h-4 w-4 mr-2" />
+                                {isLocationUpdating ? 'Updating...' : 'Update Location'}
+                              </Button>
+                              
+                              <Button 
+                                onClick={handleCompleteTrip}
+                                disabled={completeTripMutation.isPending}
+                                variant="outline"
+                              >
+                                <StopCircle className="h-4 w-4 mr-2" />
+                                {completeTripMutation.isPending ? 'Completing...' : 'Complete Trip'}
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </CardHeader>
+                    <CardContent>
+                      {/* Trip status information */}
+                      <div className="mb-6">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div className="bg-background border rounded-lg p-4">
+                            <h3 className="text-sm font-medium text-muted-foreground mb-1">Status</h3>
+                            <p className="text-lg font-medium">
+                              <Badge className={getStatusColor(trip.status)}>
+                                {trip.status ? trip.status.charAt(0).toUpperCase() + trip.status.slice(1) : 'Unknown'}
+                              </Badge>
+                            </p>
+                          </div>
+                          
+                          <div className="bg-background border rounded-lg p-4">
+                            <h3 className="text-sm font-medium text-muted-foreground mb-1">Distance Traveled</h3>
+                            <p className="text-lg font-medium">
+                              {trip.distanceTraveled ? `${trip.distanceTraveled.toFixed(2)} km` : 'Not started'}
+                            </p>
+                          </div>
+                          
+                          <div className="bg-background border rounded-lg p-4">
+                            <h3 className="text-sm font-medium text-muted-foreground mb-1">Last Updated</h3>
+                            <p className="text-lg font-medium">
+                              {trip.lastLocationUpdate 
+                                ? format(new Date(trip.lastLocationUpdate), 'MMM d, yyyy HH:mm:ss')
+                                : 'Not started'}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Error alert if location update fails */}
+                      {locationUpdateError && (
+                        <Alert variant="destructive" className="mb-6">
+                          <AlertTitle>Error updating location</AlertTitle>
+                          <AlertDescription>{locationUpdateError}</AlertDescription>
+                        </Alert>
+                      )}
+
+                      {/* Map component */}
+                      <div className="h-[400px] border rounded-lg overflow-hidden">
+                        {/* Leaflet map container */}
+                        {typeof window !== 'undefined' ? (
+                          <MapContainer
+                            center={
+                              trip.currentLatitude && trip.currentLongitude
+                                ? [trip.currentLatitude, trip.currentLongitude] 
+                                : [40.7128, -74.0060] // Default to NYC
+                            }
+                            zoom={13}
+                            style={{ height: '100%', width: '100%' }}
+                            ref={(map) => {
+                              if (map) {
+                                mapRef.current = map;
+                              }
+                            }}
+                          >
+                            <TileLayer
+                              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                            />
+                            
+                            {/* Show marker for current location */}
+                            {trip.currentLatitude && trip.currentLongitude && (
+                              <Marker 
+                                position={[trip.currentLatitude, trip.currentLongitude]}
+                              >
+                                <Popup>
+                                  <div>
+                                    <strong>{trip.name}</strong><br />
+                                    <span>Current location</span><br />
+                                    <span>Last updated: {trip.lastLocationUpdate 
+                                      ? format(new Date(trip.lastLocationUpdate), 'MMM d, yyyy HH:mm:ss')
+                                      : 'Unknown'}</span>
+                                  </div>
+                                </Popup>
+                              </Marker>
+                            )}
+                          </MapContainer>
+                        ) : (
+                          <div className="flex items-center justify-center h-full">
+                            <p>Map loading...</p>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Instructions for trip owners */}
+                      {trip._accessLevel === 'owner' && (
+                        <div className="mt-6">
+                          <h3 className="font-medium text-neutral-800 mb-2">Trip Tracking Instructions</h3>
+                          <ul className="list-disc pl-6 space-y-2 text-sm text-neutral-600">
+                            {trip.status !== 'in-progress' && trip.status !== 'completed' && (
+                              <li>Click "Start Trip" to begin tracking your journey.</li>
+                            )}
+                            {trip.status === 'in-progress' && (
+                              <>
+                                <li>Click "Update Location" to update your current position on the map.</li>
+                                <li>Your location will be saved and the distance traveled will be calculated.</li>
+                                <li>Click "Complete Trip" when you have reached your destination.</li>
+                              </>
+                            )}
+                            {trip.status === 'completed' && (
+                              <li>This trip has been completed. The final distance traveled is displayed above.</li>
+                            )}
+                          </ul>
+                        </div>
                       )}
                     </CardContent>
                   </Card>
