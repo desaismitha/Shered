@@ -64,7 +64,7 @@ export const trips = pgTable("trips", {
   description: text("description"),
   imageUrl: text("image_url"),
   status: text("status").default("planning"),
-  groupId: integer("group_id").references(() => groups.id),
+  groupId: integer("group_id").references(() => groups.id, { onDelete: 'set null' }),
   createdBy: integer("created_by").notNull().references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
 });

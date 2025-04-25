@@ -5,11 +5,11 @@ import { AppShell } from "@/components/layout/app-shell";
 import { useParams, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { format } from "date-fns";
+import { format, addDays } from "date-fns";
 import { isSpecialDateMarker, formatDateRange } from "@/lib/utils";
 import { 
   Calendar, CalendarRange, MapPin, Users, PlusIcon, PencilIcon, 
-  DollarSign, ClipboardList, Info, ArrowLeft, Car, UserCheck
+  DollarSign, ClipboardList, Info, ArrowLeft, Car, UserCheck, ArrowRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -577,6 +577,18 @@ export default function TripDetailsPage() {
                                   <p className="text-sm text-neutral-500 mb-1">Destination</p>
                                   <p className="font-medium">{trip.destination}</p>
                                 </div>
+                                <div className="p-4 border-b md:border-r">
+                                  <p className="text-sm text-neutral-500 mb-1">Start Location</p>
+                                  <p className="font-medium">
+                                    {trip.startLocation || 'Not specified'}
+                                  </p>
+                                </div>
+                                <div className="p-4 border-b">
+                                  <p className="text-sm text-neutral-500 mb-1">Travel Distance</p>
+                                  <p className="font-medium">
+                                    {trip.startLocation ? `${trip.startLocation} to ${trip.destination}` : 'Not available'}
+                                  </p>
+                                </div>
                                 <div className="p-4 border-b md:border-b-0 md:border-r">
                                   <p className="text-sm text-neutral-500 mb-1">Start Date</p>
                                   <p className="font-medium">
@@ -708,7 +720,7 @@ export default function TripDetailsPage() {
                                                       <div className="flex items-center text-xs text-neutral-600 mt-1">
                                                         <MapPin className="h-3 w-3 text-blue-400 mr-1" />
                                                         <span>{item.fromLocation}</span>
-                                                        <ArrowRightIcon className="h-3 w-3 mx-1 text-blue-400" />
+                                                        <ArrowRight className="h-3 w-3 mx-1 text-blue-400" />
                                                         <MapPin className="h-3 w-3 text-blue-400 mr-1" />
                                                         <span>{item.toLocation}</span>
                                                       </div>
