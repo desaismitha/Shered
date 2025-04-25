@@ -12,6 +12,7 @@ import TripsPage from "@/pages/trips-page";
 import TripDetailsPage from "@/pages/trip-details-page";
 import GroupsPage from "@/pages/groups-page";
 import GroupDetailsPage from "@/pages/group-details-page";
+import NewGroupPage from "@/pages/groups/new";
 import ExpensesPage from "@/pages/expenses-page";
 import MessagesPage from "@/pages/messages-page";
 import { Route } from "wouter";
@@ -22,8 +23,9 @@ function Router() {
       <ProtectedRoute path="/" component={DashboardPage} />
       <ProtectedRoute path="/trips" component={TripsPage} />
       <ProtectedRoute path="/trips/:id" component={TripDetailsPage} />
-      <ProtectedRoute path="/groups" component={GroupsPage} />
+      <ProtectedRoute path="/groups/new" component={NewGroupPage} />
       <ProtectedRoute path="/groups/:id" component={GroupDetailsPage} />
+      <ProtectedRoute path="/groups" component={GroupsPage} />
       <ProtectedRoute path="/expenses" component={ExpensesPage} />
       <ProtectedRoute path="/messages" component={MessagesPage} />
       <Route path="/auth" component={AuthPage} />
