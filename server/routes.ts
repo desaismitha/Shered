@@ -727,6 +727,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const modifiedTripSchema = z.object({
           id: z.number().optional(),
           name: z.string().optional(),
+          startLocation: z.string().nullable().optional(),
           destination: z.string().optional(),
           description: z.string().nullable().optional(),
           imageUrl: z.string().nullable().optional(),
