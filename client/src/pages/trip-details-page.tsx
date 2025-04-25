@@ -253,11 +253,16 @@ export default function TripDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const tripId = parseInt(id);
   const { user } = useAuth();
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
   const { toast } = useToast();
   const [isAddingItinerary, setIsAddingItinerary] = useState(false);
   const [isAddingExpense, setIsAddingExpense] = useState(false);
-  const [isEditingTrip, setIsEditingTrip] = useState(false);
+  
+  // Check URL for edit=true parameter
+  const searchParams = new URLSearchParams(location.split('?')[1] || '');
+  const shouldStartEditing = searchParams.get('edit') === 'true';
+  
+  const [isEditingTrip, setIsEditingTrip] = useState(shouldStartEditing);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   // Get trip details directly from the specific endpoint to get access level info
