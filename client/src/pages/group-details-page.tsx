@@ -17,6 +17,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { TripCard } from "@/components/trips/trip-card";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { useUserLookup } from "@/hooks/use-user-lookup";
 import { MessageList } from "@/components/messages/message-list";
 import { MessageForm } from "@/components/messages/message-form";
 import { Badge } from "@/components/ui/badge";
@@ -31,6 +32,7 @@ export default function GroupDetailsPage() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  const { lookupByUsername, lookupByEmail, isLoading: isLookingUpUser } = useUserLookup();
   const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
   const [usernameToAdd, setUsernameToAdd] = useState("");
 
@@ -141,22 +143,14 @@ export default function GroupDetailsPage() {
   const addMemberMutation = useMutation({
     mutationFn: async (values: AddMemberValues) => {
       try {
-        // First, we need to get the user ID by username
-        const userRes = await apiRequest("GET", `/api/users/by-username/${values.username}`);
+        // Use our new hook to look up the user
+        const foundUser = await lookupByUsername(values.username);
         
-        // Handle 404 response specifically
-        if (userRes.status === 404) {
+        if (!foundUser) {
           throw new Error(`User '${values.username}' does not exist. Please check the username and try again.`);
         }
         
-        // Handle other error responses
-        if (!userRes.ok) {
-          throw new Error(`Server error: ${userRes.statusText}`);
-        }
-        
-        const foundUser = await userRes.json();
-        
-        if (!foundUser || !foundUser.id) {
+        if (!foundUser.id) {
           throw new Error(`User '${values.username}' was found but has invalid data.`);
         }
         
