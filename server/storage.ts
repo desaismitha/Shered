@@ -401,14 +401,49 @@ export class DatabaseStorage implements IStorage {
   // Itinerary methods
   async createItineraryItem(insertItem: InsertItineraryItem): Promise<ItineraryItem> {
     return this.executeDbOperation(async () => {
-      const [item] = await db.insert(itineraryItems).values(insertItem).returning();
+      // Process the item data before insertion
+      console.log("[STORAGE] Creating itinerary item with data:", JSON.stringify(insertItem));
+      
+      // Create a copy of the data for manipulation
+      const itemData = { ...insertItem };
+      
+      // Ensure isRecurring is a boolean
+      if (itemData.isRecurring === undefined) {
+        itemData.isRecurring = false;
+      }
+      
+      // Handle recurrence days if they're passed as an array
+      if (itemData.recurrenceDays && Array.isArray(itemData.recurrenceDays)) {
+        itemData.recurrenceDays = JSON.stringify(itemData.recurrenceDays);
+      }
+      
+      // Insert the data
+      const [item] = await db.insert(itineraryItems).values(itemData).returning();
+      console.log("[STORAGE] Itinerary item created:", JSON.stringify(item));
       return item;
     });
   }
 
   async getItineraryItemsByTripId(tripId: number): Promise<ItineraryItem[]> {
     return this.executeDbOperation(async () => {
-      return await db.select().from(itineraryItems).where(eq(itineraryItems.tripId, tripId));
+      const items = await db.select().from(itineraryItems).where(eq(itineraryItems.tripId, tripId));
+      
+      // Process each item to handle stored data formats
+      return items.map(item => {
+        const processedItem = { ...item };
+        
+        // Parse recurrenceDays if it's a string
+        if (processedItem.recurrenceDays && typeof processedItem.recurrenceDays === 'string') {
+          try {
+            processedItem.recurrenceDays = JSON.parse(processedItem.recurrenceDays);
+          } catch (error) {
+            console.error(`[STORAGE] Error parsing recurrenceDays for item ${item.id}:`, error);
+            // Keep as is if parsing fails
+          }
+        }
+        
+        return processedItem;
+      });
     });
   }
 
