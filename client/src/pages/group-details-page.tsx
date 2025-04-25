@@ -462,76 +462,75 @@ export default function GroupDetailsPage() {
                     ) : (
                       <Form {...inviteUserForm}>
                         <form onSubmit={inviteUserForm.handleSubmit(onInviteUserSubmit)} className="space-y-4">
-                          <FormField
-                            control={inviteUserForm.control}
-                            name="email"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Email Address</FormLabel>
-                                <FormControl>
-                                  <Input 
-                                    placeholder="email@example.com"
-                                    {...field}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium" htmlFor="invite-email">
+                              Email Address
+                            </label>
+                            <Input
+                              id="invite-email"
+                              placeholder="email@example.com"
+                              value={inviteUserForm.watch("email")}
+                              onChange={(e) => inviteUserForm.setValue("email", e.target.value)}
+                            />
+                            {inviteUserForm.formState.errors.email && (
+                              <p className="text-sm font-medium text-destructive">
+                                {inviteUserForm.formState.errors.email.message}
+                              </p>
                             )}
-                          />
+                          </div>
                           
-                          <FormField
-                            control={inviteUserForm.control}
-                            name="phoneNumber"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Phone Number (Optional)</FormLabel>
-                                <FormControl>
-                                  <Input 
-                                    placeholder="10 digits only (e.g., 5551234567)"
-                                    {...field}
-                                    value={field.value || ""}
-                                  />
-                                </FormControl>
-                                <FormDescription>
-                                  Must be exactly 10 digits (formatting will be handled)
-                                </FormDescription>
-                                <FormMessage />
-                              </FormItem>
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium" htmlFor="invite-phone">
+                              Phone Number (Optional)
+                            </label>
+                            <Input
+                              id="invite-phone"
+                              placeholder="10 digits only (e.g., 5551234567)"
+                              value={inviteUserForm.watch("phoneNumber") || ""}
+                              onChange={(e) => inviteUserForm.setValue("phoneNumber", e.target.value)}
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              Must be exactly 10 digits (formatting will be handled)
+                            </p>
+                            {inviteUserForm.formState.errors.phoneNumber && (
+                              <p className="text-sm font-medium text-destructive">
+                                {inviteUserForm.formState.errors.phoneNumber.message}
+                              </p>
                             )}
-                          />
+                          </div>
                           
-                          <FormField
-                            control={inviteUserForm.control}
-                            name="role"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Role</FormLabel>
-                                <div className="flex space-x-4">
-                                  <label className="flex items-center space-x-2 cursor-pointer">
-                                    <input
-                                      type="radio"
-                                      className="form-radio"
-                                      value="member"
-                                      checked={field.value === "member"}
-                                      onChange={() => field.onChange("member")}
-                                    />
-                                    <span>Member</span>
-                                  </label>
-                                  <label className="flex items-center space-x-2 cursor-pointer">
-                                    <input
-                                      type="radio"
-                                      className="form-radio"
-                                      value="admin"
-                                      checked={field.value === "admin"}
-                                      onChange={() => field.onChange("admin")}
-                                    />
-                                    <span>Admin</span>
-                                  </label>
-                                </div>
-                                <FormMessage />
-                              </FormItem>
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium" htmlFor="invite-role">
+                              Role
+                            </label>
+                            <div className="flex space-x-4">
+                              <label className="flex items-center space-x-2 cursor-pointer">
+                                <input
+                                  type="radio"
+                                  className="form-radio"
+                                  value="member"
+                                  checked={inviteUserForm.watch("role") === "member"}
+                                  onChange={() => inviteUserForm.setValue("role", "member")}
+                                />
+                                <span>Member</span>
+                              </label>
+                              <label className="flex items-center space-x-2 cursor-pointer">
+                                <input
+                                  type="radio"
+                                  className="form-radio"
+                                  value="admin"
+                                  checked={inviteUserForm.watch("role") === "admin"}
+                                  onChange={() => inviteUserForm.setValue("role", "admin")}
+                                />
+                                <span>Admin</span>
+                              </label>
+                            </div>
+                            {inviteUserForm.formState.errors.role && (
+                              <p className="text-sm font-medium text-destructive">
+                                {inviteUserForm.formState.errors.role.message}
+                              </p>
                             )}
-                          />
+                          </div>
                           
                           <DialogFooter>
                             <Button 
