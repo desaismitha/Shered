@@ -32,6 +32,23 @@ function TripQuickEdit({ trip, onSuccess }: { trip: Trip, onSuccess: () => void 
   const { toast } = useToast();
   const [name, setName] = useState(trip.name);
   const [destination, setDestination] = useState(trip.destination);
+  
+  // Parse dates from the trip object with timezone handling
+  const parseDate = (dateStr: string | Date | null | undefined) => {
+    if (!dateStr) return '';
+    try {
+      const date = new Date(dateStr);
+      // Format as YYYY-MM-DD for input type="date"
+      return format(date, 'yyyy-MM-dd');
+    } catch (e) {
+      console.error("Error parsing date:", e);
+      return '';
+    }
+  };
+  
+  const [startDate, setStartDate] = useState(parseDate(trip.startDate));
+  const [endDate, setEndDate] = useState(parseDate(trip.endDate));
+  const [status, setStatus] = useState(trip.status || 'planning');
   const [loading, setLoading] = useState(false);
   
   async function handleSubmit(e: React.FormEvent) {
@@ -39,10 +56,18 @@ function TripQuickEdit({ trip, onSuccess }: { trip: Trip, onSuccess: () => void 
     setLoading(true);
     
     try {
-      // Build a minimal payload with just what we're changing
+      // Format dates for API submission
+      // startDate and endDate will be in YYYY-MM-DD format from the date input
+      const startDateTime = startDate ? new Date(startDate) : null;
+      const endDateTime = endDate ? new Date(endDate) : null;
+      
+      // Build a complete payload with all fields
       const payload = {
         name,
-        destination
+        destination,
+        startDate: startDateTime,
+        endDate: endDateTime,
+        status
       };
       
       console.log("Sending trip update with payload:", payload);
@@ -86,7 +111,7 @@ function TripQuickEdit({ trip, onSuccess }: { trip: Trip, onSuccess: () => void 
   
   return (
     <div className="p-4 border rounded-md bg-white">
-      <h3 className="text-lg font-semibold mb-4">Quick Edit Trip</h3>
+      <h3 className="text-lg font-semibold mb-4">Edit Trip Details</h3>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="block text-sm font-medium mb-1">
@@ -112,7 +137,55 @@ function TripQuickEdit({ trip, onSuccess }: { trip: Trip, onSuccess: () => void 
             required
           />
         </div>
-        <div className="flex justify-end">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">
+              Start Date
+            </label>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="w-full p-2 border rounded-md"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">
+              End Date
+            </label>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="w-full p-2 border rounded-md"
+            />
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            Status
+          </label>
+          <select
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+            className="w-full p-2 border rounded-md"
+          >
+            <option value="planning">Planning</option>
+            <option value="confirmed">Confirmed</option>
+            <option value="upcoming">Upcoming</option>
+            <option value="completed">Completed</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+        </div>
+        <div className="flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={() => onSuccess()}
+            className="px-4 py-2 border rounded-md hover:bg-gray-50"
+            disabled={loading}
+          >
+            Cancel
+          </button>
           <button
             type="submit"
             disabled={loading}
