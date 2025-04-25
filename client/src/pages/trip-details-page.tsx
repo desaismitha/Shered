@@ -80,12 +80,19 @@ export default function TripDetailsPage() {
     console.log("Trip creator:", trip?.createdBy, users?.find(u => u.id === trip?.createdBy));
   }, [users, groupMembers, trip]);
 
+  // Debug
+  useEffect(() => {
+    console.log("Itinerary items:", itineraryItems);
+  }, [itineraryItems]);
+
   // Group itinerary items by day
   const itemsByDay = itineraryItems?.reduce((acc, item) => {
-    if (!acc[item.day]) {
-      acc[item.day] = [];
+    // Make sure day is a valid number
+    const day = item.day || 1; // Default to day 1 if day is null or undefined
+    if (!acc[day]) {
+      acc[day] = [];
     }
-    acc[item.day].push(item);
+    acc[day].push(item);
     return acc;
   }, {} as Record<number, ItineraryItem[]>) || {};
 

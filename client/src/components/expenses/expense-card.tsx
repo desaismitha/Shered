@@ -14,8 +14,9 @@ export function ExpenseCard({ expense, users }: ExpenseCardProps) {
   const paidByUser = users.find(user => user.id === expense.paidBy);
   
   // Calculate cost per person
-  const perPersonAmount = expense.splitAmong.length > 0 
-    ? expense.amount / expense.splitAmong.length 
+  const splitAmong = expense.splitAmong || [];
+  const perPersonAmount = splitAmong.length > 0 
+    ? expense.amount / splitAmong.length 
     : expense.amount;
 
   return (
@@ -28,7 +29,7 @@ export function ExpenseCard({ expense, users }: ExpenseCardProps) {
             </h3>
             <div className="flex items-center text-sm text-neutral-500 mt-1">
               <Calendar className="h-4 w-4 mr-1" />
-              {format(new Date(expense.date), 'MMM d, yyyy')}
+              {expense.date ? format(new Date(expense.date), 'MMM d, yyyy') : 'No date'}
               
               {expense.category && (
                 <>
@@ -55,8 +56,8 @@ export function ExpenseCard({ expense, users }: ExpenseCardProps) {
               </span>
             </p>
             <p className="text-sm text-neutral-600">
-              Split among {expense.splitAmong.length} people
-              {expense.splitAmong.length > 0 && (
+              Split among {splitAmong.length} people
+              {splitAmong.length > 0 && (
                 <span className="ml-1">
                   (${(perPersonAmount / 100).toFixed(2)} each)
                 </span>
@@ -65,7 +66,7 @@ export function ExpenseCard({ expense, users }: ExpenseCardProps) {
           </div>
           
           <div className="flex -space-x-2">
-            {expense.splitAmong.slice(0, 5).map((userId, index) => {
+            {splitAmong.slice(0, 5).map((userId, index) => {
               const user = users.find(u => u.id === userId);
               return (
                 <div 
@@ -78,9 +79,9 @@ export function ExpenseCard({ expense, users }: ExpenseCardProps) {
               );
             })}
             
-            {expense.splitAmong.length > 5 && (
+            {splitAmong.length > 5 && (
               <div className="w-8 h-8 rounded-full bg-neutral-200 border-2 border-white flex items-center justify-center text-xs text-neutral-600">
-                +{expense.splitAmong.length - 5}
+                +{splitAmong.length - 5}
               </div>
             )}
           </div>
