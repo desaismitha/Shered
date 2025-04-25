@@ -130,17 +130,45 @@ export default function EditTripPage() {
   
   // Handle form submission
   const onSubmit = (values: TripUpdateValues) => {
-    // Ensure createdBy is set
+    if (!user?.id || !trip?.createdBy) {
+      toast({
+        title: "Error",
+        description: "User ID or trip creator information is missing",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Make sure we use the original creator ID, not the current user ID
     const updateData = {
       ...values,
-      createdBy: user?.id,
+      createdBy: trip.createdBy, // IMPORTANT: Keep the original creator
     };
+    
+    console.log("EDIT TRIP - Form values:", values);
+    console.log("EDIT TRIP - Current user:", user);
+    console.log("EDIT TRIP - Trip data:", trip);
+    console.log("EDIT TRIP - Is creator check:", isCreator); 
+    console.log("EDIT TRIP - Types comparison:", {
+      tripCreatedBy: trip ? typeof trip.createdBy : "undefined",
+      userId: user ? typeof user.id : "undefined"
+    });
+    console.log("EDIT TRIP - Data to be sent:", updateData);
     
     updateMutation.mutate(updateData);
   };
   
   // Check if user is allowed to edit this trip
-  const isCreator = trip && user && trip.createdBy === user.id;
+  // Using string comparison for consistency with server-side check
+  const isCreator = trip && user && String(trip.createdBy) === String(user.id);
+  console.log("EDIT TRIP PAGE - Creator check:", { 
+    tripCreatedBy: trip?.createdBy, 
+    userId: user?.id,
+    typeTripCreatedBy: trip ? typeof trip.createdBy : "undefined",
+    typeUserId: user ? typeof user.id : "undefined",
+    equalRaw: trip && user ? trip.createdBy === user.id : false,
+    equalString: trip && user ? String(trip.createdBy) === String(user.id) : false
+  });
   
   useEffect(() => {
     // Redirect if not the creator

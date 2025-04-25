@@ -453,34 +453,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put("/api/trips/:id", async (req, res, next) => {
     try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
+      console.log(`\n==== PUT /api/trips/:id - EDIT REQUEST STARTED ====`);
+      console.log(`Request body:`, JSON.stringify(req.body));
       
-      const tripId = parseInt(req.params.id);
-      
-      // Use our reusable trip access check function with built-in retry logic
-      const hasAccess = await checkTripAccess(req, tripId, res, next);
-      if (!hasAccess) {
-        return; // Response already sent by checkTripAccess
+      if (!req.isAuthenticated()) {
+        console.log("PUT /api/trips/:id - 401 Unauthorized - Not authenticated");
+        return res.sendStatus(401);
       }
       
-      // Additional check to verify creator permission (only trip creator can edit)
-      const existingTrip = await storage.getTrip(tripId);
-      if (!existingTrip) {
+      const tripId = parseInt(req.params.id);
+      console.log(`Editing trip ID: ${tripId}`);
+      console.log(`User making request: ${req.user?.id} (${typeof req.user?.id}), Username: ${req.user?.username}`);
+      
+      // Get the trip
+      const tripToEdit = await storage.getTrip(tripId);
+      
+      if (!tripToEdit) {
+        console.log(`Trip ${tripId} not found in database`);
         return res.status(404).json({ message: "Trip not found" });
       }
       
-      // Only the creator can edit the trip
-      // Convert both IDs to strings to ensure consistent comparison
-      const creatorId = String(existingTrip.createdBy);
-      const userId = String(req.user?.id);
+      console.log(`Trip data:`, JSON.stringify(tripToEdit));
+      console.log(`Trip creator: ${tripToEdit.createdBy} (${typeof tripToEdit.createdBy})`);
+      console.log(`Current user: ${req.user?.id} (${typeof req.user?.id})`);
       
-      console.log(`Edit permission check: Trip creator ${creatorId}, User ${userId}`);
-      console.log(`Are they equal as strings? ${creatorId === userId}`);
-      
-      if (creatorId !== userId) {
-        console.log(`Edit permission denied: Trip creator ${existingTrip.createdBy} (${typeof existingTrip.createdBy}), User ${req.user?.id} (${typeof req.user?.id})`);
-        return res.status(403).json({ message: "You are not authorized to edit this trip" });
+      // Only allow the creator to edit trips (strict check)
+      if (String(tripToEdit.createdBy) !== String(req.user?.id)) {
+        console.log(`EDIT DENIED: User ${req.user?.id} is not the creator (${tripToEdit.createdBy}) of this trip`);
+        return res.status(403).json({ message: "You are not authorized to edit this trip. Only the creator can edit trips." });
       }
+      
+      console.log("Authorization check passed - User is the creator of this trip");
       
       // Create a modified schema that accepts date strings
       const modifiedTripSchema = insertTripSchema
