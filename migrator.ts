@@ -22,7 +22,13 @@ async function main() {
         display_name TEXT,
         email TEXT NOT NULL,
         password TEXT NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        reset_token TEXT,
+        reset_token_expiry TIMESTAMP,
+        license_number TEXT,
+        license_state TEXT,
+        license_expiry TIMESTAMP,
+        is_eligible_driver BOOLEAN DEFAULT FALSE
       );
       
       CREATE TABLE IF NOT EXISTS groups (
@@ -87,6 +93,30 @@ async function main() {
         content TEXT NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+      
+      CREATE TABLE IF NOT EXISTS vehicles (
+        id SERIAL PRIMARY KEY,
+        make TEXT NOT NULL,
+        model TEXT NOT NULL,
+        year INTEGER,
+        capacity INTEGER,
+        color TEXT,
+        license_plate TEXT,
+        notes TEXT,
+        user_id INTEGER NOT NULL REFERENCES users(id),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+      
+      CREATE TABLE IF NOT EXISTS trip_vehicles (
+        id SERIAL PRIMARY KEY,
+        trip_id INTEGER NOT NULL REFERENCES trips(id),
+        vehicle_id INTEGER NOT NULL REFERENCES vehicles(id),
+        is_main BOOLEAN DEFAULT TRUE,
+        assigned_to INTEGER REFERENCES users(id),
+        notes TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(trip_id, vehicle_id)
+      );
     `);
     
     // Log created tables
@@ -97,6 +127,21 @@ async function main() {
     `);
     
     console.log('Tables after migration:', afterRes.rows.map((r: any) => r.table_name));
+    
+    // Add missing columns to the users table
+    try {
+      console.log('Adding driver license columns to users table...');
+      await db.execute(`
+        ALTER TABLE users 
+        ADD COLUMN IF NOT EXISTS license_number TEXT,
+        ADD COLUMN IF NOT EXISTS license_state TEXT,
+        ADD COLUMN IF NOT EXISTS license_expiry TIMESTAMP,
+        ADD COLUMN IF NOT EXISTS is_eligible_driver BOOLEAN DEFAULT FALSE;
+      `);
+      console.log('Added driver license columns successfully');
+    } catch (error) {
+      console.error('Error adding driver license columns:', error);
+    }
     
     console.log('Schema pushed successfully!');
   } catch (error) {
