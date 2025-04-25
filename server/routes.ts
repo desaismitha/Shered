@@ -1025,6 +1025,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+
+
   // User lookup endpoints
   app.get("/api/users/by-username/:username", async (req, res, next) => {
     try {
@@ -1097,7 +1099,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Send password reset email
       const emailSent = await sendPasswordResetEmail(
         user.email,
-        user.username,
+        user.displayName || user.username,  // Use displayName if available, fallback to username
         resetLink
       );
       
