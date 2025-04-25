@@ -87,9 +87,9 @@ export default function BasicTripEditPage() {
       // This is because our database schema requires NOT NULL for dates
       const DEFAULT_DATE = '2099-12-31T12:00:00.000Z';
       
-      // Use actual date if present, otherwise use empty string to signal special date
-      const formattedStartDate = startDate ? `${startDate}T12:00:00.000Z` : '';
-      const formattedEndDate = endDate ? `${endDate}T12:00:00.000Z` : '';
+      // Use actual date if present, otherwise use our special marker date
+      const formattedStartDate = startDate ? `${startDate}T12:00:00.000Z` : DEFAULT_DATE;
+      const formattedEndDate = endDate ? `${endDate}T12:00:00.000Z` : DEFAULT_DATE;
       
       console.log("Using formatted dates:", {
         originalStartDate: startDate,
