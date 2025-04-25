@@ -260,6 +260,7 @@ export default function TripDetailsPage() {
   const { toast } = useToast();
   const [isAddingItinerary, setIsAddingItinerary] = useState(false);
   const [isAddingExpense, setIsAddingExpense] = useState(false);
+  const [editingItineraryItem, setEditingItineraryItem] = useState<ItineraryItem | null>(null);
   
   // Check URL for edit=true parameter - using window.location to get the full URL
   // This ensures we capture query parameters correctly even with Wouter routing

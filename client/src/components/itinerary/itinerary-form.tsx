@@ -69,6 +69,20 @@ interface ItineraryFormProps {
   tripId: number;
   onSuccess: () => void;
   onCancel: () => void;
+  initialData?: {
+    id?: number;
+    day?: number;
+    title?: string;
+    description?: string | null;
+    location?: string | null;
+    startTime?: string | null;
+    endTime?: string | null;
+    isRecurring?: boolean;
+    recurrencePattern?: string | null;
+    recurrenceDays?: string[] | null;
+    fromLocation?: string | null;
+    toLocation?: string | null;
+  };
 }
 
 export function ItineraryForm({ tripId, onSuccess, onCancel }: ItineraryFormProps) {

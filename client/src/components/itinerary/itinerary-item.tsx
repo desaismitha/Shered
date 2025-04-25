@@ -1,13 +1,49 @@
 import { ItineraryItem as ItineraryItemType, User } from "@shared/schema";
-import { MapPin, Clock, User as UserIcon, RepeatIcon, Car, ArrowRightIcon, CalendarIcon } from "lucide-react";
+import { MapPin, Clock, User as UserIcon, RepeatIcon, Car, ArrowRightIcon, CalendarIcon, Edit, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { useQueryClient, useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface ItineraryItemProps {
   item: ItineraryItemType;
   users: User[];
+  tripAccessLevel?: 'owner' | 'member' | null;
+  onEdit?: (item: ItineraryItemType) => void;
 }
 
-export function ItineraryItem({ item, users }: ItineraryItemProps) {
+export function ItineraryItem({ item, users, tripAccessLevel, onEdit }: ItineraryItemProps) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
+  // Delete mutation
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest('DELETE', `/api/itinerary/${item.id}`);
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ message: 'Failed to delete item' }));
+        throw new Error(errorData.message || 'Failed to delete item');
+      }
+      return true;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Itinerary item deleted",
+        description: "The item has been removed from your trip.",
+      });
+      // Invalidate the itinerary items query
+      queryClient.invalidateQueries({ queryKey: [`/api/trips/${item.tripId}/itinerary`] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error deleting itinerary item",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
   // Find the user who created this item
   const createdByUser = users.find(user => user.id === item.createdBy);
   
@@ -147,11 +183,53 @@ export function ItineraryItem({ item, users }: ItineraryItemProps) {
         </div>
       )}
       
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 mt-2">
         <div className="text-xs text-neutral-500 flex items-center">
           <UserIcon className="h-3 w-3 mr-1" />
           Added by {createdByUser?.displayName || createdByUser?.username || "Unknown"}
         </div>
+        
+        {/* Action buttons - only visible for trip owners */}
+        {tripAccessLevel === 'owner' && (
+          <div className="flex space-x-2">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-7 w-7" 
+                    onClick={() => onEdit && onEdit(item)}
+                  >
+                    <Edit className="h-3.5 w-3.5 text-neutral-500" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Edit item</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-7 w-7 text-red-500 hover:text-red-600 hover:bg-red-50" 
+                    onClick={() => deleteMutation.mutate()}
+                    disabled={deleteMutation.isPending}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Delete item</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+        )}
       </div>
     </div>
   );
