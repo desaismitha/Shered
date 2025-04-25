@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, json } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, json, doublePrecision } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -63,7 +63,14 @@ export const trips = pgTable("trips", {
   endDate: timestamp("end_date").notNull(),
   description: text("description"),
   imageUrl: text("image_url"),
+  // Status can be: planning, confirmed, in-progress, completed, cancelled
   status: text("status").default("planning"),
+  // Location tracking for in-progress trips
+  currentLatitude: doublePrecision("current_latitude"),
+  currentLongitude: doublePrecision("current_longitude"),
+  lastLocationUpdate: timestamp("last_location_update"),
+  // Distance traveled in kilometers
+  distanceTraveled: doublePrecision("distance_traveled").default(0),
   groupId: integer("group_id").references(() => groups.id, { onDelete: 'set null' }),
   createdBy: integer("created_by").notNull().references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
