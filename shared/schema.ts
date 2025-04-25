@@ -92,7 +92,7 @@ export const expenses = pgTable("expenses", {
   title: text("title").notNull(),
   amount: integer("amount").notNull(), // Amount in cents
   paidBy: integer("paid_by").notNull().references(() => users.id),
-  splitAmong: json("split_among").notNull().$type<number[]>(), // Array of user IDs
+  splitAmong: text("split_among").notNull(), // JSON string containing array of user IDs
   date: timestamp("date").defaultNow(),
   category: text("category"),
   createdAt: timestamp("created_at").defaultNow(),

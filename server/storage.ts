@@ -405,22 +405,31 @@ export class DatabaseStorage implements IStorage {
       try {
         console.log("[STORAGE] Creating expense with data:", JSON.stringify(insertExpense));
         
-        // Handle the splitAmong array
-        // For JSON field, we just need to pass the JavaScript array directly
-        // Drizzle ORM will handle the serialization properly
-        const splitAmongArray = Array.isArray(insertExpense.splitAmong) 
-          ? insertExpense.splitAmong 
-          : [];
-          
-        console.log("[STORAGE] Using splitAmong as regular JavaScript array:", splitAmongArray);
+        // For splitAmong, we need to convert the array to a JSON string
+        // since we changed the column to TEXT in the schema
+        let splitAmongString: string;
         
-        // Insert the data, letting Drizzle handle the proper JSON serialization
+        try {
+          // Ensure we have a valid array to serialize
+          const splitAmongArray = Array.isArray(insertExpense.splitAmong) 
+            ? insertExpense.splitAmong 
+            : [];
+            
+          // Convert to JSON string
+          splitAmongString = JSON.stringify(splitAmongArray);
+          console.log("[STORAGE] Serialized splitAmong as JSON string:", splitAmongString);
+        } catch (err) {
+          console.error("[STORAGE] Error serializing splitAmong:", err);
+          splitAmongString = "[]"; // Default to empty array if serialization fails
+        }
+        
+        // Insert the data with splitAmong as text JSON string
         const [expense] = await db.insert(expenses).values({
           tripId: insertExpense.tripId,
           title: insertExpense.title,
           amount: insertExpense.amount,
           paidBy: insertExpense.paidBy,
-          splitAmong: splitAmongArray, // Pass the array directly for JSON column
+          splitAmong: splitAmongString, // Store as JSON string in TEXT column
           date: insertExpense.date || new Date(),
           category: insertExpense.category || null,
         }).returning();
