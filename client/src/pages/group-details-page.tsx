@@ -56,17 +56,20 @@ export default function GroupDetailsPage() {
     ] : undefined,
   });
 
-  // Get trips for this group
-  const { data: trips, isLoading: isLoadingTrips } = useQuery<Trip[]>({
-    queryKey: ["/api/groups", groupId, "trips"],
+  // Get all trips and filter for this group
+  const { data: allTrips, isLoading: isLoadingTrips } = useQuery<Trip[]>({
+    queryKey: ["/api/trips"],
     enabled: !!groupId,
     onSuccess: (data) => {
-      console.log("Group trips data:", data);
+      console.log("All trips data:", data);
     },
     onError: (error) => {
-      console.error("Error fetching group trips:", error);
+      console.error("Error fetching trips:", error);
     }
   });
+  
+  // Filter trips that belong to this group
+  const trips = allTrips?.filter(trip => trip.groupId === groupId);
 
   // Get all users for member details
   const { data: users, isLoading: isLoadingUsers } = useQuery<User[]>({
@@ -353,9 +356,15 @@ export default function GroupDetailsPage() {
                       </div>
                     ) : trips && trips.length > 0 ? (
                       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                        {trips.map((trip) => (
-                          <TripCard key={trip.id} trip={trip} />
-                        ))}
+                        {trips.map((trip) => {
+                          console.log("Rendering trip:", trip);
+                          if (!trip.destination) {
+                            // This isn't a valid trip object, it's likely a group object
+                            console.warn("Invalid trip data:", trip);
+                            return null;
+                          }
+                          return <TripCard key={trip.id} trip={trip} />;
+                        })}
                       </div>
                     ) : (
                       <div className="text-center py-8">
