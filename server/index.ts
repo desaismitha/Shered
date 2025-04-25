@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { checkDbConnection, attemptReconnect } from "./db";
 
 const app = express();
 app.use(express.json());
@@ -39,12 +40,52 @@ app.use((req, res, next) => {
 (async () => {
   const server = await registerRoutes(app);
 
+  // Database health check endpoint
+  app.get("/api/health/db", async (_req, res) => {
+    try {
+      const connected = await checkDbConnection();
+      if (connected) {
+        return res.status(200).json({ status: "healthy", database: "connected" });
+      } else {
+        return res.status(503).json({ status: "degraded", database: "disconnected" });
+      }
+    } catch (error) {
+      const err = error as Error;
+      return res.status(500).json({ 
+        status: "error", 
+        database: "error", 
+        message: err.message || "Unknown error" 
+      });
+    }
+  });
+
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
+    
+    // Check if this is a database connection error
+    const isDbConnectionError = 
+      err.code === 'ECONNREFUSED' || 
+      err.code === 'ETIMEDOUT' || 
+      (typeof err.message === 'string' && 
+        (err.message.includes('terminating connection') || 
+         err.message.includes('connection terminated')));
+    
+    if (isDbConnectionError) {
+      console.error('Database connection error detected:', err);
+      // Trigger reconnection attempt in the background
+      attemptReconnect(3, 1000).catch(console.error);
+      
+      return res.status(503).json({
+        message: "Database connection temporarily unavailable. Please try again shortly.",
+        error: "database_connection_error"
+      });
+    }
 
+    console.error('Server error:', err);
     res.status(status).json({ message });
-    throw err;
+    // Don't throw the error - this causes the app to crash
+    // throw err;
   });
 
   // importantly only setup vite in development and after
