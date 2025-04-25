@@ -379,10 +379,16 @@ export default function TripDetailsPage() {
   const [isLocationUpdating, setIsLocationUpdating] = useState(false);
   const [locationUpdateError, setLocationUpdateError] = useState<string | null>(null);
   
+  // States for itinerary selection in tracking
+  const [showItinerarySelector, setShowItinerarySelector] = useState(false);
+  const [selectedItineraryIds, setSelectedItineraryIds] = useState<number[]>([]);
+
   // Trip tracking mutations
   const startTripMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("POST", `/api/trips/${tripId}/start`);
+      const res = await apiRequest("POST", `/api/trips/${tripId}/start`, {
+        itineraryIds: selectedItineraryIds.length > 0 ? selectedItineraryIds : undefined
+      });
       return await res.json();
     },
     onSuccess: () => {
@@ -390,6 +396,9 @@ export default function TripDetailsPage() {
         title: "Trip started",
         description: "Trip tracking has been started successfully!"
       });
+      // Reset state
+      setShowItinerarySelector(false);
+      setSelectedItineraryIds([]);
       queryClient.invalidateQueries({ queryKey: ["/api/trips", tripId] });
     },
     onError: (error) => {
