@@ -71,6 +71,8 @@ export default function GroupDetailsPage() {
   // Debug output
   console.log("Group details - Users data:", users);
   console.log("Group details - Group members:", groupMembers);
+  console.log("Group creator ID:", group?.createdBy);
+  console.log("Creator user object:", users?.find(u => u.id === group?.createdBy));
 
   // Check if current user is admin
   const isAdmin = groupMembers?.some(
