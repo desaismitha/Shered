@@ -523,8 +523,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Authorization check passed - User is the creator of this trip");
       
       try {
-        // Create a simplified schema that accepts date strings and null values directly
-        // This avoids complex transformations that might cause issues
+        // Create a modified copy of the input data with properly handled dates
+        const processedData = { ...req.body };
+        
+        // Convert date strings to Date objects (needed by Drizzle's timestamp column)
+        if (req.body.startDate !== undefined) {
+          try {
+            // Check for special date
+            if (typeof req.body.startDate === 'string' && req.body.startDate.includes('2099')) {
+              console.log("Converting startDate to special date marker");
+              processedData.startDate = new Date('2099-12-31T23:59:59Z');
+            } 
+            // Check for null or empty string
+            else if (req.body.startDate === null || req.body.startDate === '') {
+              console.log("Converting empty startDate to special date marker");
+              processedData.startDate = new Date('2099-12-31T23:59:59Z');
+            }
+            // Otherwise, try to parse as Date
+            else if (typeof req.body.startDate === 'string') {
+              console.log("Converting startDate string to Date object");
+              processedData.startDate = new Date(req.body.startDate);
+            }
+          } catch (err) {
+            console.error("Error converting startDate:", err);
+            // Fallback to special date
+            processedData.startDate = new Date('2099-12-31T23:59:59Z');
+          }
+        }
+        
+        if (req.body.endDate !== undefined) {
+          try {
+            // Check for special date
+            if (typeof req.body.endDate === 'string' && req.body.endDate.includes('2099')) {
+              console.log("Converting endDate to special date marker");
+              processedData.endDate = new Date('2099-12-31T23:59:59Z');
+            } 
+            // Check for null or empty string
+            else if (req.body.endDate === null || req.body.endDate === '') {
+              console.log("Converting empty endDate to special date marker");
+              processedData.endDate = new Date('2099-12-31T23:59:59Z');
+            }
+            // Otherwise, try to parse as Date
+            else if (typeof req.body.endDate === 'string') {
+              console.log("Converting endDate string to Date object");
+              processedData.endDate = new Date(req.body.endDate);
+            }
+          } catch (err) {
+            console.error("Error converting endDate:", err);
+            // Fallback to special date
+            processedData.endDate = new Date('2099-12-31T23:59:59Z');
+          }
+        }
+        
+        console.log("Processed data with converted dates:", processedData);
+        
+        // For debugging
+        if (processedData.startDate) {
+          console.log("StartDate type:", typeof processedData.startDate);
+          console.log("StartDate is Date?", processedData.startDate instanceof Date);
+          console.log("StartDate value:", processedData.startDate);
+        }
+        
+        if (processedData.endDate) {
+          console.log("EndDate type:", typeof processedData.endDate);
+          console.log("EndDate is Date?", processedData.endDate instanceof Date);
+          console.log("EndDate value:", processedData.endDate);
+        }
+        
+        // Create a simplified schema without transforms
         const modifiedTripSchema = z.object({
           id: z.number().optional(),
           name: z.string().optional(),
@@ -532,15 +598,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           description: z.string().nullable().optional(),
           imageUrl: z.string().nullable().optional(),
           status: z.string().optional(),
-          startDate: z.union([z.string(), z.date(), z.null()]).optional(),
-          endDate: z.union([z.string(), z.date(), z.null()]).optional(),
+          startDate: z.instanceof(Date).optional(),
+          endDate: z.instanceof(Date).optional(),
           groupId: z.number().optional(),
           createdBy: z.number().optional(),
           createdAt: z.date().optional()
         });
         
-        // Validate the request data
-        const parsedData = modifiedTripSchema.safeParse(req.body);
+        // Validate the processed data
+        const parsedData = modifiedTripSchema.safeParse(processedData);
         
         if (!parsedData.success) {
           console.error("Validation error:", parsedData.error);
