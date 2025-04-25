@@ -79,17 +79,16 @@ export default function BasicTripEditPage() {
     setSaving(true);
     
     try {
-      // SIMPLIFIED APPROACH: Update everything in one request using the standard API
-      console.log("Updating trip with all fields in a single request");
+      // Using our new specialized endpoint that handles date conversions properly
+      console.log("Updating trip with our specialized simple-update endpoint");
       
       // Format dates - use far future default date when clearing (2099-12-31)
       // This is because our database schema requires NOT NULL for dates
       const DEFAULT_DATE = '2099-12-31T12:00:00.000Z';
       
-      // Use actual date if present, otherwise use default future date (never null)
-      // Only send a real date if the user has provided one, otherwise use our special marker
-      const formattedStartDate = startDate ? `${startDate}T12:00:00.000Z` : DEFAULT_DATE;
-      const formattedEndDate = endDate ? `${endDate}T12:00:00.000Z` : DEFAULT_DATE;
+      // Use actual date if present, otherwise use empty string to signal special date
+      const formattedStartDate = startDate ? `${startDate}T12:00:00.000Z` : '';
+      const formattedEndDate = endDate ? `${endDate}T12:00:00.000Z` : '';
       
       console.log("Using formatted dates:", {
         originalStartDate: startDate,
@@ -109,9 +108,9 @@ export default function BasicTripEditPage() {
       
       console.log("Full payload:", JSON.stringify(fullPayload));
       
-      // Make a single request to update everything
-      const response = await fetch(`/api/trips/${tripId}`, {
-        method: 'PUT',
+      // Make a request to our specialized update endpoint
+      const response = await fetch(`/api/trips/${tripId}/simple-update`, {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },

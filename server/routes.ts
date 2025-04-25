@@ -647,8 +647,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Direct SQL endpoint for updating dates
-  app.post("/api/trips/:id/date-update", async (req, res) => {
-    console.log("NEW DATE UPDATE ENDPOINT CALLED");
+  app.post("/api/trips/:id/simple-update", async (req, res) => {
+    console.log("\n==== POST /api/trips/:id/simple-update - SIMPLIFIED UPDATE ENDPOINT ====");
     
     try {
       // Authentication check
@@ -659,7 +659,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const tripId = parseInt(req.params.id);
       const userId = req.user!.id; 
       
-      console.log(`Direct date update for trip ${tripId}, user ${userId}`);
+      console.log(`Simple trip update for trip ${tripId}, user ${userId}`);
       
       // First verify this user is the trip creator
       const trip = await storage.getTrip(tripId);
@@ -677,23 +677,83 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (trip.createdBy !== userId) {
         console.log("User is not trip creator");
-        return res.status(403).json({ error: "You must be the trip creator to modify dates" });
+        return res.status(403).json({ error: "You must be the trip creator to modify this trip" });
       }
       
-      // Extra debug for date values
-      console.log("Raw request body:", req.body);
-      const { startDate, endDate } = req.body;
+      // Deep debug for request data
+      console.log("Raw request body:", JSON.stringify(req.body));
       
-      console.log("Client sent:", { startDate, endDate });
+      // Create a processed version of the data with proper date conversions
+      const updateData: Record<string, any> = {
+        name: req.body.name,
+        destination: req.body.destination,
+        status: req.body.status
+      };
       
-      // Update the trip dates
-      const updateData: Record<string, any> = {};
-      if (startDate !== undefined) updateData.startDate = startDate;
-      if (endDate !== undefined) updateData.endDate = endDate;
+      // Special date handling - manually convert to Date objects
+      if (req.body.startDate !== undefined) {
+        try {
+          // Use special date for empty/null values or when our special marker is present
+          if (!req.body.startDate || 
+              (typeof req.body.startDate === 'string' && req.body.startDate.includes('2099'))) {
+            updateData.startDate = new Date('2099-12-31T23:59:59Z');
+            console.log("Using special marker date for startDate");
+          } else {
+            // Force proper Date object conversion
+            updateData.startDate = new Date(req.body.startDate);
+            console.log("Converted startDate to:", updateData.startDate);
+          }
+        } catch (err) {
+          console.error("Error converting startDate, using marker date:", err);
+          updateData.startDate = new Date('2099-12-31T23:59:59Z');
+        }
+      }
       
-      console.log("Attempting update with:", updateData);
+      if (req.body.endDate !== undefined) {
+        try {
+          // Use special date for empty/null values or when our special marker is present
+          if (!req.body.endDate || 
+              (typeof req.body.endDate === 'string' && req.body.endDate.includes('2099'))) {
+            updateData.endDate = new Date('2099-12-31T23:59:59Z');
+            console.log("Using special marker date for endDate");
+          } else {
+            // Force proper Date object conversion
+            updateData.endDate = new Date(req.body.endDate);
+            console.log("Converted endDate to:", updateData.endDate);
+          }
+        } catch (err) {
+          console.error("Error converting endDate, using marker date:", err);
+          updateData.endDate = new Date('2099-12-31T23:59:59Z');
+        }
+      }
       
-      // Get a fresh trip copy
+      console.log("Processed data for update:", updateData);
+      console.log("startDate type:", typeof updateData.startDate);
+      console.log("endDate type:", typeof updateData.endDate);
+      
+      if (updateData.startDate) {
+        console.log("Is startDate a Date?", updateData.startDate instanceof Date);
+        console.log("startDate value:", updateData.startDate);
+        // Verify it has toISOString
+        try {
+          console.log("Can call toISOString?", updateData.startDate.toISOString());
+        } catch (e) {
+          console.error("Cannot call toISOString on startDate!");
+        }
+      }
+      
+      if (updateData.endDate) {
+        console.log("Is endDate a Date?", updateData.endDate instanceof Date);
+        console.log("endDate value:", updateData.endDate); 
+        // Verify it has toISOString
+        try {
+          console.log("Can call toISOString?", updateData.endDate.toISOString());
+        } catch (e) {
+          console.error("Cannot call toISOString on endDate!");
+        }
+      }
+      
+      // Update the trip with the processed data
       const result = await storage.updateTrip(tripId, updateData);
       
       console.log("Update response from DB:", result);
@@ -704,14 +764,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Success - return the updated trip
       return res.status(200).json({
-        message: "Dates updated successfully",
+        message: "Trip updated successfully",
         trip: {
           ...result,
           _accessLevel: 'owner'
         }
       });
     } catch (err) {
-      console.error("ERROR in date-update endpoint:", err);
+      console.error("ERROR in simple-update endpoint:", err);
       return res.status(500).json({ 
         error: "Server error", 
         message: err instanceof Error ? err.message : String(err) 
