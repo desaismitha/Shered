@@ -56,10 +56,16 @@ export default function TripDetailsPage() {
   });
 
   // Get all users for names and avatars
-  const { data: users } = useQuery<User[]>({
+  const { data: users, isLoading: isLoadingUsers } = useQuery<User[]>({
     queryKey: ["/api/users"],
     enabled: !!groupMembers,
   });
+  
+  // Debug output
+  useEffect(() => {
+    console.log("Users data:", users);
+    console.log("Group members:", groupMembers);
+  }, [users, groupMembers]);
 
   // Group itinerary items by day
   const itemsByDay = itineraryItems?.reduce((acc, item) => {
