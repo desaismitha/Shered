@@ -209,33 +209,55 @@ export class DatabaseStorage implements IStorage {
         if (tripData.status !== undefined) updateData.status = tripData.status;
         if (tripData.groupId !== undefined) updateData.groupId = tripData.groupId;
         
-        // Very simple date handling - pass the values directly to the database
-        // This avoids any transformation issues
+        // Convert date strings to Date objects
+        // Drizzle requires actual Date objects for timestamp fields
         if (tripData.startDate !== undefined) {
           console.log("[STORAGE] Raw startDate:", tripData.startDate, typeof tripData.startDate);
           
-          // If it's a string or Date, use it directly
           // If it's null or empty string, set to null
           if (tripData.startDate === null || tripData.startDate === '') {
             updateData.startDate = null;
             console.log("[STORAGE] Setting startDate to NULL");
           } else {
-            updateData.startDate = tripData.startDate;
-            console.log("[STORAGE] Using startDate as-is:", updateData.startDate);
+            // Convert string to Date object
+            try {
+              // If it's already a Date object, this is fine
+              // If it's a string, convert it to a Date
+              updateData.startDate = tripData.startDate instanceof Date 
+                ? tripData.startDate 
+                : new Date(tripData.startDate);
+                
+              console.log("[STORAGE] Converted startDate to Date:", updateData.startDate);
+            } catch (err) {
+              console.error("[STORAGE] Error converting startDate to Date:", err);
+              // Use null as fallback
+              updateData.startDate = null;
+            }
           }
         }
         
         if (tripData.endDate !== undefined) {
           console.log("[STORAGE] Raw endDate:", tripData.endDate, typeof tripData.endDate);
           
-          // If it's a string or Date, use it directly
           // If it's null or empty string, set to null
           if (tripData.endDate === null || tripData.endDate === '') {
             updateData.endDate = null;
             console.log("[STORAGE] Setting endDate to NULL");
           } else {
-            updateData.endDate = tripData.endDate;
-            console.log("[STORAGE] Using endDate as-is:", updateData.endDate);
+            // Convert string to Date object
+            try {
+              // If it's already a Date object, this is fine
+              // If it's a string, convert it to a Date
+              updateData.endDate = tripData.endDate instanceof Date 
+                ? tripData.endDate 
+                : new Date(tripData.endDate);
+                
+              console.log("[STORAGE] Converted endDate to Date:", updateData.endDate);
+            } catch (err) {
+              console.error("[STORAGE] Error converting endDate to Date:", err);
+              // Use null as fallback
+              updateData.endDate = null;
+            }
           }
         }
         
