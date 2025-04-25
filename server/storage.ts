@@ -405,22 +405,24 @@ export class DatabaseStorage implements IStorage {
       try {
         console.log("[STORAGE] Creating expense with data:", JSON.stringify(insertExpense));
         
-        // Handle the splitAmong array - PostgreSQL requires special handling for JSON arrays
-        // We need to ensure it's properly serialized using JSON.stringify
+        // Handle the splitAmong array - PostgreSQL requires a specific format for arrays
+        // The format should be '{1,2,3}' for an array of numbers
         let splitAmongValue;
         try {
           if (Array.isArray(insertExpense.splitAmong)) {
-            // Properly serialize the array for PostgreSQL json column
-            splitAmongValue = JSON.stringify(insertExpense.splitAmong);
-            console.log("[STORAGE] Prepared splitAmong array:", splitAmongValue);
+            // Format as PostgreSQL array literal: {1,2,3}
+            // This is the specific format PostgreSQL expects
+            const pgArrayFormat = '{' + insertExpense.splitAmong.join(',') + '}';
+            splitAmongValue = pgArrayFormat;
+            console.log("[STORAGE] Prepared splitAmong PostgreSQL array:", splitAmongValue);
           } else {
             // Default to empty array if not provided or invalid
-            splitAmongValue = '[]';
-            console.log("[STORAGE] Using default empty array for splitAmong");
+            splitAmongValue = '{}';
+            console.log("[STORAGE] Using default empty PostgreSQL array for splitAmong");
           }
         } catch (err) {
           console.error("[STORAGE] Error processing splitAmong array:", err);
-          splitAmongValue = '[]';
+          splitAmongValue = '{}';
         }
         
         // Insert with properly typed data
@@ -462,13 +464,28 @@ export class DatabaseStorage implements IStorage {
         // Ensure splitAmong is properly parsed as an array
         if (typeof expense.splitAmong === 'string') {
           try {
-            const parsedArray = JSON.parse(expense.splitAmong as string);
+            // For PostgreSQL arrays in format {1,2,3}, convert to JavaScript array
+            const pgArray = expense.splitAmong as string;
+            // Remove the braces and split by comma
+            const arrayContent = pgArray.replace(/^\{|\}$/g, '');
+            
+            // If it's an empty array or empty string
+            if (!arrayContent.trim()) {
+              return {
+                ...expense,
+                splitAmong: []
+              };
+            }
+            
+            // Convert to array of numbers
+            const numArray = arrayContent.split(',').map(num => parseInt(num.trim(), 10));
+            
             return {
               ...expense,
-              splitAmong: Array.isArray(parsedArray) ? parsedArray : []
+              splitAmong: numArray
             };
           } catch (err) {
-            console.error('[STORAGE] Error parsing splitAmong JSON:', err);
+            console.error('[STORAGE] Error parsing splitAmong PostgreSQL array:', err);
             return {
               ...expense,
               splitAmong: []
