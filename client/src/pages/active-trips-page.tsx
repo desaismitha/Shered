@@ -92,9 +92,11 @@ export default function ActiveTripsPage() {
                       <MapPinIcon className="h-12 w-12 text-primary-200" />
                     </div>
                   )}
-                  <Badge className="absolute top-3 right-3 bg-primary-500">
-                    In Progress
-                  </Badge>
+                  <div className="absolute top-3 right-3">
+                    <Badge className="bg-primary-500">
+                      In Progress
+                    </Badge>
+                  </div>
                 </div>
                 <CardHeader>
                   <CardTitle>{trip.name}</CardTitle>
@@ -125,7 +127,7 @@ export default function ActiveTripsPage() {
                 <CardFooter>
                   <Button
                     variant="outline"
-                    onClick={() => navigate(`/trips/${trip.id}`)}
+                    onClick={() => navigate(`/trips/${trip.id}?tab=tracking`)}
                     className="w-full inline-flex items-center justify-center"
                   >
                     <NavigationIcon className="h-4 w-4 mr-2" />
