@@ -360,6 +360,15 @@ export class DatabaseStorage implements IStorage {
         delete updateData.createdBy;
         delete updateData.createdAt;
         
+        console.log("[STORAGE] Update data before final log:", {
+          name: updateData.name,
+          startLocation: updateData.startLocation,
+          destination: updateData.destination,
+          status: updateData.status,
+          startDate: updateData.startDate,
+          endDate: updateData.endDate
+        });
+        
         console.log("[STORAGE] Final update data:", JSON.stringify(updateData));
         
         // Execute the update

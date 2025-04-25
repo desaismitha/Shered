@@ -659,6 +659,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Create a modified copy of the input data with properly handled dates
         const processedData = { ...req.body };
         
+        console.log("Raw request body with startLocation:", {
+          name: req.body.name,
+          startLocation: req.body.startLocation,
+          destination: req.body.destination
+        });
+        
         // Convert date strings to Date objects (needed by Drizzle's timestamp column)
         if (req.body.startDate !== undefined) {
           try {
