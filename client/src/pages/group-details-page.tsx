@@ -445,7 +445,11 @@ export default function GroupDetailsPage() {
                               <FormItem>
                                 <FormLabel>Email Address</FormLabel>
                                 <FormControl>
-                                  <Input type="email" placeholder="email@example.com" {...field} />
+                                  <Input 
+                                    type="text" 
+                                    placeholder="email@example.com" 
+                                    {...field} 
+                                  />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -459,7 +463,11 @@ export default function GroupDetailsPage() {
                               <FormItem>
                                 <FormLabel>Phone Number (Optional)</FormLabel>
                                 <FormControl>
-                                  <Input placeholder="+1 (555) 123-4567" {...field} />
+                                  <Input 
+                                    type="text" 
+                                    placeholder="+1 (555) 123-4567" 
+                                    {...field} 
+                                  />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
