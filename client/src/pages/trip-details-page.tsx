@@ -262,6 +262,13 @@ export default function TripDetailsPage() {
   const searchParams = new URLSearchParams(location.split('?')[1] || '');
   const shouldStartEditing = searchParams.get('edit') === 'true';
   
+  // Debug URL parameters
+  console.log("URL params check:", {
+    fullLocation: location,
+    parsedParams: Object.fromEntries(searchParams.entries()),
+    shouldStartEditing
+  });
+  
   const [isEditingTrip, setIsEditingTrip] = useState(shouldStartEditing);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
