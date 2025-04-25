@@ -79,31 +79,52 @@ export default function BasicTripEditPage() {
     setSaving(true);
     
     try {
-      // Construct the payload with explicit nulls for empty dates
-      // Create a simple payload with exact date string handling
-      // Critical: For null values, explicitly use null, not empty strings or undefined
-      const payload = {
+      // Basic validation
+      if (!name || !destination) {
+        throw new Error("Trip name and destination are required");
+      }
+      
+      // Step 1: First update the basic fields using PUT endpoint
+      console.log("Step 1: Updating basic trip info");
+      const basicPayload = {
         name,
         destination,
         status,
-        // For dates, add the time component to ensure proper parsing on server
-        startDate: startDate ? `${startDate}T12:00:00.000Z` : null,
-        endDate: endDate ? `${endDate}T12:00:00.000Z` : null
       };
       
-      // Detailed logging for debugging
-      console.log("BASIC EDIT - Form values:", { startDate, endDate });
-      console.log("BASIC EDIT - Payload for server:", JSON.stringify(payload));
-      
-      console.log("Sending update with payload:", payload);
-      
-      // Use full path to ensure we're hitting the API endpoint
-      const response = await fetch(`/api/trips/${tripId}`, {
+      const basicResponse = await fetch(`/api/trips/${tripId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(basicPayload),
+        credentials: 'include'
+      });
+      
+      // Check if basic update succeeded
+      if (!basicResponse.ok) {
+        const errorText = await basicResponse.text();
+        throw new Error(`Failed to update trip details: ${errorText}`);
+      }
+      
+      // Step 2: Now update just the dates using our specialized endpoint
+      console.log("Step 2: Updating dates with dedicated endpoint");
+      
+      // Format the dates with explicit time component
+      const datePayload = {
+        startDate: startDate ? `${startDate}T12:00:00.000Z` : null,
+        endDate: endDate ? `${endDate}T12:00:00.000Z` : null
+      };
+      
+      console.log("Date payload:", JSON.stringify(datePayload));
+      
+      // Use dedicated date update endpoint for date fields only
+      const response = await fetch(`/api/trips/${tripId}/update-dates`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(datePayload),
         credentials: 'include'
       });
       

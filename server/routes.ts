@@ -580,6 +580,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Simple dedicated endpoint just for setting trip dates
+  app.post("/api/trips/:id/update-dates", async (req, res, next) => {
+    try {
+      console.log(`\n==== POST /api/trips/:id/update-dates - SPECIAL DATE EDIT ====`);
+      console.log(`Request body:`, JSON.stringify(req.body));
+      
+      if (!req.isAuthenticated()) {
+        console.log("POST /api/trips/:id/update-dates - 401 Unauthorized");
+        return res.sendStatus(401);
+      }
+      
+      const tripId = parseInt(req.params.id);
+      console.log(`Special date edit for trip ID: ${tripId}`);
+      console.log(`User making request: ${req.user?.id}, Username: ${req.user?.username}`);
+      
+      // Check authorization
+      const accessLevel = await checkTripAccess(req, tripId, res, next, "[DATE_EDIT] ");
+      if (accessLevel !== 'owner') {
+        if (accessLevel === 'member') {
+          return res.status(403).json({ message: "Only the trip creator can modify dates" });
+        }
+        return; // Response already sent
+      }
+      
+      // Extract date data
+      const { startDate, endDate } = req.body;
+      console.log("Raw date input:", { startDate, endDate });
+      
+      // Create direct update with dates only
+      const updateData: Record<string, any> = {};
+      
+      // Only add fields that are explicitly included in the request
+      if (startDate !== undefined) updateData.startDate = startDate;
+      if (endDate !== undefined) updateData.endDate = endDate;
+      
+      console.log("Date update being sent to storage:", updateData);
+      
+      // Update just the dates
+      const updatedTrip = await storage.updateTrip(tripId, updateData);
+      if (!updatedTrip) {
+        console.error("Date update failed - trip not found");
+        return res.status(404).json({ message: "Trip not found" });
+      }
+      
+      console.log("Trip dates updated successfully:", updatedTrip);
+      res.json({ success: true, trip: updatedTrip });
+    } catch (err) {
+      console.error("Date update error:", err);
+      res.status(500).json({ 
+        message: "Error updating dates", 
+        error: err instanceof Error ? err.message : "Unknown error" 
+      });
+    }
+  });
+
   app.get("/api/trips/:id", async (req, res, next) => {
     try {
       const tripId = parseInt(req.params.id);
