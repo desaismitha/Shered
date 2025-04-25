@@ -11,13 +11,22 @@ import crypto from "crypto";
 /**
  * Helper function to check if a user has access to a trip
  * Handles database connection errors and retry logic
+ * 
+ * This returns different access levels:
+ * - 'owner': User is the creator of the trip and has full edit/delete access
+ * - 'member': User is a member of the trip's group and has view/add access
+ * - null: User has no access
  */
 async function checkTripAccess(
   req: Request,
   tripId: number,
   res: Response,
-  next: NextFunction
-): Promise<boolean> {
+  next: NextFunction,
+  logPrefix = ""
+): Promise<'owner' | 'member' | null> {
+  console.log(`${logPrefix}==== CHECKING TRIP ACCESS ====`);
+  console.log(`${logPrefix}Trip ID: ${tripId}, User: ${req.user?.id || 'not authenticated'}`);
+  
   const MAX_RETRIES = 3;
   
   // Try to get the trip with retry logic
@@ -25,62 +34,78 @@ async function checkTripAccess(
     try {
       // First check authentication
       if (!req.isAuthenticated()) {
+        console.log(`${logPrefix}ACCESS DENIED: User not authenticated`);
         res.status(401).json({ message: "You must be logged in" });
-        return false;
+        return null;
       }
       
       // Get the trip details
       const trip = await storage.getTrip(tripId);
       if (!trip) {
+        console.log(`${logPrefix}ACCESS DENIED: Trip not found`);
         res.status(404).json({ message: "Trip not found" });
-        return false;
+        return null;
       }
       
-      console.log(`Trip creator: ${trip.createdBy}, User ID: ${req.user.id}`);
-      
-      // Check if the user created the trip or has the proper access
+      // Check if the user created the trip
       // Convert both IDs to strings for consistent comparison
       const creatorId = String(trip.createdBy);
       const userId = String(req.user.id);
       
-      console.log(`Trip creator ID: ${trip.createdBy} (${typeof trip.createdBy}), User ID: ${req.user.id} (${typeof req.user.id})`);
-      console.log(`String comparison - Creator: ${creatorId}, User: ${userId}`);
-      console.log(`Are they equal as strings? ${creatorId === userId}`);
+      console.log(`${logPrefix}Trip data:`, JSON.stringify(trip));
+      console.log(`${logPrefix}Trip creator ID: ${creatorId} (original: ${trip.createdBy}, type: ${typeof trip.createdBy})`);
+      console.log(`${logPrefix}User ID: ${userId} (original: ${req.user.id}, type: ${typeof req.user.id})`);
+      console.log(`${logPrefix}Are they equal as strings? ${creatorId === userId}`);
       
       if (creatorId === userId) {
-        console.log("User is the creator of the trip - access granted");
-        return true; // User created the trip, they have access
+        console.log(`${logPrefix}ACCESS GRANTED: User is the OWNER of this trip`);
+        return 'owner'; // User created the trip, they have full access
       }
       
       // If there's a group associated with the trip, check group membership
       if (trip.groupId) {
         try {
-          console.log(`User ${req.user.id} checking membership in group ${trip.groupId}`);
+          console.log(`${logPrefix}Checking group membership in group ${trip.groupId}`);
           const groupMembers = await storage.getGroupMembers(trip.groupId);
-          console.log(`Group members for ${trip.groupId}:`, JSON.stringify(groupMembers));
+          console.log(`${logPrefix}Group members:`, JSON.stringify(groupMembers));
+          
           // Use string comparison for consistent behavior
-          const isMember = groupMembers.some(member => String(member.userId) === String(req.user.id));
-          console.log(`Group membership check for user ${req.user.id} in group ${trip.groupId}: ${isMember}`);
+          const isMember = groupMembers.some(member => String(member.userId) === userId);
+          console.log(`${logPrefix}Is member of group? ${isMember}`);
           
           if (isMember) {
-            return true; // User is a member of the group, they have access
+            console.log(`${logPrefix}ACCESS GRANTED: User is a MEMBER of the trip's group`);
+            return 'member'; // User is a member of the group, they have view/add access
           }
         } catch (groupErr) {
-          console.error("Error checking group membership:", groupErr);
-          // If group check fails, continue with direct trip comparison
+          console.error(`${logPrefix}Error checking group membership:`, groupErr);
+          
+          // If this is the last attempt and we still have a group error
+          if (attempt === MAX_RETRIES - 1) {
+            res.status(503).json({ 
+              message: "Database error checking group membership. Please try again." 
+            });
+            return null;
+          }
+          
+          // Try to reconnect and retry
+          console.log(`${logPrefix}Attempting database reconnection before retry...`);
+          await attemptReconnect(1, 500);
+          continue;
         }
       }
       
       // User doesn't have access
+      console.log(`${logPrefix}ACCESS DENIED: User has no access to this trip`);
       res.status(403).json({ message: "You don't have permission to access this trip" });
-      return false;
+      return null;
       
     } catch (error) {
-      console.error(`Error checking trip access (attempt ${attempt + 1}):`, error);
+      console.error(`${logPrefix}Error checking trip access (attempt ${attempt + 1}):`, error);
       
       // If this is not the last attempt, try to reconnect and retry
       if (attempt < MAX_RETRIES - 1) {
-        console.log(`Attempting database reconnection before retry...`);
+        console.log(`${logPrefix}Attempting database reconnection before retry...`);
         await attemptReconnect(1, 500);
         continue;
       }
@@ -89,13 +114,13 @@ async function checkTripAccess(
       res.status(503).json({ 
         message: "Database connection error. Please try again shortly." 
       });
-      return false;
+      return null;
     }
   }
   
   // This should never happen, but just in case
   res.status(500).json({ message: "Unexpected error checking trip access" });
-  return false;
+  return null;
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -465,22 +490,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`Editing trip ID: ${tripId}`);
       console.log(`User making request: ${req.user?.id} (${typeof req.user?.id}), Username: ${req.user?.username}`);
       
-      // Get the trip
-      const tripToEdit = await storage.getTrip(tripId);
+      // Check if the user has access using our helper function with improved logging
+      const accessLevel = await checkTripAccess(req, tripId, res, next, "[TRIP_EDIT] ");
       
-      if (!tripToEdit) {
-        console.log(`Trip ${tripId} not found in database`);
-        return res.status(404).json({ message: "Trip not found" });
-      }
-      
-      console.log(`Trip data:`, JSON.stringify(tripToEdit));
-      console.log(`Trip creator: ${tripToEdit.createdBy} (${typeof tripToEdit.createdBy})`);
-      console.log(`Current user: ${req.user?.id} (${typeof req.user?.id})`);
-      
-      // Only allow the creator to edit trips (strict check)
-      if (String(tripToEdit.createdBy) !== String(req.user?.id)) {
-        console.log(`EDIT DENIED: User ${req.user?.id} is not the creator (${tripToEdit.createdBy}) of this trip`);
-        return res.status(403).json({ message: "You are not authorized to edit this trip. Only the creator can edit trips." });
+      // Only 'owner' level access can edit trips
+      if (accessLevel !== 'owner') {
+        // If access level is null, the helper function already sent an error response
+        if (accessLevel === 'member') {
+          console.log(`EDIT DENIED: User is only a member, not the creator of this trip`);
+          return res.status(403).json({ 
+            message: "You are not authorized to edit this trip. Only the creator can edit trips." 
+          });
+        }
+        return; // Response already sent by checkTripAccess
       }
       
       console.log("Authorization check passed - User is the creator of this trip");
@@ -522,17 +544,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const tripId = parseInt(req.params.id);
       console.log(`Fetching trip ${tripId} for user ${req.user?.id || 'unknown'}`);
       
-      // Use our reusable trip access check function with built-in retry logic
-      const hasAccess = await checkTripAccess(req, tripId, res, next);
-      if (!hasAccess) {
+      // Use our reusable trip access check function with improved logging
+      const accessLevel = await checkTripAccess(req, tripId, res, next, "[TRIP_VIEW] ");
+      if (accessLevel === null) {
         console.log(`Access denied to trip ${tripId}`);
         return; // Response already sent by checkTripAccess
       }
       
-      // If we get here, access check passed, so get the trip details
+      // If we get here, access check passed (either 'owner' or 'member'), so get the trip details
       const trip = await storage.getTrip(tripId);
       console.log(`Trip data for ID ${tripId}:`, trip);
-      res.json(trip);
+      
+      // Include access level in the response to help client determine what actions are allowed
+      res.json({
+        ...trip,
+        _accessLevel: accessLevel // Added property to help client control UI permissions
+      });
     } catch (err) {
       console.error("Error in trip details:", err);
       next(err);
@@ -578,9 +605,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const tripId = parseInt(req.params.id);
       
-      // Use our reusable trip access check function with built-in retry logic
-      const hasAccess = await checkTripAccess(req, tripId, res, next);
-      if (!hasAccess) {
+      // Use our reusable trip access check function with improved logging
+      const accessLevel = await checkTripAccess(req, tripId, res, next, "[ITINERARY_ADD] ");
+      
+      // Both owners and members can add itinerary items
+      if (accessLevel === null) {
         return; // Response already sent by checkTripAccess
       }
       
@@ -588,7 +617,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = insertItineraryItemSchema.parse({
         ...req.body,
         tripId,
-        createdBy: req.user.id
+        createdBy: req.user!.id
       });
       
       const item = await storage.createItineraryItem(validatedData);
@@ -602,9 +631,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const tripId = parseInt(req.params.id);
       
-      // Use our reusable trip access check function with built-in retry logic
-      const hasAccess = await checkTripAccess(req, tripId, res, next);
-      if (!hasAccess) {
+      // Use our reusable trip access check function with improved logging
+      const accessLevel = await checkTripAccess(req, tripId, res, next, "[ITINERARY_VIEW] ");
+      
+      if (accessLevel === null) {
         return; // Response already sent by checkTripAccess
       }
       
@@ -622,9 +652,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const tripId = parseInt(req.params.id);
       
-      // Use our reusable trip access check function with built-in retry logic
-      const hasAccess = await checkTripAccess(req, tripId, res, next);
-      if (!hasAccess) {
+      // Use our reusable trip access check function with improved logging
+      const accessLevel = await checkTripAccess(req, tripId, res, next, "[EXPENSE_ADD] ");
+      
+      // Both owners and members can add expenses
+      if (accessLevel === null) {
         return; // Response already sent by checkTripAccess
       }
       
@@ -632,7 +664,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = insertExpenseSchema.parse({
         ...req.body,
         tripId,
-        paidBy: req.user.id
+        paidBy: req.user!.id
       });
       
       const expense = await storage.createExpense(validatedData);
@@ -646,9 +678,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const tripId = parseInt(req.params.id);
       
-      // Use our reusable trip access check function with built-in retry logic
-      const hasAccess = await checkTripAccess(req, tripId, res, next);
-      if (!hasAccess) {
+      // Use our reusable trip access check function with improved logging
+      const accessLevel = await checkTripAccess(req, tripId, res, next, "[EXPENSE_VIEW] ");
+      
+      if (accessLevel === null) {
         return; // Response already sent by checkTripAccess
       }
       

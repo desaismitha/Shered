@@ -161,14 +161,20 @@ export default function EditTripPage() {
   // Check if user is allowed to edit this trip
   // Using string comparison for consistency with server-side check
   const isCreator = trip && user && String(trip.createdBy) === String(user.id);
-  console.log("EDIT TRIP PAGE - Creator check:", { 
-    tripCreatedBy: trip?.createdBy, 
-    userId: user?.id,
-    typeTripCreatedBy: trip ? typeof trip.createdBy : "undefined",
-    typeUserId: user ? typeof user.id : "undefined",
-    equalRaw: trip && user ? trip.createdBy === user.id : false,
-    equalString: trip && user ? String(trip.createdBy) === String(user.id) : false
-  });
+  
+  // Move this check to useEffect so it only runs after trip data is fully loaded
+  useEffect(() => {
+    if (trip && user) {
+      console.log("EDIT TRIP PAGE - Creator check:", { 
+        tripCreatedBy: trip.createdBy, 
+        userId: user.id,
+        typeTripCreatedBy: typeof trip.createdBy,
+        typeUserId: typeof user.id,
+        equalRaw: trip.createdBy === user.id,
+        equalString: String(trip.createdBy) === String(user.id)
+      });
+    }
+  }, [trip, user]);
   
   useEffect(() => {
     // Redirect if not the creator
