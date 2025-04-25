@@ -6,6 +6,7 @@ import { useParams, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { format } from "date-fns";
+import { isSpecialDateMarker, formatDateRange } from "@/lib/utils";
 import { 
   Calendar, CalendarRange, MapPin, Users, PlusIcon, PencilIcon, 
   DollarSign, ClipboardList, Info, ArrowLeft
@@ -43,16 +44,12 @@ function TripQuickEdit({ trip, onSuccess }: { trip: Trip, onSuccess: () => void 
     if (!dateStr) return '';
     
     // Check for our special marker date
-    if (typeof dateStr === 'string' && dateStr.includes('2099')) {
+    if (isSpecialDateMarker(String(dateStr))) {
       return '';
     }
     
     try {
       const date = new Date(dateStr);
-      // Check for year 2099 (our marker for "no date")
-      if (date.getFullYear() >= 2099) {
-        return '';
-      }
       return isNaN(date.getTime()) ? '' : format(date, 'yyyy-MM-dd');
     } catch (e) {
       console.error("Date parsing error:", e);
@@ -358,46 +355,8 @@ export default function TripDetailsPage() {
     return acc;
   }, {} as Record<number, ItineraryItem[]>) || {};
 
-  // Format date range
-  const formatDateRange = (startDate: string | Date | null | undefined, endDate: string | Date | null | undefined) => {
-    // Check for the special case date (2099-12-31) which we use to indicate "no date"
-    if (startDate && typeof startDate === 'string' && startDate.includes('2099')) {
-      return "Date not specified";
-    }
-    
-    // Handle null or undefined dates
-    if (!startDate || !endDate) {
-      return "Date not specified";
-    }
-    
-    try {
-      const start = new Date(startDate);
-      const end = new Date(endDate);
-      
-      // Check for special placeholder dates
-      if (start.getFullYear() >= 2099 || end.getFullYear() >= 2099) {
-        return "Date not specified";
-      }
-      
-      // Validate dates
-      if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-        return "Invalid date range";
-      }
-      
-      if (start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()) {
-        return `${format(start, 'MMM d')} - ${format(end, 'd, yyyy')}`;
-      }
-      
-      if (start.getFullYear() === end.getFullYear()) {
-        return `${format(start, 'MMM d')} - ${format(end, 'MMM d, yyyy')}`;
-      }
-      
-      return `${format(start, 'MMM d, yyyy')} - ${format(end, 'MMM d, yyyy')}`;
-    } catch (error) {
-      console.error("Error formatting date range:", error, startDate, endDate);
-      return "Error formatting dates";
-    }
-  };
+  // Use the utility function from lib/utils.ts instead of redefining here
+  // This ensures consistent formatting across the app
 
   // Get trip status badge color
   const getStatusColor = (status: string | null | undefined) => {
@@ -572,7 +531,7 @@ export default function TripDetailsPage() {
                                 <div className="p-4 border-b md:border-b-0 md:border-r">
                                   <p className="text-sm text-neutral-500 mb-1">Start Date</p>
                                   <p className="font-medium">
-                                    {trip.startDate && !isSpecialDateMarker(trip.startDate) 
+                                    {trip.startDate && !isSpecialDateMarker(String(trip.startDate)) 
                                       ? format(new Date(trip.startDate), 'MMMM d, yyyy') 
                                       : 'Not specified'}
                                   </p>
@@ -580,7 +539,7 @@ export default function TripDetailsPage() {
                                 <div className="p-4">
                                   <p className="text-sm text-neutral-500 mb-1">End Date</p>
                                   <p className="font-medium">
-                                    {trip.endDate && !isSpecialDateMarker(trip.endDate)
+                                    {trip.endDate && !isSpecialDateMarker(String(trip.endDate))
                                       ? format(new Date(trip.endDate), 'MMMM d, yyyy') 
                                       : 'Not specified'}
                                   </p>
