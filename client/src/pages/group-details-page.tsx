@@ -221,6 +221,8 @@ export default function GroupDetailsPage() {
         if (!res.ok) {
           if (res.status === 429) {
             throw new Error("Too many invitation attempts. Please try again later.");
+          } else if (res.status === 404) {
+            throw new Error(`User with email '${values.email}' not found.`);
           } else {
             throw new Error(`Server error: ${res.statusText}`);
           }
@@ -232,12 +234,24 @@ export default function GroupDetailsPage() {
         throw error;
       }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/groups", groupId, "members"] });
-      toast({
-        title: "Invitation Sent!",
-        description: "An invitation has been sent to join the group.",
-      });
+      
+      // Check if email was actually sent
+      if (data.emailSent === false) {
+        toast({
+          title: "User Invited",
+          description: "Email notifications are disabled. Please notify the user directly about this invitation.",
+          variant: "warning",
+          duration: 5000,
+        });
+      } else {
+        toast({
+          title: "Invitation Sent!",
+          description: "An invitation has been sent to join the group.",
+        });
+      }
+      
       setIsAddMemberOpen(false);
       inviteUserForm.reset();
     },

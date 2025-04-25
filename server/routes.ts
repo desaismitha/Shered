@@ -218,14 +218,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
       
       if (!success) {
-        return res.status(500).json({ message: "Failed to send invitation email" });
+        // If we can't send email due to SendGrid not being available,
+        // let's proceed but inform the user about the limitation
+        console.log(`Invitation would be sent to ${validatedData.email} for group ${group.name} if SendGrid was configured`);
+        
+        // Inform client about email limitation but indicate success
+        return res.status(200).json({ 
+          message: "User has been invited, but email delivery is currently disabled",
+          email: validatedData.email,
+          phoneNumber: validatedData.phoneNumber,
+          token,
+          emailSent: false
+        });
       }
       
       res.status(200).json({ 
         message: "Invitation sent successfully",
         email: validatedData.email,
         phoneNumber: validatedData.phoneNumber,
-        token
+        token,
+        emailSent: true
       });
     } catch (err) {
       console.error("Error sending invitation:", err);
