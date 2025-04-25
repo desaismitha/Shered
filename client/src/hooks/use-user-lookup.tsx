@@ -13,45 +13,59 @@ interface UserLookupResult {
 export function useUserLookup(): UserLookupResult {
   const { toast } = useToast();
   
-  const usernameMutation = useMutation<User, Error, string>({
+  const usernameMutation = useMutation<User | null, Error, string>({
     mutationFn: async (username: string) => {
       try {
-        const res = await apiRequest("GET", `/api/users/by-username/${username}`);
-        return await res.json();
-      } catch (error) {
-        if (error instanceof Response && error.status === 404) {
+        // Use the updated apiRequest with ignore404 option
+        const res = await apiRequest("GET", `/api/users/by-username/${username}`, undefined, { ignore404: true });
+        
+        if (res.status === 404) {
           return null;
         }
-        throw error;
+        
+        return await res.json();
+      } catch (error) {
+        console.log("Error in username lookup:", error);
+        return null;
       }
     },
     onError: (error: Error) => {
-      toast({
-        title: "Error looking up user",
-        description: error.message,
-        variant: "destructive",
-      });
+      // Only show important errors
+      if (!error.message.includes("not found")) {
+        toast({
+          title: "Error looking up user",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
     },
   });
   
-  const emailMutation = useMutation<User, Error, string>({
+  const emailMutation = useMutation<User | null, Error, string>({
     mutationFn: async (email: string) => {
       try {
-        const res = await apiRequest("GET", `/api/users/by-email/${encodeURIComponent(email)}`);
-        return await res.json();
-      } catch (error) {
-        if (error instanceof Response && error.status === 404) {
+        // Use the updated apiRequest with ignore404 option
+        const res = await apiRequest("GET", `/api/users/by-email/${encodeURIComponent(email)}`, undefined, { ignore404: true });
+        
+        if (res.status === 404) {
           return null;
         }
-        throw error;
+        
+        return await res.json();
+      } catch (error) {
+        console.log("Error in email lookup:", error);
+        return null;
       }
     },
     onError: (error: Error) => {
-      toast({
-        title: "Error looking up user",
-        description: error.message,
-        variant: "destructive",
-      });
+      // Only show important errors
+      if (!error.message.includes("not found")) {
+        toast({
+          title: "Error looking up user",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
     },
   });
   

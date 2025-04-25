@@ -1,7 +1,11 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
-async function throwIfResNotOk(res: Response) {
+async function throwIfResNotOk(res: Response, ignore404 = false) {
   if (!res.ok) {
+    // Optionally ignoring 404s if requested
+    if (ignore404 && res.status === 404) {
+      return;
+    }
     const text = (await res.text()) || res.statusText;
     throw new Error(`${res.status}: ${text}`);
   }
@@ -11,6 +15,7 @@ export async function apiRequest(
   method: string,
   url: string,
   data?: unknown | undefined,
+  options?: { ignore404?: boolean }
 ): Promise<Response> {
   const res = await fetch(url, {
     method,
@@ -19,7 +24,7 @@ export async function apiRequest(
     credentials: "include",
   });
 
-  await throwIfResNotOk(res);
+  await throwIfResNotOk(res, options?.ignore404);
   return res;
 }
 
