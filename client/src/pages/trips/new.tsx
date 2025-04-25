@@ -1,5 +1,5 @@
 import { AppShell } from "@/components/layout/app-shell";
-import { TripForm } from "@/components/trips/trip-form";
+import { SimpleTripForm } from "@/components/trips/simple-trip-form";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
@@ -23,7 +23,7 @@ export default function NewTripPage() {
         <h1 className="text-2xl font-bold text-neutral-900 mb-6">Create a New Trip</h1>
         
         <div className="bg-white shadow rounded-lg p-6">
-          <TripForm />
+          <SimpleTripForm />
         </div>
       </div>
     </AppShell>
