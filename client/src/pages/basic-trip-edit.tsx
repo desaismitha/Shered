@@ -140,7 +140,8 @@ export default function BasicTripEditPage() {
       console.log("Form state - startDate:", startDate, "endDate:", endDate);
       
       // Use dedicated date update endpoint for date fields only
-      const response = await fetch(`/api/trips/${tripId}/update-dates`, {
+      // This is a brand new endpoint that only does date updates
+      const response = await fetch(`/api/trips/${tripId}/date-update`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
