@@ -208,12 +208,11 @@ export default function GroupDetailsPage() {
   const inviteUserMutation = useMutation({
     mutationFn: async (values: InviteUserValues) => {
       try {
-        // Check if user with this email already exists
-        const userCheckRes = await apiRequest("GET", `/api/users/by-email/${encodeURIComponent(values.email)}`);
+        // Check if user with this email already exists using our new hook
+        const existingUser = await lookupByEmail(values.email);
         
-        if (userCheckRes.ok) {
+        if (existingUser) {
           // User already exists, prompt to add the user directly
-          const existingUser = await userCheckRes.json();
           throw new Error(`A user with email '${values.email}' already exists. Please use the "Existing User" tab to add them by username.`);
         }
         
