@@ -1465,6 +1465,126 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get eligible drivers for a trip
+  app.get("/api/trips/:tripId/eligible-drivers", async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+      
+      const tripId = parseInt(req.params.tripId);
+      
+      // Check if user has access to this trip
+      const accessLevel = await checkTripAccess(req, tripId, res, next, "[ELIGIBLE DRIVERS] ");
+      if (!accessLevel) return; // Response already sent
+      
+      // First get the trip to find the group
+      const trip = await storage.getTrip(tripId);
+      if (!trip || !trip.groupId) {
+        return res.status(404).json({ message: "Trip not found or not associated with a group" });
+      }
+      
+      // Get all group members
+      const groupMembers = await storage.getGroupMembers(trip.groupId);
+      if (!groupMembers || groupMembers.length === 0) {
+        return res.json([]);
+      }
+      
+      // Get all users who are group members
+      const users = await storage.getAllUsers();
+      
+      // Filter for users who are group members and have driver eligibility
+      const eligibleDrivers = users.filter(user => {
+        // Check if user is in this group
+        const isGroupMember = groupMembers.some(member => member.userId === user.id);
+        // Check if user has valid driver license info and is eligible
+        const hasValidLicense = user.licenseNumber && user.licenseState && user.licenseExpiry;
+        const licenseValid = hasValidLicense && new Date(user.licenseExpiry) > new Date();
+        
+        return isGroupMember && licenseValid && user.isEligibleDriver;
+      });
+      
+      // Remove sensitive information from response
+      const sanitizedDrivers = eligibleDrivers.map(user => {
+        const { password, ...driverInfo } = user;
+        return driverInfo;
+      });
+      
+      res.json(sanitizedDrivers);
+    } catch (err) {
+      next(err);
+    }
+  });
+  
+  // Assign driver to vehicle for a trip
+  app.put("/api/trips/:tripId/vehicles/:vehicleId/assign-driver", async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+      
+      const tripId = parseInt(req.params.tripId);
+      const vehicleId = parseInt(req.params.vehicleId);
+      const { driverId } = req.body; // This can be null to unassign
+      
+      // Only trip owner can assign drivers
+      const accessLevel = await checkTripAccess(req, tripId, res, next, "[ASSIGN DRIVER] ");
+      if (!accessLevel) return; // Response already sent
+      
+      if (accessLevel !== 'owner') {
+        return res.status(403).json({ message: "Only the trip owner can assign drivers" });
+      }
+      
+      // Get the trip vehicle record
+      const tripVehicles = await storage.getTripVehicles(tripId);
+      const tripVehicle = tripVehicles.find(tv => tv.vehicleId === vehicleId);
+      
+      if (!tripVehicle) {
+        return res.status(404).json({ message: "Vehicle not found in this trip" });
+      }
+      
+      // If assigning a driver, check if driver is eligible
+      if (driverId) {
+        // First get the trip to find the group
+        const trip = await storage.getTrip(tripId);
+        if (!trip || !trip.groupId) {
+          return res.status(404).json({ message: "Trip not found or not associated with a group" });
+        }
+        
+        // Check if user is in this group
+        const groupMembers = await storage.getGroupMembers(trip.groupId);
+        const isGroupMember = groupMembers.some(member => member.userId === driverId);
+        
+        if (!isGroupMember) {
+          return res.status(400).json({ message: "The selected driver is not a member of this trip's group" });
+        }
+        
+        // Get driver user object
+        const driver = await storage.getUser(driverId);
+        if (!driver) {
+          return res.status(404).json({ message: "Driver user not found" });
+        }
+        
+        // Check if driver has valid license and eligibility
+        const hasValidLicense = driver.licenseNumber && driver.licenseState && driver.licenseExpiry;
+        const licenseValid = hasValidLicense && new Date(driver.licenseExpiry) > new Date();
+        
+        if (!licenseValid || !driver.isEligibleDriver) {
+          return res.status(400).json({ 
+            message: "The selected user is not eligible to be a driver. They must have valid license information and be marked as eligible." 
+          });
+        }
+      }
+      
+      // Update the trip vehicle
+      const updatedTripVehicle = await storage.updateTripVehicle(tripVehicle.id, { assignedTo: driverId || null });
+      
+      if (!updatedTripVehicle) {
+        return res.status(500).json({ message: "Failed to update driver assignment" });
+      }
+      
+      res.json(updatedTripVehicle);
+    } catch (err) {
+      next(err);
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
