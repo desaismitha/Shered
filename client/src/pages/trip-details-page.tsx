@@ -572,7 +572,7 @@ export default function TripDetailsPage() {
                                 <div className="p-4 border-b md:border-b-0 md:border-r">
                                   <p className="text-sm text-neutral-500 mb-1">Start Date</p>
                                   <p className="font-medium">
-                                    {trip.startDate && !String(trip.startDate).includes('2099') 
+                                    {trip.startDate && !isSpecialDateMarker(trip.startDate) 
                                       ? format(new Date(trip.startDate), 'MMMM d, yyyy') 
                                       : 'Not specified'}
                                   </p>
@@ -580,7 +580,7 @@ export default function TripDetailsPage() {
                                 <div className="p-4">
                                   <p className="text-sm text-neutral-500 mb-1">End Date</p>
                                   <p className="font-medium">
-                                    {trip.endDate && !String(trip.endDate).includes('2099') 
+                                    {trip.endDate && !isSpecialDateMarker(trip.endDate)
                                       ? format(new Date(trip.endDate), 'MMMM d, yyyy') 
                                       : 'Not specified'}
                                   </p>

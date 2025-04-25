@@ -5,6 +5,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Loader2, ArrowLeft } from "lucide-react";
+import { isSpecialDateMarker } from "@/lib/utils";
 
 export default function BasicTripEditPage() {
   const { id } = useParams<{ id: string }>();
