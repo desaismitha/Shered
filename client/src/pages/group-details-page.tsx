@@ -109,8 +109,14 @@ export default function GroupDetailsPage() {
 
   // Schema for inviting a new user (who doesn't have an account yet)
   const inviteUserSchema = z.object({
-    email: z.string().email("Please enter a valid email address"),
-    phoneNumber: z.string().optional(),
+    email: z.string()
+      .min(1, "Email is required")
+      .email("Please enter a valid email address"),
+    phoneNumber: z.string()
+      .optional()
+      .refine(val => !val || /^\+?[0-9\s\(\)-]{7,}$/.test(val), {
+        message: "Please enter a valid phone number"
+      }),
     role: z.enum(["member", "admin"]).default("member"),
   });
 
@@ -134,7 +140,6 @@ export default function GroupDetailsPage() {
     resolver: zodResolver(inviteUserSchema),
     defaultValues: {
       email: "",
-      phoneNumber: "",
       role: "member",
     }
   });
