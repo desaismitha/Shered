@@ -104,6 +104,11 @@ export function Sidebar() {
             </Link>
           )
         ))}
+        
+        {/* Database connection reset tool */}
+        <div className="mt-4 px-2">
+          <DbResetButton />
+        </div>
       </div>
     </aside>
   );

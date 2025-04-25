@@ -3,6 +3,7 @@ import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { Menu, X, Plane, LayoutDashboard, Users, Calendar, DollarSign, MessageSquare, Settings, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { DbResetButton } from "@/components/ui/db-reset-button";
 
 export function MobileHeader() {
   const [isOpen, setIsOpen] = useState(false);
@@ -106,8 +107,8 @@ export function MobileMenu({ isOpen, onClose }: { isOpen: boolean; onClose: () =
           </nav>
         </div>
         
-        <div className="flex-shrink-0 flex border-t border-neutral-200 p-4">
-          <div className="flex-shrink-0 group block w-full">
+        <div className="flex-col flex border-t border-neutral-200 p-4">
+          <div className="flex-shrink-0 group block w-full mb-4">
             <div className="flex items-center">
               <div className="w-10 h-10 rounded-full overflow-hidden bg-neutral-200 text-neutral-500 flex items-center justify-center">
                 {user?.displayName?.[0] || user?.username?.[0] || "U"}
@@ -125,6 +126,11 @@ export function MobileMenu({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                 </button>
               </div>
             </div>
+          </div>
+          
+          {/* Database connection reset tool */}
+          <div className="mt-2">
+            <DbResetButton />
           </div>
         </div>
       </div>
