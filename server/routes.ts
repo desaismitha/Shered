@@ -786,8 +786,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         const messages = await storage.getMessagesByGroupId(groupId);
         res.json(messages);
-      } catch (groupErr) {
-        console.error(`Database error getting group members: ${groupErr}`);
+      } catch (err) {
+        const groupErr = err as Error;
+        console.error(`Database error getting group members:`, groupErr);
         return res.status(503).json({ 
           message: "Database connection error - Please try again later",
           error: groupErr.message

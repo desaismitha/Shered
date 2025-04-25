@@ -515,15 +515,27 @@ export default function TripDetailsPage() {
                     {/* Force show the trip creator as a member since the API is not returning members correctly */}
                     <div className="flex items-center">
                       <div className="w-10 h-10 rounded-full bg-neutral-200 text-neutral-600 flex items-center justify-center mr-3">
-                        {users.find(u => u.id === 2)?.displayName?.[0] || "U"}
+                        {users.find(u => u.id === trip.createdBy)?.displayName?.[0] || "U"}
                       </div>
                       <div>
-                        <p className="font-medium text-neutral-800">
-                          {users.find(u => u.id === 2)?.displayName}
-                        </p>
-                        <p className="text-xs text-neutral-500">
-                          Trip Organizer
-                        </p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-neutral-800">
+                            {users.find(u => u.id === trip.createdBy)?.displayName}
+                          </p>
+                          {trip._accessLevel === 'owner' ? (
+                            <Badge variant="outline" className="text-xs py-0 h-5 bg-amber-50 text-amber-800 border-amber-200">
+                              You
+                            </Badge>
+                          ) : null}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <p className="text-xs text-neutral-500">
+                            Trip Organizer
+                          </p>
+                          <Badge variant="secondary" className="text-xs py-0 h-5">
+                            Admin
+                          </Badge>
+                        </div>
                       </div>
                     </div>
                   </div>
