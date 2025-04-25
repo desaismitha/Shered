@@ -248,11 +248,11 @@ export default function TripDetailsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left column - Itinerary and expenses */}
           <div className="lg:col-span-2">
-            <Tabs defaultValue="itinerary">
+            <Tabs defaultValue="info">
               <TabsList>
+                <TabsTrigger value="info">Trip Info</TabsTrigger>
                 <TabsTrigger value="itinerary">Itinerary</TabsTrigger>
                 <TabsTrigger value="expenses">Expenses</TabsTrigger>
-                <TabsTrigger value="info">Trip Info</TabsTrigger>
               </TabsList>
               
               {/* Itinerary tab */}
