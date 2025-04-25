@@ -373,12 +373,35 @@ export default function TripDetailsPage() {
     console.log("Expenses data:", expenses);
   }, [expenses]);
 
-  // Group itinerary items by day
+  // Filter transportation activities (with fromLocation and toLocation)
+  const transportActivities = itineraryItems?.filter(item => 
+    item.fromLocation && item.toLocation
+  ) || [];
+  
+  // Group transportation activities by day for easy access
+  const transportByDay = transportActivities.reduce((acc, item) => {
+    if (item.day === null || item.day === undefined) {
+      return acc;
+    }
+    
+    const day = item.day;
+    if (!acc[day]) {
+      acc[day] = [];
+    }
+    acc[day].push(item);
+    return acc;
+  }, {} as Record<number, ItineraryItem[]>);
+  
+  // Group regular itinerary items by day (excluding transportation items if configured to separate them)
   const itemsByDay = itineraryItems?.reduce((acc, item) => {
     // Skip items that don't have a valid day value
     if (item.day === null || item.day === undefined) {
       return acc;
     }
+    
+    // Option 1: Include all items in the regular itinerary
+    // Option 2: Exclude transportation items from regular itinerary (uncomment the next line)
+    // if (item.fromLocation && item.toLocation) return acc;
     
     const day = item.day;
     if (!acc[day]) {
@@ -573,6 +596,136 @@ export default function TripDetailsPage() {
                               </div>
                             </div>
                           </div>
+                          
+                          {/* Transportation Schedule Section */}
+                          {transportActivities.length > 0 && (
+                            <div>
+                              <h3 className="font-medium text-neutral-800 mb-2 flex items-center">
+                                <Car className="h-4 w-4 mr-2 text-blue-500" />
+                                Transportation Schedule
+                              </h3>
+                              <div className="border border-blue-100 rounded-md bg-blue-50 p-4">
+                                <div className="space-y-4">
+                                  {Object.entries(transportByDay)
+                                    .sort(([dayA], [dayB]) => parseInt(dayA) - parseInt(dayB))
+                                    .map(([day, items]) => (
+                                      <div key={`transport-day-${day}`}>
+                                        <h4 className="text-sm font-medium text-neutral-700 mb-2">
+                                          Day {day} {trip.startDate && !isSpecialDateMarker(String(trip.startDate)) && (
+                                            <span className="text-neutral-500 font-normal">
+                                              ({format(
+                                                addDays(
+                                                  new Date(trip.startDate), 
+                                                  parseInt(day) - 1
+                                                ), 
+                                                'EEE, MMM d'
+                                              )})
+                                            </span>
+                                          )}
+                                        </h4>
+                                        <div className="space-y-2">
+                                          {items
+                                            .sort((a, b) => 
+                                              a.startTime && b.startTime 
+                                                ? a.startTime.localeCompare(b.startTime) 
+                                                : 0
+                                            )
+                                            .map(item => {
+                                              // Format the time for display
+                                              const formatTime = (timeString?: string) => {
+                                                if (!timeString) return null;
+                                                
+                                                try {
+                                                  const [hours, minutes] = timeString.split(':');
+                                                  const hourInt = parseInt(hours);
+                                                  const isPM = hourInt >= 12;
+                                                  const hour12 = hourInt % 12 || 12;
+                                                  return `${hour12}:${minutes} ${isPM ? 'PM' : 'AM'}`;
+                                                } catch (error) {
+                                                  return timeString;
+                                                }
+                                              };
+                                              const timeDisplay = formatTime(item.startTime);
+                                              
+                                              // Check if this is a recurring item
+                                              const getRecurrenceText = () => {
+                                                if (!item.isRecurring) return null;
+                                                
+                                                switch (item.recurrencePattern) {
+                                                  case 'daily':
+                                                    return '(Daily)';
+                                                  case 'weekdays':
+                                                    return '(Mon-Fri)';
+                                                  case 'weekends':
+                                                    return '(Sat-Sun)';
+                                                  case 'specific-days':
+                                                    try {
+                                                      let days = item.recurrenceDays;
+                                                      if (typeof days === 'string') {
+                                                        days = JSON.parse(days);
+                                                      }
+                                                      
+                                                      if (Array.isArray(days) && days.length > 0) {
+                                                        // Map day codes to short day names
+                                                        const dayMap: Record<string, string> = {
+                                                          mon: 'Mon',
+                                                          tue: 'Tue',
+                                                          wed: 'Wed',
+                                                          thu: 'Thu',
+                                                          fri: 'Fri',
+                                                          sat: 'Sat',
+                                                          sun: 'Sun'
+                                                        };
+                                                        
+                                                        const dayNames = days.map(d => dayMap[d] || d).join(', ');
+                                                        return `(${dayNames})`;
+                                                      }
+                                                      return '(Custom)';
+                                                    } catch (error) {
+                                                      return '(Custom)';
+                                                    }
+                                                  default:
+                                                    return '(Custom)';
+                                                }
+                                              };
+                                              
+                                              return (
+                                                <div 
+                                                  key={item.id} 
+                                                  className="flex items-center bg-white rounded-md p-3 border border-blue-200"
+                                                >
+                                                  <div className="mr-4 text-center">
+                                                    <div className="text-sm font-semibold text-blue-600">{timeDisplay}</div>
+                                                    {item.isRecurring && (
+                                                      <div className="text-xs text-blue-500">
+                                                        {getRecurrenceText()}
+                                                      </div>
+                                                    )}
+                                                  </div>
+                                                  <div className="flex-1 flex items-center">
+                                                    <div className="flex-1">
+                                                      <div className="text-sm font-medium text-neutral-800">{item.title}</div>
+                                                      <div className="flex items-center text-xs text-neutral-600 mt-1">
+                                                        <MapPin className="h-3 w-3 text-blue-400 mr-1" />
+                                                        <span>{item.fromLocation}</span>
+                                                        <ArrowRightIcon className="h-3 w-3 mx-1 text-blue-400" />
+                                                        <MapPin className="h-3 w-3 text-blue-400 mr-1" />
+                                                        <span>{item.toLocation}</span>
+                                                      </div>
+                                                    </div>
+                                                  </div>
+                                                </div>
+                                              );
+                                            })
+                                          }
+                                        </div>
+                                      </div>
+                                    ))
+                                  }
+                                </div>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </>
                     )}
