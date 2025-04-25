@@ -116,7 +116,7 @@ export function TripVehicleForm({ tripId, onSuccess, onCancel }: TripVehicleForm
       const data = {
         vehicleId: parseInt(values.vehicleId),
         isMain: values.isMain,
-        assignedTo: values.assignedTo ? parseInt(values.assignedTo) : undefined,
+        assignedTo: values.assignedTo && values.assignedTo !== "none" ? parseInt(values.assignedTo) : undefined,
         notes: values.notes || undefined,
       };
       
@@ -226,7 +226,7 @@ export function TripVehicleForm({ tripId, onSuccess, onCancel }: TripVehicleForm
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
+                  <SelectItem value="none">None</SelectItem>
                   {members.map((member: any) => (
                     <SelectItem key={member.userId} value={String(member.userId)}>
                       {member.user?.displayName || member.user?.username || `User ${member.userId}`}

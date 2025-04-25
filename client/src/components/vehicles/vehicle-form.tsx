@@ -16,10 +16,10 @@ import { useToast } from "@/hooks/use-toast";
 const vehicleFormSchema = z.object({
   make: z.string().min(1, "Make is required"),
   model: z.string().min(1, "Model is required"),
-  year: z.coerce.number().positive().int().nullable().optional(),
+  year: z.string().optional().transform(val => val ? parseInt(val, 10) : null),
   licensePlate: z.string().optional(),
   color: z.string().optional(),
-  capacity: z.coerce.number().positive().int().optional(),
+  capacity: z.string().optional().transform(val => val ? parseInt(val, 10) : null),
   notes: z.string().optional(),
 });
 
@@ -57,9 +57,6 @@ export function VehicleForm({ vehicle, onSuccess, onCancel }: VehicleFormProps) 
         licensePlate: values.licensePlate || undefined,
         color: values.color || undefined, 
         notes: values.notes || undefined,
-        // Convert string number to actual number or undefined
-        year: values.year ? Number(values.year) : undefined,
-        capacity: values.capacity ? Number(values.capacity) : undefined,
       };
       
       const res = await apiRequest("POST", "/api/vehicles", data);
@@ -96,9 +93,6 @@ export function VehicleForm({ vehicle, onSuccess, onCancel }: VehicleFormProps) 
         licensePlate: values.licensePlate || undefined,
         color: values.color || undefined, 
         notes: values.notes || undefined,
-        // Convert string number to actual number or undefined
-        year: values.year ? Number(values.year) : undefined,
-        capacity: values.capacity ? Number(values.capacity) : undefined,
       };
       
       const res = await apiRequest("PUT", `/api/vehicles/${vehicle.id}`, data);
