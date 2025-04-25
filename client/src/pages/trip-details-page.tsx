@@ -83,13 +83,13 @@ function TripQuickEdit({ trip, onSuccess }: { trip: Trip, onSuccess: () => void 
         status
       });
       
-      // Create full payload with explicit null values for dates
+      // Create full payload with special date marker for cleared dates
       const payload = {
         name,
         destination,
         status,
-        startDate: startDate ? `${startDate}T12:00:00Z` : null,
-        endDate: endDate ? `${endDate}T12:00:00Z` : null
+        startDate: startDate ? `${startDate}T12:00:00Z` : "2099-12-31T00:00:00Z", // Use marker date for empty dates
+        endDate: endDate ? `${endDate}T12:00:00Z` : "2099-12-31T00:00:00Z" // Use marker date for empty dates
       };
       
       // Extra debugging for date values
@@ -490,15 +490,6 @@ export default function TripDetailsPage() {
                         >
                           <PencilIcon className="h-4 w-4 mr-2" />
                           Edit Trip
-                        </Button>
-                        <Button 
-                          size="sm"
-                          variant="outline"
-                          className="bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100"
-                          onClick={() => navigate(`/trips/basic-edit/${trip.id}`)}
-                        >
-                          <CalendarRange className="h-4 w-4 mr-2" />
-                          Simple Edit
                         </Button>
                       </div>
                     )}
