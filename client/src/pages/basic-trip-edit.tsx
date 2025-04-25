@@ -79,74 +79,31 @@ export default function BasicTripEditPage() {
     setSaving(true);
     
     try {
-      // Basic validation
-      if (!name || !destination) {
-        throw new Error("Trip name and destination are required");
-      }
+      // SIMPLIFIED APPROACH: Update everything in one request using the standard API
+      console.log("Updating trip with all fields in a single request");
       
-      // Step 1: First update the basic fields using PUT endpoint
-      console.log("Step 1: Updating basic trip info");
-      const basicPayload = {
+      // Format dates as needed, null for empty strings, ISO string for dates
+      const formattedStartDate = startDate ? `${startDate}T12:00:00.000Z` : null;
+      const formattedEndDate = endDate ? `${endDate}T12:00:00.000Z` : null;
+      
+      // Create a complete payload with all fields
+      const fullPayload = {
         name,
         destination,
         status,
+        startDate: formattedStartDate,
+        endDate: formattedEndDate
       };
       
-      const basicResponse = await fetch(`/api/trips/${tripId}`, {
+      console.log("Full payload:", JSON.stringify(fullPayload));
+      
+      // Make a single request to update everything
+      const response = await fetch(`/api/trips/${tripId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(basicPayload),
-        credentials: 'include'
-      });
-      
-      // Check if basic update succeeded
-      if (!basicResponse.ok) {
-        const errorText = await basicResponse.text();
-        throw new Error(`Failed to update trip details: ${errorText}`);
-      }
-      
-      // Step 2: Now update just the dates using our specialized endpoint
-      console.log("Step 2: Updating dates with dedicated endpoint");
-      
-      // Format the dates with explicit time component
-      // BUT only include dates in payload if they're present or explicitly null
-      const datePayload: Record<string, any> = {};
-      
-      // Convert empty strings to null
-      if (startDate === '') {
-        datePayload.startDate = null;
-      } else if (startDate) {
-        datePayload.startDate = `${startDate}T12:00:00.000Z`;
-      }
-      
-      if (endDate === '') {
-        datePayload.endDate = null;
-      } else if (endDate) {
-        datePayload.endDate = `${endDate}T12:00:00.000Z`;
-      }
-      
-      // Add explicit keys if clearing dates
-      if (datePayload.startDate === undefined && startDate === '') {
-        datePayload.startDate = null;
-      }
-      
-      if (datePayload.endDate === undefined && endDate === '') {
-        datePayload.endDate = null;
-      }
-      
-      console.log("Date payload:", JSON.stringify(datePayload));
-      console.log("Form state - startDate:", startDate, "endDate:", endDate);
-      
-      // Use dedicated date update endpoint for date fields only
-      // This is a brand new endpoint that only does date updates
-      const response = await fetch(`/api/trips/${tripId}/date-update`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(datePayload),
+        body: JSON.stringify(fullPayload),
         credentials: 'include'
       });
       
