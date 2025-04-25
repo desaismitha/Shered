@@ -281,6 +281,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.put("/api/trips/:id", async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+      
+      const tripId = parseInt(req.params.id);
+      
+      // Check if the trip exists
+      const existingTrip = await storage.getTrip(tripId);
+      if (!existingTrip) {
+        return res.status(404).json({ message: "Trip not found" });
+      }
+      
+      // Check if the user is authorized to update the trip (must be creator)
+      if (existingTrip.createdBy !== req.user.id) {
+        return res.status(403).json({ message: "You are not authorized to edit this trip" });
+      }
+      
+      // Create a modified schema that accepts date strings
+      const modifiedTripSchema = insertTripSchema
+        .extend({
+          id: z.number(),
+          startDate: z.union([
+            z.string().transform(val => new Date(val)),
+            z.date()
+          ]),
+          endDate: z.union([
+            z.string().transform(val => new Date(val)),
+            z.date()
+          ])
+        })
+        .partial()
+        .required({ id: true });
+      
+      // Validate the request data
+      const validatedData = modifiedTripSchema.parse(req.body);
+      
+      // Update the trip
+      const updatedTrip = await storage.updateTrip(tripId, validatedData);
+      if (!updatedTrip) {
+        return res.status(404).json({ message: "Trip update failed" });
+      }
+      
+      res.json(updatedTrip);
+    } catch (err) {
+      console.error("Trip update error:", err);
+      next(err);
+    }
+  });
+
   app.get("/api/trips/:id", async (req, res, next) => {
     try {
       if (!req.isAuthenticated()) return res.sendStatus(401);
