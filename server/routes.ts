@@ -530,6 +530,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
       next(err);
     }
   });
+  
+  // User lookup endpoints
+  app.get("/api/users/by-username/:username", async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+      
+      const username = req.params.username;
+      const user = await storage.getUserByUsername(username);
+      
+      if (!user) {
+        return res.status(404).json({ message: `User with username '${username}' not found` });
+      }
+      
+      res.json(user);
+    } catch (err) {
+      next(err);
+    }
+  });
+  
+  app.get("/api/users/by-email/:email", async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+      
+      const email = decodeURIComponent(req.params.email);
+      // For now we don't have this method, so we'll search all users
+      const allUsers = await storage.getAllUsers();
+      const user = allUsers.find(user => user.email === email);
+      
+      if (!user) {
+        return res.status(404).json({ message: `User with email '${email}' not found` });
+      }
+      
+      res.json(user);
+    } catch (err) {
+      next(err);
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;
