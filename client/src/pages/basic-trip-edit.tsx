@@ -80,17 +80,24 @@ export default function BasicTripEditPage() {
     
     try {
       // Construct the payload with explicit nulls for empty dates
+      // Create a simple payload with exact date string handling
+      // Critical: For null values, explicitly use null, not empty strings or undefined
       const payload = {
         name,
         destination,
         status,
-        // Use null for empty date strings
-        startDate: startDate ? startDate : null,
-        endDate: endDate ? endDate : null
+        // For dates, add the time component to ensure proper parsing on server
+        startDate: startDate ? `${startDate}T12:00:00.000Z` : null,
+        endDate: endDate ? `${endDate}T12:00:00.000Z` : null
       };
+      
+      // Detailed logging for debugging
+      console.log("BASIC EDIT - Form values:", { startDate, endDate });
+      console.log("BASIC EDIT - Payload for server:", JSON.stringify(payload));
       
       console.log("Sending update with payload:", payload);
       
+      // Use full path to ensure we're hitting the API endpoint
       const response = await fetch(`/api/trips/${tripId}`, {
         method: 'PUT',
         headers: {
@@ -100,19 +107,38 @@ export default function BasicTripEditPage() {
         credentials: 'include'
       });
       
-      if (!response.ok) {
-        // Try to get error details from response
-        let errorText = await response.text();
-        try {
-          // Try to parse as JSON
-          const errorJson = JSON.parse(errorText);
-          errorText = errorJson.message || errorText;
-        } catch (e) {
-          // If not JSON, use the text as is
+      // Get the response data regardless of success/failure for logging
+      let responseData;
+      try {
+        // Try to parse as JSON first
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          responseData = await response.json();
+        } else {
+          responseData = await response.text();
         }
-        
-        throw new Error(`Server returned ${response.status}: ${errorText}`);
+      } catch (e) {
+        responseData = 'Could not parse response';
       }
+      
+      // Log the full API response
+      console.log("BASIC EDIT - Server response:", {
+        status: response.status, 
+        statusText: response.statusText,
+        data: responseData
+      });
+      
+      // Throw error if not successful
+      if (!response.ok) {
+        let errorMessage = typeof responseData === 'string' 
+          ? responseData 
+          : (responseData?.message || 'Unknown error');
+          
+        throw new Error(`Server returned ${response.status}: ${errorMessage}`);
+      }
+      
+      // On success, log the updated trip
+      console.log("BASIC EDIT - Trip updated successfully:", responseData);
       
       toast({
         title: "Trip updated",
@@ -185,31 +211,53 @@ export default function BasicTripEditPage() {
                 />
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Start Date</label>
-                  <input
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    className="w-full p-2 border rounded-md"
-                  />
-                  <div className="text-sm text-gray-500 mt-1">
-                    {startDate ? new Date(startDate).toLocaleDateString() : "No start date"}
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Start Date</label>
+                    <div className="flex">
+                      <input
+                        type="date"
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                        className="w-full p-2 border rounded-md"
+                      />
+                    </div>
+                    <div className="text-sm text-gray-500 mt-1">
+                      {startDate ? new Date(startDate).toLocaleDateString() : "No start date"}
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium mb-1">End Date</label>
+                    <div className="flex">
+                      <input
+                        type="date"
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                        className="w-full p-2 border rounded-md"
+                      />
+                    </div>
+                    <div className="text-sm text-gray-500 mt-1">
+                      {endDate ? new Date(endDate).toLocaleDateString() : "No end date"}
+                    </div>
                   </div>
                 </div>
                 
-                <div>
-                  <label className="block text-sm font-medium mb-1">End Date</label>
-                  <input
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    className="w-full p-2 border rounded-md"
-                  />
-                  <div className="text-sm text-gray-500 mt-1">
-                    {endDate ? new Date(endDate).toLocaleDateString() : "No end date"}
-                  </div>
+                {/* Clear dates button - resets both dates at once */}
+                <div className="flex justify-end">
+                  <Button 
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                    onClick={() => {
+                      setStartDate('');
+                      setEndDate('');
+                    }}
+                  >
+                    Clear all dates
+                  </Button>
                 </div>
               </div>
               
