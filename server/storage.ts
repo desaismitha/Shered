@@ -405,31 +405,18 @@ export class DatabaseStorage implements IStorage {
       try {
         console.log("[STORAGE] Creating expense with data:", JSON.stringify(insertExpense));
         
-        // For splitAmong, we need to convert the array to a JSON string
-        // since we changed the column to TEXT in the schema
-        let splitAmongString: string;
+        // We assume that splitAmong is already a JSON string by the time it 
+        // reaches this method, as it was processed in the route handler
+        // Just log what we received for debugging
+        console.log("[STORAGE] Received splitAmong:", insertExpense.splitAmong);
         
-        try {
-          // Ensure we have a valid array to serialize
-          const splitAmongArray = Array.isArray(insertExpense.splitAmong) 
-            ? insertExpense.splitAmong 
-            : [];
-            
-          // Convert to JSON string
-          splitAmongString = JSON.stringify(splitAmongArray);
-          console.log("[STORAGE] Serialized splitAmong as JSON string:", splitAmongString);
-        } catch (err) {
-          console.error("[STORAGE] Error serializing splitAmong:", err);
-          splitAmongString = "[]"; // Default to empty array if serialization fails
-        }
-        
-        // Insert the data with splitAmong as text JSON string
+        // Insert the data with splitAmong directly (should already be a string)
         const [expense] = await db.insert(expenses).values({
           tripId: insertExpense.tripId,
           title: insertExpense.title,
           amount: insertExpense.amount,
           paidBy: insertExpense.paidBy,
-          splitAmong: splitAmongString, // Store as JSON string in TEXT column
+          splitAmong: insertExpense.splitAmong, // Should already be a JSON string
           date: insertExpense.date || new Date(),
           category: insertExpense.category || null,
         }).returning();
