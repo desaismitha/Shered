@@ -444,14 +444,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const tripId = parseInt(req.params.id);
       
-      // Check if the trip exists
+      // Use our reusable trip access check function with built-in retry logic
+      const hasAccess = await checkTripAccess(req, tripId, res, next);
+      if (!hasAccess) {
+        return; // Response already sent by checkTripAccess
+      }
+      
+      // Additional check to verify creator permission (only trip creator can edit)
       const existingTrip = await storage.getTrip(tripId);
       if (!existingTrip) {
         return res.status(404).json({ message: "Trip not found" });
       }
       
-      // Check if the user is authorized to update the trip (must be creator)
-      if (existingTrip.createdBy !== req.user.id) {
+      // Only the creator can edit the trip
+      if (existingTrip.createdBy !== req.user?.id) {
+        console.log(`Edit permission denied: Trip creator ${existingTrip.createdBy}, User ${req.user?.id}`);
         return res.status(403).json({ message: "You are not authorized to edit this trip" });
       }
       
