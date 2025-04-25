@@ -431,8 +431,18 @@ export default function TripDetailsPage() {
               {/* Trip Info tab */}
               <TabsContent value="info">
                 <Card>
-                  <CardHeader>
+                  <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle>Trip Information</CardTitle>
+                    {user?.id === trip.createdBy && (
+                      <Button 
+                        size="sm"
+                        variant="outline"
+                        onClick={() => navigate(`/trips/edit/${trip.id}`)}
+                      >
+                        <PencilIcon className="h-4 w-4 mr-2" />
+                        Edit Trip
+                      </Button>
+                    )}
                   </CardHeader>
                   <CardContent>
                     {trip.description ? (
