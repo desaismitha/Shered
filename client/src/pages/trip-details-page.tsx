@@ -7,7 +7,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { format } from "date-fns";
 import { 
-  Calendar, MapPin, Users, PlusIcon, PencilIcon, 
+  Calendar, CalendarRange, MapPin, Users, PlusIcon, PencilIcon, 
   DollarSign, ClipboardList, Info, ArrowLeft
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
