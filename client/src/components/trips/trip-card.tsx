@@ -160,7 +160,7 @@ export function TripCard({ trip }: TripCardProps) {
                 variant="ghost"
                 size="sm"
                 className="flex items-center gap-1 text-neutral-500 hover:text-primary-600"
-                onClick={() => navigate(`/trips/edit/${trip.id}`)}
+                onClick={() => navigate(`/trips/${trip.id}`)}
               >
                 <Edit className="h-3 w-3" />
                 <span className="text-xs">Edit</span>
