@@ -469,9 +469,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       if (!req.isAuthenticated()) return res.sendStatus(401);
       
+      // Get base trip data
       const trips = await storage.getTripsByUserId(req.user.id);
-      res.json(trips);
+      
+      // Enhance each trip with access level information
+      const tripsWithAccessLevels = trips.map(trip => {
+        // If user is the creator, they're the owner
+        const isOwner = String(trip.createdBy) === String(req.user.id);
+        
+        return {
+          ...trip,
+          _accessLevel: isOwner ? 'owner' : 'member'
+        };
+      });
+      
+      console.log(`Returning ${tripsWithAccessLevels.length} trips with access levels`);
+      res.json(tripsWithAccessLevels);
     } catch (err) {
+      console.error("Error fetching trips list:", err);
       next(err);
     }
   });
@@ -594,7 +609,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error("ERROR: Trips data doesn't have destination field:", trips);
       }
       
-      res.json(trips);
+      // Enhance each trip with access level information
+      const tripsWithAccessLevels = trips.map(trip => {
+        // If user is the creator, they're the owner, otherwise they're a member
+        const isOwner = String(trip.createdBy) === String(req.user.id);
+        
+        return {
+          ...trip,
+          _accessLevel: isOwner ? 'owner' : 'member'
+        };
+      });
+      
+      res.json(tripsWithAccessLevels);
     } catch (err) {
       next(err);
     }
