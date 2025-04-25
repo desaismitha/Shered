@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db, attemptReconnect, checkDbConnection, cleanupConnections } from "./db";
 import { setupAuth, hashPassword } from "./auth";
-import { insertGroupSchema, insertTripSchema, insertItineraryItemSchema, insertExpenseSchema, insertMessageSchema, insertGroupMemberSchema, insertVehicleSchema, insertTripVehicleSchema, users as usersTable } from "@shared/schema";
+import { insertGroupSchema, insertTripSchema, insertItineraryItemSchema, insertExpenseSchema, insertMessageSchema, insertGroupMemberSchema, insertVehicleSchema, insertTripVehicleSchema, users as usersTable, trips } from "@shared/schema";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { sendGroupInvitation, sendPasswordResetEmail } from "./email";
@@ -1356,8 +1356,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const tripId = Number(req.params.id);
       const { latitude, longitude } = req.body;
       
+      console.log("[TRIP_UPDATE_LOCATION] Request body:", req.body);
+      console.log("[TRIP_UPDATE_LOCATION] Latitude:", latitude, typeof latitude);
+      console.log("[TRIP_UPDATE_LOCATION] Longitude:", longitude, typeof longitude);
+      
       if (typeof latitude !== 'number' || typeof longitude !== 'number') {
-        return res.status(400).json({ error: "Invalid location data" });
+        return res.status(400).json({ error: "Invalid location data - latitude and longitude must be numbers" });
       }
       
       // Check if user is the owner or member of trip
@@ -1390,8 +1394,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Update trip with new location
-      // Create update data object with explicit properties to avoid issues
-      const locationUpdateData = {
+      const data = {
         currentLatitude: latitude,
         currentLongitude: longitude,
         lastLocationUpdate: new Date(),
@@ -1399,21 +1402,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       
       // Log the update data for debugging
-      console.log("Location update data:", locationUpdateData);
+      console.log("[TRIP_UPDATE_LOCATION] Location update data:", JSON.stringify(data));
       
-      const updatedTrip = await storage.updateTrip(tripId, locationUpdateData);
-      
-      if (!updatedTrip) {
-        return res.status(500).json({ error: "Failed to update trip location" });
-      }
-      
-      return res.status(200).json({
-        message: "Trip location updated",
-        trip: {
-          ...updatedTrip,
-          _accessLevel: accessLevel
+      // Bypass the storage.updateTrip method which is having issues
+      // Use a direct database update for this special case
+      try {
+        const [updatedResult] = await db
+          .update(trips)
+          .set(data)
+          .where(eq(trips.id, tripId))
+          .returning();
+        
+        if (!updatedResult) {
+          return res.status(500).json({ error: "Failed to update trip location - database error" });
         }
-      });
+        
+        console.log("[TRIP_UPDATE_LOCATION] Successfully updated trip location");
+        
+        return res.status(200).json({
+          message: "Trip location updated",
+          trip: {
+            ...updatedResult,
+            _accessLevel: accessLevel
+          }
+        });
+      } catch (dbError) {
+        console.error("[TRIP_UPDATE_LOCATION] Database error:", dbError);
+        return res.status(500).json({ error: "Database error updating location" });
+      }
     } catch (error) {
       console.error("Error updating trip location:", error);
       return res.status(500).json({ error: "Internal server error" });

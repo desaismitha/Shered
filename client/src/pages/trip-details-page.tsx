@@ -434,10 +434,33 @@ export default function TripDetailsPage() {
   
   const updateLocationMutation = useMutation({
     mutationFn: async (coords: { latitude: number; longitude: number }) => {
-      const res = await apiRequest("POST", `/api/trips/${tripId}/update-location`, coords);
-      return await res.json();
+      console.log("Updating location with coordinates:", coords);
+      
+      // Validate coordinates
+      if (typeof coords.latitude !== 'number' || typeof coords.longitude !== 'number') {
+        throw new Error("Invalid coordinates: latitude and longitude must be numbers");
+      }
+      
+      try {
+        const res = await apiRequest("POST", `/api/trips/${tripId}/update-location`, coords);
+        
+        if (!res.ok) {
+          const errorData = await res.json();
+          throw new Error(errorData.error || `Server error: ${res.status}`);
+        }
+        
+        return await res.json();
+      } catch (error) {
+        console.error("Location update error:", error);
+        throw error;
+      }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log("Location updated successfully:", data);
+      toast({
+        title: "Location updated",
+        description: "Your current location has been updated"
+      });
       queryClient.invalidateQueries({ queryKey: ["/api/trips", tripId] });
     },
     onError: (error) => {
