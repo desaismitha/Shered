@@ -21,7 +21,7 @@ import { useUserLookup } from "@/hooks/use-user-lookup";
 import { MessageList } from "@/components/messages/message-list";
 import { MessageForm } from "@/components/messages/message-form";
 import { Badge } from "@/components/ui/badge";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -111,8 +111,9 @@ export default function GroupDetailsPage() {
   const inviteUserSchema = z.object({
     email: z.string().email("Please enter a valid email address"),
     phoneNumber: z.string()
+      .transform(val => val ? val.replace(/\D/g, "") : val) // Remove non-digits
       .refine(
-        val => !val || val.replace(/\D/g, "").length === 10,
+        val => !val || val.length === 10,
         { message: "Phone number must be exactly 10 digits" }
       )
       .optional(),
@@ -461,43 +462,43 @@ export default function GroupDetailsPage() {
                     ) : (
                       <Form {...inviteUserForm}>
                         <form onSubmit={inviteUserForm.handleSubmit(onInviteUserSubmit)} className="space-y-4">
-                          <div className="space-y-2">
-                            <label className="text-sm font-medium" htmlFor="invite-email">
-                              Email Address
-                            </label>
-                            <input
-                              id="invite-email"
-                              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                              type="text"
-                              placeholder="email@example.com"
-                              value={inviteUserForm.watch("email")}
-                              onChange={(e) => inviteUserForm.setValue("email", e.target.value)}
-                            />
-                            {inviteUserForm.formState.errors.email && (
-                              <p className="text-sm font-medium text-destructive">
-                                {inviteUserForm.formState.errors.email.message}
-                              </p>
+                          <FormField
+                            control={inviteUserForm.control}
+                            name="email"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Email Address</FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    placeholder="email@example.com"
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
                             )}
-                          </div>
+                          />
                           
-                          <div className="space-y-2">
-                            <label className="text-sm font-medium" htmlFor="invite-phone">
-                              Phone Number (Optional)
-                            </label>
-                            <input
-                              id="invite-phone"
-                              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                              type="text"
-                              placeholder="+1 (555) 123-4567"
-                              value={inviteUserForm.watch("phoneNumber") || ""}
-                              onChange={(e) => inviteUserForm.setValue("phoneNumber", e.target.value)}
-                            />
-                            {inviteUserForm.formState.errors.phoneNumber && (
-                              <p className="text-sm font-medium text-destructive">
-                                {inviteUserForm.formState.errors.phoneNumber.message}
-                              </p>
+                          <FormField
+                            control={inviteUserForm.control}
+                            name="phoneNumber"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Phone Number (Optional)</FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    placeholder="10 digits only (e.g., 5551234567)"
+                                    {...field}
+                                    value={field.value || ""}
+                                  />
+                                </FormControl>
+                                <FormDescription>
+                                  Must be exactly 10 digits (formatting will be handled)
+                                </FormDescription>
+                                <FormMessage />
+                              </FormItem>
                             )}
-                          </div>
+                          />
                           
                           <FormField
                             control={inviteUserForm.control}
