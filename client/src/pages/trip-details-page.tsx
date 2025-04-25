@@ -751,7 +751,7 @@ export default function TripDetailsPage() {
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle>Trip Itinerary</CardTitle>
-                    {!isAddingItinerary && trip._accessLevel && (
+                    {!isAddingItinerary && !editingItineraryItem && trip._accessLevel && (
                       <Button 
                         size="sm"
                         onClick={() => setIsAddingItinerary(true)}
@@ -762,12 +762,32 @@ export default function TripDetailsPage() {
                     )}
                   </CardHeader>
                   <CardContent>
-                    {isAddingItinerary ? (
+                    {isAddingItinerary || editingItineraryItem ? (
                       <>
                         <ItineraryForm 
                           tripId={tripId} 
-                          onSuccess={() => setIsAddingItinerary(false)}
-                          onCancel={() => setIsAddingItinerary(false)}
+                          initialData={editingItineraryItem ? {
+                            id: editingItineraryItem.id,
+                            day: editingItineraryItem.day,
+                            title: editingItineraryItem.title,
+                            description: editingItineraryItem.description,
+                            location: editingItineraryItem.location,
+                            startTime: editingItineraryItem.startTime,
+                            endTime: editingItineraryItem.endTime,
+                            isRecurring: editingItineraryItem.isRecurring === null ? false : editingItineraryItem.isRecurring,
+                            recurrencePattern: editingItineraryItem.recurrencePattern,
+                            recurrenceDays: editingItineraryItem.recurrenceDays,
+                            fromLocation: editingItineraryItem.fromLocation,
+                            toLocation: editingItineraryItem.toLocation
+                          } : undefined}
+                          onSuccess={() => {
+                            setIsAddingItinerary(false);
+                            setEditingItineraryItem(null);
+                          }}
+                          onCancel={() => {
+                            setIsAddingItinerary(false);
+                            setEditingItineraryItem(null);
+                          }}
                         />
                         <Separator className="my-6" />
                       </>
@@ -804,6 +824,8 @@ export default function TripDetailsPage() {
                                       key={item.id} 
                                       item={item} 
                                       users={users || []}
+                                      tripAccessLevel={trip._accessLevel}
+                                      onEdit={(item) => setEditingItineraryItem(item)}
                                     />
                                   ))
                                 }

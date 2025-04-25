@@ -85,48 +85,75 @@ interface ItineraryFormProps {
   };
 }
 
-export function ItineraryForm({ tripId, onSuccess, onCancel }: ItineraryFormProps) {
+export function ItineraryForm({ tripId, onSuccess, onCancel, initialData }: ItineraryFormProps) {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [isRecurring, setIsRecurring] = useState(false);
-  const [recurrencePattern, setRecurrencePattern] = useState<string>('daily');
+  const isEditMode = !!initialData?.id;
+  
+  // Parse recurrenceDays if it's a string
+  let parsedRecurrenceDays: string[] = [];
+  if (initialData?.recurrenceDays) {
+    if (typeof initialData.recurrenceDays === 'string') {
+      try {
+        parsedRecurrenceDays = JSON.parse(initialData.recurrenceDays);
+      } catch (e) {
+        console.error('Error parsing recurrenceDays:', e);
+      }
+    } else if (Array.isArray(initialData.recurrenceDays)) {
+      parsedRecurrenceDays = initialData.recurrenceDays;
+    }
+  }
+  
+  const [isRecurring, setIsRecurring] = useState(initialData?.isRecurring || false);
+  const [recurrencePattern, setRecurrencePattern] = useState<string>(initialData?.recurrencePattern || 'daily');
 
   // Form setup
   const form = useForm<ItineraryFormValues>({
     resolver: zodResolver(itineraryFormSchema),
     defaultValues: {
       tripId,
-      day: 1,
-      title: "",
-      description: "",
-      location: "",
-      startTime: "",
-      endTime: "",
-      isRecurring: false,
-      recurrencePattern: "daily",
-      recurrenceDays: [],
+      day: initialData?.day || 1,
+      title: initialData?.title || "",
+      description: initialData?.description || "",
+      location: initialData?.location || "",
+      startTime: initialData?.startTime || "",
+      endTime: initialData?.endTime || "",
+      isRecurring: initialData?.isRecurring || false,
+      recurrencePattern: initialData?.recurrencePattern || "daily",
+      recurrenceDays: parsedRecurrenceDays,
+      fromLocation: initialData?.fromLocation || "",
+      toLocation: initialData?.toLocation || "",
       createdBy: user?.id || 0,
     },
   });
 
-  // Create itinerary item mutation
+  // Create/Update itinerary item mutation
   const mutation = useMutation({
     mutationFn: async (values: ItineraryFormValues) => {
-      const res = await apiRequest("POST", `/api/trips/${tripId}/itinerary`, values);
-      return await res.json();
+      if (isEditMode && initialData?.id) {
+        // Update existing item
+        const res = await apiRequest("PATCH", `/api/itinerary/${initialData.id}`, values);
+        return await res.json();
+      } else {
+        // Create new item
+        const res = await apiRequest("POST", `/api/trips/${tripId}/itinerary`, values);
+        return await res.json();
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/trips", tripId, "itinerary"] });
       toast({
         title: "Success!",
-        description: "Itinerary item has been added.",
+        description: isEditMode 
+          ? "Itinerary item has been updated." 
+          : "Itinerary item has been added.",
       });
       onSuccess();
     },
     onError: (error) => {
       toast({
         title: "Error",
-        description: `Failed to add itinerary item: ${error.message}`,
+        description: `Failed to ${isEditMode ? 'update' : 'add'} itinerary item: ${error.message}`,
         variant: "destructive",
       });
     },
@@ -385,6 +412,40 @@ export function ItineraryForm({ tripId, onSuccess, onCancel }: ItineraryFormProp
             </FormItem>
           )}
         />
+        
+        {/* Transportation details */}
+        <div className="border p-4 rounded-md bg-blue-50">
+          <h3 className="font-medium mb-3">Transportation Details (Optional)</h3>
+          <div className="space-y-4">
+            <FormField
+              control={form.control}
+              name="fromLocation"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Starting Location</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Where the trip segment starts" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="toLocation"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Destination</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Where the trip segment ends" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </div>
 
         <div className="flex justify-end space-x-2">
           <Button 
@@ -398,7 +459,9 @@ export function ItineraryForm({ tripId, onSuccess, onCancel }: ItineraryFormProp
             type="submit" 
             disabled={mutation.isPending}
           >
-            {mutation.isPending ? "Adding..." : "Add Item"}
+            {mutation.isPending 
+              ? (isEditMode ? "Updating..." : "Adding...") 
+              : (isEditMode ? "Update Item" : "Add Item")}
           </Button>
         </div>
       </form>
