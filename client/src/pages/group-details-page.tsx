@@ -88,14 +88,26 @@ export default function GroupDetailsPage() {
     member => member.userId === user?.id && member.role === "admin"
   );
 
-  // Add member mutation
+  // Add member schemas
   const addMemberSchema = z.object({
     username: z.string().min(3, "Username must be at least 3 characters"),
     role: z.enum(["member", "admin"]).default("member"),
   });
 
-  type AddMemberValues = z.infer<typeof addMemberSchema>;
+  // Schema for inviting a new user (who doesn't have an account yet)
+  const inviteUserSchema = z.object({
+    email: z.string().email("Please enter a valid email address"),
+    phoneNumber: z.string().optional(),
+    role: z.enum(["member", "admin"]).default("member"),
+  });
 
+  type AddMemberValues = z.infer<typeof addMemberSchema>;
+  type InviteUserValues = z.infer<typeof inviteUserSchema>;
+
+  // Toggle between adding existing member or inviting new member
+  const [isInviteMode, setIsInviteMode] = useState(false);
+
+  // Form for adding existing members
   const addMemberForm = useForm<AddMemberValues>({
     resolver: zodResolver(addMemberSchema),
     defaultValues: {
@@ -104,6 +116,17 @@ export default function GroupDetailsPage() {
     }
   });
 
+  // Form for inviting new users
+  const inviteUserForm = useForm<InviteUserValues>({
+    resolver: zodResolver(inviteUserSchema),
+    defaultValues: {
+      email: "",
+      phoneNumber: "",
+      role: "member",
+    }
+  });
+
+  // Mutation for adding existing members
   const addMemberMutation = useMutation({
     mutationFn: async (values: AddMemberValues) => {
       // First, we need to get the user ID by username
@@ -141,8 +164,36 @@ export default function GroupDetailsPage() {
     },
   });
 
+  // Mutation for inviting new users
+  const inviteUserMutation = useMutation({
+    mutationFn: async (values: InviteUserValues) => {
+      const res = await apiRequest("POST", `/api/groups/${groupId}/invite`, values);
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/groups", groupId, "members"] });
+      toast({
+        title: "Invitation Sent!",
+        description: "An invitation has been sent to join the group.",
+      });
+      setIsAddMemberOpen(false);
+      inviteUserForm.reset();
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: `Failed to send invitation: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+
   const onAddMemberSubmit = (values: AddMemberValues) => {
     addMemberMutation.mutate(values);
+  };
+  
+  const onInviteUserSubmit = (values: InviteUserValues) => {
+    inviteUserMutation.mutate(values);
   };
 
   if (isLoadingGroup) {
@@ -224,78 +275,180 @@ export default function GroupDetailsPage() {
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
-                      <DialogTitle>Add New Member</DialogTitle>
+                      <DialogTitle>Add Member to Group</DialogTitle>
                       <DialogDescription>
-                        Enter the username of the person you want to add to this group.
+                        {isInviteMode 
+                          ? "Invite someone via email to join this group." 
+                          : "Add an existing user to this group."}
                       </DialogDescription>
                     </DialogHeader>
                     
-                    <Form {...addMemberForm}>
-                      <form onSubmit={addMemberForm.handleSubmit(onAddMemberSubmit)} className="space-y-4">
-                        <FormField
-                          control={addMemberForm.control}
-                          name="username"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Username</FormLabel>
-                              <FormControl>
-                                <Input placeholder="Enter username" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <FormField
-                          control={addMemberForm.control}
-                          name="role"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Role</FormLabel>
-                              <div className="flex space-x-4">
-                                <label className="flex items-center space-x-2 cursor-pointer">
-                                  <input
-                                    type="radio"
-                                    className="form-radio"
-                                    value="member"
-                                    checked={field.value === "member"}
-                                    onChange={() => field.onChange("member")}
-                                  />
-                                  <span>Member</span>
-                                </label>
-                                <label className="flex items-center space-x-2 cursor-pointer">
-                                  <input
-                                    type="radio"
-                                    className="form-radio"
-                                    value="admin"
-                                    checked={field.value === "admin"}
-                                    onChange={() => field.onChange("admin")}
-                                  />
-                                  <span>Admin</span>
-                                </label>
-                              </div>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <DialogFooter>
-                          <Button 
-                            type="button" 
-                            variant="outline" 
-                            onClick={() => setIsAddMemberOpen(false)}
-                          >
-                            Cancel
-                          </Button>
-                          <Button 
-                            type="submit" 
-                            disabled={addMemberMutation.isPending}
-                          >
-                            {addMemberMutation.isPending ? "Adding..." : "Add Member"}
-                          </Button>
-                        </DialogFooter>
-                      </form>
-                    </Form>
+                    <div className="flex border rounded-md mb-4">
+                      <button
+                        type="button"
+                        className={`flex-1 text-center py-2 px-3 text-sm font-medium rounded-l-md ${!isInviteMode ? 'bg-primary text-white' : 'hover:bg-muted'}`}
+                        onClick={() => setIsInviteMode(false)}
+                      >
+                        Existing User
+                      </button>
+                      <button
+                        type="button"
+                        className={`flex-1 text-center py-2 px-3 text-sm font-medium rounded-r-md ${isInviteMode ? 'bg-primary text-white' : 'hover:bg-muted'}`}
+                        onClick={() => setIsInviteMode(true)}
+                      >
+                        Invite New User
+                      </button>
+                    </div>
+                    
+                    {!isInviteMode ? (
+                      <Form {...addMemberForm}>
+                        <form onSubmit={addMemberForm.handleSubmit(onAddMemberSubmit)} className="space-y-4">
+                          <FormField
+                            control={addMemberForm.control}
+                            name="username"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Username</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="Enter username" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <FormField
+                            control={addMemberForm.control}
+                            name="role"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Role</FormLabel>
+                                <div className="flex space-x-4">
+                                  <label className="flex items-center space-x-2 cursor-pointer">
+                                    <input
+                                      type="radio"
+                                      className="form-radio"
+                                      value="member"
+                                      checked={field.value === "member"}
+                                      onChange={() => field.onChange("member")}
+                                    />
+                                    <span>Member</span>
+                                  </label>
+                                  <label className="flex items-center space-x-2 cursor-pointer">
+                                    <input
+                                      type="radio"
+                                      className="form-radio"
+                                      value="admin"
+                                      checked={field.value === "admin"}
+                                      onChange={() => field.onChange("admin")}
+                                    />
+                                    <span>Admin</span>
+                                  </label>
+                                </div>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <DialogFooter>
+                            <Button 
+                              type="button" 
+                              variant="outline" 
+                              onClick={() => setIsAddMemberOpen(false)}
+                            >
+                              Cancel
+                            </Button>
+                            <Button 
+                              type="submit" 
+                              disabled={addMemberMutation.isPending}
+                            >
+                              {addMemberMutation.isPending ? "Adding..." : "Add Member"}
+                            </Button>
+                          </DialogFooter>
+                        </form>
+                      </Form>
+                    ) : (
+                      <Form {...inviteUserForm}>
+                        <form onSubmit={inviteUserForm.handleSubmit(onInviteUserSubmit)} className="space-y-4">
+                          <FormField
+                            control={inviteUserForm.control}
+                            name="email"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Email Address</FormLabel>
+                                <FormControl>
+                                  <Input type="email" placeholder="email@example.com" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <FormField
+                            control={inviteUserForm.control}
+                            name="phoneNumber"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Phone Number (Optional)</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="+1 (555) 123-4567" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <FormField
+                            control={inviteUserForm.control}
+                            name="role"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Role</FormLabel>
+                                <div className="flex space-x-4">
+                                  <label className="flex items-center space-x-2 cursor-pointer">
+                                    <input
+                                      type="radio"
+                                      className="form-radio"
+                                      value="member"
+                                      checked={field.value === "member"}
+                                      onChange={() => field.onChange("member")}
+                                    />
+                                    <span>Member</span>
+                                  </label>
+                                  <label className="flex items-center space-x-2 cursor-pointer">
+                                    <input
+                                      type="radio"
+                                      className="form-radio"
+                                      value="admin"
+                                      checked={field.value === "admin"}
+                                      onChange={() => field.onChange("admin")}
+                                    />
+                                    <span>Admin</span>
+                                  </label>
+                                </div>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <DialogFooter>
+                            <Button 
+                              type="button" 
+                              variant="outline" 
+                              onClick={() => setIsAddMemberOpen(false)}
+                            >
+                              Cancel
+                            </Button>
+                            <Button 
+                              type="submit" 
+                              disabled={inviteUserMutation.isPending}
+                            >
+                              {inviteUserMutation.isPending ? "Sending..." : "Send Invitation"}
+                            </Button>
+                          </DialogFooter>
+                        </form>
+                      </Form>
+                    )}
                   </DialogContent>
                 </Dialog>
               )}

@@ -5,6 +5,8 @@ import { db } from "./db";
 import { setupAuth } from "./auth";
 import { insertGroupSchema, insertTripSchema, insertItineraryItemSchema, insertExpenseSchema, insertMessageSchema, insertGroupMemberSchema, users as usersTable } from "@shared/schema";
 import { z } from "zod";
+import { sendGroupInvitation } from "./email";
+import crypto from "crypto";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication routes
@@ -161,6 +163,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(members);
     } catch (err) {
+      next(err);
+    }
+  });
+  
+  // Invite new user to group by email/phone
+  app.post("/api/groups/:id/invite", async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+      
+      const groupId = parseInt(req.params.id);
+      const group = await storage.getGroup(groupId);
+      
+      if (!group) {
+        return res.status(404).json({ message: "Group not found" });
+      }
+      
+      // Check if user is an admin of the group
+      const members = await storage.getGroupMembers(groupId);
+      const isAdmin = members.some(
+        member => member.userId === req.user.id && member.role === "admin"
+      );
+      
+      if (!isAdmin) {
+        return res.status(403).json({ message: "Only group admins can invite members" });
+      }
+      
+      // Validate request data
+      const inviteSchema = z.object({
+        email: z.string().email("Invalid email address"),
+        phoneNumber: z.string().optional(),
+        role: z.enum(["member", "admin"]).default("member"),
+      });
+      
+      const validatedData = inviteSchema.parse(req.body);
+      
+      // Generate a unique token for this invitation
+      const token = crypto.randomBytes(32).toString('hex');
+      
+      // In a production app, we would store this token in the database
+      // For now, we'll just send the email with a registration link that includes the token
+      
+      // Create an invite link
+      const baseUrl = process.env.BASE_URL || 'http://localhost:5000';
+      const inviteLink = `${baseUrl}/register?token=${token}&groupId=${groupId}&email=${encodeURIComponent(validatedData.email)}`;
+      
+      // Send invitation email
+      const inviter = req.user;
+      const success = await sendGroupInvitation(
+        validatedData.email,
+        group.name,
+        inviter.displayName || inviter.username,
+        inviteLink
+      );
+      
+      if (!success) {
+        return res.status(500).json({ message: "Failed to send invitation email" });
+      }
+      
+      res.status(200).json({ 
+        message: "Invitation sent successfully",
+        email: validatedData.email,
+        phoneNumber: validatedData.phoneNumber,
+        token
+      });
+    } catch (err) {
+      console.error("Error sending invitation:", err);
       next(err);
     }
   });
