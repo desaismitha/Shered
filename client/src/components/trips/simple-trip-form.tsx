@@ -24,6 +24,7 @@ export function SimpleTripForm() {
   
   // Form state
   const [name, setName] = useState("");
+  const [startLocation, setStartLocation] = useState("");
   const [destination, setDestination] = useState("");
   const [description, setDescription] = useState("");
   const [imageUrl, setImageUrl] = useState("");
@@ -77,6 +78,7 @@ export function SimpleTripForm() {
       // Create trip data - Ensure dates are in proper ISO format
       const tripData = {
         name,
+        startLocation: startLocation || null,
         destination,
         description: description || null,
         imageUrl: imageUrl || null,
@@ -131,6 +133,18 @@ export function SimpleTripForm() {
           className={errors.name ? "border-red-500" : ""}
         />
         {errors.name && <p className="text-red-500 text-sm">{errors.name}</p>}
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="startLocation">Starting Location</Label>
+        <Input
+          id="startLocation"
+          value={startLocation}
+          onChange={(e) => setStartLocation(e.target.value)}
+          placeholder="Your departure city"
+          className={errors.startLocation ? "border-red-500" : ""}
+        />
+        {errors.startLocation && <p className="text-red-500 text-sm">{errors.startLocation}</p>}
       </div>
 
       <div className="space-y-2">

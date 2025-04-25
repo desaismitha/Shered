@@ -67,6 +67,7 @@ export function TripForm() {
     resolver: zodResolver(tripSchema),
     defaultValues: {
       name: "",
+      startLocation: "",
       destination: "",
       description: "",
       imageUrl: "",
@@ -127,6 +128,20 @@ export function TripForm() {
           )}
         />
 
+        <FormField
+          control={form.control}
+          name="startLocation"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Starting Location</FormLabel>
+              <FormControl>
+                <Input placeholder="Your departure city" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
         <FormField
           control={form.control}
           name="destination"
