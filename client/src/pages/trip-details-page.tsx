@@ -87,8 +87,12 @@ export default function TripDetailsPage() {
 
   // Group itinerary items by day
   const itemsByDay = itineraryItems?.reduce((acc, item) => {
-    // Make sure day is a valid number
-    const day = item.day || 1; // Default to day 1 if day is null or undefined
+    // Skip items that don't have a valid day value
+    if (item.day === null || item.day === undefined) {
+      return acc;
+    }
+    
+    const day = item.day;
     if (!acc[day]) {
       acc[day] = [];
     }
