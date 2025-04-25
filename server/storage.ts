@@ -1,5 +1,5 @@
-import { users, groups, groupMembers, trips, itineraryItems, expenses, messages } from "@shared/schema";
-import type { User, InsertUser, Group, InsertGroup, GroupMember, InsertGroupMember, Trip, InsertTrip, ItineraryItem, InsertItineraryItem, Expense, InsertExpense, Message, InsertMessage } from "@shared/schema";
+import { users, groups, groupMembers, trips, itineraryItems, expenses, messages, vehicles, tripVehicles } from "@shared/schema";
+import type { User, InsertUser, Group, InsertGroup, GroupMember, InsertGroupMember, Trip, InsertTrip, ItineraryItem, InsertItineraryItem, Expense, InsertExpense, Message, InsertMessage, Vehicle, InsertVehicle, TripVehicle, InsertTripVehicle } from "@shared/schema";
 import session from "express-session";
 import { eq, and, inArray, gt } from "drizzle-orm";
 import { db, pool, attemptReconnect, checkDbConnection } from "./db";
@@ -52,6 +52,18 @@ export interface IStorage {
   // Message methods
   createMessage(message: InsertMessage): Promise<Message>;
   getMessagesByGroupId(groupId: number): Promise<Message[]>;
+  
+  // Vehicle methods
+  createVehicle(vehicle: InsertVehicle): Promise<Vehicle>;
+  getVehicle(id: number): Promise<Vehicle | undefined>;
+  getVehiclesByUserId(userId: number): Promise<Vehicle[]>;
+  updateVehicle(id: number, vehicle: Partial<InsertVehicle>): Promise<Vehicle | undefined>;
+  deleteVehicle(id: number): Promise<boolean>;
+  
+  // Trip Vehicle methods
+  assignVehicleToTrip(tripVehicle: InsertTripVehicle): Promise<TripVehicle>;
+  removeTripVehicle(id: number): Promise<boolean>;
+  getTripVehicles(tripId: number): Promise<TripVehicle[]>;
   
   // Session store
   sessionStore: any;
@@ -493,6 +505,99 @@ export class DatabaseStorage implements IStorage {
       return await db.select().from(messages)
         .where(eq(messages.groupId, groupId))
         .orderBy(messages.createdAt);
+    });
+  }
+  
+  // Vehicle methods
+  async createVehicle(insertVehicle: InsertVehicle): Promise<Vehicle> {
+    return this.executeDbOperation(async () => {
+      console.log("[STORAGE] Creating vehicle with data:", JSON.stringify(insertVehicle));
+      const [vehicle] = await db.insert(vehicles).values(insertVehicle).returning();
+      console.log("[STORAGE] Vehicle created:", JSON.stringify(vehicle));
+      return vehicle;
+    });
+  }
+
+  async getVehicle(id: number): Promise<Vehicle | undefined> {
+    return this.executeDbOperation(async () => {
+      const [vehicle] = await db.select().from(vehicles).where(eq(vehicles.id, id));
+      return vehicle;
+    });
+  }
+
+  async getVehiclesByUserId(userId: number): Promise<Vehicle[]> {
+    return this.executeDbOperation(async () => {
+      return await db.select().from(vehicles).where(eq(vehicles.userId, userId));
+    });
+  }
+
+  async updateVehicle(id: number, vehicleData: Partial<InsertVehicle>): Promise<Vehicle | undefined> {
+    return this.executeDbOperation(async () => {
+      const [vehicle] = await db.update(vehicles)
+        .set(vehicleData)
+        .where(eq(vehicles.id, id))
+        .returning();
+      return vehicle;
+    });
+  }
+
+  async deleteVehicle(id: number): Promise<boolean> {
+    return this.executeDbOperation(async () => {
+      // First check if vehicle is assigned to any trips
+      const tripVehicleLinks = await db.select()
+        .from(tripVehicles)
+        .where(eq(tripVehicles.vehicleId, id));
+      
+      // If it's used in trips, we won't delete it
+      if (tripVehicleLinks.length > 0) {
+        console.log(`[STORAGE] Vehicle with ID ${id} is used in ${tripVehicleLinks.length} trips and cannot be deleted`);
+        return false;
+      }
+      
+      // Delete the vehicle
+      const result = await db.delete(vehicles)
+        .where(eq(vehicles.id, id))
+        .returning({ id: vehicles.id });
+      
+      return result.length > 0;
+    });
+  }
+  
+  // Trip Vehicle methods
+  async assignVehicleToTrip(insertTripVehicle: InsertTripVehicle): Promise<TripVehicle> {
+    return this.executeDbOperation(async () => {
+      console.log("[STORAGE] Assigning vehicle to trip:", JSON.stringify(insertTripVehicle));
+      
+      // If this is the main vehicle, set all other vehicles for this trip to non-main
+      if (insertTripVehicle.isMain) {
+        await db.update(tripVehicles)
+          .set({ isMain: false })
+          .where(eq(tripVehicles.tripId, insertTripVehicle.tripId));
+      }
+      
+      const [tripVehicle] = await db.insert(tripVehicles)
+        .values(insertTripVehicle)
+        .returning();
+      
+      console.log("[STORAGE] Vehicle assigned to trip:", JSON.stringify(tripVehicle));
+      return tripVehicle;
+    });
+  }
+  
+  async removeTripVehicle(id: number): Promise<boolean> {
+    return this.executeDbOperation(async () => {
+      const result = await db.delete(tripVehicles)
+        .where(eq(tripVehicles.id, id))
+        .returning({ id: tripVehicles.id });
+      
+      return result.length > 0;
+    });
+  }
+  
+  async getTripVehicles(tripId: number): Promise<TripVehicle[]> {
+    return this.executeDbOperation(async () => {
+      return await db.select().from(tripVehicles)
+        .where(eq(tripVehicles.tripId, tripId));
     });
   }
 }

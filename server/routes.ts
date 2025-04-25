@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db, attemptReconnect, checkDbConnection, cleanupConnections } from "./db";
 import { setupAuth, hashPassword } from "./auth";
-import { insertGroupSchema, insertTripSchema, insertItineraryItemSchema, insertExpenseSchema, insertMessageSchema, insertGroupMemberSchema, users as usersTable } from "@shared/schema";
+import { insertGroupSchema, insertTripSchema, insertItineraryItemSchema, insertExpenseSchema, insertMessageSchema, insertGroupMemberSchema, insertVehicleSchema, insertTripVehicleSchema, users as usersTable } from "@shared/schema";
 import { z } from "zod";
 import { sendGroupInvitation, sendPasswordResetEmail } from "./email";
 import crypto from "crypto";
