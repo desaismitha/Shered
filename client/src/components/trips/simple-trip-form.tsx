@@ -74,7 +74,7 @@ export function SimpleTripForm() {
     setIsSubmitting(true);
     
     try {
-      // Create trip data
+      // Create trip data - Ensure dates are in proper ISO format
       const tripData = {
         name,
         destination,
@@ -82,8 +82,9 @@ export function SimpleTripForm() {
         imageUrl: imageUrl || null,
         status,
         groupId: groupId,
-        startDate,
-        endDate,
+        // Format dates as expected by the backend
+        startDate: startDate ? new Date(startDate).toISOString() : null,
+        endDate: endDate ? new Date(endDate).toISOString() : null,
         createdBy: user.id
       };
       
