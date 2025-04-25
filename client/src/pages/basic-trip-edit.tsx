@@ -111,12 +111,33 @@ export default function BasicTripEditPage() {
       console.log("Step 2: Updating dates with dedicated endpoint");
       
       // Format the dates with explicit time component
-      const datePayload = {
-        startDate: startDate ? `${startDate}T12:00:00.000Z` : null,
-        endDate: endDate ? `${endDate}T12:00:00.000Z` : null
-      };
+      // BUT only include dates in payload if they're present or explicitly null
+      const datePayload: Record<string, any> = {};
+      
+      // Convert empty strings to null
+      if (startDate === '') {
+        datePayload.startDate = null;
+      } else if (startDate) {
+        datePayload.startDate = `${startDate}T12:00:00.000Z`;
+      }
+      
+      if (endDate === '') {
+        datePayload.endDate = null;
+      } else if (endDate) {
+        datePayload.endDate = `${endDate}T12:00:00.000Z`;
+      }
+      
+      // Add explicit keys if clearing dates
+      if (datePayload.startDate === undefined && startDate === '') {
+        datePayload.startDate = null;
+      }
+      
+      if (datePayload.endDate === undefined && endDate === '') {
+        datePayload.endDate = null;
+      }
       
       console.log("Date payload:", JSON.stringify(datePayload));
+      console.log("Form state - startDate:", startDate, "endDate:", endDate);
       
       // Use dedicated date update endpoint for date fields only
       const response = await fetch(`/api/trips/${tripId}/update-dates`, {

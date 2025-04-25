@@ -580,6 +580,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Debug endpoint to view trip details before update
+  app.get("/api/trips/:id/debug", async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+      
+      const tripId = parseInt(req.params.id);
+      console.log(`DEBUG - Fetching trip ${tripId}`);
+      
+      // Check access
+      const accessLevel = await checkTripAccess(req, tripId, res, next, "[DEBUG] ");
+      if (accessLevel === null) return;
+      
+      // Get current trip data
+      const trip = await storage.getTrip(tripId);
+      if (!trip) {
+        return res.status(404).json({ message: "Trip not found" });
+      }
+      
+      // Log and return the raw trip data
+      console.log("DEBUG - Current trip data:", trip);
+      res.json({
+        currentData: trip,
+        message: "Raw trip data for debugging"
+      });
+    } catch (err) {
+      next(err);
+    }
+  });
+
   // Simple dedicated endpoint just for setting trip dates
   app.post("/api/trips/:id/update-dates", async (req, res, next) => {
     try {
@@ -595,6 +624,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`Special date edit for trip ID: ${tripId}`);
       console.log(`User making request: ${req.user?.id}, Username: ${req.user?.username}`);
       
+      // Get the current trip to compare before/after
+      const beforeTrip = await storage.getTrip(tripId);
+      console.log("BEFORE UPDATE - Trip dates:", {
+        startDate: beforeTrip?.startDate,
+        endDate: beforeTrip?.endDate
+      });
+      
       // Check authorization
       const accessLevel = await checkTripAccess(req, tripId, res, next, "[DATE_EDIT] ");
       if (accessLevel !== 'owner') {
@@ -606,7 +642,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Extract date data
       const { startDate, endDate } = req.body;
-      console.log("Raw date input:", { startDate, endDate });
+      console.log("DATE_EDIT - Raw date input:", { 
+        startDate: startDate, 
+        startDateType: typeof startDate,
+        endDate: endDate,
+        endDateType: typeof endDate
+      });
       
       // Create direct update with dates only
       const updateData: Record<string, any> = {};
@@ -615,7 +656,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (startDate !== undefined) updateData.startDate = startDate;
       if (endDate !== undefined) updateData.endDate = endDate;
       
-      console.log("Date update being sent to storage:", updateData);
+      console.log("DATE_EDIT - Update data being sent to storage:", JSON.stringify(updateData));
       
       // Update just the dates
       const updatedTrip = await storage.updateTrip(tripId, updateData);
@@ -624,8 +665,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Trip not found" });
       }
       
-      console.log("Trip dates updated successfully:", updatedTrip);
-      res.json({ success: true, trip: updatedTrip });
+      console.log("AFTER UPDATE - Trip dates:", {
+        startDate: updatedTrip.startDate,
+        endDate: updatedTrip.endDate
+      });
+      
+      // Include access level just like other endpoints
+      return res.json({
+        ...updatedTrip,
+        _accessLevel: 'owner'
+      });
     } catch (err) {
       console.error("Date update error:", err);
       res.status(500).json({ 
