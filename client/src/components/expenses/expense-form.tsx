@@ -115,7 +115,14 @@ export function ExpenseForm({ tripId, groupMembers, users, onSuccess, onCancel }
   });
 
   const onSubmit = (values: ExpenseFormValues) => {
-    mutation.mutate(values);
+    // Format the date as an ISO string to ensure consistent date handling
+    const formattedValues = {
+      ...values,
+      date: values.date.toISOString()
+    };
+    
+    console.log("Submitting expense with formatted values:", formattedValues);
+    mutation.mutate(formattedValues as any);
   };
 
   return (

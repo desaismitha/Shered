@@ -911,12 +911,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return; // Response already sent by checkTripAccess
       }
       
-      // If we have access, create the expense
+      // If we have access, prepare the expense data
+      // Make sure date is properly handled if it's a string
+      const { date, ...otherFields } = req.body;
+      
+      // Convert date string to Date object if it's a string
+      let processedDate: Date | undefined;
+      if (date && typeof date === 'string') {
+        console.log(`[EXPENSE_ADD] Converting date string to Date: ${date}`);
+        processedDate = new Date(date);
+      } else if (date instanceof Date) {
+        processedDate = date;
+      } else {
+        // Default to current date if not provided
+        processedDate = new Date();
+      }
+      
+      console.log(`[EXPENSE_ADD] Processed date: ${processedDate}`);
+      
+      // Validate and create the expense
       const validatedData = insertExpenseSchema.parse({
-        ...req.body,
+        ...otherFields,
+        date: processedDate,
         tripId,
         paidBy: req.user!.id
       });
+      
+      console.log(`[EXPENSE_ADD] Validated data:`, validatedData);
       
       const expense = await storage.createExpense(validatedData);
       res.status(201).json(expense);
