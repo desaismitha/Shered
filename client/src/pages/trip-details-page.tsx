@@ -83,7 +83,10 @@ export default function TripDetailsPage() {
   // Debug
   useEffect(() => {
     console.log("Itinerary items:", itineraryItems);
-  }, [itineraryItems]);
+    console.log("Raw trip data:", trip);
+    console.log("Trip start date:", trip?.startDate);
+    console.log("Trip end date:", trip?.endDate);
+  }, [itineraryItems, trip]);
 
   // Group itinerary items by day
   const itemsByDay = itineraryItems?.reduce((acc, item) => {
