@@ -24,6 +24,7 @@ export interface IStorage {
   // Trip methods
   createTrip(trip: InsertTrip): Promise<Trip>;
   getTrip(id: number): Promise<Trip | undefined>;
+  updateTrip(id: number, trip: Partial<InsertTrip>): Promise<Trip | undefined>;
   getTripsByUserId(userId: number): Promise<Trip[]>;
   getTripsByGroupId(groupId: number): Promise<Trip[]>;
   
@@ -124,6 +125,24 @@ export class DatabaseStorage implements IStorage {
   async getTrip(id: number): Promise<Trip | undefined> {
     const [trip] = await db.select().from(trips).where(eq(trips.id, id));
     return trip;
+  }
+  
+  async updateTrip(id: number, tripData: Partial<InsertTrip>): Promise<Trip | undefined> {
+    const existingTrip = await this.getTrip(id);
+    if (!existingTrip) return undefined;
+    
+    const [updatedTrip] = await db
+      .update(trips)
+      .set({
+        ...tripData,
+        // Convert date strings to Date objects if present
+        startDate: tripData.startDate ? new Date(tripData.startDate) : undefined,
+        endDate: tripData.endDate ? new Date(tripData.endDate) : undefined
+      })
+      .where(eq(trips.id, id))
+      .returning();
+    
+    return updatedTrip;
   }
 
   async getTripsByUserId(userId: number): Promise<Trip[]> {

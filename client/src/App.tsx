@@ -11,6 +11,7 @@ import DashboardPage from "@/pages/dashboard-page";
 import TripsPage from "@/pages/trips-page";
 import TripDetailsPage from "@/pages/trip-details-page";
 import NewTripPage from "@/pages/trips/new";
+import EditTripPage from "@/pages/trips/edit";
 import GroupsPage from "@/pages/groups-page";
 import GroupDetailsPage from "@/pages/group-details-page";
 import NewGroupPage from "@/pages/groups/new";
@@ -24,6 +25,7 @@ function Router() {
       <ProtectedRoute path="/" component={DashboardPage} />
       <ProtectedRoute path="/trips" component={TripsPage} />
       <ProtectedRoute path="/trips/new" component={NewTripPage} />
+      <ProtectedRoute path="/trips/edit/:id" component={EditTripPage} />
       <ProtectedRoute path="/trips/:id" component={TripDetailsPage} />
       <ProtectedRoute path="/groups/new" component={NewGroupPage} />
       <ProtectedRoute path="/groups/:id" component={GroupDetailsPage} />
