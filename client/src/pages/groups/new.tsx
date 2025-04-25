@@ -1,5 +1,5 @@
 import { AppShell } from "@/components/layout/app-shell";
-import { GroupForm } from "@/components/groups/group-form";
+import { SimpleGroupForm } from "@/components/groups/simple-group-form";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
@@ -23,7 +23,7 @@ export default function NewGroupPage() {
         <h1 className="text-2xl font-bold text-neutral-900 mb-6">Create a New Group</h1>
         
         <div className="bg-white shadow rounded-lg p-6">
-          <GroupForm />
+          <SimpleGroupForm />
         </div>
       </div>
     </AppShell>
