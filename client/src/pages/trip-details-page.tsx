@@ -1,8 +1,8 @@
 import { useEffect, useState, useRef } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Trip as BaseTrip, ItineraryItem, Expense, User, GroupMember } from "@shared/schema";
 import { AppShell } from "@/components/layout/app-shell";
-import { useParams, useLocation, useNavigate } from "wouter";
+import { useParams, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { format, addDays } from "date-fns";
@@ -134,16 +134,27 @@ function TripQuickEdit({ trip, onSuccess }: { trip: Trip, onSuccess: () => void 
       };
       
       const res = await apiRequest("PATCH", `/api/trips/${trip.id}`, formattedValues);
-      return await res.json();
+      const updatedTrip = await res.json();
+      console.log("Trip updated successfully:", updatedTrip);
+      return updatedTrip;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log("Trip update mutation succeeded:", data);
+      
+      // Show success toast
       toast({
         title: "Success",
         description: "Trip details have been updated.",
       });
+      
+      // Invalidate the trip query cache
+      queryClient.invalidateQueries({ queryKey: ["/api/trips", trip.id] });
+      
+      // Call the success callback
       onSuccess();
     },
     onError: (error) => {
+      console.error("Trip update mutation failed:", error);
       toast({
         title: "Error",
         description: `Failed to update trip: ${error.message}`,
@@ -432,7 +443,12 @@ export default function TripDetailsPage() {
   // Handler for successful trip edit
   const handleTripEditSuccess = () => {
     setIsEditingTrip(false);
-    refetchTrip();
+    
+    // Invalidate the trip query to force a refresh with the updated data
+    queryClient.invalidateQueries({ queryKey: ["/api/trips", tripId] });
+    
+    // Also refresh the UI by triggering a re-render
+    setRefreshTrigger(prev => prev + 1);
   };
   
   // Debug output
