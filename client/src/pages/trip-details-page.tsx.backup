@@ -337,7 +337,7 @@ export default function TripDetailsPage() {
   
   // Get tab from URL query parameter
   const tabParam = urlObj.searchParams.get('tab');
-  const defaultTab = tabParam && ['info', 'itinerary', 'expenses', 'vehicles', 'drivers'].includes(tabParam) 
+  const defaultTab = tabParam && ['info', 'itinerary', 'expenses', 'vehicles', 'drivers', 'tracking'].includes(tabParam) 
     ? tabParam 
     : 'info';
     
