@@ -1,22 +1,26 @@
-import { ItineraryItem as ItineraryItemType, User } from "@shared/schema";
-import { MapPin, Clock, User as UserIcon, RepeatIcon, Car, ArrowRightIcon, CalendarIcon, Edit, Trash2 } from "lucide-react";
+import { ItineraryItem as ItineraryItemType, User, Trip } from "@shared/schema";
+import { MapPin, Clock, User as UserIcon, RepeatIcon, Car, ArrowRightIcon, CalendarIcon, Edit, Trash2, Navigation } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useLocation } from "wouter";
 
 interface ItineraryItemProps {
   item: ItineraryItemType;
   users: User[];
   tripAccessLevel?: 'owner' | 'member' | null;
   onEdit?: (item: ItineraryItemType) => void;
+  trip?: Trip;
+  onStartTrackingItem?: (item: ItineraryItemType) => void;
 }
 
-export function ItineraryItem({ item, users, tripAccessLevel, onEdit }: ItineraryItemProps) {
+export function ItineraryItem({ item, users, tripAccessLevel, onEdit, trip, onStartTrackingItem }: ItineraryItemProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [, navigate] = useLocation();
   
   // Delete mutation
   const deleteMutation = useMutation({
@@ -192,6 +196,34 @@ export function ItineraryItem({ item, users, tripAccessLevel, onEdit }: Itinerar
         {/* Action buttons - only visible for trip owners */}
         {tripAccessLevel === 'owner' && (
           <div className="flex space-x-2">
+            {isPickupDropoff && trip && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="h-7 bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200"
+                      onClick={() => {
+                        if (onStartTrackingItem) {
+                          onStartTrackingItem(item);
+                        } else if (trip.id) {
+                          // Navigate to active trips page with this item
+                          navigate(`/active-trips?tripId=${trip.id}&itemId=${item.id}`);
+                        }
+                      }}
+                    >
+                      <Navigation className="h-3.5 w-3.5 mr-1" />
+                      Start Trip
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Start tracking this trip segment</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+            
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
