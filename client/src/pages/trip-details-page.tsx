@@ -804,16 +804,7 @@ export default function TripDetailsPage() {
                             : "The trip organizer hasn't added any itinerary items yet."}
                         </p>
                         
-                        {trip._accessLevel === 'owner' && (
-                          <Button
-                            onClick={() => {
-                              queryClient.invalidateQueries({ queryKey: ["/api/trips", tripId, "itinerary"] });
-                            }}
-                          >
-                            <PlusIcon className="h-4 w-4 mr-2" />
-                            Add First Itinerary Item
-                          </Button>
-                        )}
+                        {/* Button removed to avoid duplication with the ItineraryForm component */}
                       </div>
                     )}
                   </CardContent>
@@ -886,16 +877,7 @@ export default function TripDetailsPage() {
                           Track expenses for this trip to help with budgeting and cost sharing.
                         </p>
                         
-                        {trip._accessLevel === 'owner' && (
-                          <Button
-                            onClick={() => {
-                              queryClient.invalidateQueries({ queryKey: ["/api/trips", tripId, "expenses"] });
-                            }}
-                          >
-                            <PlusIcon className="h-4 w-4 mr-2" />
-                            Add First Expense
-                          </Button>
-                        )}
+                        {/* Button removed to avoid duplication with the ExpenseForm component */}
                       </div>
                     )}
                   </CardContent>
