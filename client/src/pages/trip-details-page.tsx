@@ -1,14 +1,14 @@
 import { useEffect, useState, useRef } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Trip as BaseTrip, ItineraryItem, Expense, User, GroupMember } from "@shared/schema";
 import { AppShell } from "@/components/layout/app-shell";
-import { useParams, useLocation } from "wouter";
+import { useParams, useLocation, useNavigate } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { format, addDays } from "date-fns";
-import { isSpecialDateMarker, formatDateRange } from "@/lib/utils";
+import { isSpecialDateMarker, formatDateRange, cn } from "@/lib/utils";
 import { 
-  AlertTriangle, Calendar, CalendarRange, MapPin, Users, PlusIcon, PencilIcon, 
+  AlertTriangle, Calendar as CalendarIcon, CalendarRange, MapPin, Users, PlusIcon, PencilIcon, 
   DollarSign, ClipboardList, Info, ArrowLeft, Car, UserCheck, ArrowRight,
   Map, Navigation, PlayCircle, StopCircle, Share2, Check, X
 } from "lucide-react";
@@ -28,6 +28,31 @@ import {
   DialogTitle 
 } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useForm } from "react-hook-form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 // Import Leaflet map components
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
@@ -78,8 +103,184 @@ interface Trip {
 
 // Simple edit form component to edit trip directly on the details page
 function TripQuickEdit({ trip, onSuccess }: { trip: Trip, onSuccess: () => void }) {
-  // Component implementation
-  return <div>Quick edit form</div>;
+  const { toast } = useToast();
+  const [name, setName] = useState(trip.name);
+  const [status, setStatus] = useState(trip.status || 'planning');
+  const [startLocation, setStartLocation] = useState(trip.startLocation || '');
+  const [destination, setDestination] = useState(trip.destination);
+  const [description, setDescription] = useState(trip.description || '');
+  const [startDate, setStartDate] = useState(trip.startDate ? new Date(trip.startDate) : new Date());
+  const [endDate, setEndDate] = useState(trip.endDate ? new Date(trip.endDate) : new Date());
+  const [isUpdating, setIsUpdating] = useState(false);
+  
+  // Status options for the select component
+  const statusOptions = [
+    { value: 'planning', label: 'Planning' },
+    { value: 'confirmed', label: 'Confirmed' },
+    { value: 'in-progress', label: 'In Progress' },
+    { value: 'completed', label: 'Completed' },
+    { value: 'cancelled', label: 'Cancelled' }
+  ];
+
+  // Update trip mutation
+  const updateTripMutation = useMutation({
+    mutationFn: async (values: any) => {
+      console.log("Updating trip with values:", values);
+      // Convert dates to ISO strings
+      const formattedValues = {
+        ...values,
+        startDate: values.startDate.toISOString(),
+        endDate: values.endDate.toISOString()
+      };
+      
+      const res = await apiRequest("PATCH", `/api/trips/${trip.id}`, formattedValues);
+      return await res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Trip details have been updated.",
+      });
+      onSuccess();
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: `Failed to update trip: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  });
+  
+  // Remove unused function
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const values = {
+      name,
+      status,
+      startLocation,
+      destination,
+      description,
+      startDate,
+      endDate
+    };
+    updateTripMutation.mutate(values);
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Trip Name */}
+        <div className="space-y-2">
+          <label htmlFor="name" className="text-sm font-medium">Trip Name</label>
+          <input
+            id="name"
+            type="text"
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+        </div>
+        
+        {/* Status */}
+        <div className="space-y-2">
+          <label htmlFor="status" className="text-sm font-medium">Status</label>
+          <select
+            id="status"
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+          >
+            {statusOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        
+        {/* Start Location */}
+        <div className="space-y-2">
+          <label htmlFor="startLocation" className="text-sm font-medium">Starting Location</label>
+          <input
+            id="startLocation"
+            type="text"
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={startLocation}
+            onChange={(e) => setStartLocation(e.target.value)}
+          />
+        </div>
+        
+        {/* Destination */}
+        <div className="space-y-2">
+          <label htmlFor="destination" className="text-sm font-medium">Destination</label>
+          <input
+            id="destination"
+            type="text"
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={destination}
+            onChange={(e) => setDestination(e.target.value)}
+          />
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Start Date */}
+        <div className="space-y-2">
+          <label htmlFor="startDate" className="text-sm font-medium">Start Date</label>
+          <input
+            id="startDate"
+            type="date"
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={startDate ? format(startDate, "yyyy-MM-dd") : ""}
+            onChange={(e) => setStartDate(e.target.value ? new Date(e.target.value) : new Date())}
+          />
+        </div>
+        
+        {/* End Date */}
+        <div className="space-y-2">
+          <label htmlFor="endDate" className="text-sm font-medium">End Date</label>
+          <input
+            id="endDate"
+            type="date"
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={endDate ? format(endDate, "yyyy-MM-dd") : ""}
+            onChange={(e) => setEndDate(e.target.value ? new Date(e.target.value) : new Date())}
+          />
+        </div>
+      </div>
+      
+      {/* Description */}
+      <div className="space-y-2">
+        <label htmlFor="description" className="text-sm font-medium">Description</label>
+        <textarea
+          id="description"
+          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none h-24"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Add some details about your trip..."
+        />
+      </div>
+      
+      {/* Buttons */}
+      <div className="flex justify-end space-x-2">
+        <Button
+          variant="outline"
+          type="button"
+          onClick={onSuccess}
+        >
+          Cancel
+        </Button>
+        <Button 
+          type="submit"
+          disabled={updateTripMutation.isPending}
+        >
+          {updateTripMutation.isPending ? "Saving..." : "Save Changes"}
+        </Button>
+      </div>
+    </form>
+  );
 }
 
 // Component to display the trip map with Leaflet
