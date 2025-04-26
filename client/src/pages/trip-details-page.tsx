@@ -146,6 +146,9 @@ export default function TripDetailsPage() {
   
   // Get tab from URL query parameter
   const tabParam = urlObj.searchParams.get('tab');
+  
+  // State for editing items
+  const [editingItineraryItem, setEditingItineraryItem] = useState<any>(null);
   const defaultTab = tabParam && ['info', 'itinerary', 'expenses', 'vehicles', 'drivers'].includes(tabParam) 
     ? tabParam 
     : 'info';
@@ -528,6 +531,20 @@ export default function TripDetailsPage() {
                       </div>
                     ) : itineraryItems && itineraryItems.length > 0 ? (
                       <div className="space-y-4">
+                        {/* Itinerary Form */}
+                        {/* Add Button */}
+                        <div className="flex justify-end mb-4">
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              queryClient.invalidateQueries({ queryKey: ["/api/trips", tripId, "itinerary"] });
+                            }}
+                          >
+                            <PlusIcon className="h-4 w-4 mr-2" />
+                            Add Itinerary Item
+                          </Button>
+                        </div>
+                        
                         {/* Sort itinerary items by day */}
                         {[...itineraryItems]
                           .sort((a, b) => a.day - b.day)
@@ -538,9 +555,7 @@ export default function TripDetailsPage() {
                               users={users || []}
                               tripAccessLevel={trip._accessLevel || 'member'}
                               trip={trip}
-                              onEdit={() => {
-                                queryClient.invalidateQueries({ queryKey: ["/api/trips", tripId, "itinerary"] });
-                              }}
+                              onEdit={() => queryClient.invalidateQueries({ queryKey: ["/api/trips", tripId, "itinerary"] })}
                             />
                           ))
                         }
