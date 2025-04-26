@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 // Import Leaflet map components
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { ItineraryItem as ItineraryItemComponent } from "@/components/itinerary/itinerary-item";
@@ -1502,6 +1502,24 @@ export default function TripDetailsPage() {
                     <CardContent>
                       {/* Trip status information */}
                       <div className="mb-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                          <div className="bg-background border rounded-lg p-4">
+                            <h3 className="text-sm font-medium text-muted-foreground mb-1">Starting Location</h3>
+                            <p className="text-lg font-medium flex items-center">
+                              <MapPin className="h-4 w-4 text-green-600 mr-1" />
+                              {trip.startLocation || 'Not specified'}
+                            </p>
+                          </div>
+                          
+                          <div className="bg-background border rounded-lg p-4">
+                            <h3 className="text-sm font-medium text-muted-foreground mb-1">Destination</h3>
+                            <p className="text-lg font-medium flex items-center">
+                              <MapPin className="h-4 w-4 text-red-600 mr-1" />
+                              {trip.destination || 'Not specified'}
+                            </p>
+                          </div>
+                        </div>
+                        
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                           <div className="bg-background border rounded-lg p-4">
                             <h3 className="text-sm font-medium text-muted-foreground mb-1">Status</h3>
@@ -1635,6 +1653,26 @@ export default function TripDetailsPage() {
                                   </div>
                                 </Popup>
                               </Marker>
+                            )}
+                            
+                            {/* Show route from start to destination */}
+                            {trip.startLocation && trip.destination && (
+                              <Polyline 
+                                positions={[
+                                  [
+                                    trip.startLocationLat || (trip.currentLatitude ? trip.currentLatitude - 0.01 : 40.7028),
+                                    trip.startLocationLong || (trip.currentLongitude ? trip.currentLongitude - 0.01 : -74.0160)
+                                  ],
+                                  [
+                                    trip.destinationLat || (trip.currentLatitude ? trip.currentLatitude + 0.01 : 40.7228),
+                                    trip.destinationLong || (trip.currentLongitude ? trip.currentLongitude + 0.01 : -73.9960)
+                                  ]
+                                ]}
+                                color="blue"
+                                weight={3}
+                                opacity={0.7}
+                                dashArray="10, 10"
+                              />
                             )}
                             
                             {/* Show marker for current location */}
