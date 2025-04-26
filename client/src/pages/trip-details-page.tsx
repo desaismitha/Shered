@@ -850,7 +850,7 @@ export default function TripDetailsPage() {
         <div className="fixed inset-0 bg-black/50 z-[1000] flex items-center justify-center" onClick={() => setShowItinerarySelector(false)}>
           <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">Select Itinerary Items</h2>
+              <h2 className="text-xl font-semibold">Start Trip Tracking</h2>
               <Button 
                 variant="ghost" 
                 size="icon" 
@@ -860,6 +860,31 @@ export default function TripDetailsPage() {
                 <span className="sr-only">Close</span>
                 ✖
               </Button>
+            </div>
+            
+            {/* Trip route information */}
+            <div className="bg-primary-50 p-4 rounded-md mb-4 border border-primary-100">
+              <h3 className="text-md font-medium mb-2">Trip Route</h3>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <div className="flex items-center">
+                    <MapPin className="h-4 w-4 text-green-600 mr-1" />
+                    <span className="text-sm font-medium">From:</span>
+                  </div>
+                  <div className="text-sm ml-5 mt-1">
+                    {trip.startLocation || 'Not specified'}
+                  </div>
+                </div>
+                <div>
+                  <div className="flex items-center">
+                    <MapPin className="h-4 w-4 text-red-600 mr-1" />
+                    <span className="text-sm font-medium">To:</span>
+                  </div>
+                  <div className="text-sm ml-5 mt-1">
+                    {trip.destination || 'Not specified'}
+                  </div>
+                </div>
+              </div>
             </div>
             
             <p className="text-neutral-500 mb-4">
@@ -976,8 +1001,12 @@ export default function TripDetailsPage() {
               {formatDateRange(trip.startDate, trip.endDate)}
             </div>
             <div className="flex items-center">
-              <MapPin className="h-4 w-4 mr-2 text-neutral-500" />
-              {trip.destination}
+              <MapPin className="h-4 w-4 mr-2 text-green-500" />
+              From: {trip.startLocation || 'Not specified'}
+            </div>
+            <div className="flex items-center">
+              <MapPin className="h-4 w-4 mr-2 text-red-500" />
+              To: {trip.destination || 'Not specified'}
             </div>
             <div className="flex items-center">
               <Users className="h-4 w-4 mr-2 text-neutral-500" />
