@@ -126,17 +126,30 @@ function TripQuickEdit({ trip, onSuccess }: { trip: Trip, onSuccess: () => void 
   const updateTripMutation = useMutation({
     mutationFn: async (values: any) => {
       console.log("Updating trip with values:", values);
-      // Convert dates to ISO strings
-      const formattedValues = {
-        ...values,
-        startDate: values.startDate.toISOString(),
-        endDate: values.endDate.toISOString()
-      };
-      
-      const res = await apiRequest("PATCH", `/api/trips/${trip.id}`, formattedValues);
-      const updatedTrip = await res.json();
-      console.log("Trip updated successfully:", updatedTrip);
-      return updatedTrip;
+      try {
+        // Convert dates to ISO strings
+        const formattedValues = {
+          ...values,
+          startDate: values.startDate.toISOString(),
+          endDate: values.endDate.toISOString()
+        };
+        
+        // Use PATCH endpoint which we've now added server-side
+        const res = await apiRequest("PATCH", `/api/trips/${trip.id}`, formattedValues);
+        
+        if (!res.ok) {
+          // Handle HTTP errors properly
+          const errorData = await res.json().catch(() => ({ message: "Unknown server error" }));
+          throw new Error(errorData.message || `Server error: ${res.status}`);
+        }
+        
+        const updatedTrip = await res.json();
+        console.log("Trip updated successfully:", updatedTrip);
+        return updatedTrip;
+      } catch (error) {
+        console.error("Error updating trip:", error);
+        throw error; // Re-throw to let the mutation error handler deal with it
+      }
     },
     onSuccess: (data) => {
       console.log("Trip update mutation succeeded:", data);
@@ -147,17 +160,18 @@ function TripQuickEdit({ trip, onSuccess }: { trip: Trip, onSuccess: () => void 
         description: "Trip details have been updated.",
       });
       
-      // Invalidate the trip query cache
+      // Invalidate all relevant queries to refresh UI
       queryClient.invalidateQueries({ queryKey: ["/api/trips", trip.id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/trips"] });
       
       // Call the success callback
       onSuccess();
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error("Trip update mutation failed:", error);
       toast({
         title: "Error",
-        description: `Failed to update trip: ${error.message}`,
+        description: `Failed to update trip: ${error?.message || "Unknown error"}`,
         variant: "destructive",
       });
     }

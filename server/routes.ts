@@ -624,13 +624,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/trips/:id", async (req, res, next) => {
+  // Support both PUT and PATCH for trip updates
+  const handleTripUpdate = async (req: Request, res: Response, next: NextFunction, method: string) => {
     try {
-      console.log(`\n==== PUT /api/trips/:id - EDIT REQUEST STARTED ====`);
+      console.log(`\n==== ${method} /api/trips/:id - EDIT REQUEST STARTED ====`);
       console.log(`Request body:`, JSON.stringify(req.body));
       
       if (!req.isAuthenticated()) {
-        console.log("PUT /api/trips/:id - 401 Unauthorized - Not authenticated");
+        console.log(`${method} /api/trips/:id - 401 Unauthorized - Not authenticated`);
         return res.sendStatus(401);
       }
       
@@ -659,71 +660,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Create a modified copy of the input data with properly handled dates
         const processedData = { ...req.body };
         
-        console.log("Raw request body with startLocation:", {
-          name: req.body.name,
-          startLocation: req.body.startLocation,
-          destination: req.body.destination
-        });
-        
-        // Convert date strings to Date objects (needed by Drizzle's timestamp column)
-        if (req.body.startDate !== undefined) {
-          try {
-            // Check for special date
-            if (typeof req.body.startDate === 'string' && req.body.startDate.includes('2099')) {
-              console.log("Converting startDate to special date marker");
-              processedData.startDate = new Date('2099-12-31T23:59:59Z');
-            } 
-            // Check for null or empty string
-            else if (req.body.startDate === null || req.body.startDate === '') {
-              console.log("Converting empty startDate to special date marker");
-              processedData.startDate = new Date('2099-12-31T23:59:59Z');
-            }
-            // Otherwise, try to parse as Date
-            else if (typeof req.body.startDate === 'string') {
-              console.log("Converting startDate string to Date object");
-              processedData.startDate = new Date(req.body.startDate);
-            }
-          } catch (err) {
-            console.error("Error converting startDate:", err);
-            // Fallback to special date
-            processedData.startDate = new Date('2099-12-31T23:59:59Z');
-          }
-        }
-        
-        if (req.body.endDate !== undefined) {
-          try {
-            // Check for special date
-            if (typeof req.body.endDate === 'string' && req.body.endDate.includes('2099')) {
-              console.log("Converting endDate to special date marker");
-              processedData.endDate = new Date('2099-12-31T23:59:59Z');
-            } 
-            // Check for null or empty string
-            else if (req.body.endDate === null || req.body.endDate === '') {
-              console.log("Converting empty endDate to special date marker");
-              processedData.endDate = new Date('2099-12-31T23:59:59Z');
-            }
-            // Otherwise, try to parse as Date
-            else if (typeof req.body.endDate === 'string') {
-              console.log("Converting endDate string to Date object");
-              processedData.endDate = new Date(req.body.endDate);
-            }
-          } catch (err) {
-            console.error("Error converting endDate:", err);
-            // Fallback to special date
-            processedData.endDate = new Date('2099-12-31T23:59:59Z');
-          }
-        }
-        
-        console.log("Processed data with converted dates:", processedData);
-        
-        // For debugging
         if (processedData.startDate) {
+          processedData.startDate = new Date(processedData.startDate);
           console.log("StartDate type:", typeof processedData.startDate);
           console.log("StartDate is Date?", processedData.startDate instanceof Date);
           console.log("StartDate value:", processedData.startDate);
         }
         
         if (processedData.endDate) {
+          processedData.endDate = new Date(processedData.endDate);
           console.log("EndDate type:", typeof processedData.endDate);
           console.log("EndDate is Date?", processedData.endDate instanceof Date);
           console.log("EndDate value:", processedData.endDate);
@@ -784,7 +729,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Trip update error:", err);
       next(err);
     }
-  });
+  };
+
+  // Handle PUT and PATCH requests using the same handler
+  app.put("/api/trips/:id", (req, res, next) => handleTripUpdate(req, res, next, "PUT"));
+  app.patch("/api/trips/:id", (req, res, next) => handleTripUpdate(req, res, next, "PATCH"));
 
   // Direct SQL endpoint for updating dates
   app.post("/api/trips/:id/simple-update", async (req, res) => {
