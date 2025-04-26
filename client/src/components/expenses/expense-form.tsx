@@ -6,6 +6,7 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
 
 import {
   Form,
@@ -58,6 +59,7 @@ interface ExpenseFormProps {
 export function ExpenseForm({ tripId, groupMembers, users, onSuccess, onCancel }: ExpenseFormProps) {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [showForm, setShowForm] = useState(false);
 
   // Create the expense categories
   const expenseCategories = [
@@ -103,7 +105,7 @@ export function ExpenseForm({ tripId, groupMembers, users, onSuccess, onCancel }
         title: "Success!",
         description: "Your expense has been added.",
       });
-      onSuccess();
+      handleSuccess();
     },
     onError: (error) => {
       toast({
@@ -124,6 +126,30 @@ export function ExpenseForm({ tripId, groupMembers, users, onSuccess, onCancel }
     console.log("Submitting expense with formatted values:", formattedValues);
     mutation.mutate(formattedValues as any);
   };
+
+  const handleCancel = () => {
+    setShowForm(false);
+    onCancel();
+  };
+
+  const handleSuccess = () => {
+    setShowForm(false);
+    onSuccess();
+  };
+
+  // Instead of trying to modify the mutation directly, we'll update the onSuccess handler in the component
+
+  // If the form isn't shown, just display the button to add an expense
+  if (!showForm) {
+    return (
+      <Button 
+        size="sm"
+        onClick={() => setShowForm(true)}
+      >
+        Add Expense
+      </Button>
+    );
+  }
 
   return (
     <Form {...form}>
@@ -312,7 +338,7 @@ export function ExpenseForm({ tripId, groupMembers, users, onSuccess, onCancel }
           <Button 
             type="button" 
             variant="outline" 
-            onClick={onCancel}
+            onClick={handleCancel}
           >
             Cancel
           </Button>
