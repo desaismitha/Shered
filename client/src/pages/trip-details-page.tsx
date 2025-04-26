@@ -535,9 +535,10 @@ export default function TripDetailsPage() {
                             <ItineraryItemComponent 
                               key={item.id} 
                               item={item}
-                              tripId={tripId}
-                              accessLevel={trip._accessLevel || 'member'}
-                              onUpdate={() => {
+                              users={users || []}
+                              tripAccessLevel={trip._accessLevel || 'member'}
+                              trip={trip}
+                              onEdit={() => {
                                 queryClient.invalidateQueries({ queryKey: ["/api/trips", tripId, "itinerary"] });
                               }}
                             />
