@@ -198,6 +198,7 @@ export default function ActiveTripsPage() {
   
   // State for trip tracking
   const [selectedTripId, setSelectedTripId] = useState<number | null>(null);
+  const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
   const [showTrackingView, setShowTrackingView] = useState(false);
   const [showItinerarySelector, setShowItinerarySelector] = useState(false);
   const [selectedItineraryIds, setSelectedItineraryIds] = useState<number[]>([]);
@@ -212,6 +213,33 @@ export default function ActiveTripsPage() {
   // Map reference for Leaflet
   const mapRef = useRef<L.Map | null>(null);
 
+  // Effect to handle URL parameters for direct linking
+  useEffect(() => {
+    // Parse URL query parameters
+    const searchParams = new URLSearchParams(window.location.search);
+    const tripIdParam = searchParams.get('tripId');
+    const itemIdParam = searchParams.get('itemId');
+    
+    console.log("URL parameters:", { tripIdParam, itemIdParam });
+    
+    if (tripIdParam) {
+      const parsedTripId = parseInt(tripIdParam);
+      if (!isNaN(parsedTripId)) {
+        setSelectedTripId(parsedTripId);
+        setShowTrackingView(true);
+        
+        // If there's also an itinerary item ID, store it
+        if (itemIdParam) {
+          const parsedItemId = parseInt(itemIdParam);
+          if (!isNaN(parsedItemId)) {
+            setSelectedItemId(parsedItemId);
+            // We'll handle the actual item selection after the trip data loads
+          }
+        }
+      }
+    }
+  }, []);
+
   // Query to fetch active trips
   const { data: activeTrips, isLoading, error, refetch: refetchActiveTrips } = useQuery<Trip[]>({
     queryKey: ["/api/trips/active"],
@@ -223,12 +251,52 @@ export default function ActiveTripsPage() {
     queryKey: ["/api/trips", selectedTripId],
     enabled: !!selectedTripId,
   });
+
+  // Get all itinerary items for the selected trip, even outside of the selector dialog
+  const { data: allItineraryItems, isLoading: isLoadingAllItinerary } = useQuery<ItineraryItem[]>({
+    queryKey: ["/api/trips", selectedTripId, "itinerary"],
+    enabled: !!selectedTripId,
+  });
   
-  // Get itinerary items for selected trip
+  // Get itinerary items for selected trip (only used in selector dialog)
   const { data: itineraryItems, isLoading: isLoadingItinerary } = useQuery<ItineraryItem[]>({
     queryKey: ["/api/trips", selectedTripId, "itinerary"],
     enabled: !!selectedTripId && showItinerarySelector,
   });
+  
+  // Effect to auto-start trip with a specific itinerary item if it's in the URL
+  useEffect(() => {
+    // If we have a selectedItemId and we've loaded the trip's itinerary items
+    if (selectedItemId && allItineraryItems && allItineraryItems.length > 0 && selectedTrip) {
+      console.log("Ready to auto-start trip with item ID:", selectedItemId);
+      
+      // Find the itinerary item
+      const itineraryItem = allItineraryItems.find(item => item.id === selectedItemId);
+      
+      if (itineraryItem) {
+        console.log("Found itinerary item:", itineraryItem);
+        
+        // If trip is not already in progress, start it with just this item
+        if (selectedTrip.status !== 'in-progress') {
+          // Set the selected itinerary IDs to include just this item
+          setSelectedItineraryIds([selectedItemId]);
+          
+          // Start the trip tracking
+          startTripMutation.mutate();
+        } else {
+          // Trip is already in progress, just show the tracking view
+          console.log("Trip already in progress, showing tracking view");
+          toast({
+            title: "Trip In Progress",
+            description: "This trip is already being tracked. You can update your location or complete the trip.",
+          });
+        }
+        
+        // Clear the selectedItemId so this only runs once
+        setSelectedItemId(null);
+      }
+    }
+  }, [selectedItemId, allItineraryItems, selectedTrip]);
   
   // Trip tracking mutations
   const startTripMutation = useMutation({
@@ -504,8 +572,8 @@ export default function ActiveTripsPage() {
                 </Button>
                 <h1 className="text-2xl font-bold text-neutral-900">
                   {selectedTrip.name}
-                  <Badge className={`ml-2 ${getStatusColor(selectedTrip.status)}`}>
-                    {selectedTrip.status.charAt(0).toUpperCase() + selectedTrip.status.slice(1)}
+                  <Badge className={`ml-2 ${getStatusColor(selectedTrip.status || '')}`}>
+                    {(selectedTrip.status || 'unknown').charAt(0).toUpperCase() + (selectedTrip.status || 'unknown').slice(1)}
                   </Badge>
                 </h1>
                 <p className="text-neutral-500 mt-1">
@@ -587,29 +655,81 @@ export default function ActiveTripsPage() {
               
               <Card>
                 <CardHeader>
-                  <CardTitle>Trip Details</CardTitle>
+                  <CardTitle>Current Itinerary Details</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-1 gap-4">
-                    <div className="bg-background border rounded-lg p-4">
-                      <div className="flex justify-between">
-                        <div>
-                          <h3 className="text-sm font-medium text-muted-foreground mb-1">From</h3>
-                          <p className="text-md font-medium flex items-center">
-                            <MapPin className="h-4 w-4 text-green-600 mr-1" />
-                            {selectedTrip.startLocation || 'Not specified'}
+                  {selectedItineraryItems.length > 0 && currentItineraryStep < selectedItineraryItems.length ? (
+                    <div className="grid grid-cols-1 gap-4">
+                      <div className="bg-background border rounded-lg p-4">
+                        <h3 className="text-sm font-semibold">{selectedItineraryItems[currentItineraryStep].title}</h3>
+                        {selectedItineraryItems[currentItineraryStep].description && (
+                          <p className="text-sm text-muted-foreground mb-3">
+                            {selectedItineraryItems[currentItineraryStep].description}
                           </p>
+                        )}
+                        
+                        <div className="flex justify-between mt-2">
+                          {(selectedItineraryItems[currentItineraryStep].fromLocation || selectedItineraryItems[currentItineraryStep].location) && (
+                            <div>
+                              <h3 className="text-sm font-medium text-muted-foreground mb-1">From</h3>
+                              <p className="text-md font-medium flex items-center">
+                                <MapPin className="h-4 w-4 text-green-600 mr-1" />
+                                {selectedItineraryItems[currentItineraryStep].fromLocation || 
+                                 selectedItineraryItems[currentItineraryStep].location || 'Not specified'}
+                              </p>
+                            </div>
+                          )}
+                          
+                          {(selectedItineraryItems[currentItineraryStep].toLocation) && (
+                            <div className="text-right">
+                              <h3 className="text-sm font-medium text-muted-foreground mb-1">To</h3>
+                              <p className="text-md font-medium flex items-center justify-end">
+                                <MapPin className="h-4 w-4 text-red-600 mr-1" />
+                                {selectedItineraryItems[currentItineraryStep].toLocation || 'Not specified'}
+                              </p>
+                            </div>
+                          )}
                         </div>
-                        <div className="text-right">
-                          <h3 className="text-sm font-medium text-muted-foreground mb-1">To</h3>
-                          <p className="text-md font-medium flex items-center justify-end">
-                            <MapPin className="h-4 w-4 text-red-600 mr-1" />
-                            {selectedTrip.destination || 'Not specified'}
-                          </p>
+                        
+                        <div className="flex justify-between mt-3 text-sm">
+                          <div>
+                            <span className="text-muted-foreground">Day: </span>
+                            <span className="font-medium">{selectedItineraryItems[currentItineraryStep].day}</span>
+                          </div>
+                          {selectedItineraryItems[currentItineraryStep].startTime && (
+                            <div>
+                              <span className="text-muted-foreground">Time: </span>
+                              <span className="font-medium">{selectedItineraryItems[currentItineraryStep].startTime}</span>
+                              {selectedItineraryItems[currentItineraryStep].endTime && (
+                                <> - {selectedItineraryItems[currentItineraryStep].endTime}</>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-4">
+                      <div className="bg-background border rounded-lg p-4">
+                        <div className="flex justify-between">
+                          <div>
+                            <h3 className="text-sm font-medium text-muted-foreground mb-1">From</h3>
+                            <p className="text-md font-medium flex items-center">
+                              <MapPin className="h-4 w-4 text-green-600 mr-1" />
+                              {selectedTrip.startLocation || 'Not specified'}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <h3 className="text-sm font-medium text-muted-foreground mb-1">To</h3>
+                            <p className="text-md font-medium flex items-center justify-end">
+                              <MapPin className="h-4 w-4 text-red-600 mr-1" />
+                              {selectedTrip.destination || 'Not specified'}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
