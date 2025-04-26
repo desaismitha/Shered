@@ -42,16 +42,38 @@ import { TripDriverAssignment } from "@/components/user/trip-driver-assignment";
 import { useToast } from "@/hooks/use-toast";
 
 // Extended Trip type with access level and location data
-interface Trip extends BaseTrip {
+interface Trip {
+  id: number;
+  name: string;
+  startLocation: string | null;
+  destination: string;
+  startDate: string; // ISO date string
+  endDate: string;   // ISO date string
+  description: string | null;
+  imageUrl: string | null;
+  status: string;
+  
+  // Optional coordinates for start location
+  startLocationLat?: number | null;
+  startLocationLong?: number | null;
+  
+  // Optional coordinates for destination
+  destinationLat?: number | null;
+  destinationLong?: number | null;
+  
+  // Current location tracking properties
+  currentLatitude: number | null;
+  currentLongitude: number | null;
+  lastLocationUpdate: string | null; // ISO date string
+  distanceTraveled: number;
+  
+  // Relations
+  groupId: number | null;
+  createdBy: number;
+  createdAt: string; // ISO date string
+  
+  // Access level set by the API
   _accessLevel?: 'owner' | 'member';
-  
-  // Optional coordinates for start location (can be added in future improvements)
-  startLocationLat?: number;
-  startLocationLong?: number;
-  
-  // Optional coordinates for destination (can be added in future improvements)
-  destinationLat?: number;
-  destinationLong?: number;
 }
 
 // Simple edit form component to edit trip directly on the details page
@@ -1733,45 +1755,48 @@ export default function TripDetailsPage() {
                             )}
                             
                             {/* Show route from start to destination */}
-                            {/* Show polyline for route */}
+                            {/* Show route line based on itinerary item or trip */}
                             {selectedItineraryItems.length > 0 && 
-                             currentItineraryStep < selectedItineraryItems.length && 
-                             selectedItineraryItems[currentItineraryStep].fromLocation && 
-                             selectedItineraryItems[currentItineraryStep].toLocation ? (
-                              <Polyline 
-                                positions={[
-                                  [
-                                    trip.currentLatitude ? trip.currentLatitude - 0.01 : 40.7028,
-                                    trip.currentLongitude ? trip.currentLongitude - 0.01 : -74.0160
-                                  ],
-                                  [
-                                    trip.currentLatitude ? trip.currentLatitude + 0.01 : 40.7228,
-                                    trip.currentLongitude ? trip.currentLongitude + 0.01 : -73.9960
-                                  ]
-                                ]}
-                                color="blue"
-                                weight={3}
-                                opacity={0.7}
-                                dashArray="10, 10"
-                              />
-                            ) : trip.startLocation && trip.destination ? (
-                              <Polyline 
-                                positions={[
-                                  [
-                                    trip.startLocationLat || (trip.currentLatitude ? trip.currentLatitude - 0.01 : 40.7028),
-                                    trip.startLocationLong || (trip.currentLongitude ? trip.currentLongitude - 0.01 : -74.0160)
-                                  ],
-                                  [
-                                    trip.destinationLat || (trip.currentLatitude ? trip.currentLatitude + 0.01 : 40.7228),
-                                    trip.destinationLong || (trip.currentLongitude ? trip.currentLongitude + 0.01 : -73.9960)
-                                  ]
-                                ]}
-                                color="blue"
-                                weight={3}
-                                opacity={0.7}
-                                dashArray="10, 10"
-                              />
-                            ) : null}
+                              currentItineraryStep < selectedItineraryItems.length && 
+                              selectedItineraryItems[currentItineraryStep].fromLocation && 
+                              selectedItineraryItems[currentItineraryStep].toLocation ? (
+                                <Polyline 
+                                  positions={[
+                                    [
+                                      trip.currentLatitude ? trip.currentLatitude - 0.01 : 40.7028,
+                                      trip.currentLongitude ? trip.currentLongitude - 0.01 : -74.0160
+                                    ],
+                                    [
+                                      trip.currentLatitude ? trip.currentLatitude + 0.01 : 40.7228,
+                                      trip.currentLongitude ? trip.currentLongitude + 0.01 : -73.9960
+                                    ]
+                                  ]}
+                                  color="blue"
+                                  weight={3}
+                                  opacity={0.7}
+                                  dashArray="10, 10"
+                                />
+                              ) : (
+                                trip.startLocation && trip.destination && (
+                                  <Polyline 
+                                    positions={[
+                                      [
+                                        trip.startLocationLat || (trip.currentLatitude ? trip.currentLatitude - 0.01 : 40.7028),
+                                        trip.startLocationLong || (trip.currentLongitude ? trip.currentLongitude - 0.01 : -74.0160)
+                                      ],
+                                      [
+                                        trip.destinationLat || (trip.currentLatitude ? trip.currentLatitude + 0.01 : 40.7228),
+                                        trip.destinationLong || (trip.currentLongitude ? trip.currentLongitude + 0.01 : -73.9960)
+                                      ]
+                                    ]}
+                                    color="blue"
+                                    weight={3}
+                                    opacity={0.7}
+                                    dashArray="10, 10"
+                                  />
+                                )
+                              )
+                            }
                             
                             {/* Show marker for current location */}
                             {trip.currentLatitude && trip.currentLongitude && (
