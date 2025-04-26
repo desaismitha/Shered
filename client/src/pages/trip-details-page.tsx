@@ -1660,12 +1660,19 @@ export default function TripDetailsPage() {
                               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                             />
                             
-                            {/* Show marker for start location if coordinates available or geocoded later */}
-                            {selectedItineraryItems.length > 0 && currentItineraryStep < selectedItineraryItems.length && selectedItineraryItems[currentItineraryStep].fromLocation ? (
+                            {/* Show marker for start location */}
+                            {selectedItineraryItems.length > 0 && 
+                             currentItineraryStep < selectedItineraryItems.length && 
+                             selectedItineraryItems[currentItineraryStep].fromLocation ? (
                               <Marker 
+                                // For itinerary items - use derived position (ideally would use geocoding in future)
                                 position={[
-                                  trip.currentLatitude ? trip.currentLatitude - 0.01 : 40.7028, 
-                                  trip.currentLongitude ? trip.currentLongitude - 0.01 : -74.0160
+                                  trip.currentLatitude 
+                                    ? trip.currentLatitude - 0.01 
+                                    : 47.614101, // Seattle-like coordinates
+                                  trip.currentLongitude 
+                                    ? trip.currentLongitude - 0.01 
+                                    : -122.329493
                                 ]}
                                 icon={new L.Icon({
                                   iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
@@ -1686,8 +1693,8 @@ export default function TripDetailsPage() {
                             ) : trip.startLocation && (
                               <Marker 
                                 position={[
-                                  trip.startLocationLat || (trip.currentLatitude ? trip.currentLatitude - 0.01 : 40.7028), 
-                                  trip.startLocationLong || (trip.currentLongitude ? trip.currentLongitude - 0.01 : -74.0160)
+                                  trip.startLocationLat || (trip.currentLatitude ? trip.currentLatitude - 0.01 : 47.614101),
+                                  trip.startLocationLong || (trip.currentLongitude ? trip.currentLongitude - 0.01 : -122.329493)
                                 ]}
                                 icon={new L.Icon({
                                   iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
@@ -1708,11 +1715,18 @@ export default function TripDetailsPage() {
                             )}
                             
                             {/* Show marker for destination */}
-                            {selectedItineraryItems.length > 0 && currentItineraryStep < selectedItineraryItems.length && selectedItineraryItems[currentItineraryStep].toLocation ? (
+                            {selectedItineraryItems.length > 0 && 
+                             currentItineraryStep < selectedItineraryItems.length && 
+                             selectedItineraryItems[currentItineraryStep].toLocation ? (
                               <Marker 
+                                // For itinerary items - use derived position (ideally would use geocoding in future)
                                 position={[
-                                  trip.currentLatitude ? trip.currentLatitude + 0.01 : 40.7228, 
-                                  trip.currentLongitude ? trip.currentLongitude + 0.01 : -73.9960
+                                  trip.currentLatitude 
+                                    ? trip.currentLatitude + 0.01 
+                                    : 47.6203, // Bellevue-like coordinates
+                                  trip.currentLongitude 
+                                    ? trip.currentLongitude + 0.01 
+                                    : -122.2006
                                 ]}
                                 icon={new L.Icon({
                                   iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
@@ -1733,8 +1747,8 @@ export default function TripDetailsPage() {
                             ) : trip.destination && (
                               <Marker 
                                 position={[
-                                  trip.destinationLat || (trip.currentLatitude ? trip.currentLatitude + 0.01 : 40.7228), 
-                                  trip.destinationLong || (trip.currentLongitude ? trip.currentLongitude + 0.01 : -73.9960)
+                                  trip.destinationLat || (trip.currentLatitude ? trip.currentLatitude + 0.01 : 47.6203),
+                                  trip.destinationLong || (trip.currentLongitude ? trip.currentLongitude + 0.01 : -122.2006)
                                 ]}
                                 icon={new L.Icon({
                                   iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
@@ -1763,12 +1777,20 @@ export default function TripDetailsPage() {
                                 <Polyline 
                                   positions={[
                                     [
-                                      trip.currentLatitude ? trip.currentLatitude - 0.01 : 40.7028,
-                                      trip.currentLongitude ? trip.currentLongitude - 0.01 : -74.0160
+                                      trip.currentLatitude 
+                                        ? trip.currentLatitude - 0.01 
+                                        : 47.614101, // Seattle-like coordinates
+                                      trip.currentLongitude 
+                                        ? trip.currentLongitude - 0.01 
+                                        : -122.329493
                                     ],
                                     [
-                                      trip.currentLatitude ? trip.currentLatitude + 0.01 : 40.7228,
-                                      trip.currentLongitude ? trip.currentLongitude + 0.01 : -73.9960
+                                      trip.currentLatitude 
+                                        ? trip.currentLatitude + 0.01 
+                                        : 47.6203, // Bellevue-like coordinates
+                                      trip.currentLongitude 
+                                        ? trip.currentLongitude + 0.01 
+                                        : -122.2006
                                     ]
                                   ]}
                                   color="blue"
@@ -1781,12 +1803,12 @@ export default function TripDetailsPage() {
                                   <Polyline 
                                     positions={[
                                       [
-                                        trip.startLocationLat || (trip.currentLatitude ? trip.currentLatitude - 0.01 : 40.7028),
-                                        trip.startLocationLong || (trip.currentLongitude ? trip.currentLongitude - 0.01 : -74.0160)
+                                        trip.startLocationLat || (trip.currentLatitude ? trip.currentLatitude - 0.01 : 47.614101),
+                                        trip.startLocationLong || (trip.currentLongitude ? trip.currentLongitude - 0.01 : -122.329493)
                                       ],
                                       [
-                                        trip.destinationLat || (trip.currentLatitude ? trip.currentLatitude + 0.01 : 40.7228),
-                                        trip.destinationLong || (trip.currentLongitude ? trip.currentLongitude + 0.01 : -73.9960)
+                                        trip.destinationLat || (trip.currentLatitude ? trip.currentLatitude + 0.01 : 47.6203),
+                                        trip.destinationLong || (trip.currentLongitude ? trip.currentLongitude + 0.01 : -122.2006)
                                       ]
                                     ]}
                                     color="blue"
