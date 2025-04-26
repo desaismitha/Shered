@@ -736,6 +736,7 @@ export default function TripDetailsPage() {
                         onSuccess={() => {
                           queryClient.invalidateQueries({ queryKey: ["/api/trips", tripId, "itinerary"] });
                         }}
+                        onCancel={() => {}} // Empty function as it's not needed here but required by the component
                       />
                     )}
                   </CardHeader>
@@ -763,18 +764,20 @@ export default function TripDetailsPage() {
                     ) : itineraryItems && itineraryItems.length > 0 ? (
                       <div className="space-y-4">
                         {/* Itinerary Form */}
-                        {/* Add Button */}
-                        <div className="flex justify-end mb-4">
-                          <Button
-                            size="sm"
-                            onClick={() => {
-                              queryClient.invalidateQueries({ queryKey: ["/api/trips", tripId, "itinerary"] });
-                            }}
-                          >
-                            <PlusIcon className="h-4 w-4 mr-2" />
-                            Add Itinerary Item
-                          </Button>
-                        </div>
+                        {/* Add Button - only show for trip owners */}
+                        {trip._accessLevel === 'owner' && (
+                          <div className="flex justify-end mb-4">
+                            <Button
+                              size="sm"
+                              onClick={() => {
+                                queryClient.invalidateQueries({ queryKey: ["/api/trips", tripId, "itinerary"] });
+                              }}
+                            >
+                              <PlusIcon className="h-4 w-4 mr-2" />
+                              Add Itinerary Item
+                            </Button>
+                          </div>
+                        )}
                         
                         {/* Sort itinerary items by day */}
                         {[...itineraryItems]
@@ -830,15 +833,18 @@ export default function TripDetailsPage() {
                       </CardDescription>
                     </div>
                     
-                    <ExpenseForm 
-                      tripId={tripId}
-                      groupMembers={groupMembers || []}
-                      users={users || []} 
-                      onSuccess={() => {
-                        queryClient.invalidateQueries({ queryKey: ["/api/trips", tripId, "expenses"] });
-                      }}
-                      onCancel={() => {}}
-                    />
+                    {/* Only show the expense form for trip owners */}
+                    {trip._accessLevel === 'owner' && (
+                      <ExpenseForm 
+                        tripId={tripId}
+                        groupMembers={groupMembers || []}
+                        users={users || []} 
+                        onSuccess={() => {
+                          queryClient.invalidateQueries({ queryKey: ["/api/trips", tripId, "expenses"] });
+                        }}
+                        onCancel={() => {}}
+                      />
+                    )}
                   </CardHeader>
                   <CardContent>
                     {isLoadingExpenses ? (
@@ -880,14 +886,16 @@ export default function TripDetailsPage() {
                           Track expenses for this trip to help with budgeting and cost sharing.
                         </p>
                         
-                        <Button
-                          onClick={() => {
-                            queryClient.invalidateQueries({ queryKey: ["/api/trips", tripId, "expenses"] });
-                          }}
-                        >
-                          <PlusIcon className="h-4 w-4 mr-2" />
-                          Add First Expense
-                        </Button>
+                        {trip._accessLevel === 'owner' && (
+                          <Button
+                            onClick={() => {
+                              queryClient.invalidateQueries({ queryKey: ["/api/trips", tripId, "expenses"] });
+                            }}
+                          >
+                            <PlusIcon className="h-4 w-4 mr-2" />
+                            Add First Expense
+                          </Button>
+                        )}
                       </div>
                     )}
                   </CardContent>
