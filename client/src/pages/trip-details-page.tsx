@@ -763,21 +763,7 @@ export default function TripDetailsPage() {
                       </div>
                     ) : itineraryItems && itineraryItems.length > 0 ? (
                       <div className="space-y-4">
-                        {/* Itinerary Form */}
-                        {/* Add Button - only show for trip owners */}
-                        {trip._accessLevel === 'owner' && (
-                          <div className="flex justify-end mb-4">
-                            <Button
-                              size="sm"
-                              onClick={() => {
-                                queryClient.invalidateQueries({ queryKey: ["/api/trips", tripId, "itinerary"] });
-                              }}
-                            >
-                              <PlusIcon className="h-4 w-4 mr-2" />
-                              Add Itinerary Item
-                            </Button>
-                          </div>
-                        )}
+                        {/* Itinerary List */}
                         
                         {/* Sort itinerary items by day */}
                         {[...itineraryItems]
