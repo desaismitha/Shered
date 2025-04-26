@@ -52,8 +52,8 @@ export function ItineraryItem({ item, users, tripAccessLevel, onEdit, trip, onSt
   const createdByUser = users.find(user => user.id === item.createdBy);
   
   // Format time
-  const formatTime = (timeString?: string) => {
-    if (!timeString) return null;
+  const formatTime = (timeString: string | null | undefined): string | undefined => {
+    if (!timeString) return undefined;
     
     try {
       // Assuming timeString is in 24-hour format (HH:MM)

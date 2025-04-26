@@ -556,17 +556,14 @@ export default function TripDetailsPage() {
                         </p>
                         
                         {trip._accessLevel === 'owner' && (
-                          <ItineraryForm 
-                            tripId={tripId} 
-                            onSuccess={() => {
+                          <Button
+                            onClick={() => {
                               queryClient.invalidateQueries({ queryKey: ["/api/trips", tripId, "itinerary"] });
                             }}
                           >
-                            <Button>
-                              <PlusIcon className="h-4 w-4 mr-2" />
-                              Add First Itinerary Item
-                            </Button>
-                          </ItineraryForm>
+                            <PlusIcon className="h-4 w-4 mr-2" />
+                            Add First Itinerary Item
+                          </Button>
                         )}
                       </div>
                     )}
@@ -588,10 +585,13 @@ export default function TripDetailsPage() {
                     </div>
                     
                     <ExpenseForm 
-                      tripId={tripId} 
+                      tripId={tripId}
+                      groupMembers={groupMembers || []}
+                      users={users || []} 
                       onSuccess={() => {
                         queryClient.invalidateQueries({ queryKey: ["/api/trips", tripId, "expenses"] });
                       }}
+                      onCancel={() => {}}
                     />
                   </CardHeader>
                   <CardContent>
@@ -623,11 +623,6 @@ export default function TripDetailsPage() {
                             key={expense.id} 
                             expense={expense}
                             users={users || []}
-                            currentUserId={user?.id || 0}
-                            tripAccessLevel={trip._accessLevel || 'member'}
-                            onUpdated={() => {
-                              queryClient.invalidateQueries({ queryKey: ["/api/trips", tripId, "expenses"] });
-                            }}
                           />
                         ))}
                       </div>
@@ -639,17 +634,14 @@ export default function TripDetailsPage() {
                           Track expenses for this trip to help with budgeting and cost sharing.
                         </p>
                         
-                        <ExpenseForm 
-                          tripId={tripId} 
-                          onSuccess={() => {
+                        <Button
+                          onClick={() => {
                             queryClient.invalidateQueries({ queryKey: ["/api/trips", tripId, "expenses"] });
                           }}
                         >
-                          <Button>
-                            <PlusIcon className="h-4 w-4 mr-2" />
-                            Add First Expense
-                          </Button>
-                        </ExpenseForm>
+                          <PlusIcon className="h-4 w-4 mr-2" />
+                          Add First Expense
+                        </Button>
                       </div>
                     )}
                   </CardContent>
@@ -677,7 +669,11 @@ export default function TripDetailsPage() {
                     {/* Driver info section */}
                     <div className="mb-8">
                       <h3 className="font-medium text-neutral-800 mb-3">My Driver Information</h3>
-                      <DriverInfoSection />
+                      <DriverInfoSection 
+                        user={user!}
+                        tripId={tripId}
+                        accessLevel={trip._accessLevel as 'owner' | 'member'} 
+                      />
                     </div>
                     
                     {/* Driver assignment section */}
