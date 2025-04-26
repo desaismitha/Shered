@@ -1,7 +1,10 @@
-import { useQuery } from "@tanstack/react-query";
-import { Trip } from "@shared/schema";
-import { Link, useLocation } from "wouter";
-import { PlusIcon, NavigationIcon, MapPinIcon } from "lucide-react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { Trip, ItineraryItem } from "@shared/schema";
+import { Link, useLocation, useParams } from "wouter";
+import { 
+  PlusIcon, NavigationIcon, MapPinIcon, ArrowLeft, ArrowRight, 
+  Check, Car, PlayCircle, StopCircle, X
+} from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,18 +13,471 @@ import { formatDateRange } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useEffect, useRef, useState } from "react";
+import { format } from "date-fns";
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+
+// Function to get status color based on trip status
+function getStatusColor(status: string | undefined) {
+  if (!status) return "bg-neutral-500";
+  
+  switch (status.toLowerCase()) {
+    case 'planning':
+      return "bg-blue-500 hover:bg-blue-600";
+    case 'confirmed':
+      return "bg-green-500 hover:bg-green-600";
+    case 'in-progress':
+      return "bg-amber-500 hover:bg-amber-600";
+    case 'completed':
+      return "bg-purple-500 hover:bg-purple-600";
+    case 'cancelled':
+      return "bg-red-500 hover:bg-red-600";
+    default:
+      return "bg-neutral-500 hover:bg-neutral-600";
+  }
+}
+
+// Trip Map Component
+function TripMap({
+  tripId,
+  height = "400px",
+  width = "100%",
+  startLocation,
+  destination,
+  currentLatitude,
+  currentLongitude,
+  mapRef,
+}: {
+  tripId: number;
+  height?: string;
+  width?: string;
+  startLocation?: string | null;
+  destination?: string | null;
+  currentLatitude?: number | null;
+  currentLongitude?: number | null;
+  mapRef?: React.MutableRefObject<L.Map | null>;
+}) {
+  return (
+    <div style={{ height, width }}>
+      {typeof window !== 'undefined' && (
+        <MapContainer
+          center={
+            currentLatitude && currentLongitude
+              ? [currentLatitude, currentLongitude] 
+              : [40.7128, -74.0060] // Default to NYC
+          }
+          zoom={13}
+          style={{ height: '100%', width: '100%' }}
+          ref={(map) => {
+            if (map && mapRef) {
+              mapRef.current = map;
+            }
+          }}
+        >
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          />
+          
+          {/* Show marker for start location */}
+          {startLocation && (
+            <Marker 
+              position={[
+                currentLatitude 
+                  ? currentLatitude - 0.01 
+                  : 47.614101, // Seattle-like coordinates
+                currentLongitude 
+                  ? currentLongitude - 0.01 
+                  : -122.329493
+              ]}
+              icon={new L.Icon({
+                iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+                shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                iconSize: [25, 41],
+                iconAnchor: [12, 41],
+                popupAnchor: [1, -34],
+                shadowSize: [41, 41]
+              })}
+            >
+              <Popup>
+                <div>
+                  <strong>Start: {startLocation}</strong><br />
+                  <span>Starting point of the trip</span>
+                </div>
+              </Popup>
+            </Marker>
+          )}
+          
+          {/* Show marker for destination */}
+          {destination && (
+            <Marker 
+              position={[
+                currentLatitude 
+                  ? currentLatitude + 0.01 
+                  : 47.6203, // Bellevue-like coordinates
+                currentLongitude 
+                  ? currentLongitude + 0.01 
+                  : -122.2006
+              ]}
+              icon={new L.Icon({
+                iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+                shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                iconSize: [25, 41],
+                iconAnchor: [12, 41],
+                popupAnchor: [1, -34],
+                shadowSize: [41, 41]
+              })}
+            >
+              <Popup>
+                <div>
+                  <strong>Destination: {destination}</strong><br />
+                  <span>Final destination of the trip</span>
+                </div>
+              </Popup>
+            </Marker>
+          )}
+          
+          {/* Show marker for current location */}
+          {currentLatitude && currentLongitude && (
+            <Marker 
+              position={[currentLatitude, currentLongitude]}
+              icon={new L.Icon({
+                iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+                shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                iconSize: [25, 41],
+                iconAnchor: [12, 41],
+                popupAnchor: [1, -34],
+                shadowSize: [41, 41]
+              })}
+            >
+              <Popup>
+                <div>
+                  <strong>Current Location</strong><br />
+                  <span>Last updated: {new Date().toLocaleString()}</span>
+                </div>
+              </Popup>
+            </Marker>
+          )}
+          
+          {/* Draw polyline between markers if all are present */}
+          {startLocation && destination && currentLatitude && currentLongitude && (
+            <Polyline 
+              positions={[
+                [
+                  currentLatitude - 0.01, 
+                  currentLongitude - 0.01
+                ],
+                [currentLatitude, currentLongitude],
+                [
+                  currentLatitude + 0.01, 
+                  currentLongitude + 0.01
+                ]
+              ]}
+              color="blue"
+              weight={3}
+              opacity={0.7}
+            />
+          )}
+        </MapContainer>
+      )}
+    </div>
+  );
+}
 
 export default function ActiveTripsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [, navigate] = useLocation();
+  const params = useParams();
+  
+  // State for trip tracking
+  const [selectedTripId, setSelectedTripId] = useState<number | null>(null);
+  const [showTrackingView, setShowTrackingView] = useState(false);
+  const [showItinerarySelector, setShowItinerarySelector] = useState(false);
+  const [selectedItineraryIds, setSelectedItineraryIds] = useState<number[]>([]);
+  const [selectedItineraryItems, setSelectedItineraryItems] = useState<(ItineraryItem & { isCompleted?: boolean })[]>([]);
+  const [currentItineraryStep, setCurrentItineraryStep] = useState(0);
+  const [isCompletingItineraryItem, setIsCompletingItineraryItem] = useState(false);
+  const [showCompletionConfirmDialog, setShowCompletionConfirmDialog] = useState(false);
+  const [completionError, setCompletionError] = useState<string | null>(null);
+  const [isLocationUpdating, setIsLocationUpdating] = useState(false);
+  const [locationUpdateError, setLocationUpdateError] = useState<string | null>(null);
+  
+  // Map reference for Leaflet
+  const mapRef = useRef<L.Map | null>(null);
 
   // Query to fetch active trips
-  const { data: activeTrips, isLoading, error } = useQuery<Trip[]>({
+  const { data: activeTrips, isLoading, error, refetch: refetchActiveTrips } = useQuery<Trip[]>({
     queryKey: ["/api/trips/active"],
     enabled: !!user,
   });
-
+  
+  // Get selected trip if a tripId is selected
+  const { data: selectedTrip, isLoading: isLoadingSelectedTrip } = useQuery<Trip>({
+    queryKey: ["/api/trips", selectedTripId],
+    enabled: !!selectedTripId,
+  });
+  
+  // Get itinerary items for selected trip
+  const { data: itineraryItems, isLoading: isLoadingItinerary } = useQuery<ItineraryItem[]>({
+    queryKey: ["/api/trips", selectedTripId, "itinerary"],
+    enabled: !!selectedTripId && showItinerarySelector,
+  });
+  
+  // Trip tracking mutations
+  const startTripMutation = useMutation({
+    mutationFn: async () => {
+      if (!selectedTripId) throw new Error("No trip selected");
+      
+      const res = await apiRequest("POST", `/api/trips/${selectedTripId}/start`, {
+        itineraryIds: selectedItineraryIds.length > 0 ? selectedItineraryIds : undefined
+      });
+      return await res.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Trip started",
+        description: "Trip tracking has been started successfully!"
+      });
+      
+      // Store the selected itinerary items for step-by-step tracking
+      if (data.selectedItineraryItems && data.selectedItineraryItems.length > 0) {
+        // Sort items by day
+        const items = [...data.selectedItineraryItems];
+        items.sort((a, b) => a.day - b.day);
+        
+        // Initialize each item with isCompleted property set to false
+        const itemsWithCompletionStatus = items.map(item => ({ 
+          ...item, 
+          isCompleted: false 
+        }));
+        
+        setSelectedItineraryItems(itemsWithCompletionStatus);
+        setCurrentItineraryStep(0);
+      }
+      
+      // Close the dialog
+      setShowItinerarySelector(false);
+      
+      // Update the UI
+      queryClient.invalidateQueries({ queryKey: ["/api/trips", selectedTripId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/trips/active"] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error starting trip",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+  
+  const updateLocationMutation = useMutation({
+    mutationFn: async (coords: { latitude: number; longitude: number }) => {
+      if (!selectedTripId) throw new Error("No trip selected");
+      
+      console.log("Updating location with coordinates:", coords);
+      
+      // Validate coordinates
+      if (typeof coords.latitude !== 'number' || typeof coords.longitude !== 'number') {
+        throw new Error("Invalid coordinates: latitude and longitude must be numbers");
+      }
+      
+      try {
+        const res = await apiRequest("POST", `/api/trips/${selectedTripId}/update-location`, coords);
+        
+        if (!res.ok) {
+          const errorData = await res.json();
+          throw new Error(errorData.error || `Server error: ${res.status}`);
+        }
+        
+        return await res.json();
+      } catch (error) {
+        console.error("Location update error:", error);
+        throw error;
+      }
+    },
+    onSuccess: (data) => {
+      console.log("Location updated successfully:", data);
+      toast({
+        title: "Location updated",
+        description: "Your current location has been updated"
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/trips", selectedTripId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/trips/active"] });
+    },
+    onError: (error) => {
+      setLocationUpdateError(error.message);
+      toast({
+        title: "Location update failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+  
+  const completeTripMutation = useMutation({
+    mutationFn: async (options?: { confirmComplete?: boolean }) => {
+      if (!selectedTripId) throw new Error("No trip selected");
+      
+      const payload = {
+        confirmComplete: options?.confirmComplete || false,
+        currentItineraryStep,
+        totalItinerarySteps: selectedItineraryItems.length
+      };
+      const res = await apiRequest("POST", `/api/trips/${selectedTripId}/complete`, payload);
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        
+        // Check if this is a "remaining items" error that requires confirmation
+        if (errorData.requireConfirmation) {
+          setCompletionError(`You still have ${errorData.totalSteps - errorData.currentStep - 1} itinerary items that haven't been visited yet. Do you want to complete the trip anyway?`);
+          setShowCompletionConfirmDialog(true);
+          throw new Error(errorData.error);
+        }
+        
+        throw new Error(errorData.error || "Failed to complete trip");
+      }
+      
+      return await res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Trip completed",
+        description: "Trip has been marked as completed!"
+      });
+      setShowCompletionConfirmDialog(false);
+      setShowTrackingView(false);
+      setSelectedTripId(null);
+      queryClient.invalidateQueries({ queryKey: ["/api/trips", selectedTripId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/trips/active"] });
+    },
+    onError: (error) => {
+      // Only show error toast if it's not the special confirmation error
+      if (!showCompletionConfirmDialog) {
+        toast({
+          title: "Error completing trip",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
+    }
+  });
+  
+  // Function to toggle the completion status of a specific itinerary item
+  const handleToggleItineraryItemCompletion = (itemId: number) => {
+    if (isCompletingItineraryItem) return;
+    
+    setIsCompletingItineraryItem(true);
+    
+    // Update the local state immediately for a responsive UI
+    setSelectedItineraryItems(prev => 
+      prev.map(item => 
+        item.id === itemId 
+          ? { ...item, isCompleted: !item.isCompleted } 
+          : item
+      )
+    );
+    
+    // Simulate a delay to show the completing state
+    setTimeout(() => {
+      setIsCompletingItineraryItem(false);
+      
+      // If all items are completed, you could suggest completing the trip
+      const allCompleted = selectedItineraryItems.every(item => 
+        item.id === itemId 
+          ? !item.isCompleted // Use the new value (opposite of current)
+          : item.isCompleted === true
+      );
+      
+      if (allCompleted) {
+        toast({
+          title: "All items completed",
+          description: "You've completed all itinerary items. You can now complete the trip.",
+        });
+      }
+    }, 500);
+  };
+  
+  // Function to start trip tracking
+  const handleStartTracking = () => {
+    if (!selectedTripId) return;
+    
+    // If there are itinerary items, show the selector dialog
+    if (itineraryItems && itineraryItems.length > 0) {
+      setShowItinerarySelector(true);
+    } else {
+      // If no itinerary items, just start tracking
+      startTripMutation.mutate();
+    }
+  };
+  
+  // Function to complete trip
+  const handleCompleteTrip = () => {
+    completeTripMutation.mutate({});
+  };
+  
+  // Function to update current location
+  const getCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      setLocationUpdateError("Geolocation is not supported by your browser");
+      return;
+    }
+    
+    setIsLocationUpdating(true);
+    setLocationUpdateError(null);
+    
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        
+        // Update the map center if map is available
+        if (mapRef.current) {
+          mapRef.current.setView([latitude, longitude], 13);
+        }
+        
+        // Send the location update to the server
+        updateLocationMutation.mutate({ latitude, longitude });
+        setIsLocationUpdating(false);
+      },
+      (error) => {
+        console.error("Error getting location:", error);
+        setLocationUpdateError(`Error getting location: ${error.message}`);
+        setIsLocationUpdating(false);
+        
+        toast({
+          title: "Location error",
+          description: error.message,
+          variant: "destructive",
+        });
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      }
+    );
+  };
+  
+  // Handle view trip tracking
+  const handleViewTripTracking = (tripId: number) => {
+    setSelectedTripId(tripId);
+    setShowTrackingView(true);
+  };
+  
+  // Back to trips list
+  const handleBackToList = () => {
+    setShowTrackingView(false);
+    setSelectedTripId(null);
+  };
+  
   if (error) {
     toast({
       title: "Error fetching active trips",
@@ -33,138 +489,509 @@ export default function ActiveTripsPage() {
   return (
     <AppShell>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
+        {showTrackingView && selectedTrip ? (
+          // Detailed tracking view for selected trip
           <div>
-            <h1 className="text-2xl font-bold text-neutral-900">
-              Active Trips
-            </h1>
-            <p className="text-neutral-500 mt-1">
-              Monitor and track your in-progress trips
-            </p>
-          </div>
-          <div className="mt-4 md:mt-0">
-            <Button
-              onClick={() => navigate("/trips/new")}
-              className="inline-flex items-center"
-            >
-              <PlusIcon className="h-4 w-4 mr-2" />
-              Create New Trip
-            </Button>
-          </div>
-        </div>
-
-        {isLoading ? (
-          // Loading skeleton
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[1, 2, 3].map((i) => (
-              <Card key={i} className="overflow-hidden">
-                <div className="h-48 bg-neutral-100 relative">
-                  <Skeleton className="w-full h-full" />
-                </div>
-                <CardHeader>
-                  <Skeleton className="h-6 w-3/4 mb-2" />
-                  <Skeleton className="h-4 w-1/2" />
-                </CardHeader>
-                <CardContent>
-                  <Skeleton className="h-4 w-full mb-2" />
-                  <Skeleton className="h-4 w-2/3" />
-                </CardContent>
-                <CardFooter>
-                  <Skeleton className="h-10 w-full" />
-                </CardFooter>
-              </Card>
-            ))}
-          </div>
-        ) : activeTrips && activeTrips.length > 0 ? (
-          // Display active trips
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {activeTrips.map((trip) => (
-              <Card key={trip.id} className="overflow-hidden h-full flex flex-col">
-                <div className="h-48 bg-neutral-100 relative">
-                  {trip.imageUrl ? (
-                    <img 
-                      src={trip.imageUrl} 
-                      alt={trip.name} 
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-primary-50">
-                      <MapPinIcon className="h-12 w-12 text-primary-200" />
-                    </div>
-                  )}
-                  <div className="absolute top-3 right-3">
-                    <Badge className="bg-primary-500">
-                      In Progress
-                    </Badge>
-                  </div>
-                </div>
-                <CardHeader>
-                  <CardTitle>{trip.name}</CardTitle>
-                  <CardDescription>
-                    {trip.destination || "No destination specified"}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="flex-grow">
-                  <div className="text-sm text-neutral-600">
-                    <p className="flex items-center">
-                      <span className="font-medium mr-2">Dates:</span>
-                      {formatDateRange(trip.startDate, trip.endDate)}
-                    </p>
-                    {trip.startLocation && (
-                      <p className="flex items-center mt-2">
-                        <span className="font-medium mr-2">From:</span>
-                        <span className="text-neutral-800">{trip.startLocation}</span>
-                      </p>
-                    )}
-                    {trip.destination && (
-                      <p className="flex items-center mt-2">
-                        <span className="font-medium mr-2">To:</span>
-                        <span className="text-neutral-800">{trip.destination}</span>
-                      </p>
-                    )}
-                    {trip.currentLatitude && trip.currentLongitude && (
-                      <p className="flex items-center mt-2">
-                        <span className="font-medium mr-2">Last Update:</span>
-                        {trip.lastLocationUpdate ? new Date(trip.lastLocationUpdate).toLocaleString() : "Not updated yet"}
-                      </p>
-                    )}
-                    {trip.distanceTraveled && trip.distanceTraveled > 0 && (
-                      <p className="flex items-center mt-2">
-                        <span className="font-medium mr-2">Distance:</span>
-                        {trip.distanceTraveled.toFixed(1)} km
-                      </p>
-                    )}
-                  </div>
-                </CardContent>
-                <CardFooter>
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
+              <div>
+                <Button
+                  variant="outline"
+                  onClick={handleBackToList}
+                  className="mb-4"
+                >
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to Active Trips
+                </Button>
+                <h1 className="text-2xl font-bold text-neutral-900">
+                  {selectedTrip.name}
+                  <Badge className={`ml-2 ${getStatusColor(selectedTrip.status)}`}>
+                    {selectedTrip.status.charAt(0).toUpperCase() + selectedTrip.status.slice(1)}
+                  </Badge>
+                </h1>
+                <p className="text-neutral-500 mt-1">
+                  Track your journey from {selectedTrip.startLocation || "Starting Point"} to {selectedTrip.destination || "Destination"}
+                </p>
+              </div>
+              
+              {/* Trip controls based on status */}
+              {selectedTrip.status === 'in-progress' ? (
+                <div className="mt-4 md:mt-0 flex flex-wrap gap-2">
                   <Button
-                    variant="outline"
-                    onClick={() => navigate(`/trips/${trip.id}?tab=tracking`)}
-                    className="w-full inline-flex items-center justify-center"
+                    variant="default"
+                    onClick={getCurrentLocation}
+                    disabled={isLocationUpdating}
+                    className="bg-blue-600 hover:bg-blue-700"
                   >
                     <NavigationIcon className="h-4 w-4 mr-2" />
-                    View &amp; Track Trip
+                    {isLocationUpdating ? 'Updating...' : 'Update Location'}
                   </Button>
-                </CardFooter>
+                  <Button
+                    variant="default"
+                    onClick={handleCompleteTrip}
+                    disabled={completeTripMutation.isPending}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    <Check className="h-4 w-4 mr-2" />
+                    {completeTripMutation.isPending ? 'Completing...' : 'Complete Trip'}
+                  </Button>
+                </div>
+              ) : (
+                <div className="mt-4 md:mt-0">
+                  <Button
+                    variant="default"
+                    onClick={handleStartTracking}
+                    disabled={startTripMutation.isPending}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    <PlayCircle className="h-4 w-4 mr-2" />
+                    {startTripMutation.isPending ? 'Starting Trip...' : 'Start Trip'}
+                  </Button>
+                </div>
+              )}
+            </div>
+            
+            {/* Error messages */}
+            {locationUpdateError && (
+              <Alert variant="destructive" className="mb-6">
+                <AlertTitle>Error updating location</AlertTitle>
+                <AlertDescription>{locationUpdateError}</AlertDescription>
+              </Alert>
+            )}
+            
+            {/* Trip status */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Trip Progress</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-background border rounded-lg p-4">
+                      <h3 className="text-sm font-medium text-muted-foreground mb-1">Distance Traveled</h3>
+                      <p className="text-lg font-medium">
+                        {selectedTrip.distanceTraveled ? `${selectedTrip.distanceTraveled.toFixed(2)} km` : 'Not started'}
+                      </p>
+                    </div>
+                    
+                    <div className="bg-background border rounded-lg p-4">
+                      <h3 className="text-sm font-medium text-muted-foreground mb-1">Last Updated</h3>
+                      <p className="text-lg font-medium">
+                        {selectedTrip.lastLocationUpdate 
+                          ? format(new Date(selectedTrip.lastLocationUpdate), 'MMM d, yyyy HH:mm:ss')
+                          : 'Not started'}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
               </Card>
-            ))}
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle>Trip Details</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 gap-4">
+                    <div className="bg-background border rounded-lg p-4">
+                      <div className="flex justify-between">
+                        <div>
+                          <h3 className="text-sm font-medium text-muted-foreground mb-1">From</h3>
+                          <p className="text-md font-medium flex items-center">
+                            <MapPin className="h-4 w-4 text-green-600 mr-1" />
+                            {selectedTrip.startLocation || 'Not specified'}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <h3 className="text-sm font-medium text-muted-foreground mb-1">To</h3>
+                          <p className="text-md font-medium flex items-center justify-end">
+                            <MapPin className="h-4 w-4 text-red-600 mr-1" />
+                            {selectedTrip.destination || 'Not specified'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+            
+            {/* Map */}
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle>Trip Map</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-96 w-full rounded-md overflow-hidden border">
+                  <TripMap 
+                    tripId={selectedTrip.id}
+                    height="100%"
+                    width="100%"
+                    startLocation={selectedTrip.startLocation}
+                    destination={selectedTrip.destination}
+                    currentLatitude={selectedTrip.currentLatitude}
+                    currentLongitude={selectedTrip.currentLongitude}
+                    mapRef={mapRef}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+            
+            {/* Itinerary progress section (if items are selected) */}
+            {selectedTrip.status === 'in-progress' && selectedItineraryItems.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Itinerary Progress</CardTitle>
+                  <CardDescription>
+                    Step {currentItineraryStep + 1} of {selectedItineraryItems.length}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {selectedItineraryItems[currentItineraryStep] && (
+                    <div className="border rounded-md p-4 bg-primary-50">
+                      <div className="flex items-start gap-4">
+                        <div className="bg-primary-100 rounded-full p-2 text-primary-800">
+                          {selectedItineraryItems[currentItineraryStep].fromLocation && 
+                           selectedItineraryItems[currentItineraryStep].toLocation ? (
+                            <Car className="h-6 w-6" />
+                          ) : (
+                            <MapPin className="h-6 w-6" />
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-lg mb-1">
+                            {selectedItineraryItems[currentItineraryStep].title}
+                          </h4>
+                          
+                          {selectedItineraryItems[currentItineraryStep].description && (
+                            <p className="text-neutral-700 mb-2">{selectedItineraryItems[currentItineraryStep].description}</p>
+                          )}
+                          
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                            <div>
+                              <span className="text-neutral-500">Day: </span>
+                              <span className="font-medium">{selectedItineraryItems[currentItineraryStep].day}</span>
+                            </div>
+                            
+                            {selectedItineraryItems[currentItineraryStep].location && (
+                              <div>
+                                <span className="text-neutral-500">Location: </span>
+                                <span className="font-medium">{selectedItineraryItems[currentItineraryStep].location}</span>
+                              </div>
+                            )}
+                            
+                            {selectedItineraryItems[currentItineraryStep].fromLocation && selectedItineraryItems[currentItineraryStep].toLocation && (
+                              <div className="sm:col-span-2">
+                                <span className="text-neutral-500">Travel: </span>
+                                <span className="font-medium">{selectedItineraryItems[currentItineraryStep].fromLocation} to {selectedItineraryItems[currentItineraryStep].toLocation}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex flex-col gap-3">
+                        <div className="flex justify-between mt-4 pt-3 border-t">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCurrentItineraryStep(prev => Math.max(0, prev - 1))}
+                            disabled={currentItineraryStep === 0}
+                          >
+                            <ArrowLeft className="h-4 w-4 mr-1" /> Previous
+                          </Button>
+                          
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="bg-primary-50 hover:bg-primary-100 border-primary-200"
+                            onClick={() => getCurrentLocation()}
+                            disabled={isLocationUpdating}
+                          >
+                            <NavigationIcon className="h-4 w-4 mr-1" />
+                            {isLocationUpdating ? 'Updating...' : 'Update Location'}
+                          </Button>
+                          
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              if (currentItineraryStep < selectedItineraryItems.length - 1) {
+                                setCurrentItineraryStep(prev => prev + 1);
+                              }
+                            }}
+                            disabled={currentItineraryStep === selectedItineraryItems.length - 1}
+                          >
+                            Next <ArrowRight className="h-4 w-4 ml-1" />
+                          </Button>
+                        </div>
+                        
+                        {/* Mark itinerary item as completed button */}
+                        <div className="flex justify-center">
+                          <Button
+                            variant={selectedItineraryItems[currentItineraryStep].isCompleted ? "ghost" : "outline"}
+                            size="sm"
+                            className={selectedItineraryItems[currentItineraryStep].isCompleted 
+                              ? "bg-green-50 text-green-700 hover:bg-green-100 border-green-200" 
+                              : "bg-background border-dashed"
+                            }
+                            onClick={() => handleToggleItineraryItemCompletion(selectedItineraryItems[currentItineraryStep].id)}
+                          >
+                            {selectedItineraryItems[currentItineraryStep].isCompleted ? (
+                              <>
+                                <Check className="h-4 w-4 mr-1 text-green-600" />
+                                Completed
+                              </>
+                            ) : (
+                              <>
+                                <Check className="h-4 w-4 mr-1" />
+                                Mark as Completed
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
           </div>
         ) : (
-          // No active trips
-          <div className="text-center py-12 bg-white rounded-lg shadow">
-            <NavigationIcon className="h-12 w-12 text-neutral-300 mx-auto mb-3" />
-            <h3 className="text-lg font-medium text-neutral-900 mb-1">No active trips</h3>
-            <p className="text-neutral-500 mb-6">
-              You don't have any in-progress trips at the moment.
-            </p>
-            <Button 
-              onClick={() => navigate("/trips")}
-              className="inline-flex items-center"
-            >
-              View All Trips
-            </Button>
-          </div>
+          // Active trips list view
+          <>
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
+              <div>
+                <h1 className="text-2xl font-bold text-neutral-900">
+                  Active Trips
+                </h1>
+                <p className="text-neutral-500 mt-1">
+                  Monitor and track your in-progress trips
+                </p>
+              </div>
+              <div className="mt-4 md:mt-0">
+                <Button
+                  onClick={() => navigate("/trips/new")}
+                  className="inline-flex items-center"
+                >
+                  <PlusIcon className="h-4 w-4 mr-2" />
+                  Create New Trip
+                </Button>
+              </div>
+            </div>
+
+            {isLoading ? (
+              // Loading skeleton
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[1, 2, 3].map((i) => (
+                  <Card key={i} className="overflow-hidden">
+                    <div className="h-48 bg-neutral-100 relative">
+                      <Skeleton className="w-full h-full" />
+                    </div>
+                    <CardHeader>
+                      <Skeleton className="h-6 w-3/4 mb-2" />
+                      <Skeleton className="h-4 w-1/2" />
+                    </CardHeader>
+                    <CardContent>
+                      <Skeleton className="h-4 w-full mb-2" />
+                      <Skeleton className="h-4 w-2/3" />
+                    </CardContent>
+                    <CardFooter>
+                      <Skeleton className="h-10 w-full" />
+                    </CardFooter>
+                  </Card>
+                ))}
+              </div>
+            ) : activeTrips && activeTrips.length > 0 ? (
+              // Display active trips
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {activeTrips.map((trip) => (
+                  <Card key={trip.id} className="overflow-hidden h-full flex flex-col">
+                    <div className="h-48 bg-neutral-100 relative">
+                      {trip.imageUrl ? (
+                        <img 
+                          src={trip.imageUrl} 
+                          alt={trip.name} 
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-primary-50">
+                          <MapPinIcon className="h-12 w-12 text-primary-200" />
+                        </div>
+                      )}
+                      <div className="absolute top-3 right-3">
+                        <Badge className="bg-primary-500">
+                          In Progress
+                        </Badge>
+                      </div>
+                    </div>
+                    <CardHeader>
+                      <CardTitle>{trip.name}</CardTitle>
+                      <CardDescription>
+                        {trip.destination || "No destination specified"}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex-grow">
+                      <div className="text-sm text-neutral-600">
+                        <p className="flex items-center">
+                          <span className="font-medium mr-2">Dates:</span>
+                          {formatDateRange(trip.startDate, trip.endDate)}
+                        </p>
+                        {trip.startLocation && (
+                          <p className="flex items-center mt-2">
+                            <span className="font-medium mr-2">From:</span>
+                            <span className="text-neutral-800">{trip.startLocation}</span>
+                          </p>
+                        )}
+                        {trip.destination && (
+                          <p className="flex items-center mt-2">
+                            <span className="font-medium mr-2">To:</span>
+                            <span className="text-neutral-800">{trip.destination}</span>
+                          </p>
+                        )}
+                        {trip.currentLatitude && trip.currentLongitude && (
+                          <p className="flex items-center mt-2">
+                            <span className="font-medium mr-2">Last Update:</span>
+                            {trip.lastLocationUpdate ? new Date(trip.lastLocationUpdate).toLocaleString() : "Not updated yet"}
+                          </p>
+                        )}
+                        {trip.distanceTraveled && trip.distanceTraveled > 0 && (
+                          <p className="flex items-center mt-2">
+                            <span className="font-medium mr-2">Distance:</span>
+                            {trip.distanceTraveled.toFixed(1)} km
+                          </p>
+                        )}
+                      </div>
+                    </CardContent>
+                    <CardFooter>
+                      <Button
+                        variant="outline"
+                        onClick={() => handleViewTripTracking(trip.id)}
+                        className="w-full inline-flex items-center justify-center"
+                      >
+                        <NavigationIcon className="h-4 w-4 mr-2" />
+                        View &amp; Track Trip
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              // No active trips
+              <div className="text-center py-12 bg-white rounded-lg shadow">
+                <NavigationIcon className="h-12 w-12 text-neutral-300 mx-auto mb-3" />
+                <h3 className="text-lg font-medium text-neutral-900 mb-1">No active trips</h3>
+                <p className="text-neutral-500 mb-6">
+                  You don't have any in-progress trips at the moment.
+                </p>
+                <Button 
+                  onClick={() => navigate("/trips")}
+                  className="inline-flex items-center"
+                >
+                  View All Trips
+                </Button>
+              </div>
+            )}
+          </>
         )}
+        
+        {/* Itinerary selection dialog */}
+        <Dialog open={showItinerarySelector} onOpenChange={setShowItinerarySelector}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Select Itinerary Items</DialogTitle>
+              <DialogDescription>
+                Choose which itinerary items you want to track during your trip.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="py-4">
+              {isLoadingItinerary ? (
+                <div className="space-y-2">
+                  <Skeleton className="h-6 w-full" />
+                  <Skeleton className="h-6 w-full" />
+                  <Skeleton className="h-6 w-full" />
+                </div>
+              ) : itineraryItems && itineraryItems.length > 0 ? (
+                <div className="space-y-2">
+                  {itineraryItems
+                    .sort((a, b) => a.day - b.day)
+                    .map((item) => (
+                      <div key={item.id} className="flex items-start space-x-3 py-2">
+                        <Checkbox
+                          id={`itinerary-${item.id}`}
+                          checked={selectedItineraryIds.includes(item.id)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSelectedItineraryIds(prev => [...prev, item.id]);
+                            } else {
+                              setSelectedItineraryIds(prev => prev.filter(id => id !== item.id));
+                            }
+                          }}
+                        />
+                        <div className="grid gap-1.5 leading-none">
+                          <label
+                            htmlFor={`itinerary-${item.id}`}
+                            className="font-medium cursor-pointer"
+                          >
+                            {item.title}
+                          </label>
+                          <p className="text-sm text-muted-foreground">
+                            Day {item.day} - {item.location || (item.fromLocation && item.toLocation ? `${item.fromLocation} to ${item.toLocation}` : 'No location specified')}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              ) : (
+                <p className="text-center py-4 text-muted-foreground">
+                  No itinerary items found. You can start the trip without selecting any items.
+                </p>
+              )}
+            </div>
+            
+            <DialogFooter className="flex flex-row justify-between sm:justify-between">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowItinerarySelector(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                onClick={() => startTripMutation.mutate()}
+                disabled={startTripMutation.isPending}
+              >
+                {startTripMutation.isPending ? 'Starting Trip...' : 'Start Trip'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+        
+        {/* Trip completion confirmation dialog */}
+        <Dialog open={showCompletionConfirmDialog} onOpenChange={setShowCompletionConfirmDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Confirm Trip Completion</DialogTitle>
+              <DialogDescription>
+                {completionError || "Are you sure you want to complete this trip?"}
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setShowCompletionConfirmDialog(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => completeTripMutation.mutate({ confirmComplete: true })}
+                disabled={completeTripMutation.isPending}
+              >
+                {completeTripMutation.isPending ? 'Completing...' : 'Complete Trip'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </AppShell>
   );
