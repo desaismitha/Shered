@@ -693,7 +693,7 @@ export default function TripDetailsPage() {
     const currentUrl = new URL(window.location.href);
     const tabFromUrl = currentUrl.searchParams.get('tab');
     
-    if (tabFromUrl && ['info', 'itinerary', 'expenses', 'vehicles', 'drivers', 'tracking'].includes(tabFromUrl)) {
+    if (tabFromUrl && ['info', 'itinerary', 'expenses', 'vehicles', 'drivers'].includes(tabFromUrl)) {
       console.log("Setting active tab from URL parameter:", tabFromUrl);
       setActiveTab(tabFromUrl);
     }
@@ -1048,7 +1048,6 @@ export default function TripDetailsPage() {
                 <TabsTrigger value="expenses">Expenses</TabsTrigger>
                 <TabsTrigger value="vehicles">Vehicles</TabsTrigger>
                 <TabsTrigger value="drivers">Drivers</TabsTrigger>
-                <TabsTrigger value="tracking">Tracking</TabsTrigger>
               </TabsList>
               
               {/* Trip Info tab */}
