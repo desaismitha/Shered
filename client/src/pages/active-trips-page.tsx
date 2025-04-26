@@ -3,7 +3,7 @@ import { Trip, ItineraryItem } from "@shared/schema";
 import { Link, useLocation, useParams } from "wouter";
 import { 
   PlusIcon, NavigationIcon, MapPinIcon, ArrowLeft, ArrowRight, 
-  Check, Car, PlayCircle, StopCircle, X
+  Check, Car, PlayCircle, StopCircle, X, MapPin
 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { Button } from "@/components/ui/button";
