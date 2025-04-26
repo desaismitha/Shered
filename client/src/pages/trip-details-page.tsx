@@ -1587,7 +1587,9 @@ export default function TripDetailsPage() {
                               Start Location
                             </h3>
                             <p className="text-lg font-medium">
-                              {trip.startLocation || 'Not specified'}
+                              {selectedItineraryItems.length > 0 && currentItineraryStep < selectedItineraryItems.length
+                                ? (selectedItineraryItems[currentItineraryStep].fromLocation || trip.startLocation || 'Not specified')
+                                : (trip.startLocation || 'Not specified')}
                             </p>
                           </div>
                           
@@ -1597,7 +1599,9 @@ export default function TripDetailsPage() {
                               Destination
                             </h3>
                             <p className="text-lg font-medium">
-                              {trip.destination || 'Not specified'}
+                              {selectedItineraryItems.length > 0 && currentItineraryStep < selectedItineraryItems.length
+                                ? (selectedItineraryItems[currentItineraryStep].toLocation || trip.destination || 'Not specified')
+                                : (trip.destination || 'Not specified')}
                             </p>
                           </div>
                         </div>
@@ -1635,7 +1639,29 @@ export default function TripDetailsPage() {
                             />
                             
                             {/* Show marker for start location if coordinates available or geocoded later */}
-                            {trip.startLocation && (
+                            {selectedItineraryItems.length > 0 && currentItineraryStep < selectedItineraryItems.length && selectedItineraryItems[currentItineraryStep].fromLocation ? (
+                              <Marker 
+                                position={[
+                                  trip.currentLatitude ? trip.currentLatitude - 0.01 : 40.7028, 
+                                  trip.currentLongitude ? trip.currentLongitude - 0.01 : -74.0160
+                                ]}
+                                icon={new L.Icon({
+                                  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+                                  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                                  iconSize: [25, 41],
+                                  iconAnchor: [12, 41],
+                                  popupAnchor: [1, -34],
+                                  shadowSize: [41, 41]
+                                })}
+                              >
+                                <Popup>
+                                  <div>
+                                    <strong>Start: {selectedItineraryItems[currentItineraryStep].fromLocation}</strong><br />
+                                    <span>Starting point for this itinerary item</span>
+                                  </div>
+                                </Popup>
+                              </Marker>
+                            ) : trip.startLocation && (
                               <Marker 
                                 position={[
                                   trip.startLocationLat || (trip.currentLatitude ? trip.currentLatitude - 0.01 : 40.7028), 
@@ -1660,7 +1686,29 @@ export default function TripDetailsPage() {
                             )}
                             
                             {/* Show marker for destination */}
-                            {trip.destination && (
+                            {selectedItineraryItems.length > 0 && currentItineraryStep < selectedItineraryItems.length && selectedItineraryItems[currentItineraryStep].toLocation ? (
+                              <Marker 
+                                position={[
+                                  trip.currentLatitude ? trip.currentLatitude + 0.01 : 40.7228, 
+                                  trip.currentLongitude ? trip.currentLongitude + 0.01 : -73.9960
+                                ]}
+                                icon={new L.Icon({
+                                  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+                                  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                                  iconSize: [25, 41],
+                                  iconAnchor: [12, 41],
+                                  popupAnchor: [1, -34],
+                                  shadowSize: [41, 41]
+                                })}
+                              >
+                                <Popup>
+                                  <div>
+                                    <strong>Destination: {selectedItineraryItems[currentItineraryStep].toLocation}</strong><br />
+                                    <span>Destination for this itinerary item</span>
+                                  </div>
+                                </Popup>
+                              </Marker>
+                            ) : trip.destination && (
                               <Marker 
                                 position={[
                                   trip.destinationLat || (trip.currentLatitude ? trip.currentLatitude + 0.01 : 40.7228), 
@@ -1685,7 +1733,28 @@ export default function TripDetailsPage() {
                             )}
                             
                             {/* Show route from start to destination */}
-                            {trip.startLocation && trip.destination && (
+                            {/* Show polyline for route */}
+                            {selectedItineraryItems.length > 0 && 
+                             currentItineraryStep < selectedItineraryItems.length && 
+                             selectedItineraryItems[currentItineraryStep].fromLocation && 
+                             selectedItineraryItems[currentItineraryStep].toLocation ? (
+                              <Polyline 
+                                positions={[
+                                  [
+                                    trip.currentLatitude ? trip.currentLatitude - 0.01 : 40.7028,
+                                    trip.currentLongitude ? trip.currentLongitude - 0.01 : -74.0160
+                                  ],
+                                  [
+                                    trip.currentLatitude ? trip.currentLatitude + 0.01 : 40.7228,
+                                    trip.currentLongitude ? trip.currentLongitude + 0.01 : -73.9960
+                                  ]
+                                ]}
+                                color="blue"
+                                weight={3}
+                                opacity={0.7}
+                                dashArray="10, 10"
+                              />
+                            ) : trip.startLocation && trip.destination ? (
                               <Polyline 
                                 positions={[
                                   [
@@ -1702,7 +1771,7 @@ export default function TripDetailsPage() {
                                 opacity={0.7}
                                 dashArray="10, 10"
                               />
-                            )}
+                            ) : null}
                             
                             {/* Show marker for current location */}
                             {trip.currentLatitude && trip.currentLongitude && (
