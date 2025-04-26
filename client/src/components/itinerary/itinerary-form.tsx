@@ -89,6 +89,7 @@ export function ItineraryForm({ tripId, onSuccess, onCancel, initialData }: Itin
   const { user } = useAuth();
   const { toast } = useToast();
   const isEditMode = !!initialData?.id;
+  const [showForm, setShowForm] = useState(false);
   
   // Parse recurrenceDays if it's a string
   let parsedRecurrenceDays: string[] = [];
@@ -148,7 +149,7 @@ export function ItineraryForm({ tripId, onSuccess, onCancel, initialData }: Itin
           ? "Itinerary item has been updated." 
           : "Itinerary item has been added.",
       });
-      onSuccess();
+      handleSuccess();
     },
     onError: (error) => {
       toast({
@@ -190,6 +191,28 @@ export function ItineraryForm({ tripId, onSuccess, onCancel, initialData }: Itin
     // Submit the form
     mutation.mutate(formValues as any);
   };
+
+  const handleCancel = () => {
+    setShowForm(false);
+    onCancel();
+  };
+
+  const handleSuccess = () => {
+    setShowForm(false);
+    onSuccess();
+  };
+
+  // If the form isn't shown, just display the button to add an itinerary item
+  if (!showForm) {
+    return (
+      <Button
+        size="sm"
+        onClick={() => setShowForm(true)}
+      >
+        {isEditMode ? "Edit Itinerary Item" : "Add Itinerary Item"}
+      </Button>
+    );
+  }
 
   return (
     <Form {...form}>
@@ -451,7 +474,7 @@ export function ItineraryForm({ tripId, onSuccess, onCancel, initialData }: Itin
           <Button 
             type="button" 
             variant="outline" 
-            onClick={onCancel}
+            onClick={handleCancel}
           >
             Cancel
           </Button>
