@@ -8,6 +8,7 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ExpenseCard } from "@/components/expenses/expense-card";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
