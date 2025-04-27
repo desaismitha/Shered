@@ -136,13 +136,13 @@ export function ItineraryItem({ item, users, tripAccessLevel, onEdit, trip, onSt
             {item.isRecurring && (
               <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200">
                 <RepeatIcon className="h-3 w-3 mr-1" />
-                Recurring
+                <span>Recurring</span>
               </Badge>
             )}
             {isPickupDropoff && (
               <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-200">
                 <Car className="h-3 w-3 mr-1" />
-                Transport
+                <span>Transport</span>
               </Badge>
             )}
           </div>

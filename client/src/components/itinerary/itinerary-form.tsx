@@ -515,7 +515,14 @@ export function ItineraryForm({ tripId, onSuccess, onCancel, initialData }: Itin
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                   />
                   
-                  <LocationPicker setCoords={setLocationCoords} />
+                  <LocationPicker setCoords={(coords) => {
+                    setLocationCoords(coords);
+                    // Also update the form field with the coordinates
+                    const coordsStr = `${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`;
+                    form.setValue("location", form.getValues("location") 
+                      ? `${form.getValues("location")} (${coordsStr})` 
+                      : coordsStr);
+                  }} />
                   
                   {locationCoords && (
                     <Marker position={[locationCoords.lat, locationCoords.lng]}>
@@ -687,10 +694,21 @@ export function ItineraryForm({ tripId, onSuccess, onCancel, initialData }: Itin
                     />
                     
                     <LocationPicker 
-                      setCoords={activeMapPicker === 'transport-from' 
-                        ? setTransportFromCoords 
-                        : setTransportToCoords
-                      } 
+                      setCoords={(coords) => {
+                        if (activeMapPicker === 'transport-from') {
+                          setTransportFromCoords(coords);
+                          const coordsStr = `${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`;
+                          form.setValue("fromLocation", form.getValues("fromLocation") 
+                            ? `${form.getValues("fromLocation")} (${coordsStr})` 
+                            : coordsStr);
+                        } else {
+                          setTransportToCoords(coords);
+                          const coordsStr = `${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`;
+                          form.setValue("toLocation", form.getValues("toLocation") 
+                            ? `${form.getValues("toLocation")} (${coordsStr})` 
+                            : coordsStr);
+                        }
+                      }}
                     />
                     
                     {transportFromCoords && (
