@@ -6,7 +6,7 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
-import { useState, useRef } from "react";
+import { useState } from "react";
 
 import {
   Form,
@@ -35,7 +35,6 @@ import {
   X
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-// Map functionality removed
 
 // Define weekday options
 const weekdays = [
@@ -118,32 +117,6 @@ export function ItineraryForm({ tripId, onSuccess, onCancel, initialData }: Itin
   const [isRecurring, setIsRecurring] = useState(initialData?.isRecurring || false);
   const [recurrencePattern, setRecurrencePattern] = useState<string>(initialData?.recurrencePattern || 'daily');
 
-  // Form setup
-  const form = useForm<ItineraryFormValues>({
-    resolver: zodResolver(itineraryFormSchema),
-    defaultValues: {
-      tripId,
-      day: initialData?.day || 1,
-      title: initialData?.title || "",
-      description: initialData?.description || "",
-      startTime: initialData?.startTime || "",
-      endTime: initialData?.endTime || "",
-      // Use fromLocation/toLocation first, fall back to parsed location value if needed
-      startLocation: initialData?.fromLocation || 
-        (initialData?.location && initialData.location.includes(" to ") 
-          ? initialData.location.split(" to ")[0].trim() 
-          : initialData?.location || ""),
-      endLocation: initialData?.toLocation || 
-        (initialData?.location && initialData.location.includes(" to ") 
-          ? initialData.location.split(" to ")[1].trim() 
-          : ""),
-      isRecurring: initialData?.isRecurring || false,
-      recurrencePattern: initialData?.recurrencePattern || "daily",
-      recurrenceDays: parsedRecurrenceDays,
-      createdBy: user?.id || 0,
-    },
-  });
-
   // Function to extract coordinates from location string
   const extractCoordinates = (locationStr: string | null | undefined): { lat: number, lng: number } | null => {
     if (!locationStr) return null;
@@ -178,6 +151,32 @@ export function ItineraryForm({ tripId, onSuccess, onCancel, initialData }: Itin
   // Store coordinates, but don't show map UI for editing them
   const [startLocationCoords, setStartLocationCoords] = useState<{ lat: number, lng: number } | null>(initialStartCoords);
   const [endLocationCoords, setEndLocationCoords] = useState<{ lat: number, lng: number } | null>(initialEndCoords);
+
+  // Form setup
+  const form = useForm<ItineraryFormValues>({
+    resolver: zodResolver(itineraryFormSchema),
+    defaultValues: {
+      tripId,
+      day: initialData?.day || 1,
+      title: initialData?.title || "",
+      description: initialData?.description || "",
+      startTime: initialData?.startTime || "",
+      endTime: initialData?.endTime || "",
+      // Use fromLocation/toLocation first, fall back to parsed location value if needed
+      startLocation: initialData?.fromLocation || 
+        (initialData?.location && initialData.location.includes(" to ") 
+          ? initialData.location.split(" to ")[0].trim() 
+          : initialData?.location || ""),
+      endLocation: initialData?.toLocation || 
+        (initialData?.location && initialData.location.includes(" to ") 
+          ? initialData.location.split(" to ")[1].trim() 
+          : ""),
+      isRecurring: initialData?.isRecurring || false,
+      recurrencePattern: initialData?.recurrencePattern || "daily",
+      recurrenceDays: parsedRecurrenceDays,
+      createdBy: user?.id || 0,
+    },
+  });
 
   // Create/Update itinerary item mutation
   const mutation = useMutation({
@@ -254,8 +253,8 @@ export function ItineraryForm({ tripId, onSuccess, onCancel, initialData }: Itin
     };
     
     // Delete form-specific fields that don't exist in the schema
-    delete dataToSubmit.startLocation;
-    delete dataToSubmit.endLocation;
+    delete (dataToSubmit as any).startLocation;
+    delete (dataToSubmit as any).endLocation;
     
     // Submit the form
     mutation.mutate(dataToSubmit as any);
@@ -269,44 +268,6 @@ export function ItineraryForm({ tripId, onSuccess, onCancel, initialData }: Itin
   const handleSuccess = () => {
     setShowForm(false);
     onSuccess();
-  };
-  
-  // Function to get current location for coordinates
-  const getCurrentLocation = (callback: (coords: { lat: number, lng: number }) => void) => {
-    const { toast } = useToast();
-    
-    if ("geolocation" in navigator) {
-      toast({
-        title: "Getting your location",
-        description: "Please allow location access if prompted",
-      });
-      
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          callback({ lat: latitude, lng: longitude });
-          
-          toast({
-            title: "Location found",
-            description: "Current location coordinates have been added",
-          });
-        },
-        (error) => {
-          console.error("Error getting location:", error);
-          toast({
-            title: "Location error",
-            description: "Couldn't get your current location.",
-            variant: "destructive",
-          });
-        }
-      );
-    } else {
-      toast({
-        title: "Geolocation not supported",
-        description: "Your browser doesn't support geolocation.",
-        variant: "destructive",
-      });
-    }
   };
   
   // If the form isn't shown, just display the button to add an itinerary item
@@ -534,29 +495,17 @@ export function ItineraryForm({ tripId, onSuccess, onCancel, initialData }: Itin
                     Start Location
                   </FormLabel>
                   <FormControl>
-                    <div className="flex items-center gap-2">
-                      <Input 
-                        placeholder="Where this activity starts" 
-                        value={field.value || ""}
-                        onChange={field.onChange}
-                        onBlur={field.onBlur}
-                        name={field.name}
-                        ref={field.ref}
-                        className={cn(
-                          startLocationCoords && "border-green-500"
-                        )}
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="h-10 border-blue-300"
-                        onClick={() => getCurrentLocation(setStartLocationCoords)}
-                      >
-                        <MapPin className="h-4 w-4 mr-1" />
-                        Use Current
-                      </Button>
-                    </div>
+                    <Input 
+                      placeholder="Where this activity starts" 
+                      value={field.value || ""}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      name={field.name}
+                      ref={field.ref}
+                      className={cn(
+                        startLocationCoords && "border-green-500"
+                      )}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -573,29 +522,17 @@ export function ItineraryForm({ tripId, onSuccess, onCancel, initialData }: Itin
                     End Location
                   </FormLabel>
                   <FormControl>
-                    <div className="flex items-center gap-2">
-                      <Input 
-                        placeholder="Where this activity ends" 
-                        value={field.value || ""}
-                        onChange={field.onChange}
-                        onBlur={field.onBlur}
-                        name={field.name}
-                        ref={field.ref}
-                        className={cn(
-                          endLocationCoords && "border-green-500"
-                        )}
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="h-10 border-blue-300"
-                        onClick={() => getCurrentLocation(setEndLocationCoords)}
-                      >
-                        <MapPin className="h-4 w-4 mr-1" />
-                        Use Current
-                      </Button>
-                    </div>
+                    <Input 
+                      placeholder="Where this activity ends" 
+                      value={field.value || ""}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      name={field.name}
+                      ref={field.ref}
+                      className={cn(
+                        endLocationCoords && "border-green-500"
+                      )}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -690,8 +627,6 @@ export function ItineraryForm({ tripId, onSuccess, onCancel, initialData }: Itin
           />
         </div>
           
-        {/* Map section has been removed */}
-
         <div className="flex justify-end space-x-2">
           <Button 
             type="button" 
