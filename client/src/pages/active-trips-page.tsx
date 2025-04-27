@@ -1150,14 +1150,20 @@ export default function ActiveTripsPage() {
                       </div>
                     </CardContent>
                     <CardFooter>
-                      <Button
-                        variant="outline"
-                        onClick={() => handleViewTripTracking(trip.id)}
-                        className="w-full inline-flex items-center justify-center"
-                      >
-                        <NavigationIcon className="h-4 w-4 mr-2" />
-                        View &amp; Track Trip
-                      </Button>
+                      <div className="w-full">
+                        <p className="text-xs text-primary-700 mb-2 flex items-center justify-center">
+                          <InfoIcon className="h-3 w-3 mr-1" />
+                          <span>Click to see active itinerary details ("kumon")</span>
+                        </p>
+                        <Button
+                          variant="outline"
+                          onClick={() => handleViewTripTracking(trip.id)}
+                          className="w-full inline-flex items-center justify-center"
+                        >
+                          <NavigationIcon className="h-4 w-4 mr-2" />
+                          View &amp; Track Trip
+                        </Button>
+                      </div>
                     </CardFooter>
                   </Card>
                 ))}
