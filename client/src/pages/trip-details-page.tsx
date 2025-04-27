@@ -109,8 +109,9 @@ function TripQuickEdit({ trip, onSuccess }: { trip: Trip, onSuccess: () => void 
   const [startLocation, setStartLocation] = useState(trip.startLocation || '');
   const [destination, setDestination] = useState(trip.destination);
   const [description, setDescription] = useState(trip.description || '');
-  const [startDate, setStartDate] = useState(trip.startDate ? new Date(trip.startDate) : new Date());
-  const [endDate, setEndDate] = useState(trip.endDate ? new Date(trip.endDate) : new Date());
+  // Use normalizeDate to handle date timezone issues
+  const [startDate, setStartDate] = useState(normalizeDate(trip.startDate) || new Date());
+  const [endDate, setEndDate] = useState(normalizeDate(trip.endDate) || new Date());
   const [isUpdating, setIsUpdating] = useState(false);
   
   // Status options for the select component
@@ -259,7 +260,15 @@ function TripQuickEdit({ trip, onSuccess }: { trip: Trip, onSuccess: () => void 
             type="date"
             className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
             value={startDate ? format(startDate, "yyyy-MM-dd") : ""}
-            onChange={(e) => setStartDate(e.target.value ? new Date(e.target.value) : new Date())}
+            onChange={(e) => {
+              if (e.target.value) {
+                // Create a date at noon UTC to avoid timezone issues
+                const dateStr = `${e.target.value}T12:00:00Z`;
+                setStartDate(new Date(dateStr));
+              } else {
+                setStartDate(new Date());
+              }
+            }}
           />
         </div>
         
@@ -271,7 +280,15 @@ function TripQuickEdit({ trip, onSuccess }: { trip: Trip, onSuccess: () => void 
             type="date"
             className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
             value={endDate ? format(endDate, "yyyy-MM-dd") : ""}
-            onChange={(e) => setEndDate(e.target.value ? new Date(e.target.value) : new Date())}
+            onChange={(e) => {
+              if (e.target.value) {
+                // Create a date at noon UTC to avoid timezone issues
+                const dateStr = `${e.target.value}T12:00:00Z`;
+                setEndDate(new Date(dateStr));
+              } else {
+                setEndDate(new Date());
+              }
+            }}
           />
         </div>
       </div>

@@ -15,7 +15,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Calendar as CalendarIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, normalizeDate } from "@/lib/utils";
 
 export function SimpleTripForm() {
   const { user } = useAuth();
@@ -84,9 +84,9 @@ export function SimpleTripForm() {
         imageUrl: imageUrl || null,
         status,
         groupId: groupId,
-        // Format dates as expected by the backend
-        startDate: startDate ? new Date(startDate).toISOString() : null,
-        endDate: endDate ? new Date(endDate).toISOString() : null,
+        // Format dates as expected by the backend - use noon UTC format
+        startDate: startDate ? startDate.toISOString() : null,
+        endDate: endDate ? endDate.toISOString() : null,
         createdBy: user.id
       };
       
@@ -181,7 +181,15 @@ export function SimpleTripForm() {
               <Calendar
                 mode="single"
                 selected={startDate}
-                onSelect={setStartDate}
+                onSelect={(date) => {
+                  if (date) {
+                    // Create a noon UTC date to avoid timezone issues
+                    const dateStr = `${format(date, 'yyyy-MM-dd')}T12:00:00Z`;
+                    setStartDate(new Date(dateStr));
+                  } else {
+                    setStartDate(undefined);
+                  }
+                }}
                 disabled={(date) => date < new Date()}
                 initialFocus
               />
@@ -211,7 +219,15 @@ export function SimpleTripForm() {
               <Calendar
                 mode="single"
                 selected={endDate}
-                onSelect={setEndDate}
+                onSelect={(date) => {
+                  if (date) {
+                    // Create a noon UTC date to avoid timezone issues
+                    const dateStr = `${format(date, 'yyyy-MM-dd')}T12:00:00Z`;
+                    setEndDate(new Date(dateStr));
+                  } else {
+                    setEndDate(undefined);
+                  }
+                }}
                 disabled={(date) => 
                   date < new Date() || 
                   (startDate ? date < startDate : false)
