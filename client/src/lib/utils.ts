@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import { format } from 'date-fns';
+import { format, parseISO, addDays } from 'date-fns';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -23,6 +23,30 @@ export function isSpecialDateMarker(dateStr: string | null | undefined): boolean
   }
 }
 
+// Function to normalize date displays independent of timezone
+// This fixes the issue where dates appear one day earlier than selected
+export function normalizeDate(dateStr: string | Date | null | undefined): Date | null {
+  if (!dateStr) return null;
+  if (isSpecialDateMarker(dateStr as string)) return null;
+  
+  try {
+    // Convert to Date object first
+    const date = typeof dateStr === 'string' ? new Date(dateStr) : dateStr;
+    
+    // Create a date string in YYYY-MM-DD format to strip out time info
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const dateOnlyStr = `${year}-${month}-${day}`;
+    
+    // Parse this string back into a Date at noon UTC to avoid timezone issues
+    return new Date(`${dateOnlyStr}T12:00:00Z`);
+  } catch (e) {
+    console.error("Error normalizing date:", e);
+    return null;
+  }
+}
+
 // Format a date range for display, handling special marker dates
 export function formatDateRange(startDate: string | Date | null | undefined, endDate: string | Date | null | undefined): string {
   // If both dates are empty or special markers, return "No dates set"
@@ -32,14 +56,18 @@ export function formatDateRange(startDate: string | Date | null | undefined, end
     return "No dates set";
   }
   
-  // Format start date if it exists and is not a special marker
-  const formattedStart = startDate && !isSpecialDateMarker(startDate as string) 
-    ? format(new Date(startDate), 'MMM d, yyyy')
+  // Normalize and format the dates to avoid timezone issues
+  const normalizedStartDate = normalizeDate(startDate);
+  const normalizedEndDate = normalizeDate(endDate);
+  
+  // Format start date if it exists and was normalized
+  const formattedStart = normalizedStartDate 
+    ? format(normalizedStartDate, 'MMM d, yyyy')
     : null;
     
-  // Format end date if it exists and is not a special marker
-  const formattedEnd = endDate && !isSpecialDateMarker(endDate as string)
-    ? format(new Date(endDate), 'MMM d, yyyy')
+  // Format end date if it exists and was normalized
+  const formattedEnd = normalizedEndDate
+    ? format(normalizedEndDate, 'MMM d, yyyy')
     : null;
   
   // Handle cases where only one date is set

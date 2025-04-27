@@ -6,7 +6,7 @@ import { useParams, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { format, addDays } from "date-fns";
-import { isSpecialDateMarker, formatDateRange, cn } from "@/lib/utils";
+import { isSpecialDateMarker, formatDateRange, cn, normalizeDate } from "@/lib/utils";
 import { 
   AlertTriangle, Calendar as CalendarIcon, CalendarRange, MapPin, Users, PlusIcon, PencilIcon, 
   DollarSign, ClipboardList, Info, ArrowLeft, Car, UserCheck, ArrowRight,
