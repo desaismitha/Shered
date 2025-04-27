@@ -147,6 +147,18 @@ export function ItineraryForm({ tripId, onSuccess, onCancel, initialData }: Itin
     },
   });
 
+  // State for map location selection
+  const [locationCoords, setLocationCoords] = useState<{ lat: number, lng: number } | null>(null);
+  const [transportFromCoords, setTransportFromCoords] = useState<{ lat: number, lng: number } | null>(null);
+  const [transportToCoords, setTransportToCoords] = useState<{ lat: number, lng: number } | null>(null);
+  
+  // Map refs for different maps
+  const locationMapRef = useRef<L.Map | null>(null);
+  const transportMapRef = useRef<L.Map | null>(null);
+  
+  // State to track which map is active for picking locations
+  const [activeMapPicker, setActiveMapPicker] = useState<'location' | 'transport-from' | 'transport-to' | null>(null);
+
   // Create/Update itinerary item mutation
   const mutation = useMutation({
     mutationFn: async (values: ItineraryFormValues) => {
@@ -188,7 +200,7 @@ export function ItineraryForm({ tripId, onSuccess, onCancel, initialData }: Itin
     
     // Verify specific-days has selected days
     if (values.isRecurring && values.recurrencePattern === 'specific-days' && 
-        (!values.recurrenceDays || values.recurrenceDays.length === 0)) {
+        (!values.recurrenceDays || (Array.isArray(values.recurrenceDays) && values.recurrenceDays.length === 0))) {
       toast({
         title: "Error",
         description: "Please select at least one day for your recurring event",
@@ -199,7 +211,7 @@ export function ItineraryForm({ tripId, onSuccess, onCancel, initialData }: Itin
     
     // Convert recurrenceDays array to string for storage
     let formValues = {...values};
-    if (values.recurrenceDays && values.recurrenceDays.length > 0) {
+    if (Array.isArray(values.recurrenceDays) && values.recurrenceDays.length > 0) {
       const recurrenceDaysString = JSON.stringify(values.recurrenceDays);
       formValues = {
         ...formValues,
@@ -220,7 +232,22 @@ export function ItineraryForm({ tripId, onSuccess, onCancel, initialData }: Itin
     setShowForm(false);
     onSuccess();
   };
-
+  
+  // Function to handle location selection on map
+  interface LocationPickerProps {
+    setCoords: (coords: { lat: number, lng: number }) => void;
+  }
+  
+  function LocationPicker({ setCoords }: LocationPickerProps) {
+    const map = useMapEvents({
+      click(e) {
+        setCoords({ lat: e.latlng.lat, lng: e.latlng.lng });
+      },
+    });
+    
+    return null;
+  }
+  
   // If the form isn't shown, just display the button to add an itinerary item
   if (!showForm) {
     return (
@@ -236,6 +263,25 @@ export function ItineraryForm({ tripId, onSuccess, onCancel, initialData }: Itin
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        {/* Activity Title - Moved to top */}
+        <FormField
+          control={form.control}
+          name="title"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-lg font-semibold">Activity Title</FormLabel>
+              <FormControl>
+                <Input 
+                  placeholder="Visit the Eiffel Tower" 
+                  className="text-lg" 
+                  {...field} 
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
         {/* Day and Time Selection */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <FormField
@@ -261,12 +307,22 @@ export function ItineraryForm({ tripId, onSuccess, onCancel, initialData }: Itin
             name="startTime"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Start Time (optional)</FormLabel>
+                <FormLabel>Start Time</FormLabel>
                 <FormControl>
-                  <Input 
-                    type="time"
-                    {...field}
-                  />
+                  <div className="flex items-center border rounded-md overflow-hidden focus-within:ring-2 focus-within:ring-ring">
+                    <div className="px-3 py-2 bg-muted text-muted-foreground">
+                      <Clock className="h-4 w-4" />
+                    </div>
+                    <Input 
+                      type="time"
+                      className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                      value={field.value || ""}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      name={field.name}
+                      ref={field.ref}
+                    />
+                  </div>
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -278,12 +334,22 @@ export function ItineraryForm({ tripId, onSuccess, onCancel, initialData }: Itin
             name="endTime"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>End Time (optional)</FormLabel>
+                <FormLabel>End Time</FormLabel>
                 <FormControl>
-                  <Input 
-                    type="time"
-                    {...field}
-                  />
+                  <div className="flex items-center border rounded-md overflow-hidden focus-within:ring-2 focus-within:ring-ring">
+                    <div className="px-3 py-2 bg-muted text-muted-foreground">
+                      <Clock className="h-4 w-4" />
+                    </div>
+                    <Input 
+                      type="time"
+                      className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                      value={field.value || ""}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      name={field.name}
+                      ref={field.ref}
+                    />
+                  </div>
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -363,13 +429,18 @@ export function ItineraryForm({ tripId, onSuccess, onCancel, initialData }: Itin
                         <FormLabel>Select Days</FormLabel>
                         <FormDescription>Choose the days this event repeats</FormDescription>
                       </div>
-                      <div className="grid grid-cols-3 md:grid-cols-4 gap-2">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
                         {weekdays.map((day) => (
                           <FormField
                             key={day.value}
                             control={form.control}
                             name="recurrenceDays"
                             render={({ field }) => {
+                              // Convert field value to array if it's a string or undefined
+                              const fieldValues = Array.isArray(field.value) 
+                                ? field.value 
+                                : (field.value ? [field.value] : []);
+                                
                               return (
                                 <FormItem
                                   key={day.value}
@@ -377,13 +448,12 @@ export function ItineraryForm({ tripId, onSuccess, onCancel, initialData }: Itin
                                 >
                                   <FormControl>
                                     <Checkbox
-                                      checked={field.value?.includes(day.value)}
+                                      checked={fieldValues.includes(day.value)}
                                       onCheckedChange={(checked) => {
-                                        const currentValues = field.value || [];
                                         return checked
-                                          ? field.onChange([...currentValues, day.value])
+                                          ? field.onChange([...fieldValues, day.value])
                                           : field.onChange(
-                                              currentValues.filter(
+                                              fieldValues.filter(
                                                 (value) => value !== day.value
                                               )
                                             );
@@ -408,65 +478,176 @@ export function ItineraryForm({ tripId, onSuccess, onCancel, initialData }: Itin
           )}
         </div>
 
-        {/* Activity Details */}
-        <FormField
-          control={form.control}
-          name="title"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Activity Title</FormLabel>
-              <FormControl>
-                <Input placeholder="Visit the Eiffel Tower" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
+        {/* Location with Map Selection */}
+        <div className="border p-4 rounded-md">
+          <h3 className="font-medium text-lg mb-3">Location Details</h3>
+          
+          <FormField
+            control={form.control}
+            name="location"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Activity Location</FormLabel>
+                <FormControl>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1">
+                      <Input 
+                        placeholder="e.g., Eiffel Tower, Paris" 
+                        value={field.value || ""}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        name={field.name}
+                        ref={field.ref}
+                        className={cn(
+                          locationCoords && "border-green-500 focus-visible:ring-green-500"
+                        )}
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className={cn(
+                        "flex items-center",
+                        activeMapPicker === 'location' && "bg-primary text-primary-foreground"
+                      )}
+                      onClick={() => setActiveMapPicker(activeMapPicker === 'location' ? null : 'location')}
+                    >
+                      <MapPin className="h-4 w-4 mr-1" />
+                      {activeMapPicker === 'location' ? 'Hide Map' : 'Pick on Map'}
+                    </Button>
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          {activeMapPicker === 'location' && (
+            <div className="mt-3 h-[300px] border rounded overflow-hidden">
+              {typeof window !== 'undefined' && (
+                <MapContainer
+                  center={locationCoords ? [locationCoords.lat, locationCoords.lng] : [40.7128, -74.006]}
+                  zoom={13}
+                  style={{ height: '100%', width: '100%' }}
+                  ref={(map) => {
+                    if (map) {
+                      locationMapRef.current = map;
+                    }
+                  }}
+                >
+                  <TileLayer
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  />
+                  
+                  <LocationPicker setCoords={setLocationCoords} />
+                  
+                  {locationCoords && (
+                    <Marker 
+                      position={[locationCoords.lat, locationCoords.lng]} 
+                    >
+                      <Popup>
+                        Selected location for: {form.getValues('title')}
+                      </Popup>
+                    </Marker>
+                  )}
+                </MapContainer>
+              )}
+              <div className="bg-muted p-2 text-xs">
+                Click on the map to select a precise location
+              </div>
+            </div>
           )}
-        />
-
-        <FormField
-          control={form.control}
-          name="location"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Location (optional)</FormLabel>
-              <FormControl>
-                <Input placeholder="Champ de Mars, Paris" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="description"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Description (optional)</FormLabel>
-              <FormControl>
-                <Textarea 
-                  placeholder="Notes about this activity" 
-                  className="resize-none" 
-                  {...field} 
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+          
+          <FormField
+            control={form.control}
+            name="description"
+            render={({ field }) => (
+              <FormItem className="mt-3">
+                <FormLabel>Description</FormLabel>
+                <FormControl>
+                  <Textarea 
+                    placeholder="Additional details about this activity" 
+                    className="resize-none h-24"
+                    value={field.value || ""}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    name={field.name}
+                    ref={field.ref}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
         
-        {/* Transportation details */}
+        {/* Transportation details with Map Integration */}
         <div className="border p-4 rounded-md bg-blue-50">
-          <h3 className="font-medium mb-3">Transportation Details (Optional)</h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-medium text-lg text-blue-900">Transportation Details</h3>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className={cn(
+                "flex items-center text-blue-700 border-blue-300",
+                activeMapPicker === 'transport-from' || activeMapPicker === 'transport-to' 
+                  ? "bg-blue-600 text-white hover:text-white hover:bg-blue-700" 
+                  : "bg-blue-50"
+              )}
+              onClick={() => setActiveMapPicker(
+                activeMapPicker === 'transport-from' || activeMapPicker === 'transport-to' 
+                  ? null 
+                  : 'transport-from'
+              )}
+            >
+              <MapPin className="h-4 w-4 mr-1" />
+              {activeMapPicker === 'transport-from' || activeMapPicker === 'transport-to' 
+                ? 'Hide Map' 
+                : 'Use Map'}
+            </Button>
+          </div>
+          
           <div className="space-y-4">
             <FormField
               control={form.control}
               name="fromLocation"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Starting Location</FormLabel>
+                  <FormLabel className="flex items-center">
+                    <MapPin className="h-4 w-4 mr-1 text-blue-600" />
+                    Starting Location
+                  </FormLabel>
                   <FormControl>
-                    <Input placeholder="Where the trip segment starts" {...field} />
+                    <div className="flex items-center gap-2">
+                      <Input 
+                        placeholder="Where the trip segment starts" 
+                        value={field.value || ""}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        name={field.name}
+                        ref={field.ref}
+                        className={cn(
+                          transportFromCoords && "border-green-500"
+                        )}
+                      />
+                      {(activeMapPicker === 'transport-from' || activeMapPicker === 'transport-to') && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className={cn(
+                            "h-10 border-blue-300",
+                            activeMapPicker === 'transport-from' && "bg-blue-600 text-white"
+                          )}
+                          onClick={() => setActiveMapPicker('transport-from')}
+                        >
+                          {activeMapPicker === 'transport-from' ? 'Picking...' : 'Pick'}
+                        </Button>
+                      )}
+                    </div>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -478,14 +659,119 @@ export function ItineraryForm({ tripId, onSuccess, onCancel, initialData }: Itin
               name="toLocation"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Destination</FormLabel>
+                  <FormLabel className="flex items-center">
+                    <MapPin className="h-4 w-4 mr-1 text-blue-600" />
+                    Destination Location
+                  </FormLabel>
                   <FormControl>
-                    <Input placeholder="Where the trip segment ends" {...field} />
+                    <div className="flex items-center gap-2">
+                      <Input 
+                        placeholder="Where the trip segment ends" 
+                        value={field.value || ""}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        name={field.name}
+                        ref={field.ref}
+                        className={cn(
+                          transportToCoords && "border-green-500"
+                        )}
+                      />
+                      {(activeMapPicker === 'transport-from' || activeMapPicker === 'transport-to') && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className={cn(
+                            "h-10 border-blue-300",
+                            activeMapPicker === 'transport-to' && "bg-blue-600 text-white"
+                          )}
+                          onClick={() => setActiveMapPicker('transport-to')}
+                        >
+                          {activeMapPicker === 'transport-to' ? 'Picking...' : 'Pick'}
+                        </Button>
+                      )}
+                    </div>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
+            
+            {(activeMapPicker === 'transport-from' || activeMapPicker === 'transport-to') && (
+              <div className="mt-3 h-[300px] border rounded overflow-hidden">
+                {typeof window !== 'undefined' && (
+                  <MapContainer
+                    center={transportFromCoords || transportToCoords
+                      ? [
+                          transportFromCoords?.lat || transportToCoords?.lat || 40.7128, 
+                          transportFromCoords?.lng || transportToCoords?.lng || -74.006
+                        ]
+                      : [40.7128, -74.006]
+                    }
+                    zoom={13}
+                    style={{ height: '100%', width: '100%' }}
+                    ref={(map) => {
+                      if (map) {
+                        transportMapRef.current = map;
+                      }
+                    }}
+                  >
+                    <TileLayer
+                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    />
+                    
+                    <LocationPicker 
+                      setCoords={activeMapPicker === 'transport-from' 
+                        ? setTransportFromCoords 
+                        : setTransportToCoords
+                      } 
+                    />
+                    
+                    {transportFromCoords && (
+                      <Marker 
+                        position={[transportFromCoords.lat, transportFromCoords.lng]}
+                      >
+                        <Popup>
+                          Starting point
+                        </Popup>
+                      </Marker>
+                    )}
+                    
+                    {transportToCoords && (
+                      <Marker 
+                        position={[transportToCoords.lat, transportToCoords.lng]}
+                      >
+                        <Popup>
+                          Destination
+                        </Popup>
+                      </Marker>
+                    )}
+                  </MapContainer>
+                )}
+                <div className="bg-blue-100 p-2 text-xs flex justify-between items-center">
+                  <span>
+                    Click on the map to select {activeMapPicker === 'transport-from' ? 'starting point' : 'destination'}
+                  </span>
+                  <Button 
+                    type="button" 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-6 text-xs"
+                    onClick={() => {
+                      if (activeMapPicker === 'transport-from') {
+                        setTransportFromCoords(null);
+                      } else {
+                        setTransportToCoords(null);
+                      }
+                    }}
+                  >
+                    <X className="h-3 w-3 mr-1" />
+                    Clear
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
