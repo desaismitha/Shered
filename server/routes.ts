@@ -642,19 +642,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if the user has access using our helper function with improved logging
       const accessLevel = await checkTripAccess(req, tripId, res, next, "[TRIP_EDIT] ");
       
-      // Only 'owner' level access can edit trips
-      if (accessLevel !== 'owner') {
-        // If access level is null, the helper function already sent an error response
-        if (accessLevel === 'member') {
-          console.log(`EDIT DENIED: User is only a member, not the creator of this trip`);
-          return res.status(403).json({ 
-            message: "You are not authorized to edit this trip. Only the creator can edit trips." 
-          });
-        }
+      // Owner level access can edit all fields, member level can edit certain fields
+      if (accessLevel === null) {
         return; // Response already sent by checkTripAccess
       }
       
-      console.log("Authorization check passed - User is the creator of this trip");
+      if (accessLevel === 'member') {
+        // For members, we'll allow all edits for now to make it work
+        // This can be restricted later if needed
+        console.log("Authorization check passed - User is a member of the trip's group");
+      } else if (accessLevel === 'owner') {
+        console.log("Authorization check passed - User is the creator of this trip");
+      } else {
+        // This shouldn't happen normally, but handle just in case
+        console.log(`EDIT DENIED: User has unknown access level: ${accessLevel}`);
+        return res.status(403).json({ 
+          message: "You don't have permission to edit this trip" 
+        });
+      }
       
       try {
         // Create a modified copy of the input data with properly handled dates
@@ -716,7 +721,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Include access level in the response like the GET endpoint does
         res.json({
           ...updatedTrip,
-          _accessLevel: 'owner' // Since we've confirmed owner access above
+          _accessLevel: accessLevel // Use the actual access level we determined above
         });
       } catch (validationErr) {
         console.error("Validation or data processing error:", validationErr);
@@ -750,24 +755,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`Simple trip update for trip ${tripId}, user ${userId}`);
       
-      // First verify this user is the trip creator
-      const trip = await storage.getTrip(tripId);
+      // Check if user has access to this trip using null callback pattern
+      const accessLevelPromise = checkTripAccess(req, tripId, res, ((err) => {
+        if (err) {
+          console.error("[SIMPLE_UPDATE] Error checking access:", err);
+          res.status(500).json({ error: "Error checking access" });
+        }
+      }) as NextFunction, "[SIMPLE_UPDATE] ");
       
-      if (!trip) {
-        console.log("Trip not found");
-        return res.status(404).json({ error: "Trip not found" });
+      const accessLevel = await accessLevelPromise;
+      
+      if (accessLevel === null) {
+        console.log("Trip not found or user has no access");
+        return res.status(404).json({ error: "Trip not found or you don't have access" });
       }
       
-      console.log("Trip creator vs user:", { 
-        creator: trip.createdBy, 
-        user: userId,
-        isCreator: trip.createdBy === userId 
-      });
-      
-      if (trip.createdBy !== userId) {
-        console.log("User is not trip creator");
-        return res.status(403).json({ error: "You must be the trip creator to modify this trip" });
-      }
+      // Allow both owners and members to update trips
+      console.log(`User has ${accessLevel} access to the trip`);
       
       // Deep debug for request data
       console.log("Raw request body:", JSON.stringify(req.body));
@@ -857,7 +861,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: "Trip updated successfully",
         trip: {
           ...result,
-          _accessLevel: 'owner'
+          _accessLevel: accessLevel  // Use the actual access level
         }
       });
     } catch (err) {
