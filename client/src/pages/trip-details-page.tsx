@@ -794,7 +794,7 @@ export default function TripDetailsPage() {
                                   users={users || []}
                                   tripAccessLevel={trip._accessLevel || 'member'}
                                   trip={trip}
-                                  onEdit={() => queryClient.invalidateQueries({ queryKey: ["/api/trips", tripId, "itinerary"] })}
+                                  onEdit={(item) => setEditingItineraryItem(item)}
                                 />
                               ))
                             }
