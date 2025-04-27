@@ -64,6 +64,10 @@ const itineraryFormSchema = insertItineraryItemSchema.extend({
     invalid_type_error: "Day must be a number",
   }).min(1, "Day must be at least 1").default(1), // Default to day 1
   title: z.string().min(2, "Title must be at least 2 characters"),
+  startTime: z.string().min(1, "Start time is required"),
+  endTime: z.string().min(1, "End time is required"),
+  startLocation: z.string().min(1, "Start location is required"),
+  endLocation: z.string().min(1, "End location is required"),
   isRecurring: z.boolean().default(false),
   recurrencePattern: z.string().optional(),
   // This will handle both string (from DB) and array (from form) values
@@ -123,29 +127,27 @@ export function ItineraryForm({ tripId, onSuccess, onCancel, initialData }: Itin
       day: initialData?.day || 1,
       title: initialData?.title || "",
       description: initialData?.description || "",
-      location: initialData?.location || "",
       startTime: initialData?.startTime || "",
       endTime: initialData?.endTime || "",
+      startLocation: initialData?.fromLocation || "",
+      endLocation: initialData?.toLocation || "",
       isRecurring: initialData?.isRecurring || false,
       recurrencePattern: initialData?.recurrencePattern || "daily",
       recurrenceDays: parsedRecurrenceDays,
-      fromLocation: initialData?.fromLocation || "",
-      toLocation: initialData?.toLocation || "",
       createdBy: user?.id || 0,
     },
   });
 
   // State for map location selection
-  const [locationCoords, setLocationCoords] = useState<{ lat: number, lng: number } | null>(null);
-  const [transportFromCoords, setTransportFromCoords] = useState<{ lat: number, lng: number } | null>(null);
-  const [transportToCoords, setTransportToCoords] = useState<{ lat: number, lng: number } | null>(null);
+  const [startLocationCoords, setStartLocationCoords] = useState<{ lat: number, lng: number } | null>(null);
+  const [endLocationCoords, setEndLocationCoords] = useState<{ lat: number, lng: number } | null>(null);
   
   // Map refs for different maps
-  const locationMapRef = useRef<any>(null);
-  const transportMapRef = useRef<any>(null);
+  const startLocationMapRef = useRef<any>(null);
+  const endLocationMapRef = useRef<any>(null);
   
   // State to track which map is active for picking locations
-  const [activeMapPicker, setActiveMapPicker] = useState<'location' | 'transport-from' | 'transport-to' | null>(null);
+  const [activeMapPicker, setActiveMapPicker] = useState<'start-location' | 'end-location' | null>(null);
 
   // Create/Update itinerary item mutation
   const mutation = useMutation({
