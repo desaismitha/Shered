@@ -50,13 +50,13 @@ export default function UnifiedTripPage() {
   
   // Query for existing trip if editing
   const { data: tripData, isLoading: isLoadingTrip } = useQuery<Trip>({
-    queryKey: tripId ? ["/api/trips", parseInt(tripId)] as const : undefined,
+    queryKey: tripId ? ["/api/trips", parseInt(tripId)] : (["/api/trips", "no-id"] as const),
     enabled: !!tripId,
   });
   
   // Query for itinerary items if editing a trip
   const { data: itineraryItems, isLoading: isLoadingItinerary } = useQuery<ItineraryItem[]>({
-    queryKey: tripId ? ["/api/trips", parseInt(tripId), "itinerary"] as const : undefined,
+    queryKey: tripId ? ["/api/trips", parseInt(tripId), "itinerary"] : (["/api/trips", "no-id", "itinerary"] as const),
     enabled: !!tripId,
   });
   
@@ -93,29 +93,31 @@ export default function UnifiedTripPage() {
   });
   
   // Transform data from existing trip + itinerary to match the unified form structure
-  const prepareFormData = () => {
+  const prepareFormData = (): Partial<FormDataWithExtras> => {
     if (!tripData) return {};
     
     // Start with basic trip data
-    const formData = {
+    const formData: Partial<FormDataWithExtras> = {
       name: tripData.name,
       description: tripData.description || "",
       startDate: new Date(tripData.startDate),
       endDate: new Date(tripData.endDate),
-      groupId: tripData.groupId,
+      groupId: tripData.groupId || undefined,
       // These fields are now part of the unified schema but might come from itinerary
       startLocation: tripData.startLocation || "",
       endLocation: tripData.destination || "",
       // Default to single stop if we don't have itinerary items
-      isMultiStop: itineraryItems?.length > 1 || false,
+      isMultiStop: false,
+      startTime: "",
+      endTime: ""
     };
     
     // If we have itinerary items, populate the stops array for multi-stop trips
-    if (itineraryItems?.length > 0) {
+    if (itineraryItems && itineraryItems.length > 0) {
       // For standard itinerary items, transform them to stops
-      const stops = itineraryItems.map((item: any) => ({
+      const stops = itineraryItems.map((item) => ({
         day: item.day,
-        title: item.title,
+        title: item.title || "",
         startLocation: item.fromLocation || "",
         endLocation: item.toLocation || "",
         startTime: item.startTime || "",
@@ -123,19 +125,19 @@ export default function UnifiedTripPage() {
         description: item.description || "",
         isRecurring: item.isRecurring || false,
         recurrencePattern: item.recurrencePattern || undefined,
-        recurrenceDays: item.recurrenceDays ? JSON.parse(item.recurrenceDays) : [],
+        recurrenceDays: item.recurrenceDays ? JSON.parse(item.recurrenceDays as string) : [],
       }));
       
       // If it's a single-stop trip, extract data from the first itinerary item
       if (itineraryItems.length === 1) {
         const item = itineraryItems[0];
-        formData.startLocation = item.fromLocation || tripData.startLocation;
-        formData.endLocation = item.toLocation || tripData.destination;
+        formData.startLocation = item.fromLocation || tripData.startLocation || "";
+        formData.endLocation = item.toLocation || tripData.destination || "";
         formData.startTime = item.startTime || "";
         formData.endTime = item.endTime || "";
         formData.isRecurring = item.isRecurring || false;
         formData.recurrencePattern = item.recurrencePattern || undefined;
-        formData.recurrenceDays = item.recurrenceDays ? JSON.parse(item.recurrenceDays) : [];
+        formData.recurrenceDays = item.recurrenceDays ? JSON.parse(item.recurrenceDays as string) : [];
       } else {
         // It's a multi-stop trip
         formData.isMultiStop = true;
@@ -274,7 +276,7 @@ export default function UnifiedTripPage() {
                     <div>
                       <h3 className="text-lg font-medium">{tripData?.name}</h3>
                       <p className="text-muted-foreground">
-                        {new Date(tripData?.startDate).toLocaleDateString()} to {new Date(tripData?.endDate).toLocaleDateString()}
+                        {tripData?.startDate ? new Date(tripData.startDate).toLocaleDateString() : ""} to {tripData?.endDate ? new Date(tripData.endDate).toLocaleDateString() : ""}
                       </p>
                       {tripData?.description && (
                         <p className="mt-2">{tripData.description}</p>
@@ -283,9 +285,9 @@ export default function UnifiedTripPage() {
                     
                     <div className="bg-card p-4 rounded-lg border">
                       <h4 className="font-medium mb-2">Stops & Itinerary</h4>
-                      {itineraryItems?.length > 0 ? (
+                      {itineraryItems && itineraryItems.length > 0 ? (
                         <div className="space-y-3">
-                          {itineraryItems.map((item: any, index: number) => (
+                          {itineraryItems.map((item, index) => (
                             <div key={index} className="border-b pb-3 last:border-0">
                               <div className="flex justify-between items-start">
                                 <div>
