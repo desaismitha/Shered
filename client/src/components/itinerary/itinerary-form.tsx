@@ -542,7 +542,14 @@ export function ItineraryForm({ tripId, onSuccess, onCancel, initialData }: Itin
                   variant="ghost" 
                   size="sm" 
                   className="h-6 text-xs"
-                  onClick={() => setLocationCoords(null)}
+                  onClick={() => {
+                    setLocationCoords(null);
+                    // Just remove the coordinates part from the location field if it exists
+                    const currentLocation = form.getValues("location") || "";
+                    if (currentLocation.includes("(")) {
+                      form.setValue("location", currentLocation.substring(0, currentLocation.lastIndexOf("(")).trim());
+                    }
+                  }}
                 >
                   <X className="h-3 w-3 mr-1" />
                   Clear
@@ -744,8 +751,18 @@ export function ItineraryForm({ tripId, onSuccess, onCancel, initialData }: Itin
                     onClick={() => {
                       if (activeMapPicker === 'transport-from') {
                         setTransportFromCoords(null);
+                        // Remove coordinates from form field if they exist
+                        const currentLocation = form.getValues("fromLocation") || "";
+                        if (currentLocation.includes("(")) {
+                          form.setValue("fromLocation", currentLocation.substring(0, currentLocation.lastIndexOf("(")).trim());
+                        }
                       } else {
                         setTransportToCoords(null);
+                        // Remove coordinates from form field if they exist
+                        const currentLocation = form.getValues("toLocation") || "";
+                        if (currentLocation.includes("(")) {
+                          form.setValue("toLocation", currentLocation.substring(0, currentLocation.lastIndexOf("(")).trim());
+                        }
                       }
                     }}
                   >
