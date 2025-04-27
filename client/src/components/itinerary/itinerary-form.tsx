@@ -35,8 +35,7 @@ import {
   X
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
+// Map functionality removed
 
 // Define weekday options
 const weekdays = [
@@ -176,16 +175,9 @@ export function ItineraryForm({ tripId, onSuccess, onCancel, initialData }: Itin
     extractCoordinates(initialData?.location);
   const initialEndCoords = extractCoordinates(initialData?.toLocation);
   
-  // State for map location selection with initial values from extracted coordinates
+  // Store coordinates, but don't show map UI for editing them
   const [startLocationCoords, setStartLocationCoords] = useState<{ lat: number, lng: number } | null>(initialStartCoords);
   const [endLocationCoords, setEndLocationCoords] = useState<{ lat: number, lng: number } | null>(initialEndCoords);
-  
-  // Map refs for different maps
-  const startLocationMapRef = useRef<any>(null);
-  const endLocationMapRef = useRef<any>(null);
-  
-  // State to track which map is active for picking locations
-  const [activeMapPicker, setActiveMapPicker] = useState<'start-location' | 'end-location' | null>(null);
 
   // Create/Update itinerary item mutation
   const mutation = useMutation({
