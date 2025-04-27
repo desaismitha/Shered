@@ -149,9 +149,15 @@ export function ItineraryForm({ tripId, onSuccess, onCancel, initialData }: Itin
   const extractCoordinates = (locationStr: string | null | undefined): { lat: number, lng: number } | null => {
     if (!locationStr) return null;
     
-    // Look for coordinates in the format (lat, lng)
-    const coordsRegex = /\((-?\d+\.?\d*),\s*(-?\d+\.?\d*)\)/;
-    const match = locationStr.match(coordsRegex);
+    // First try the new format with square brackets [lat, lng]
+    let coordsRegex = /\[(-?\d+\.?\d*),\s*(-?\d+\.?\d*)\]/;
+    let match = locationStr.match(coordsRegex);
+    
+    // If not found, try the old format with parentheses (lat, lng)
+    if (!match) {
+      coordsRegex = /\((-?\d+\.?\d*),\s*(-?\d+\.?\d*)\)/;
+      match = locationStr.match(coordsRegex);
+    }
     
     if (match && match.length === 3) {
       const lat = parseFloat(match[1]);
@@ -244,12 +250,12 @@ export function ItineraryForm({ tripId, onSuccess, onCancel, initialData }: Itin
     // Map from our form field names to database field names
     const dataToSubmit = {
       ...formValues,
-      // Add coordinates to locations if available
+      // Store coordinates with locations, but separate with custom delimiter for easy processing
       fromLocation: startLocationCoords 
-        ? `${formValues.startLocation || ''} (${startLocationCoords.lat}, ${startLocationCoords.lng})`
+        ? `${formValues.startLocation || ''} [${startLocationCoords.lat}, ${startLocationCoords.lng}]`
         : formValues.startLocation,
       toLocation: endLocationCoords 
-        ? `${formValues.endLocation || ''} (${endLocationCoords.lat}, ${endLocationCoords.lng})` 
+        ? `${formValues.endLocation || ''} [${endLocationCoords.lat}, ${endLocationCoords.lng}]` 
         : formValues.endLocation,
       // Set location to combined value for backwards compatibility
       location: `${formValues.startLocation || ''} to ${formValues.endLocation || ''}`.trim(),
@@ -582,7 +588,8 @@ export function ItineraryForm({ tripId, onSuccess, onCancel, initialData }: Itin
                         size="sm"
                         className={cn(
                           "h-10 border-blue-300",
-                          activeMapPicker === 'start-location' && "bg-blue-600 text-white"
+                          activeMapPicker === 'start-location' && "bg-blue-600 text-white",
+                          startLocationCoords && "border-green-500 border-2" // Added indicator for coords being set
                         )}
                         onClick={() => {
                           if (activeMapPicker === 'start-location') {
@@ -592,7 +599,8 @@ export function ItineraryForm({ tripId, onSuccess, onCancel, initialData }: Itin
                           }
                         }}
                       >
-                        {activeMapPicker === 'start-location' ? 'Picking...' : 'Pick on Map'}
+                        {activeMapPicker === 'start-location' ? 'Picking...' : 
+                         startLocationCoords ? 'Edit Location' : 'Pick on Map'}
                       </Button>
                     </div>
                   </FormControl>
@@ -629,7 +637,8 @@ export function ItineraryForm({ tripId, onSuccess, onCancel, initialData }: Itin
                         size="sm"
                         className={cn(
                           "h-10 border-blue-300",
-                          activeMapPicker === 'end-location' && "bg-blue-600 text-white"
+                          activeMapPicker === 'end-location' && "bg-blue-600 text-white",
+                          endLocationCoords && "border-green-500 border-2" // Added indicator for coords being set
                         )}
                         onClick={() => {
                           if (activeMapPicker === 'end-location') {
@@ -639,7 +648,8 @@ export function ItineraryForm({ tripId, onSuccess, onCancel, initialData }: Itin
                           }
                         }}
                       >
-                        {activeMapPicker === 'end-location' ? 'Picking...' : 'Pick on Map'}
+                        {activeMapPicker === 'end-location' ? 'Picking...' : 
+                         endLocationCoords ? 'Edit Location' : 'Pick on Map'}
                       </Button>
                     </div>
                   </FormControl>
@@ -680,40 +690,30 @@ export function ItineraryForm({ tripId, onSuccess, onCancel, initialData }: Itin
                   <LocationPicker setCoords={(coords) => {
                     if (activeMapPicker === 'start-location') {
                       setStartLocationCoords(coords);
-                      // Format coordinates to 6 decimal places
-                      const coordsStr = `${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`;
                       
-                      // Always save the coordinates in the field
-                      // If there's a description, keep it before the coordinates
-                      const currentLocation = form.getValues("startLocation") || "";
-                      const locationWithoutCoords = currentLocation.includes("(") 
-                        ? currentLocation.substring(0, currentLocation.lastIndexOf("(")).trim()
-                        : currentLocation.trim();
-                        
-                      // Only add a space if the location without coords is not empty
-                      const newLocationValue = locationWithoutCoords 
-                        ? `${locationWithoutCoords} (${coordsStr})` 
-                        : `(${coordsStr})`;
-                        
-                      form.setValue("startLocation", newLocationValue);
+                      // Just use the current location text name without modifying it
+                      // Coordinates will be added separately during form submission
+                      // This keeps the UI clean while still storing coordinates
+                      
+                      // Optional: notify user that coordinates were set
+                      toast({
+                        title: "Start location set",
+                        description: `Coordinates saved: ${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`,
+                        duration: 3000,
+                      });
                     } else if (activeMapPicker === 'end-location') {
                       setEndLocationCoords(coords);
-                      // Format coordinates to 6 decimal places
-                      const coordsStr = `${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`;
                       
-                      // Always save the coordinates in the field
-                      // If there's a description, keep it before the coordinates
-                      const currentLocation = form.getValues("endLocation") || "";
-                      const locationWithoutCoords = currentLocation.includes("(") 
-                        ? currentLocation.substring(0, currentLocation.lastIndexOf("(")).trim()
-                        : currentLocation.trim();
-                        
-                      // Only add a space if the location without coords is not empty
-                      const newLocationValue = locationWithoutCoords 
-                        ? `${locationWithoutCoords} (${coordsStr})` 
-                        : `(${coordsStr})`;
-                        
-                      form.setValue("endLocation", newLocationValue);
+                      // Just use the current location text name without modifying it
+                      // Coordinates will be added separately during form submission
+                      // This keeps the UI clean while still storing coordinates
+                      
+                      // Optional: notify user that coordinates were set
+                      toast({
+                        title: "End location set",
+                        description: `Coordinates saved: ${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`,
+                        duration: 3000,
+                      });
                     }
                   }} />
                   
@@ -747,15 +747,37 @@ export function ItineraryForm({ tripId, onSuccess, onCancel, initialData }: Itin
                       setStartLocationCoords(null);
                       // Just remove the coordinates part from the location field if it exists
                       const currentLocation = form.getValues("startLocation") || "";
-                      if (currentLocation.includes("(")) {
-                        form.setValue("startLocation", currentLocation.substring(0, currentLocation.lastIndexOf("(")).trim());
+                      // Check for both bracket formats
+                      if (currentLocation.includes("[") || currentLocation.includes("(")) {
+                        const indexToUse = currentLocation.includes("[") 
+                          ? currentLocation.lastIndexOf("[") 
+                          : currentLocation.lastIndexOf("(");
+                          
+                        form.setValue("startLocation", currentLocation.substring(0, indexToUse).trim());
+                        
+                        toast({
+                          title: "Coordinates cleared",
+                          description: "Start location coordinates have been removed",
+                          duration: 3000,
+                        });
                       }
                     } else if (activeMapPicker === 'end-location') {
                       setEndLocationCoords(null);
                       // Just remove the coordinates part from the location field if it exists
                       const currentLocation = form.getValues("endLocation") || "";
-                      if (currentLocation.includes("(")) {
-                        form.setValue("endLocation", currentLocation.substring(0, currentLocation.lastIndexOf("(")).trim());
+                      // Check for both bracket formats
+                      if (currentLocation.includes("[") || currentLocation.includes("(")) {
+                        const indexToUse = currentLocation.includes("[") 
+                          ? currentLocation.lastIndexOf("[") 
+                          : currentLocation.lastIndexOf("(");
+                          
+                        form.setValue("endLocation", currentLocation.substring(0, indexToUse).trim());
+                        
+                        toast({
+                          title: "Coordinates cleared",
+                          description: "End location coordinates have been removed",
+                          duration: 3000,
+                        });
                       }
                     }
                   }}
