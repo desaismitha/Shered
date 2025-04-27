@@ -665,15 +665,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Create a modified copy of the input data with properly handled dates
         const processedData = { ...req.body };
         
+        // Handle timezone issues for dates
         if (processedData.startDate) {
-          processedData.startDate = new Date(processedData.startDate);
+          // First create a date object from the input
+          let dateObj = new Date(processedData.startDate);
+          
+          // If the date string appears to be a date without time (e.g., "2025-05-01")
+          // we need to adjust it to noon UTC to avoid timezone issues
+          if (typeof processedData.startDate === 'string' && 
+              (processedData.startDate.length === 10 || processedData.startDate.includes('00:00:00'))) {
+            // Extract year, month, day from the string and create a UTC date at noon
+            const parts = processedData.startDate.split(/[^0-9]/);
+            const year = parseInt(parts[0]);
+            const month = parseInt(parts[1]) - 1; // Month is 0-indexed in JS Date
+            const day = parseInt(parts[2]);
+            
+            // Create date at noon UTC to avoid timezone issues
+            dateObj = new Date(Date.UTC(year, month, day, 12, 0, 0));
+            console.log("Adjusted startDate to noon UTC:", dateObj);
+          }
+          
+          processedData.startDate = dateObj;
           console.log("StartDate type:", typeof processedData.startDate);
           console.log("StartDate is Date?", processedData.startDate instanceof Date);
           console.log("StartDate value:", processedData.startDate);
         }
         
         if (processedData.endDate) {
-          processedData.endDate = new Date(processedData.endDate);
+          // First create a date object from the input
+          let dateObj = new Date(processedData.endDate);
+          
+          // If the date string appears to be a date without time (e.g., "2025-05-01")
+          // we need to adjust it to noon UTC to avoid timezone issues
+          if (typeof processedData.endDate === 'string' && 
+              (processedData.endDate.length === 10 || processedData.endDate.includes('00:00:00'))) {
+            // Extract year, month, day from the string and create a UTC date at noon
+            const parts = processedData.endDate.split(/[^0-9]/);
+            const year = parseInt(parts[0]);
+            const month = parseInt(parts[1]) - 1; // Month is 0-indexed in JS Date
+            const day = parseInt(parts[2]);
+            
+            // Create date at noon UTC to avoid timezone issues
+            dateObj = new Date(Date.UTC(year, month, day, 12, 0, 0));
+            console.log("Adjusted endDate to noon UTC:", dateObj);
+          }
+          
+          processedData.endDate = dateObj;
           console.log("EndDate type:", typeof processedData.endDate);
           console.log("EndDate is Date?", processedData.endDate instanceof Date);
           console.log("EndDate value:", processedData.endDate);
@@ -784,7 +821,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: req.body.status
       };
       
-      // Special date handling - manually convert to Date objects
+      // Special date handling - manually convert to Date objects with timezone fixes
       if (req.body.startDate !== undefined) {
         try {
           // Use special date for empty/null values or when our special marker is present
@@ -793,8 +830,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
             updateData.startDate = new Date('2099-12-31T23:59:59Z');
             console.log("Using special marker date for startDate");
           } else {
-            // Force proper Date object conversion
-            updateData.startDate = new Date(req.body.startDate);
+            // Handle timezone issues for dates with proper UTC handling
+            if (typeof req.body.startDate === 'string' && 
+                (req.body.startDate.length === 10 || req.body.startDate.includes('00:00:00'))) {
+              // Extract year, month, day from the string and create a UTC date at noon
+              const parts = req.body.startDate.split(/[^0-9]/);
+              const year = parseInt(parts[0]);
+              const month = parseInt(parts[1]) - 1; // Month is 0-indexed in JS Date
+              const day = parseInt(parts[2]);
+              
+              // Create date at noon UTC to avoid timezone issues
+              updateData.startDate = new Date(Date.UTC(year, month, day, 12, 0, 0));
+              console.log("Adjusted startDate to noon UTC:", updateData.startDate);
+            } else {
+              // Regular date with time, just convert normally
+              updateData.startDate = new Date(req.body.startDate);
+            }
             console.log("Converted startDate to:", updateData.startDate);
           }
         } catch (err) {
@@ -811,8 +862,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
             updateData.endDate = new Date('2099-12-31T23:59:59Z');
             console.log("Using special marker date for endDate");
           } else {
-            // Force proper Date object conversion
-            updateData.endDate = new Date(req.body.endDate);
+            // Handle timezone issues for dates with proper UTC handling
+            if (typeof req.body.endDate === 'string' && 
+                (req.body.endDate.length === 10 || req.body.endDate.includes('00:00:00'))) {
+              // Extract year, month, day from the string and create a UTC date at noon
+              const parts = req.body.endDate.split(/[^0-9]/);
+              const year = parseInt(parts[0]);
+              const month = parseInt(parts[1]) - 1; // Month is 0-indexed in JS Date
+              const day = parseInt(parts[2]);
+              
+              // Create date at noon UTC to avoid timezone issues
+              updateData.endDate = new Date(Date.UTC(year, month, day, 12, 0, 0));
+              console.log("Adjusted endDate to noon UTC:", updateData.endDate);
+            } else {
+              // Regular date with time, just convert normally
+              updateData.endDate = new Date(req.body.endDate);
+            }
             console.log("Converted endDate to:", updateData.endDate);
           }
         } catch (err) {
