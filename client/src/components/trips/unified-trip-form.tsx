@@ -35,6 +35,35 @@ const stopSchema = z.object({
   recurrenceDays: z.array(z.string()).optional(),
 });
 
+// Type for the form schema
+type FormSchemaType = {
+  name: string;
+  startDate: Date;
+  endDate: Date;
+  description?: string;
+  groupId?: number;
+  isMultiStop: boolean;
+  startLocation?: string;
+  endLocation?: string;
+  startTime?: string;
+  endTime?: string;
+  isRecurring: boolean;
+  recurrencePattern?: "daily" | "weekly" | "monthly" | "custom";
+  recurrenceDays?: string[];
+  stops?: Array<{
+    day: number;
+    title: string;
+    startLocation: string;
+    endLocation: string;
+    startTime?: string;
+    endTime?: string;
+    description?: string;
+    isRecurring?: boolean;
+    recurrencePattern?: "daily" | "weekly" | "monthly" | "custom";
+    recurrenceDays?: string[];
+  }>;
+};
+
 // Define the form schema
 const formSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -57,18 +86,18 @@ const formSchema = z.object({
   recurrenceDays: z.array(z.string()).optional(),
   // For multi-stop trips
   stops: z.array(stopSchema).optional(),
-}).refine((data) => {
+}).refine((data: FormSchemaType): boolean => {
   // Require start/end location for single-stop trips
   if (!data.isMultiStop) {
     return !!data.startLocation && !!data.endLocation;
   }
   // Require at least one stop for multi-stop trips
-  return data.stops && data.stops.length > 0;
+  return data.stops !== undefined && data.stops.length > 0;
 }, {
-  message: data => data.isMultiStop 
+  message: (data: FormSchemaType): string => data.isMultiStop 
     ? "At least one stop is required for multi-stop trips" 
     : "Start and end locations are required",
-  path: data => data.isMultiStop ? ["stops"] : ["startLocation"],
+  path: (data: FormSchemaType): string[] => data.isMultiStop ? ["stops"] : ["startLocation"],
 });
 
 // Type for the form
@@ -204,8 +233,14 @@ export function UnifiedTripForm({ onSubmit, defaultValues, isLoading = false }: 
                 <FormItem>
                   <FormLabel>Group (Optional)</FormLabel>
                   <Select
-                    onValueChange={(value) => field.onChange(parseInt(value) || undefined)}
-                    value={field.value?.toString()}
+                    onValueChange={(value) => {
+                      if (value === "none") {
+                        field.onChange(undefined);
+                      } else {
+                        field.onChange(parseInt(value));
+                      }
+                    }}
+                    value={field.value?.toString() || "none"}
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -213,7 +248,7 @@ export function UnifiedTripForm({ onSubmit, defaultValues, isLoading = false }: 
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">No group</SelectItem>
+                      <SelectItem value="none">No group</SelectItem>
                       {groups?.map((group) => (
                         <SelectItem key={group.id} value={group.id.toString()}>
                           {group.name}

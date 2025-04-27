@@ -93,11 +93,11 @@ export default function UnifiedTripPage() {
   });
   
   // Transform data from existing trip + itinerary to match the unified form structure
-  const prepareFormData = (): Partial<FormDataWithExtras> => {
+  const prepareFormData = (): any => {
     if (!tripData) return {};
     
     // Start with basic trip data
-    const formData: Partial<FormDataWithExtras> = {
+    const formData: any = {
       name: tripData.name,
       description: tripData.description || "",
       startDate: new Date(tripData.startDate),
@@ -115,18 +115,26 @@ export default function UnifiedTripPage() {
     // If we have itinerary items, populate the stops array for multi-stop trips
     if (itineraryItems && itineraryItems.length > 0) {
       // For standard itinerary items, transform them to stops
-      const stops = itineraryItems.map((item) => ({
-        day: item.day,
-        title: item.title || "",
-        startLocation: item.fromLocation || "",
-        endLocation: item.toLocation || "",
-        startTime: item.startTime || "",
-        endTime: item.endTime || "",
-        description: item.description || "",
-        isRecurring: item.isRecurring || false,
-        recurrencePattern: item.recurrencePattern || undefined,
-        recurrenceDays: item.recurrenceDays ? JSON.parse(item.recurrenceDays as string) : [],
-      }));
+      const stops = itineraryItems.map((item) => {
+        // Convert recurrencePattern to one of the valid values
+        let pattern = item.recurrencePattern;
+        if (pattern && !["daily", "weekly", "monthly", "custom"].includes(pattern)) {
+          pattern = "custom"; // Default to custom if it's not one of the expected values
+        }
+        
+        return {
+          day: item.day,
+          title: item.title || "",
+          startLocation: item.fromLocation || "",
+          endLocation: item.toLocation || "",
+          startTime: item.startTime || "",
+          endTime: item.endTime || "",
+          description: item.description || "",
+          isRecurring: item.isRecurring || false,
+          recurrencePattern: pattern as "daily" | "weekly" | "monthly" | "custom" | undefined,
+          recurrenceDays: item.recurrenceDays ? JSON.parse(item.recurrenceDays as string) : [],
+        };
+      });
       
       // If it's a single-stop trip, extract data from the first itinerary item
       if (itineraryItems.length === 1) {
@@ -136,7 +144,17 @@ export default function UnifiedTripPage() {
         formData.startTime = item.startTime || "";
         formData.endTime = item.endTime || "";
         formData.isRecurring = item.isRecurring || false;
-        formData.recurrencePattern = item.recurrencePattern || undefined;
+        
+        // Convert recurrencePattern to a valid value
+        if (item.recurrencePattern) {
+          const pattern = item.recurrencePattern;
+          if (["daily", "weekly", "monthly", "custom"].includes(pattern)) {
+            formData.recurrencePattern = pattern;
+          } else {
+            formData.recurrencePattern = "custom";
+          }
+        }
+        
         formData.recurrenceDays = item.recurrenceDays ? JSON.parse(item.recurrenceDays as string) : [];
       } else {
         // It's a multi-stop trip
@@ -218,7 +236,7 @@ export default function UnifiedTripPage() {
   return (
     <AppShell>
       <div className="container py-6">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center mb-6">
           <div className="flex items-center gap-4">
             <Button 
               variant="ghost" 
@@ -231,91 +249,95 @@ export default function UnifiedTripPage() {
               {tripId ? "Edit Trip" : "Create New Trip"}
             </h1>
           </div>
-          
-          {tripId && (
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-[400px]">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="form">Edit Trip</TabsTrigger>
-                <TabsTrigger value="preview">Preview</TabsTrigger>
-              </TabsList>
-            </Tabs>
-          )}
         </div>
         
         <div className="max-w-5xl mx-auto">
-          {tripId && isLoading ? (
-            <div className="space-y-4">
-              <Skeleton className="h-8 w-60" />
-              <Skeleton className="h-40 w-full" />
-              <div className="grid grid-cols-2 gap-4">
-                <Skeleton className="h-12 w-full" />
-                <Skeleton className="h-12 w-full" />
-              </div>
-              <Skeleton className="h-60 w-full" />
-            </div>
-          ) : (
-            <TabsContent value="form" className="mt-0">
-              <UnifiedTripForm
-                onSubmit={handleSubmit}
-                defaultValues={defaultValues}
-                isLoading={mutation.isPending}
-              />
-            </TabsContent>
-          )}
-          
-          {tripId && (
-            <TabsContent value="preview" className="mt-0">
-              <div className="bg-muted p-6 rounded-lg">
-                <h2 className="text-xl font-medium mb-4">Trip Preview</h2>
+          {tripId ? (
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="grid w-[400px] grid-cols-2 mx-auto mb-4">
+                <TabsTrigger value="form">Edit Trip</TabsTrigger>
+                <TabsTrigger value="preview">Preview</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="form" className="mt-0">
                 {isLoading ? (
-                  <div className="flex items-center justify-center py-12">
-                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  <div className="space-y-4">
+                    <Skeleton className="h-8 w-60" />
+                    <Skeleton className="h-40 w-full" />
+                    <div className="grid grid-cols-2 gap-4">
+                      <Skeleton className="h-12 w-full" />
+                      <Skeleton className="h-12 w-full" />
+                    </div>
+                    <Skeleton className="h-60 w-full" />
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    <div>
-                      <h3 className="text-lg font-medium">{tripData?.name}</h3>
-                      <p className="text-muted-foreground">
-                        {tripData?.startDate ? new Date(tripData.startDate).toLocaleDateString() : ""} to {tripData?.endDate ? new Date(tripData.endDate).toLocaleDateString() : ""}
-                      </p>
-                      {tripData?.description && (
-                        <p className="mt-2">{tripData.description}</p>
-                      )}
+                  <UnifiedTripForm
+                    onSubmit={handleSubmit}
+                    defaultValues={defaultValues}
+                    isLoading={mutation.isPending}
+                  />
+                )}
+              </TabsContent>
+              
+              <TabsContent value="preview" className="mt-0">
+                <div className="bg-muted p-6 rounded-lg">
+                  <h2 className="text-xl font-medium mb-4">Trip Preview</h2>
+                  {isLoading ? (
+                    <div className="flex items-center justify-center py-12">
+                      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                     </div>
-                    
-                    <div className="bg-card p-4 rounded-lg border">
-                      <h4 className="font-medium mb-2">Stops & Itinerary</h4>
-                      {itineraryItems && itineraryItems.length > 0 ? (
-                        <div className="space-y-3">
-                          {itineraryItems.map((item, index) => (
-                            <div key={index} className="border-b pb-3 last:border-0">
-                              <div className="flex justify-between items-start">
-                                <div>
-                                  <span className="font-medium">{item.title}</span>
-                                  <div className="text-sm text-muted-foreground">
-                                    {item.fromLocation} → {item.toLocation}
-                                  </div>
-                                  {item.startTime && (
-                                    <div className="text-xs">
-                                      {item.startTime} - {item.endTime}
+                  ) : (
+                    <div className="space-y-4">
+                      <div>
+                        <h3 className="text-lg font-medium">{tripData?.name}</h3>
+                        <p className="text-muted-foreground">
+                          {tripData?.startDate ? new Date(tripData.startDate).toLocaleDateString() : ""} to {tripData?.endDate ? new Date(tripData.endDate).toLocaleDateString() : ""}
+                        </p>
+                        {tripData?.description && (
+                          <p className="mt-2">{tripData.description}</p>
+                        )}
+                      </div>
+                      
+                      <div className="bg-card p-4 rounded-lg border">
+                        <h4 className="font-medium mb-2">Stops & Itinerary</h4>
+                        {itineraryItems && itineraryItems.length > 0 ? (
+                          <div className="space-y-3">
+                            {itineraryItems.map((item, index) => (
+                              <div key={index} className="border-b pb-3 last:border-0">
+                                <div className="flex justify-between items-start">
+                                  <div>
+                                    <span className="font-medium">{item.title}</span>
+                                    <div className="text-sm text-muted-foreground">
+                                      {item.fromLocation} → {item.toLocation}
                                     </div>
-                                  )}
-                                </div>
-                                <div className="text-sm text-muted-foreground">
-                                  Day {item.day}
+                                    {item.startTime && (
+                                      <div className="text-xs">
+                                        {item.startTime} - {item.endTime}
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="text-sm text-muted-foreground">
+                                    Day {item.day}
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-muted-foreground">No itinerary items yet</p>
-                      )}
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-muted-foreground">No itinerary items yet</p>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
-            </TabsContent>
+                  )}
+                </div>
+              </TabsContent>
+            </Tabs>
+          ) : (
+            <UnifiedTripForm
+              onSubmit={handleSubmit}
+              defaultValues={defaultValues}
+              isLoading={mutation.isPending}
+            />
           )}
         </div>
       </div>
