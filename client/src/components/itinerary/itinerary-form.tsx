@@ -129,8 +129,15 @@ export function ItineraryForm({ tripId, onSuccess, onCancel, initialData }: Itin
       description: initialData?.description || "",
       startTime: initialData?.startTime || "",
       endTime: initialData?.endTime || "",
-      startLocation: initialData?.fromLocation || "",
-      endLocation: initialData?.toLocation || "",
+      // Use fromLocation/toLocation first, fall back to parsed location value if needed
+      startLocation: initialData?.fromLocation || 
+        (initialData?.location && initialData.location.includes(" to ") 
+          ? initialData.location.split(" to ")[0].trim() 
+          : initialData?.location || ""),
+      endLocation: initialData?.toLocation || 
+        (initialData?.location && initialData.location.includes(" to ") 
+          ? initialData.location.split(" to ")[1].trim() 
+          : ""),
       isRecurring: initialData?.isRecurring || false,
       recurrencePattern: initialData?.recurrencePattern || "daily",
       recurrenceDays: parsedRecurrenceDays,
@@ -209,8 +216,22 @@ export function ItineraryForm({ tripId, onSuccess, onCancel, initialData }: Itin
       };
     }
     
+    // Map from our form field names to database field names
+    const dataToSubmit = {
+      ...formValues,
+      // Map startLocation to fromLocation and endLocation to toLocation
+      fromLocation: formValues.startLocation,
+      toLocation: formValues.endLocation,
+      // Set location to combined value for backwards compatibility
+      location: `${formValues.startLocation || ''} to ${formValues.endLocation || ''}`.trim(),
+    };
+    
+    // Delete form-specific fields that don't exist in the schema
+    delete dataToSubmit.startLocation;
+    delete dataToSubmit.endLocation;
+    
     // Submit the form
-    mutation.mutate(formValues as any);
+    mutation.mutate(dataToSubmit as any);
   };
 
   const handleCancel = () => {
