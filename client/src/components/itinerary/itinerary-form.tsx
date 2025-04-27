@@ -271,71 +271,43 @@ export function ItineraryForm({ tripId, onSuccess, onCancel, initialData }: Itin
     onSuccess();
   };
   
-  // Function to handle location selection on map
-  interface LocationPickerProps {
-    setCoords: (coords: { lat: number, lng: number }) => void;
-  }
-  
-  function LocationPicker({ setCoords }: LocationPickerProps) {
+  // Function to get current location for coordinates
+  const getCurrentLocation = (callback: (coords: { lat: number, lng: number }) => void) => {
     const { toast } = useToast();
-    const map = useMapEvents({
-      click(e) {
-        setCoords({ lat: e.latlng.lat, lng: e.latlng.lng });
-      },
-    });
     
-    // Function to get current location
-    const getCurrentLocation = () => {
-      if ("geolocation" in navigator) {
-        toast({
-          title: "Getting your location",
-          description: "Please allow location access if prompted",
-        });
-        
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            const { latitude, longitude } = position.coords;
-            setCoords({ lat: latitude, lng: longitude });
-            
-            // Center map on current location
-            map.flyTo([latitude, longitude], 14);
-            
-            toast({
-              title: "Location found",
-              description: "Map has been centered on your current location",
-            });
-          },
-          (error) => {
-            console.error("Error getting location:", error);
-            toast({
-              title: "Location error",
-              description: "Couldn't get your current location. Please try clicking on the map instead.",
-              variant: "destructive",
-            });
-          }
-        );
-      } else {
-        toast({
-          title: "Geolocation not supported",
-          description: "Your browser doesn't support geolocation. Please click on the map to select a location.",
-          variant: "destructive",
-        });
-      }
-    };
-    
-    return (
-      <div className="absolute top-2 right-2 z-[1000]">
-        <Button 
-          size="sm" 
-          className="bg-white text-black border hover:bg-gray-100"
-          onClick={getCurrentLocation}
-        >
-          <MapPin className="h-4 w-4 mr-1 text-blue-600" />
-          Use Current Location
-        </Button>
-      </div>
-    );
-  }
+    if ("geolocation" in navigator) {
+      toast({
+        title: "Getting your location",
+        description: "Please allow location access if prompted",
+      });
+      
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          callback({ lat: latitude, lng: longitude });
+          
+          toast({
+            title: "Location found",
+            description: "Current location coordinates have been added",
+          });
+        },
+        (error) => {
+          console.error("Error getting location:", error);
+          toast({
+            title: "Location error",
+            description: "Couldn't get your current location.",
+            variant: "destructive",
+          });
+        }
+      );
+    } else {
+      toast({
+        title: "Geolocation not supported",
+        description: "Your browser doesn't support geolocation.",
+        variant: "destructive",
+      });
+    }
+  };
   
   // If the form isn't shown, just display the button to add an itinerary item
   if (!showForm) {
@@ -578,21 +550,11 @@ export function ItineraryForm({ tripId, onSuccess, onCancel, initialData }: Itin
                         type="button"
                         variant="outline"
                         size="sm"
-                        className={cn(
-                          "h-10 border-blue-300",
-                          activeMapPicker === 'start-location' && "bg-blue-600 text-white",
-                          startLocationCoords && "border-green-500 border-2" // Added indicator for coords being set
-                        )}
-                        onClick={() => {
-                          if (activeMapPicker === 'start-location') {
-                            setActiveMapPicker(null);
-                          } else {
-                            setActiveMapPicker('start-location');
-                          }
-                        }}
+                        className="h-10 border-blue-300"
+                        onClick={() => getCurrentLocation(setStartLocationCoords)}
                       >
-                        {activeMapPicker === 'start-location' ? 'Picking...' : 
-                         startLocationCoords ? 'Edit Location' : 'Pick on Map'}
+                        <MapPin className="h-4 w-4 mr-1" />
+                        Use Current
                       </Button>
                     </div>
                   </FormControl>
@@ -627,21 +589,11 @@ export function ItineraryForm({ tripId, onSuccess, onCancel, initialData }: Itin
                         type="button"
                         variant="outline"
                         size="sm"
-                        className={cn(
-                          "h-10 border-blue-300",
-                          activeMapPicker === 'end-location' && "bg-blue-600 text-white",
-                          endLocationCoords && "border-green-500 border-2" // Added indicator for coords being set
-                        )}
-                        onClick={() => {
-                          if (activeMapPicker === 'end-location') {
-                            setActiveMapPicker(null);
-                          } else {
-                            setActiveMapPicker('end-location');
-                          }
-                        }}
+                        className="h-10 border-blue-300"
+                        onClick={() => getCurrentLocation(setEndLocationCoords)}
                       >
-                        {activeMapPicker === 'end-location' ? 'Picking...' : 
-                         endLocationCoords ? 'Edit Location' : 'Pick on Map'}
+                        <MapPin className="h-4 w-4 mr-1" />
+                        Use Current
                       </Button>
                     </div>
                   </FormControl>
@@ -651,135 +603,69 @@ export function ItineraryForm({ tripId, onSuccess, onCancel, initialData }: Itin
             />
           </div>
           
-          {activeMapPicker && (
-            <div className="mt-3 h-[300px] border rounded overflow-hidden">
-              {typeof window !== 'undefined' && (
-                <MapContainer 
-                  center={
-                    activeMapPicker === 'start-location' && startLocationCoords 
-                      ? [startLocationCoords.lat, startLocationCoords.lng] 
-                      : activeMapPicker === 'end-location' && endLocationCoords 
-                        ? [endLocationCoords.lat, endLocationCoords.lng]
-                        : [40.7128, -74.006]
-                  } 
-                  zoom={13} 
-                  style={{ height: '100%', width: '100%' }}
-                  ref={(map) => {
-                    if (map) {
-                      if (activeMapPicker === 'start-location') {
-                        startLocationMapRef.current = map;
-                      } else {
-                        endLocationMapRef.current = map;
-                      }
-                    }
-                  }}
-                >
-                  <TileLayer
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                  />
-                  
-                  <LocationPicker setCoords={(coords) => {
-                    if (activeMapPicker === 'start-location') {
-                      setStartLocationCoords(coords);
+          {/* Location clearing buttons */}
+          <div className="flex justify-end space-x-2">
+            {startLocationCoords && (
+              <Button 
+                type="button" 
+                variant="outline" 
+                size="sm" 
+                className="text-xs"
+                onClick={() => {
+                  setStartLocationCoords(null);
+                  // Just remove the coordinates part from the location field if it exists
+                  const currentLocation = form.getValues("startLocation") || "";
+                  // Check for both bracket formats
+                  if (currentLocation.includes("[") || currentLocation.includes("(")) {
+                    const indexToUse = currentLocation.includes("[") 
+                      ? currentLocation.lastIndexOf("[") 
+                      : currentLocation.lastIndexOf("(");
                       
-                      // Just use the current location text name without modifying it
-                      // Coordinates will be added separately during form submission
-                      // This keeps the UI clean while still storing coordinates
+                    form.setValue("startLocation", currentLocation.substring(0, indexToUse).trim());
+                    
+                    toast({
+                      title: "Coordinates cleared",
+                      description: "Start location coordinates have been removed",
+                      duration: 3000,
+                    });
+                  }
+                }}
+              >
+                <X className="h-3 w-3 mr-1" />
+                Clear Start Coordinates
+              </Button>
+            )}
+            {endLocationCoords && (
+              <Button 
+                type="button" 
+                variant="outline" 
+                size="sm" 
+                className="text-xs"
+                onClick={() => {
+                  setEndLocationCoords(null);
+                  // Just remove the coordinates part from the location field if it exists
+                  const currentLocation = form.getValues("endLocation") || "";
+                  // Check for both bracket formats
+                  if (currentLocation.includes("[") || currentLocation.includes("(")) {
+                    const indexToUse = currentLocation.includes("[") 
+                      ? currentLocation.lastIndexOf("[") 
+                      : currentLocation.lastIndexOf("(");
                       
-                      // Optional: notify user that coordinates were set
-                      toast({
-                        title: "Start location set",
-                        description: `Coordinates saved: ${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`,
-                        duration: 3000,
-                      });
-                    } else if (activeMapPicker === 'end-location') {
-                      setEndLocationCoords(coords);
-                      
-                      // Just use the current location text name without modifying it
-                      // Coordinates will be added separately during form submission
-                      // This keeps the UI clean while still storing coordinates
-                      
-                      // Optional: notify user that coordinates were set
-                      toast({
-                        title: "End location set",
-                        description: `Coordinates saved: ${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`,
-                        duration: 3000,
-                      });
-                    }
-                  }} />
-                  
-                  {activeMapPicker === 'start-location' && startLocationCoords && (
-                    <Marker position={[startLocationCoords.lat, startLocationCoords.lng]}>
-                      <Popup>
-                        Start location
-                      </Popup>
-                    </Marker>
-                  )}
-                  {activeMapPicker === 'end-location' && endLocationCoords && (
-                    <Marker position={[endLocationCoords.lat, endLocationCoords.lng]}>
-                      <Popup>
-                        End location
-                      </Popup>
-                    </Marker>
-                  )}
-                </MapContainer>
-              )}
-              <div className="bg-blue-100 p-2 text-xs flex justify-between items-center">
-                <span>
-                  Click on the map to select the location
-                </span>
-                <Button 
-                  type="button" 
-                  variant="ghost" 
-                  size="sm" 
-                  className="h-6 text-xs"
-                  onClick={() => {
-                    if (activeMapPicker === 'start-location') {
-                      setStartLocationCoords(null);
-                      // Just remove the coordinates part from the location field if it exists
-                      const currentLocation = form.getValues("startLocation") || "";
-                      // Check for both bracket formats
-                      if (currentLocation.includes("[") || currentLocation.includes("(")) {
-                        const indexToUse = currentLocation.includes("[") 
-                          ? currentLocation.lastIndexOf("[") 
-                          : currentLocation.lastIndexOf("(");
-                          
-                        form.setValue("startLocation", currentLocation.substring(0, indexToUse).trim());
-                        
-                        toast({
-                          title: "Coordinates cleared",
-                          description: "Start location coordinates have been removed",
-                          duration: 3000,
-                        });
-                      }
-                    } else if (activeMapPicker === 'end-location') {
-                      setEndLocationCoords(null);
-                      // Just remove the coordinates part from the location field if it exists
-                      const currentLocation = form.getValues("endLocation") || "";
-                      // Check for both bracket formats
-                      if (currentLocation.includes("[") || currentLocation.includes("(")) {
-                        const indexToUse = currentLocation.includes("[") 
-                          ? currentLocation.lastIndexOf("[") 
-                          : currentLocation.lastIndexOf("(");
-                          
-                        form.setValue("endLocation", currentLocation.substring(0, indexToUse).trim());
-                        
-                        toast({
-                          title: "Coordinates cleared",
-                          description: "End location coordinates have been removed",
-                          duration: 3000,
-                        });
-                      }
-                    }
-                  }}
-                >
-                  <X className="h-3 w-3 mr-1" />
-                  Clear
-                </Button>
-              </div>
-            </div>
-          )}
+                    form.setValue("endLocation", currentLocation.substring(0, indexToUse).trim());
+                    
+                    toast({
+                      title: "Coordinates cleared",
+                      description: "End location coordinates have been removed",
+                      duration: 3000,
+                    });
+                  }
+                }}
+              >
+                <X className="h-3 w-3 mr-1" />
+                Clear End Coordinates
+              </Button>
+            )}
+          </div>
           
           <FormField
             control={form.control}
@@ -804,199 +690,7 @@ export function ItineraryForm({ tripId, onSuccess, onCancel, initialData }: Itin
           />
         </div>
           
-        {/* Transportation fields section is no longer needed */}
-        {false && (
-          <div className="space-y-4 bg-blue-50 p-4 rounded-md">
-            <h3 className="font-medium mb-2">Transportation Details</h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="fromLocation"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="flex items-center">
-                      <MapPin className="h-4 w-4 mr-1 text-blue-600" />
-                      Starting Point
-                    </FormLabel>
-                    <FormControl>
-                      <div className="flex items-center gap-2">
-                        <Input 
-                          placeholder="Where the trip segment starts" 
-                          value={field.value || ""}
-                          onChange={field.onChange}
-                          onBlur={field.onBlur}
-                          name={field.name}
-                          ref={field.ref}
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className={cn(
-                            "h-10",
-                            activeMapPicker === 'transport-from' && "bg-blue-600 text-white"
-                          )}
-                          onClick={() => {
-                            if (activeMapPicker === 'transport-from') {
-                              setActiveMapPicker(null);
-                            } else {
-                              setActiveMapPicker('transport-from');
-                            }
-                          }}
-                        >
-                          {activeMapPicker === 'transport-from' ? 'Picking...' : 'Pick'}
-                        </Button>
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-                
-              <FormField
-                control={form.control}
-                name="toLocation"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="flex items-center">
-                      <MapPin className="h-4 w-4 mr-1 text-blue-600" />
-                      Destination
-                    </FormLabel>
-                    <FormControl>
-                      <div className="flex items-center gap-2">
-                        <Input 
-                          placeholder="Where the trip segment ends" 
-                          value={field.value || ""}
-                          onChange={field.onChange}
-                          onBlur={field.onBlur}
-                          name={field.name}
-                          ref={field.ref}
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className={cn(
-                            "h-10",
-                            activeMapPicker === 'transport-to' && "bg-blue-600 text-white"
-                          )}
-                          onClick={() => {
-                            if (activeMapPicker === 'transport-to') {
-                              setActiveMapPicker(null);
-                            } else {
-                              setActiveMapPicker('transport-to');
-                            }
-                          }}
-                        >
-                          {activeMapPicker === 'transport-to' ? 'Picking...' : 'Pick'}
-                        </Button>
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            
-            {(activeMapPicker === 'transport-from' || activeMapPicker === 'transport-to') && (
-              <div className="mt-3 h-[300px] border rounded overflow-hidden">
-                {typeof window !== 'undefined' && (
-                  <MapContainer
-                    center={transportFromCoords || transportToCoords
-                      ? [
-                          transportFromCoords?.lat || transportToCoords?.lat || 40.7128, 
-                          transportFromCoords?.lng || transportToCoords?.lng || -74.006
-                        ]
-                      : [40.7128, -74.006]
-                    }
-                    zoom={13}
-                    style={{ height: '100%', width: '100%' }}
-                    ref={(map) => {
-                      if (map) {
-                        transportMapRef.current = map;
-                      }
-                    }}
-                  >
-                    <TileLayer
-                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    />
-                    
-                    <LocationPicker 
-                      setCoords={(coords) => {
-                        if (activeMapPicker === 'transport-from') {
-                          setTransportFromCoords(coords);
-                          const coordsStr = `${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`;
-                          form.setValue("fromLocation", form.getValues("fromLocation") 
-                            ? `${form.getValues("fromLocation")} (${coordsStr})` 
-                            : coordsStr);
-                        } else {
-                          setTransportToCoords(coords);
-                          const coordsStr = `${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`;
-                          form.setValue("toLocation", form.getValues("toLocation") 
-                            ? `${form.getValues("toLocation")} (${coordsStr})` 
-                            : coordsStr);
-                        }
-                      }}
-                    />
-                    
-                    {transportFromCoords && (
-                      <Marker 
-                        position={[transportFromCoords.lat, transportFromCoords.lng]}
-                      >
-                        <Popup>
-                          Starting point
-                        </Popup>
-                      </Marker>
-                    )}
-                    
-                    {transportToCoords && (
-                      <Marker 
-                        position={[transportToCoords.lat, transportToCoords.lng]}
-                      >
-                        <Popup>
-                          Destination
-                        </Popup>
-                      </Marker>
-                    )}
-                  </MapContainer>
-                )}
-                <div className="bg-blue-100 p-2 text-xs flex justify-between items-center">
-                  <span>
-                    Click on the map to select {activeMapPicker === 'transport-from' ? 'starting point' : 'destination'}
-                  </span>
-                  <Button 
-                    type="button" 
-                    variant="ghost" 
-                    size="sm" 
-                    className="h-6 text-xs"
-                    onClick={() => {
-                      if (activeMapPicker === 'transport-from') {
-                        setTransportFromCoords(null);
-                        // Remove coordinates from form field if they exist
-                        const currentLocation = form.getValues("fromLocation") || "";
-                        if (currentLocation.includes("(")) {
-                          form.setValue("fromLocation", currentLocation.substring(0, currentLocation.lastIndexOf("(")).trim());
-                        }
-                      } else {
-                        setTransportToCoords(null);
-                        // Remove coordinates from form field if they exist
-                        const currentLocation = form.getValues("toLocation") || "";
-                        if (currentLocation.includes("(")) {
-                          form.setValue("toLocation", currentLocation.substring(0, currentLocation.lastIndexOf("(")).trim());
-                        }
-                      }
-                    }}
-                  >
-                    <X className="h-3 w-3 mr-1" />
-                    Clear
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+        {/* Map section has been removed */}
 
         <div className="flex justify-end space-x-2">
           <Button 
