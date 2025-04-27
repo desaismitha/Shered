@@ -763,25 +763,46 @@ export default function ActiveTripsPage() {
               
               <Card>
                 <CardHeader>
-                  <CardTitle>Current Itinerary Details</CardTitle>
-                  {selectedItineraryItems.length > 0 && currentItineraryStep < selectedItineraryItems.length && (
-                    <CardDescription>
-                      {selectedItineraryItems[currentItineraryStep].title} (Step {currentItineraryStep + 1} of {selectedItineraryItems.length})
-                    </CardDescription>
-                  )}
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <CardTitle>Current Itinerary Details</CardTitle>
+                      {selectedItineraryItems.length > 0 && currentItineraryStep < selectedItineraryItems.length && (
+                        <CardDescription>
+                          {selectedItineraryItems[currentItineraryStep].title} (Step {currentItineraryStep + 1} of {selectedItineraryItems.length})
+                        </CardDescription>
+                      )}
+                    </div>
+                    {selectedItineraryItems.length > 0 && currentItineraryStep < selectedItineraryItems.length && (
+                      <Badge variant="outline" className="bg-green-50 text-green-800 border-green-200">
+                        In Progress
+                      </Badge>
+                    )}
+                  </div>
                 </CardHeader>
                 <CardContent>
                   {selectedItineraryItems.length > 0 && currentItineraryStep < selectedItineraryItems.length ? (
                     <div className="grid grid-cols-1 gap-4">
                       <div className="bg-background border rounded-lg p-4">
-                        {/* Show trip title with itinerary details */}
-                        <div className="pb-1 mb-2">
-                          <h3 className="text-md font-semibold mb-1">{selectedTrip.name}</h3>
-                          <div className="flex items-center text-sm rounded-md bg-slate-50 p-2 mb-3 border">
-                            <MapPin className="h-4 w-4 text-blue-600 mr-1" />
-                            <p className="font-medium">
-                              {selectedItineraryItems[currentItineraryStep].title} - From {selectedItineraryItems[currentItineraryStep].fromLocation || "Unknown"} to {selectedItineraryItems[currentItineraryStep].toLocation || "Unknown"}
-                            </p>
+                        <div className="flex flex-col mb-4">
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-lg font-semibold">{selectedTrip.name}</h3>
+                            <Badge className="bg-blue-100 text-blue-800 border-blue-200">
+                              Active Trip
+                            </Badge>
+                          </div>
+                          <div className="border-b pb-2 mt-2">
+                            <div className="flex items-center">
+                              <span className="font-medium mr-2 text-sm">Currently active:</span>
+                              <span className="text-sm font-semibold text-primary">
+                                {selectedItineraryItems[currentItineraryStep].title}
+                              </span>
+                            </div>
+                            <div className="mt-1 text-sm">
+                              <span className="text-muted-foreground">Itinerary route:</span>
+                              <span className="ml-1 font-medium">
+                                {selectedItineraryItems[currentItineraryStep].fromLocation || "Start"} → {selectedItineraryItems[currentItineraryStep].toLocation || "End"}
+                              </span>
+                            </div>
                           </div>
                         </div>
                         
