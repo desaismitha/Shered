@@ -43,6 +43,32 @@ function getStatusColor(status: string | undefined) {
   }
 }
 
+// Function to extract coordinates from a location string (same as in itinerary-form.tsx)
+function extractCoordinates(locationStr: string | null | undefined): { lat: number, lng: number } | null {
+  if (!locationStr) return null;
+  
+  // First try the new format with square brackets [lat, lng]
+  let coordsRegex = /\[(-?\d+\.?\d*),\s*(-?\d+\.?\d*)\]/;
+  let match = locationStr.match(coordsRegex);
+  
+  // If not found, try the old format with parentheses (lat, lng)
+  if (!match) {
+    coordsRegex = /\((-?\d+\.?\d*),\s*(-?\d+\.?\d*)\)/;
+    match = locationStr.match(coordsRegex);
+  }
+  
+  if (match && match.length === 3) {
+    const lat = parseFloat(match[1]);
+    const lng = parseFloat(match[2]);
+    
+    if (!isNaN(lat) && !isNaN(lng)) {
+      return { lat, lng };
+    }
+  }
+  
+  return null;
+}
+
 // Trip Map Component
 function TripMap({
   tripId,
@@ -53,6 +79,7 @@ function TripMap({
   currentLatitude,
   currentLongitude,
   mapRef,
+  itineraryItem,
 }: {
   tripId: number;
   height?: string;
@@ -62,16 +89,39 @@ function TripMap({
   currentLatitude?: number | null;
   currentLongitude?: number | null;
   mapRef?: React.MutableRefObject<L.Map | null>;
+  itineraryItem?: ItineraryItem | null;
 }) {
+  // Extract coordinates from itinerary start and end locations if available
+  const fromCoords = itineraryItem?.fromLocation 
+    ? extractCoordinates(itineraryItem.fromLocation)
+    : null;
+    
+  const toCoords = itineraryItem?.toLocation 
+    ? extractCoordinates(itineraryItem.toLocation)
+    : null;
+    
+  // Determine the center coordinates for the map
+  const centerCoordinates = currentLatitude && currentLongitude 
+    ? [currentLatitude, currentLongitude]
+    : fromCoords 
+      ? [fromCoords.lat, fromCoords.lng]
+      : toCoords 
+        ? [toCoords.lat, toCoords.lng]
+        : [40.7128, -74.0060]; // Default to NYC if no coords are available
+    
+  console.log('Map coordinates:', { 
+    fromCoords, 
+    toCoords, 
+    currentCoords: currentLatitude && currentLongitude 
+      ? { lat: currentLatitude, lng: currentLongitude } 
+      : null 
+  });
+  
   return (
     <div style={{ height, width }}>
       {typeof window !== 'undefined' && (
         <MapContainer
-          center={
-            currentLatitude && currentLongitude
-              ? [currentLatitude, currentLongitude] 
-              : [40.7128, -74.0060] // Default to NYC
-          }
+          center={centerCoordinates as [number, number]}
           zoom={13}
           style={{ height: '100%', width: '100%' }}
           ref={(map) => {
@@ -85,8 +135,30 @@ function TripMap({
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
           
-          {/* Show marker for start location */}
-          {startLocation && (
+          {/* Show marker for itinerary start location if coordinates are available */}
+          {fromCoords && (
+            <Marker 
+              position={[fromCoords.lat, fromCoords.lng]}
+              icon={new L.Icon({
+                iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+                shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                iconSize: [25, 41],
+                iconAnchor: [12, 41],
+                popupAnchor: [1, -34],
+                shadowSize: [41, 41]
+              })}
+            >
+              <Popup>
+                <div>
+                  <strong>Start: {itineraryItem?.fromLocation?.split('[')[0] || 'Starting Point'}</strong><br />
+                  <span>Starting point of the itinerary</span>
+                </div>
+              </Popup>
+            </Marker>
+          )}
+          
+          {/* Show marker for trip start location if itinerary start location not available */}
+          {!fromCoords && startLocation && (
             <Marker 
               position={[
                 currentLatitude 
@@ -114,8 +186,30 @@ function TripMap({
             </Marker>
           )}
           
-          {/* Show marker for destination */}
-          {destination && (
+          {/* Show marker for itinerary end location if coordinates are available */}
+          {toCoords && (
+            <Marker 
+              position={[toCoords.lat, toCoords.lng]}
+              icon={new L.Icon({
+                iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+                shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                iconSize: [25, 41],
+                iconAnchor: [12, 41],
+                popupAnchor: [1, -34],
+                shadowSize: [41, 41]
+              })}
+            >
+              <Popup>
+                <div>
+                  <strong>Destination: {itineraryItem?.toLocation?.split('[')[0] || 'Destination'}</strong><br />
+                  <span>End point of the itinerary</span>
+                </div>
+              </Popup>
+            </Marker>
+          )}
+          
+          {/* Show marker for trip destination if itinerary end location not available */}
+          {!toCoords && destination && (
             <Marker 
               position={[
                 currentLatitude 
@@ -165,19 +259,33 @@ function TripMap({
             </Marker>
           )}
           
-          {/* Draw polyline between markers if all are present */}
-          {startLocation && destination && currentLatitude && currentLongitude && (
+          {/* Draw polyline between itinerary locations if both start and end coordinates are available */}
+          {fromCoords && toCoords && (
+            <Polyline 
+              positions={[
+                [fromCoords.lat, fromCoords.lng] as [number, number],
+                ...(currentLatitude && currentLongitude ? [[[currentLatitude, currentLongitude]] as unknown as [number, number]] : []),
+                [toCoords.lat, toCoords.lng] as [number, number]
+              ]}
+              color="blue"
+              weight={3}
+              opacity={0.7}
+            />
+          )}
+          
+          {/* Draw polyline between trip locations if itinerary locations are not available */}
+          {!fromCoords && !toCoords && startLocation && destination && currentLatitude && currentLongitude && (
             <Polyline 
               positions={[
                 [
                   currentLatitude - 0.01, 
                   currentLongitude - 0.01
-                ],
-                [currentLatitude, currentLongitude],
+                ] as [number, number],
+                [currentLatitude, currentLongitude] as [number, number],
                 [
                   currentLatitude + 0.01, 
                   currentLongitude + 0.01
-                ]
+                ] as [number, number]
               ]}
               color="blue"
               weight={3}
@@ -750,6 +858,9 @@ export default function ActiveTripsPage() {
                     currentLatitude={selectedTrip.currentLatitude}
                     currentLongitude={selectedTrip.currentLongitude}
                     mapRef={mapRef}
+                    itineraryItem={selectedItineraryItems.length > 0 && currentItineraryStep < selectedItineraryItems.length 
+                      ? selectedItineraryItems[currentItineraryStep] 
+                      : null}
                   />
                 </div>
               </CardContent>
