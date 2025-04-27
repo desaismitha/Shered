@@ -6,7 +6,8 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
+import { format } from "date-fns";
 
 import {
   Form,
@@ -29,7 +30,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowRightIcon } from "lucide-react";
+import { 
+  ArrowRightIcon, 
+  Calendar as CalendarIcon, 
+  Clock, 
+  MapPin, 
+  Navigation,
+  X
+} from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { cn, normalizeDate } from "@/lib/utils";
+import { Card, CardContent } from "@/components/ui/card";
+import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 
 // Define weekday options
 const weekdays = [
