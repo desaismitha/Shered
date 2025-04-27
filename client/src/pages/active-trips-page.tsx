@@ -774,12 +774,15 @@ export default function ActiveTripsPage() {
                   {selectedItineraryItems.length > 0 && currentItineraryStep < selectedItineraryItems.length ? (
                     <div className="grid grid-cols-1 gap-4">
                       <div className="bg-background border rounded-lg p-4">
-                        {/* Show trip title but locations from current itinerary item */}
-                        <div className="border-b pb-2 mb-3">
-                          <h3 className="text-sm font-semibold">{selectedTrip.name}</h3>
-                          <p className="text-xs text-muted-foreground">
-                            Current segment: {selectedItineraryItems[currentItineraryStep].fromLocation || "Unknown"} to {selectedItineraryItems[currentItineraryStep].toLocation || "Unknown"}
-                          </p>
+                        {/* Show trip title with itinerary details */}
+                        <div className="pb-1 mb-2">
+                          <h3 className="text-md font-semibold mb-1">{selectedTrip.name}</h3>
+                          <div className="flex items-center text-sm rounded-md bg-slate-50 p-2 mb-3 border">
+                            <MapPin className="h-4 w-4 text-blue-600 mr-1" />
+                            <p className="font-medium">
+                              {selectedItineraryItems[currentItineraryStep].title} - From {selectedItineraryItems[currentItineraryStep].fromLocation || "Unknown"} to {selectedItineraryItems[currentItineraryStep].toLocation || "Unknown"}
+                            </p>
+                          </div>
                         </div>
                         
                         {selectedItineraryItems[currentItineraryStep].description && (
