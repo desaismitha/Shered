@@ -452,63 +452,122 @@ export function ItineraryForm({ tripId, onSuccess, onCancel, initialData }: Itin
         
         {/* Location fields and Description */}
         <div className="space-y-4">
-          <FormField
-            control={form.control}
-            name="location"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="flex items-center">
-                  <MapPin className="h-4 w-4 mr-1 text-blue-600" />
-                  Location
-                </FormLabel>
-                <FormControl>
-                  <div className="flex items-center gap-2">
-                    <Input 
-                      placeholder="Where this activity happens" 
-                      value={field.value || ""}
-                      onChange={field.onChange}
-                      onBlur={field.onBlur}
-                      name={field.name}
-                      ref={field.ref}
-                      className={cn(
-                        locationCoords && "border-green-500"
-                      )}
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className={cn(
-                        "h-10 border-blue-300",
-                        activeMapPicker === 'location' && "bg-blue-600 text-white"
-                      )}
-                      onClick={() => {
-                        if (activeMapPicker === 'location') {
-                          setActiveMapPicker(null);
-                        } else {
-                          setActiveMapPicker('location');
-                        }
-                      }}
-                    >
-                      {activeMapPicker === 'location' ? 'Picking...' : 'Pick on Map'}
-                    </Button>
-                  </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="startLocation"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="flex items-center">
+                    <MapPin className="h-4 w-4 mr-1 text-blue-600" />
+                    Start Location
+                  </FormLabel>
+                  <FormControl>
+                    <div className="flex items-center gap-2">
+                      <Input 
+                        placeholder="Where this activity starts" 
+                        value={field.value || ""}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        name={field.name}
+                        ref={field.ref}
+                        className={cn(
+                          startLocationCoords && "border-green-500"
+                        )}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className={cn(
+                          "h-10 border-blue-300",
+                          activeMapPicker === 'start-location' && "bg-blue-600 text-white"
+                        )}
+                        onClick={() => {
+                          if (activeMapPicker === 'start-location') {
+                            setActiveMapPicker(null);
+                          } else {
+                            setActiveMapPicker('start-location');
+                          }
+                        }}
+                      >
+                        {activeMapPicker === 'start-location' ? 'Picking...' : 'Pick on Map'}
+                      </Button>
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="endLocation"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="flex items-center">
+                    <MapPin className="h-4 w-4 mr-1 text-blue-600" />
+                    End Location
+                  </FormLabel>
+                  <FormControl>
+                    <div className="flex items-center gap-2">
+                      <Input 
+                        placeholder="Where this activity ends" 
+                        value={field.value || ""}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        name={field.name}
+                        ref={field.ref}
+                        className={cn(
+                          endLocationCoords && "border-green-500"
+                        )}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className={cn(
+                          "h-10 border-blue-300",
+                          activeMapPicker === 'end-location' && "bg-blue-600 text-white"
+                        )}
+                        onClick={() => {
+                          if (activeMapPicker === 'end-location') {
+                            setActiveMapPicker(null);
+                          } else {
+                            setActiveMapPicker('end-location');
+                          }
+                        }}
+                      >
+                        {activeMapPicker === 'end-location' ? 'Picking...' : 'Pick on Map'}
+                      </Button>
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
           
-          {activeMapPicker === 'location' && (
+          {activeMapPicker && (
             <div className="mt-3 h-[300px] border rounded overflow-hidden">
               {typeof window !== 'undefined' && (
-                <MapContainer
-                  center={locationCoords ? [locationCoords.lat, locationCoords.lng] : [40.7128, -74.006]}
-                  zoom={13}
+                <MapContainer 
+                  center={
+                    activeMapPicker === 'start-location' && startLocationCoords 
+                      ? [startLocationCoords.lat, startLocationCoords.lng] 
+                      : activeMapPicker === 'end-location' && endLocationCoords 
+                        ? [endLocationCoords.lat, endLocationCoords.lng]
+                        : [40.7128, -74.006]
+                  } 
+                  zoom={13} 
                   style={{ height: '100%', width: '100%' }}
                   ref={(map) => {
                     if (map) {
-                      locationMapRef.current = map;
+                      if (activeMapPicker === 'start-location') {
+                        startLocationMapRef.current = map;
+                      } else {
+                        endLocationMapRef.current = map;
+                      }
                     }
                   }}
                 >
@@ -518,18 +577,32 @@ export function ItineraryForm({ tripId, onSuccess, onCancel, initialData }: Itin
                   />
                   
                   <LocationPicker setCoords={(coords) => {
-                    setLocationCoords(coords);
-                    // Also update the form field with the coordinates
-                    const coordsStr = `${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`;
-                    form.setValue("location", form.getValues("location") 
-                      ? `${form.getValues("location")} (${coordsStr})` 
-                      : coordsStr);
+                    if (activeMapPicker === 'start-location') {
+                      setStartLocationCoords(coords);
+                      const coordsStr = `${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`;
+                      form.setValue("startLocation", form.getValues("startLocation") 
+                        ? `${form.getValues("startLocation")} (${coordsStr})` 
+                        : coordsStr);
+                    } else if (activeMapPicker === 'end-location') {
+                      setEndLocationCoords(coords);
+                      const coordsStr = `${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`;
+                      form.setValue("endLocation", form.getValues("endLocation") 
+                        ? `${form.getValues("endLocation")} (${coordsStr})` 
+                        : coordsStr);
+                    }
                   }} />
                   
-                  {locationCoords && (
-                    <Marker position={[locationCoords.lat, locationCoords.lng]}>
+                  {activeMapPicker === 'start-location' && startLocationCoords && (
+                    <Marker position={[startLocationCoords.lat, startLocationCoords.lng]}>
                       <Popup>
-                        Activity location
+                        Start location
+                      </Popup>
+                    </Marker>
+                  )}
+                  {activeMapPicker === 'end-location' && endLocationCoords && (
+                    <Marker position={[endLocationCoords.lat, endLocationCoords.lng]}>
+                      <Popup>
+                        End location
                       </Popup>
                     </Marker>
                   )}
@@ -545,11 +618,20 @@ export function ItineraryForm({ tripId, onSuccess, onCancel, initialData }: Itin
                   size="sm" 
                   className="h-6 text-xs"
                   onClick={() => {
-                    setLocationCoords(null);
-                    // Just remove the coordinates part from the location field if it exists
-                    const currentLocation = form.getValues("location") || "";
-                    if (currentLocation.includes("(")) {
-                      form.setValue("location", currentLocation.substring(0, currentLocation.lastIndexOf("(")).trim());
+                    if (activeMapPicker === 'start-location') {
+                      setStartLocationCoords(null);
+                      // Just remove the coordinates part from the location field if it exists
+                      const currentLocation = form.getValues("startLocation") || "";
+                      if (currentLocation.includes("(")) {
+                        form.setValue("startLocation", currentLocation.substring(0, currentLocation.lastIndexOf("(")).trim());
+                      }
+                    } else if (activeMapPicker === 'end-location') {
+                      setEndLocationCoords(null);
+                      // Just remove the coordinates part from the location field if it exists
+                      const currentLocation = form.getValues("endLocation") || "";
+                      if (currentLocation.includes("(")) {
+                        form.setValue("endLocation", currentLocation.substring(0, currentLocation.lastIndexOf("(")).trim());
+                      }
                     }
                   }}
                 >
@@ -583,8 +665,8 @@ export function ItineraryForm({ tripId, onSuccess, onCancel, initialData }: Itin
           />
         </div>
           
-        {/* Transportation fields section */}
-        {(form.watch('fromLocation') || form.watch('toLocation')) && (
+        {/* Transportation fields section is no longer needed */}
+        {false && (
           <div className="space-y-4 bg-blue-50 p-4 rounded-md">
             <h3 className="font-medium mb-2">Transportation Details</h3>
             
