@@ -773,9 +773,11 @@ export default function ActiveTripsPage() {
                       )}
                     </div>
                     {selectedItineraryItems.length > 0 && currentItineraryStep < selectedItineraryItems.length && (
-                      <Badge variant="outline" className="bg-green-50 text-green-800 border-green-200">
-                        In Progress
-                      </Badge>
+                      <div>
+                        <Badge variant="outline" className="bg-green-50 text-green-800 border-green-200">
+                          In Progress
+                        </Badge>
+                      </div>
                     )}
                   </div>
                 </CardHeader>
@@ -786,9 +788,11 @@ export default function ActiveTripsPage() {
                         <div className="flex flex-col mb-4">
                           <div className="flex items-center gap-2">
                             <h3 className="text-lg font-semibold">{selectedTrip.name}</h3>
-                            <Badge className="bg-blue-100 text-blue-800 border-blue-200">
-                              Active Trip
-                            </Badge>
+                            <div>
+                              <Badge className="bg-blue-100 text-blue-800 border-blue-200">
+                                Active Trip
+                              </Badge>
+                            </div>
                           </div>
                           <div className="border-b pb-2 mt-2">
                             <div className="flex items-center">
@@ -797,9 +801,9 @@ export default function ActiveTripsPage() {
                                 {selectedItineraryItems[currentItineraryStep].title}
                               </span>
                             </div>
-                            <div className="mt-1 text-sm">
-                              <span className="text-muted-foreground">Itinerary route:</span>
-                              <span className="ml-1 font-medium">
+                            <div className="mt-1 text-sm flex items-center">
+                              <span className="text-muted-foreground mr-1">Itinerary route:</span>
+                              <span className="font-medium">
                                 {selectedItineraryItems[currentItineraryStep].fromLocation || "Start"} → {selectedItineraryItems[currentItineraryStep].toLocation || "End"}
                               </span>
                             </div>
