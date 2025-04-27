@@ -229,13 +229,64 @@ export function ItineraryForm({ tripId, onSuccess, onCancel, initialData }: Itin
   }
   
   function LocationPicker({ setCoords }: LocationPickerProps) {
+    const { toast } = useToast();
     const map = useMapEvents({
       click(e) {
         setCoords({ lat: e.latlng.lat, lng: e.latlng.lng });
       },
     });
     
-    return null;
+    // Function to get current location
+    const getCurrentLocation = () => {
+      if ("geolocation" in navigator) {
+        toast({
+          title: "Getting your location",
+          description: "Please allow location access if prompted",
+        });
+        
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const { latitude, longitude } = position.coords;
+            setCoords({ lat: latitude, lng: longitude });
+            
+            // Center map on current location
+            map.flyTo([latitude, longitude], 14);
+            
+            toast({
+              title: "Location found",
+              description: "Map has been centered on your current location",
+            });
+          },
+          (error) => {
+            console.error("Error getting location:", error);
+            toast({
+              title: "Location error",
+              description: "Couldn't get your current location. Please try clicking on the map instead.",
+              variant: "destructive",
+            });
+          }
+        );
+      } else {
+        toast({
+          title: "Geolocation not supported",
+          description: "Your browser doesn't support geolocation. Please click on the map to select a location.",
+          variant: "destructive",
+        });
+      }
+    };
+    
+    return (
+      <div className="absolute top-2 right-2 z-[1000]">
+        <Button 
+          size="sm" 
+          className="bg-white text-black border hover:bg-gray-100"
+          onClick={getCurrentLocation}
+        >
+          <MapPin className="h-4 w-4 mr-1 text-blue-600" />
+          Use Current Location
+        </Button>
+      </div>
+    );
   }
   
   // If the form isn't shown, just display the button to add an itinerary item
@@ -579,16 +630,40 @@ export function ItineraryForm({ tripId, onSuccess, onCancel, initialData }: Itin
                   <LocationPicker setCoords={(coords) => {
                     if (activeMapPicker === 'start-location') {
                       setStartLocationCoords(coords);
+                      // Format coordinates to 6 decimal places
                       const coordsStr = `${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`;
-                      form.setValue("startLocation", form.getValues("startLocation") 
-                        ? `${form.getValues("startLocation")} (${coordsStr})` 
-                        : coordsStr);
+                      
+                      // Always save the coordinates in the field
+                      // If there's a description, keep it before the coordinates
+                      const currentLocation = form.getValues("startLocation") || "";
+                      const locationWithoutCoords = currentLocation.includes("(") 
+                        ? currentLocation.substring(0, currentLocation.lastIndexOf("(")).trim()
+                        : currentLocation.trim();
+                        
+                      // Only add a space if the location without coords is not empty
+                      const newLocationValue = locationWithoutCoords 
+                        ? `${locationWithoutCoords} (${coordsStr})` 
+                        : `(${coordsStr})`;
+                        
+                      form.setValue("startLocation", newLocationValue);
                     } else if (activeMapPicker === 'end-location') {
                       setEndLocationCoords(coords);
+                      // Format coordinates to 6 decimal places
                       const coordsStr = `${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`;
-                      form.setValue("endLocation", form.getValues("endLocation") 
-                        ? `${form.getValues("endLocation")} (${coordsStr})` 
-                        : coordsStr);
+                      
+                      // Always save the coordinates in the field
+                      // If there's a description, keep it before the coordinates
+                      const currentLocation = form.getValues("endLocation") || "";
+                      const locationWithoutCoords = currentLocation.includes("(") 
+                        ? currentLocation.substring(0, currentLocation.lastIndexOf("(")).trim()
+                        : currentLocation.trim();
+                        
+                      // Only add a space if the location without coords is not empty
+                      const newLocationValue = locationWithoutCoords 
+                        ? `${locationWithoutCoords} (${coordsStr})` 
+                        : `(${coordsStr})`;
+                        
+                      form.setValue("endLocation", newLocationValue);
                     }
                   }} />
                   
