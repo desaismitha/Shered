@@ -145,9 +145,34 @@ export function ItineraryForm({ tripId, onSuccess, onCancel, initialData }: Itin
     },
   });
 
-  // State for map location selection
-  const [startLocationCoords, setStartLocationCoords] = useState<{ lat: number, lng: number } | null>(null);
-  const [endLocationCoords, setEndLocationCoords] = useState<{ lat: number, lng: number } | null>(null);
+  // Function to extract coordinates from location string
+  const extractCoordinates = (locationStr: string | null | undefined): { lat: number, lng: number } | null => {
+    if (!locationStr) return null;
+    
+    // Look for coordinates in the format (lat, lng)
+    const coordsRegex = /\((-?\d+\.?\d*),\s*(-?\d+\.?\d*)\)/;
+    const match = locationStr.match(coordsRegex);
+    
+    if (match && match.length === 3) {
+      const lat = parseFloat(match[1]);
+      const lng = parseFloat(match[2]);
+      
+      if (!isNaN(lat) && !isNaN(lng)) {
+        return { lat, lng };
+      }
+    }
+    
+    return null;
+  };
+  
+  // Extract coordinates from initial fromLocation/toLocation if available
+  const initialStartCoords = extractCoordinates(initialData?.fromLocation) || 
+    extractCoordinates(initialData?.location);
+  const initialEndCoords = extractCoordinates(initialData?.toLocation);
+  
+  // State for map location selection with initial values from extracted coordinates
+  const [startLocationCoords, setStartLocationCoords] = useState<{ lat: number, lng: number } | null>(initialStartCoords);
+  const [endLocationCoords, setEndLocationCoords] = useState<{ lat: number, lng: number } | null>(initialEndCoords);
   
   // Map refs for different maps
   const startLocationMapRef = useRef<any>(null);
@@ -219,9 +244,13 @@ export function ItineraryForm({ tripId, onSuccess, onCancel, initialData }: Itin
     // Map from our form field names to database field names
     const dataToSubmit = {
       ...formValues,
-      // Map startLocation to fromLocation and endLocation to toLocation
-      fromLocation: formValues.startLocation,
-      toLocation: formValues.endLocation,
+      // Add coordinates to locations if available
+      fromLocation: startLocationCoords 
+        ? `${formValues.startLocation || ''} (${startLocationCoords.lat}, ${startLocationCoords.lng})`
+        : formValues.startLocation,
+      toLocation: endLocationCoords 
+        ? `${formValues.endLocation || ''} (${endLocationCoords.lat}, ${endLocationCoords.lng})` 
+        : formValues.endLocation,
       // Set location to combined value for backwards compatibility
       location: `${formValues.startLocation || ''} to ${formValues.endLocation || ''}`.trim(),
     };
