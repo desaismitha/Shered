@@ -13,6 +13,7 @@ import TripDetailsPage from "@/pages/trip-details-page";
 import NewTripPage from "@/pages/trips/new";
 import EditTripPage from "@/pages/trips/edit";
 import BasicTripEditPage from "@/pages/basic-trip-edit";
+import UnifiedTripPage from "@/pages/unified-trip-page";
 import GroupsPage from "@/pages/groups-page";
 import GroupDetailsPage from "@/pages/group-details-page";
 import NewGroupPage from "@/pages/groups/new";
@@ -33,6 +34,8 @@ function Router() {
       <ProtectedRoute path="/trips/new" component={NewTripPage} />
       <ProtectedRoute path="/trips/edit/:id" component={EditTripPage} />
       <ProtectedRoute path="/trips/basic-edit/:id" component={BasicTripEditPage} />
+      <ProtectedRoute path="/trips/unified/new" component={UnifiedTripPage} />
+      <ProtectedRoute path="/trips/unified/:tripId" component={UnifiedTripPage} />
       <ProtectedRoute path="/trips/:id" component={TripDetailsPage} />
       <ProtectedRoute path="/active-trips" component={ActiveTripsPage} />
       <ProtectedRoute path="/groups/new" component={NewGroupPage} />

@@ -1,0 +1,322 @@
+import { useToast } from "@/hooks/use-toast";
+import { UnifiedTripForm } from "@/components/trips/unified-trip-form";
+import { useLocation, useParams } from "wouter";
+import { AppShell } from "@/components/layout/app-shell";
+import { Button } from "@/components/ui/button";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useState } from "react";
+import { Loader2, ArrowLeft } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Trip, ItineraryItem } from "@shared/schema";
+
+// Define an extended type for our form data structure
+interface FormDataWithExtras {
+  name: string;
+  description: string;
+  startDate: Date;
+  endDate: Date;
+  groupId?: number;
+  startLocation: string;
+  endLocation: string;
+  startTime?: string;
+  endTime?: string;
+  isMultiStop: boolean;
+  isRecurring?: boolean;
+  recurrencePattern?: string;
+  recurrenceDays?: string[];
+  stops?: Array<{
+    day: number;
+    title: string;
+    startLocation: string;
+    endLocation: string;
+    startTime?: string;
+    endTime?: string;
+    description?: string;
+    isRecurring?: boolean;
+    recurrencePattern?: string;
+    recurrenceDays?: string[];
+  }>;
+}
+
+export default function UnifiedTripPage() {
+  const { toast } = useToast();
+  const [, navigate] = useLocation();
+  const params = useParams();
+  const tripId = params.tripId;
+  const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState("form");
+  
+  // Query for existing trip if editing
+  const { data: tripData, isLoading: isLoadingTrip } = useQuery<Trip>({
+    queryKey: tripId ? ["/api/trips", parseInt(tripId)] as const : undefined,
+    enabled: !!tripId,
+  });
+  
+  // Query for itinerary items if editing a trip
+  const { data: itineraryItems, isLoading: isLoadingItinerary } = useQuery<ItineraryItem[]>({
+    queryKey: tripId ? ["/api/trips", parseInt(tripId), "itinerary"] as const : undefined,
+    enabled: !!tripId,
+  });
+  
+  // Mutation for creating/updating trips
+  const mutation = useMutation({
+    mutationFn: async (formData: any) => {
+      if (tripId) {
+        // Update existing trip
+        const res = await apiRequest("PATCH", `/api/trips/${tripId}`, formData);
+        return await res.json();
+      } else {
+        // Create new trip
+        const res = await apiRequest("POST", "/api/trips", formData);
+        return await res.json();
+      }
+    },
+    onSuccess: () => {
+      toast({
+        title: tripId ? "Trip updated" : "Trip created",
+        description: tripId 
+          ? "Your trip has been updated successfully." 
+          : "Your new trip has been created successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/trips"] });
+      navigate("/trips");
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: `Failed to ${tripId ? "update" : "create"} trip: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Transform data from existing trip + itinerary to match the unified form structure
+  const prepareFormData = () => {
+    if (!tripData) return {};
+    
+    // Start with basic trip data
+    const formData = {
+      name: tripData.name,
+      description: tripData.description || "",
+      startDate: new Date(tripData.startDate),
+      endDate: new Date(tripData.endDate),
+      groupId: tripData.groupId,
+      // These fields are now part of the unified schema but might come from itinerary
+      startLocation: tripData.startLocation || "",
+      endLocation: tripData.destination || "",
+      // Default to single stop if we don't have itinerary items
+      isMultiStop: itineraryItems?.length > 1 || false,
+    };
+    
+    // If we have itinerary items, populate the stops array for multi-stop trips
+    if (itineraryItems?.length > 0) {
+      // For standard itinerary items, transform them to stops
+      const stops = itineraryItems.map((item: any) => ({
+        day: item.day,
+        title: item.title,
+        startLocation: item.fromLocation || "",
+        endLocation: item.toLocation || "",
+        startTime: item.startTime || "",
+        endTime: item.endTime || "",
+        description: item.description || "",
+        isRecurring: item.isRecurring || false,
+        recurrencePattern: item.recurrencePattern || undefined,
+        recurrenceDays: item.recurrenceDays ? JSON.parse(item.recurrenceDays) : [],
+      }));
+      
+      // If it's a single-stop trip, extract data from the first itinerary item
+      if (itineraryItems.length === 1) {
+        const item = itineraryItems[0];
+        formData.startLocation = item.fromLocation || tripData.startLocation;
+        formData.endLocation = item.toLocation || tripData.destination;
+        formData.startTime = item.startTime || "";
+        formData.endTime = item.endTime || "";
+        formData.isRecurring = item.isRecurring || false;
+        formData.recurrencePattern = item.recurrencePattern || undefined;
+        formData.recurrenceDays = item.recurrenceDays ? JSON.parse(item.recurrenceDays) : [];
+      } else {
+        // It's a multi-stop trip
+        formData.isMultiStop = true;
+        formData.stops = stops;
+      }
+    }
+    
+    return formData;
+  };
+  
+  // Handle form submission
+  const handleSubmit = (data: any) => {
+    // Format data for the API
+    if (data.isMultiStop) {
+      // For multi-stop trips, we need to:
+      // 1. Update the trip record with basic info
+      // 2. Create/update itinerary items for each stop
+      const tripData = {
+        name: data.name,
+        description: data.description,
+        startDate: data.startDate,
+        endDate: data.endDate,
+        startLocation: data.stops[0]?.startLocation || "",
+        destination: data.stops[data.stops.length - 1]?.endLocation || "",
+        groupId: data.groupId,
+        // Update itinerary items separately via API
+        itineraryItems: data.stops.map((stop: any) => ({
+          day: stop.day,
+          title: stop.title,
+          description: stop.description || "",
+          fromLocation: stop.startLocation,
+          toLocation: stop.endLocation,
+          startTime: stop.startTime || "",
+          endTime: stop.endTime || "",
+          isRecurring: false, // Multi-stop trips don't support recurrence per stop
+          recurrencePattern: null,
+          recurrenceDays: null,
+        })),
+      };
+      
+      mutation.mutate(tripData);
+    } else {
+      // For single-stop trips, we create:
+      // 1. A trip record with the basic trip info
+      // 2. A single itinerary item for the start/end locations
+      const tripData = {
+        name: data.name,
+        description: data.description,
+        startDate: data.startDate,
+        endDate: data.endDate,
+        startLocation: data.startLocation,
+        destination: data.endLocation,
+        groupId: data.groupId,
+        // Create a single itinerary item
+        itineraryItems: [{
+          day: 1,
+          title: data.name,
+          description: data.description || "",
+          fromLocation: data.startLocation,
+          toLocation: data.endLocation,
+          startTime: data.startTime || "",
+          endTime: data.endTime || "",
+          isRecurring: data.isRecurring || false,
+          recurrencePattern: data.recurrencePattern || null,
+          recurrenceDays: data.recurrenceDays?.length
+            ? JSON.stringify(data.recurrenceDays)
+            : null,
+        }],
+      };
+      
+      mutation.mutate(tripData);
+    }
+  };
+  
+  const isLoading = isLoadingTrip || isLoadingItinerary;
+  const defaultValues = prepareFormData();
+  
+  return (
+    <AppShell>
+      <div className="container py-6">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-4">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => navigate("/trips")}
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <h1 className="text-2xl font-bold">
+              {tripId ? "Edit Trip" : "Create New Trip"}
+            </h1>
+          </div>
+          
+          {tripId && (
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-[400px]">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="form">Edit Trip</TabsTrigger>
+                <TabsTrigger value="preview">Preview</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          )}
+        </div>
+        
+        <div className="max-w-5xl mx-auto">
+          {tripId && isLoading ? (
+            <div className="space-y-4">
+              <Skeleton className="h-8 w-60" />
+              <Skeleton className="h-40 w-full" />
+              <div className="grid grid-cols-2 gap-4">
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+              </div>
+              <Skeleton className="h-60 w-full" />
+            </div>
+          ) : (
+            <TabsContent value="form" className="mt-0">
+              <UnifiedTripForm
+                onSubmit={handleSubmit}
+                defaultValues={defaultValues}
+                isLoading={mutation.isPending}
+              />
+            </TabsContent>
+          )}
+          
+          {tripId && (
+            <TabsContent value="preview" className="mt-0">
+              <div className="bg-muted p-6 rounded-lg">
+                <h2 className="text-xl font-medium mb-4">Trip Preview</h2>
+                {isLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div>
+                      <h3 className="text-lg font-medium">{tripData?.name}</h3>
+                      <p className="text-muted-foreground">
+                        {new Date(tripData?.startDate).toLocaleDateString()} to {new Date(tripData?.endDate).toLocaleDateString()}
+                      </p>
+                      {tripData?.description && (
+                        <p className="mt-2">{tripData.description}</p>
+                      )}
+                    </div>
+                    
+                    <div className="bg-card p-4 rounded-lg border">
+                      <h4 className="font-medium mb-2">Stops & Itinerary</h4>
+                      {itineraryItems?.length > 0 ? (
+                        <div className="space-y-3">
+                          {itineraryItems.map((item: any, index: number) => (
+                            <div key={index} className="border-b pb-3 last:border-0">
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <span className="font-medium">{item.title}</span>
+                                  <div className="text-sm text-muted-foreground">
+                                    {item.fromLocation} → {item.toLocation}
+                                  </div>
+                                  {item.startTime && (
+                                    <div className="text-xs">
+                                      {item.startTime} - {item.endTime}
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="text-sm text-muted-foreground">
+                                  Day {item.day}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-muted-foreground">No itinerary items yet</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+          )}
+        </div>
+      </div>
+    </AppShell>
+  );
+}
