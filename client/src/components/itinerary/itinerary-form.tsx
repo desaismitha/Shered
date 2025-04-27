@@ -74,7 +74,7 @@ const itineraryFormSchema = insertItineraryItemSchema.extend({
   day: z.coerce.number({
     required_error: "Day is required",
     invalid_type_error: "Day must be a number",
-  }).min(1, "Day must be at least 1"),
+  }).min(1, "Day must be at least 1").default(1), // Default to day 1
   title: z.string().min(2, "Title must be at least 2 characters"),
   isRecurring: z.boolean().default(false),
   recurrencePattern: z.string().optional(),
@@ -282,26 +282,8 @@ export function ItineraryForm({ tripId, onSuccess, onCancel, initialData }: Itin
           )}
         />
 
-        {/* Day and Time Selection */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <FormField
-            control={form.control}
-            name="day"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Day</FormLabel>
-                <FormControl>
-                  <Input 
-                    type="number" 
-                    min="1" 
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          
+        {/* Time Selection */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <FormField
             control={form.control}
             name="startTime"

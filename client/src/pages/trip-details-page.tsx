@@ -778,37 +778,39 @@ export default function TripDetailsPage() {
                           </Card>
                         ))}
                       </div>
-                    ) : itineraryItems && itineraryItems.length > 0 ? (
-                      <div className="space-y-4">
-                        {/* Itinerary List */}
-                        
-                        {/* Sort itinerary items by day */}
-                        {[...itineraryItems]
-                          .sort((a, b) => a.day - b.day)
-                          .map(item => (
-                            <ItineraryItemComponent 
-                              key={item.id} 
-                              item={item}
-                              users={users || []}
-                              tripAccessLevel={trip._accessLevel || 'member'}
-                              trip={trip}
-                              onEdit={() => queryClient.invalidateQueries({ queryKey: ["/api/trips", tripId, "itinerary"] })}
-                            />
-                          ))
-                        }
-                      </div>
                     ) : (
-                      <div className="text-center py-8">
-                        <ClipboardList className="h-12 w-12 text-neutral-300 mx-auto mb-3" />
-                        <h3 className="text-lg font-medium text-neutral-900 mb-1">No itinerary items</h3>
-                        <p className="text-neutral-500 mb-6 max-w-md mx-auto">
-                          {trip._accessLevel === 'owner' 
-                            ? "Add your first itinerary item to start planning your trip activities and schedule." 
-                            : "The trip organizer hasn't added any itinerary items yet."}
-                        </p>
-                        
-                        {/* Button removed to avoid duplication with the ItineraryForm component */}
-                      </div>
+                      <>
+                        {itineraryItems && itineraryItems.length > 0 ? (
+                          <div className="space-y-4">
+                            {/* Itinerary List */}
+                            
+                            {/* Sort itinerary items by day */}
+                            {[...itineraryItems]
+                              .sort((a, b) => a.day - b.day)
+                              .map(item => (
+                                <ItineraryItemComponent 
+                                  key={item.id} 
+                                  item={item}
+                                  users={users || []}
+                                  tripAccessLevel={trip._accessLevel || 'member'}
+                                  trip={trip}
+                                  onEdit={() => queryClient.invalidateQueries({ queryKey: ["/api/trips", tripId, "itinerary"] })}
+                                />
+                              ))
+                            }
+                          </div>
+                        ) : (
+                          <div className="text-center py-8">
+                            <ClipboardList className="h-12 w-12 text-neutral-300 mx-auto mb-3" />
+                            <h3 className="text-lg font-medium text-neutral-900 mb-1">No itinerary items yet</h3>
+                            <p className="text-neutral-500 mb-6 max-w-md mx-auto">
+                              {trip._accessLevel === 'owner' 
+                                ? "Add your first itinerary item to start planning your trip activities and schedule." 
+                                : "The trip organizer hasn't added any itinerary items yet."}
+                            </p>
+                          </div>
+                        )}
+                      </>
                     )}
                   </CardContent>
                 </Card>
