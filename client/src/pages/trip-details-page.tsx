@@ -391,7 +391,7 @@ export default function TripDetailsPage() {
   const tabParam = urlObj.searchParams.get('tab');
   
   // State for editing items
-  const [editingItineraryItem, setEditingItineraryItem] = useState<any>(null);
+  const [editingItineraryItem, setEditingItineraryItem] = useState<ItineraryItem | null>(null);
   const defaultTab = tabParam && ['info', 'itinerary', 'expenses', 'vehicles', 'drivers'].includes(tabParam) 
     ? tabParam 
     : 'info';
@@ -755,6 +755,31 @@ export default function TripDetailsPage() {
                         }}
                         onCancel={() => {}} // Empty function as it's not needed here but required by the component
                       />
+                    )}
+                    
+                    {/* Edit Itinerary Item Dialog */}
+                    {editingItineraryItem && (
+                      <Dialog open={!!editingItineraryItem} onOpenChange={(open) => !open && setEditingItineraryItem(null)}>
+                        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+                          <DialogHeader>
+                            <DialogTitle>Edit Itinerary Item</DialogTitle>
+                            <DialogDescription>
+                              Update the details for this itinerary item.
+                            </DialogDescription>
+                          </DialogHeader>
+                          <div className="mt-4">
+                            <ItineraryForm
+                              tripId={tripId}
+                              initialData={editingItineraryItem}
+                              onSuccess={() => {
+                                queryClient.invalidateQueries({ queryKey: ["/api/trips", tripId, "itinerary"] });
+                                setEditingItineraryItem(null);
+                              }}
+                              onCancel={() => setEditingItineraryItem(null)}
+                            />
+                          </div>
+                        </DialogContent>
+                      </Dialog>
                     )}
                   </CardHeader>
                   <CardContent>
