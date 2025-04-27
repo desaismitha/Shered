@@ -6,8 +6,7 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
-import { useState, useRef, useEffect } from "react";
-import { format } from "date-fns";
+import { useState, useRef } from "react";
 
 import {
   Form,
@@ -31,23 +30,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { 
-  ArrowRightIcon, 
-  Calendar as CalendarIcon, 
   Clock, 
   MapPin, 
-  Navigation,
   X
 } from "lucide-react";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { cn, normalizeDate } from "@/lib/utils";
-import { Card, CardContent } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
-import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
 // Define weekday options
@@ -153,8 +141,8 @@ export function ItineraryForm({ tripId, onSuccess, onCancel, initialData }: Itin
   const [transportToCoords, setTransportToCoords] = useState<{ lat: number, lng: number } | null>(null);
   
   // Map refs for different maps
-  const locationMapRef = useRef<L.Map | null>(null);
-  const transportMapRef = useRef<L.Map | null>(null);
+  const locationMapRef = useRef<any>(null);
+  const transportMapRef = useRef<any>(null);
   
   // State to track which map is active for picking locations
   const [activeMapPicker, setActiveMapPicker] = useState<'location' | 'transport-from' | 'transport-to' | null>(null);
@@ -459,44 +447,48 @@ export function ItineraryForm({ tripId, onSuccess, onCancel, initialData }: Itin
             </div>
           )}
         </div>
-
-        {/* Location with Map Selection */}
-        <div className="border p-4 rounded-md">
-          <h3 className="font-medium text-lg mb-3">Location Details</h3>
-          
+        
+        {/* Location fields and Description */}
+        <div className="space-y-4">
           <FormField
             control={form.control}
             name="location"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Activity Location</FormLabel>
+                <FormLabel className="flex items-center">
+                  <MapPin className="h-4 w-4 mr-1 text-blue-600" />
+                  Location
+                </FormLabel>
                 <FormControl>
                   <div className="flex items-center gap-2">
-                    <div className="flex-1">
-                      <Input 
-                        placeholder="e.g., Eiffel Tower, Paris" 
-                        value={field.value || ""}
-                        onChange={field.onChange}
-                        onBlur={field.onBlur}
-                        name={field.name}
-                        ref={field.ref}
-                        className={cn(
-                          locationCoords && "border-green-500 focus-visible:ring-green-500"
-                        )}
-                      />
-                    </div>
+                    <Input 
+                      placeholder="Where this activity happens" 
+                      value={field.value || ""}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      name={field.name}
+                      ref={field.ref}
+                      className={cn(
+                        locationCoords && "border-green-500"
+                      )}
+                    />
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
                       className={cn(
-                        "flex items-center",
-                        activeMapPicker === 'location' && "bg-primary text-primary-foreground"
+                        "h-10 border-blue-300",
+                        activeMapPicker === 'location' && "bg-blue-600 text-white"
                       )}
-                      onClick={() => setActiveMapPicker(activeMapPicker === 'location' ? null : 'location')}
+                      onClick={() => {
+                        if (activeMapPicker === 'location') {
+                          setActiveMapPicker(null);
+                        } else {
+                          setActiveMapPicker('location');
+                        }
+                      }}
                     >
-                      <MapPin className="h-4 w-4 mr-1" />
-                      {activeMapPicker === 'location' ? 'Hide Map' : 'Pick on Map'}
+                      {activeMapPicker === 'location' ? 'Picking...' : 'Pick on Map'}
                     </Button>
                   </div>
                 </FormControl>
@@ -526,18 +518,28 @@ export function ItineraryForm({ tripId, onSuccess, onCancel, initialData }: Itin
                   <LocationPicker setCoords={setLocationCoords} />
                   
                   {locationCoords && (
-                    <Marker 
-                      position={[locationCoords.lat, locationCoords.lng]} 
-                    >
+                    <Marker position={[locationCoords.lat, locationCoords.lng]}>
                       <Popup>
-                        Selected location for: {form.getValues('title')}
+                        Activity location
                       </Popup>
                     </Marker>
                   )}
                 </MapContainer>
               )}
-              <div className="bg-muted p-2 text-xs">
-                Click on the map to select a precise location
+              <div className="bg-blue-100 p-2 text-xs flex justify-between items-center">
+                <span>
+                  Click on the map to select the location
+                </span>
+                <Button 
+                  type="button" 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-6 text-xs"
+                  onClick={() => setLocationCoords(null)}
+                >
+                  <X className="h-3 w-3 mr-1" />
+                  Clear
+                </Button>
               </div>
             </div>
           )}
@@ -564,120 +566,101 @@ export function ItineraryForm({ tripId, onSuccess, onCancel, initialData }: Itin
             )}
           />
         </div>
-        
-        {/* Transportation details with Map Integration */}
-        <div className="border p-4 rounded-md bg-blue-50">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-medium text-lg text-blue-900">Transportation Details</h3>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className={cn(
-                "flex items-center text-blue-700 border-blue-300",
-                activeMapPicker === 'transport-from' || activeMapPicker === 'transport-to' 
-                  ? "bg-blue-600 text-white hover:text-white hover:bg-blue-700" 
-                  : "bg-blue-50"
-              )}
-              onClick={() => setActiveMapPicker(
-                activeMapPicker === 'transport-from' || activeMapPicker === 'transport-to' 
-                  ? null 
-                  : 'transport-from'
-              )}
-            >
-              <MapPin className="h-4 w-4 mr-1" />
-              {activeMapPicker === 'transport-from' || activeMapPicker === 'transport-to' 
-                ? 'Hide Map' 
-                : 'Use Map'}
-            </Button>
-          </div>
           
-          <div className="space-y-4">
-            <FormField
-              control={form.control}
-              name="fromLocation"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="flex items-center">
-                    <MapPin className="h-4 w-4 mr-1 text-blue-600" />
-                    Starting Location
-                  </FormLabel>
-                  <FormControl>
-                    <div className="flex items-center gap-2">
-                      <Input 
-                        placeholder="Where the trip segment starts" 
-                        value={field.value || ""}
-                        onChange={field.onChange}
-                        onBlur={field.onBlur}
-                        name={field.name}
-                        ref={field.ref}
-                        className={cn(
-                          transportFromCoords && "border-green-500"
-                        )}
-                      />
-                      {(activeMapPicker === 'transport-from' || activeMapPicker === 'transport-to') && (
+        {/* Transportation fields section */}
+        {(form.watch('fromLocation') || form.watch('toLocation')) && (
+          <div className="space-y-4 bg-blue-50 p-4 rounded-md">
+            <h3 className="font-medium mb-2">Transportation Details</h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="fromLocation"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center">
+                      <MapPin className="h-4 w-4 mr-1 text-blue-600" />
+                      Starting Point
+                    </FormLabel>
+                    <FormControl>
+                      <div className="flex items-center gap-2">
+                        <Input 
+                          placeholder="Where the trip segment starts" 
+                          value={field.value || ""}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                          ref={field.ref}
+                        />
                         <Button
                           type="button"
                           variant="outline"
                           size="sm"
                           className={cn(
-                            "h-10 border-blue-300",
+                            "h-10",
                             activeMapPicker === 'transport-from' && "bg-blue-600 text-white"
                           )}
-                          onClick={() => setActiveMapPicker('transport-from')}
+                          onClick={() => {
+                            if (activeMapPicker === 'transport-from') {
+                              setActiveMapPicker(null);
+                            } else {
+                              setActiveMapPicker('transport-from');
+                            }
+                          }}
                         >
                           {activeMapPicker === 'transport-from' ? 'Picking...' : 'Pick'}
                         </Button>
-                      )}
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="toLocation"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="flex items-center">
-                    <MapPin className="h-4 w-4 mr-1 text-blue-600" />
-                    Destination Location
-                  </FormLabel>
-                  <FormControl>
-                    <div className="flex items-center gap-2">
-                      <Input 
-                        placeholder="Where the trip segment ends" 
-                        value={field.value || ""}
-                        onChange={field.onChange}
-                        onBlur={field.onBlur}
-                        name={field.name}
-                        ref={field.ref}
-                        className={cn(
-                          transportToCoords && "border-green-500"
-                        )}
-                      />
-                      {(activeMapPicker === 'transport-from' || activeMapPicker === 'transport-to') && (
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+                
+              <FormField
+                control={form.control}
+                name="toLocation"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center">
+                      <MapPin className="h-4 w-4 mr-1 text-blue-600" />
+                      Destination
+                    </FormLabel>
+                    <FormControl>
+                      <div className="flex items-center gap-2">
+                        <Input 
+                          placeholder="Where the trip segment ends" 
+                          value={field.value || ""}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                          ref={field.ref}
+                        />
                         <Button
                           type="button"
                           variant="outline"
                           size="sm"
                           className={cn(
-                            "h-10 border-blue-300",
+                            "h-10",
                             activeMapPicker === 'transport-to' && "bg-blue-600 text-white"
                           )}
-                          onClick={() => setActiveMapPicker('transport-to')}
+                          onClick={() => {
+                            if (activeMapPicker === 'transport-to') {
+                              setActiveMapPicker(null);
+                            } else {
+                              setActiveMapPicker('transport-to');
+                            }
+                          }}
                         >
                           {activeMapPicker === 'transport-to' ? 'Picking...' : 'Pick'}
                         </Button>
-                      )}
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
             
             {(activeMapPicker === 'transport-from' || activeMapPicker === 'transport-to') && (
               <div className="mt-3 h-[300px] border rounded overflow-hidden">
@@ -755,7 +738,7 @@ export function ItineraryForm({ tripId, onSuccess, onCancel, initialData }: Itin
               </div>
             )}
           </div>
-        </div>
+        )}
 
         <div className="flex justify-end space-x-2">
           <Button 

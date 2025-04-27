@@ -128,20 +128,24 @@ export function ItineraryItem({ item, users, tripAccessLevel, onEdit, trip, onSt
   return (
     <div className={`p-4 border rounded-lg ${bgColorClass} hover:shadow-sm transition-shadow`}>
       <div className="flex justify-between">
-        <div className="flex items-center">
-          <h4 className="font-medium text-neutral-900 mb-1">{item.title}</h4>
-          {item.isRecurring && (
-            <Badge variant="outline" className="ml-2 bg-green-100 text-green-800 border-green-200">
-              <RepeatIcon className="h-3 w-3 mr-1" />
-              Recurring
-            </Badge>
-          )}
-          {isPickupDropoff && (
-            <Badge variant="outline" className="ml-2 bg-blue-100 text-blue-800 border-blue-200">
-              <Car className="h-3 w-3 mr-1" />
-              Transport
-            </Badge>
-          )}
+        <div>
+          <div className="flex items-center mb-1">
+            <h4 className="font-medium text-neutral-900">{item.title}</h4>
+          </div>
+          <div className="flex items-center gap-2">
+            {item.isRecurring && (
+              <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200">
+                <RepeatIcon className="h-3 w-3 mr-1" />
+                Recurring
+              </Badge>
+            )}
+            {isPickupDropoff && (
+              <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-200">
+                <Car className="h-3 w-3 mr-1" />
+                Transport
+              </Badge>
+            )}
+          </div>
         </div>
         {startTime && (
           <div className="text-xs text-neutral-500 flex items-center">
