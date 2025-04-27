@@ -764,12 +764,24 @@ export default function ActiveTripsPage() {
               <Card>
                 <CardHeader>
                   <CardTitle>Current Itinerary Details</CardTitle>
+                  {selectedItineraryItems.length > 0 && currentItineraryStep < selectedItineraryItems.length && (
+                    <CardDescription>
+                      {selectedItineraryItems[currentItineraryStep].title} (Step {currentItineraryStep + 1} of {selectedItineraryItems.length})
+                    </CardDescription>
+                  )}
                 </CardHeader>
                 <CardContent>
                   {selectedItineraryItems.length > 0 && currentItineraryStep < selectedItineraryItems.length ? (
                     <div className="grid grid-cols-1 gap-4">
                       <div className="bg-background border rounded-lg p-4">
-                        <h3 className="text-sm font-semibold">{selectedItineraryItems[currentItineraryStep].title}</h3>
+                        {/* Show trip title but locations from current itinerary item */}
+                        <div className="border-b pb-2 mb-3">
+                          <h3 className="text-sm font-semibold">{selectedTrip.name}</h3>
+                          <p className="text-xs text-muted-foreground">
+                            Current segment: {selectedItineraryItems[currentItineraryStep].fromLocation || "Unknown"} to {selectedItineraryItems[currentItineraryStep].toLocation || "Unknown"}
+                          </p>
+                        </div>
+                        
                         {selectedItineraryItems[currentItineraryStep].description && (
                           <p className="text-sm text-muted-foreground mb-3">
                             {selectedItineraryItems[currentItineraryStep].description}
@@ -819,16 +831,24 @@ export default function ActiveTripsPage() {
                   ) : (
                     <div className="grid grid-cols-1 gap-4">
                       <div className="bg-background border rounded-lg p-4">
+                        {/* Show trip information when no itinerary item is selected */}
+                        <div className="border-b pb-2 mb-3">
+                          <h3 className="text-sm font-semibold">{selectedTrip.name}</h3>
+                          <p className="text-xs text-muted-foreground">
+                            Overall trip: {selectedTrip.startLocation || "Unknown"} to {selectedTrip.destination || "Unknown"}
+                          </p>
+                        </div>
+                        
                         <div className="flex flex-col sm:flex-row justify-between gap-4">
                           <div className="border rounded-md p-3 bg-green-50 flex-1">
-                            <h3 className="text-sm font-medium text-green-800 mb-1">Start Location</h3>
+                            <h3 className="text-sm font-medium text-green-800 mb-1">Trip Start</h3>
                             <p className="text-md font-medium flex items-center">
                               <MapPin className="h-4 w-4 text-green-600 mr-1" />
                               {selectedTrip.startLocation || 'Not specified'}
                             </p>
                           </div>
                           <div className="border rounded-md p-3 bg-red-50 flex-1">
-                            <h3 className="text-sm font-medium text-red-800 mb-1">End Location</h3>
+                            <h3 className="text-sm font-medium text-red-800 mb-1">Trip End</h3>
                             <p className="text-md font-medium flex items-center">
                               <MapPin className="h-4 w-4 text-red-600 mr-1" />
                               {selectedTrip.destination || 'Not specified'}
@@ -846,6 +866,15 @@ export default function ActiveTripsPage() {
             <Card className="mb-6">
               <CardHeader>
                 <CardTitle>Trip Map</CardTitle>
+                {selectedItineraryItems.length > 0 && currentItineraryStep < selectedItineraryItems.length ? (
+                  <CardDescription>
+                    Showing route from {selectedItineraryItems[currentItineraryStep].fromLocation || "Starting Point"} to {selectedItineraryItems[currentItineraryStep].toLocation || "Destination"}
+                  </CardDescription>
+                ) : (
+                  <CardDescription>
+                    Showing overall trip from {selectedTrip.startLocation || "Starting Point"} to {selectedTrip.destination || "Destination"}
+                  </CardDescription>
+                )}
               </CardHeader>
               <CardContent>
                 <div className="h-96 w-full rounded-md overflow-hidden border">
