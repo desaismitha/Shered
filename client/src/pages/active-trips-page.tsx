@@ -934,7 +934,7 @@ export default function ActiveTripsPage() {
                             variant="outline"
                             size="sm"
                             className="bg-primary-50 hover:bg-primary-100 border-primary-200"
-                            onClick={() => getCurrentLocation()}
+                            onClick={getCurrentLocation}
                             disabled={isLocationUpdating}
                           >
                             <NavigationIcon className="h-4 w-4 mr-1" />
