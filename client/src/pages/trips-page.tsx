@@ -15,8 +15,11 @@ export default function TripsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   
-  const { data: trips, isLoading } = useQuery<Trip[]>({
+  const { data: trips, isLoading, refetch } = useQuery<Trip[]>({
     queryKey: ["/api/trips"],
+    staleTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
 
   // Debug logging for trips data
@@ -74,9 +77,23 @@ export default function TripsPage() {
     <AppShell>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
-          <h1 className="text-2xl font-bold text-neutral-900 mb-4 sm:mb-0">
-            My Trips
-          </h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-neutral-900">
+              My Trips
+            </h1>
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={() => {
+                console.log("Manually refreshing trips data");
+                refetch();
+              }}
+              className="h-9 w-9"
+              title="Refresh trips"
+            >
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+          </div>
           <Button 
             onClick={() => navigate("/trips/new")}
             className="inline-flex items-center"

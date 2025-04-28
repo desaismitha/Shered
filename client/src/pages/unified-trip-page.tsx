@@ -80,8 +80,15 @@ export default function UnifiedTripPage() {
           ? "Your trip has been updated successfully." 
           : "Your new trip has been created successfully.",
       });
+      // Force invalidate all trip-related queries
+      console.log("Invalidating trip queries after create/update");
       queryClient.invalidateQueries({ queryKey: ["/api/trips"] });
-      navigate("/trips");
+      queryClient.invalidateQueries({ queryKey: ["/api/groups"] });
+      
+      // Add a small delay before navigation to ensure queries have time to refresh
+      setTimeout(() => {
+        navigate("/trips");
+      }, 100);
     },
     onError: (error: Error) => {
       toast({
