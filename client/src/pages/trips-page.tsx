@@ -18,8 +18,10 @@ export default function TripsPage() {
   const { data: trips, isLoading, refetch } = useQuery<Trip[]>({
     queryKey: ["/api/trips"],
     staleTime: 0,
-    refetchOnMount: true,
+    gcTime: 0, // Don't keep old data in cache at all
+    refetchOnMount: "always", // Always refetch on mount
     refetchOnWindowFocus: true,
+    refetchInterval: 10000, // Refetch every 10 seconds
   });
 
   // Debug logging for trips data

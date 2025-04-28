@@ -80,15 +80,26 @@ export default function UnifiedTripPage() {
           ? "Your trip has been updated successfully." 
           : "Your new trip has been created successfully.",
       });
+      
       // Force invalidate all trip-related queries
       console.log("Invalidating trip queries after create/update");
+      
+      // Completely clear the cache for trips
+      queryClient.removeQueries({ queryKey: ["/api/trips"] });
       queryClient.invalidateQueries({ queryKey: ["/api/trips"] });
       queryClient.invalidateQueries({ queryKey: ["/api/groups"] });
       
-      // Add a small delay before navigation to ensure queries have time to refresh
+      // Navigate back to trips page with a small delay to ensure cache is cleared
       setTimeout(() => {
-        navigate("/trips");
-      }, 100);
+        const targetUrl = "/trips";
+        console.log(`Navigating to ${targetUrl} after trip creation/update`);
+        navigate(targetUrl);
+        
+        // Force a refetch after navigation
+        setTimeout(() => {
+          queryClient.refetchQueries({ queryKey: ["/api/trips"] });
+        }, 200);
+      }, 300);
     },
     onError: (error: Error) => {
       toast({
