@@ -12,8 +12,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Trip, ItineraryItem } from "@shared/schema";
 
 // Helper function to safely parse JSON strings or return a default value
-function tryParseJSON(jsonString: string | null | undefined, defaultValue: any = []) {
+function tryParseJSON(jsonString: string | null | undefined | any[], defaultValue: any = []) {
+  // If it's already an array, just return it
+  if (Array.isArray(jsonString)) {
+    return jsonString;
+  }
+  
   if (!jsonString) return defaultValue;
+  
   try {
     return JSON.parse(jsonString);
   } catch (e) {
@@ -153,18 +159,33 @@ export default function UnifiedTripPage() {
     // If we have itinerary items, populate the stops array for multi-stop trips
     if (itineraryItems && itineraryItems.length > 0) {
       // For standard itinerary items, transform them to stops
-      const stops = itineraryItems.map((item) => {
+      const stops = itineraryItems.map((item, index) => {
         // Convert recurrencePattern to one of the valid values
         let pattern = item.recurrencePattern;
         if (pattern && !["daily", "weekly", "monthly", "custom"].includes(pattern)) {
           pattern = "custom"; // Default to custom if it's not one of the expected values
         }
         
+        // Handle nulls in locations by using trip data when available
+        // If it's the first item, use trip start location as default
+        // For the last item, use trip destination as default
+        const isFirstItem = index === 0;
+        const isLastItem = index === itineraryItems.length - 1;
+        
+        const startLocation = item.fromLocation || 
+                             (isFirstItem ? tripData.startLocation : "");
+                             
+        const endLocation = item.toLocation || 
+                           (isLastItem ? tripData.destination : "");
+        
+        console.log(`Processing stop ${index+1} - fromLoc: ${item.fromLocation}, toLoc: ${item.toLocation}`);
+        console.log(`Using startLoc: ${startLocation}, endLoc: ${endLocation}`);
+        
         return {
           day: item.day,
           title: item.title || "",
-          startLocation: item.fromLocation || "",
-          endLocation: item.toLocation || "",
+          startLocation: startLocation,
+          endLocation: endLocation,
           startTime: item.startTime || "",
           endTime: item.endTime || "",
           description: item.description || "",
@@ -177,11 +198,16 @@ export default function UnifiedTripPage() {
       // If it's a single-stop trip, extract data from the first itinerary item
       if (itineraryItems.length === 1) {
         const item = itineraryItems[0];
+        console.log("Single-stop trip detected, processing item:", item);
+
+        // Prioritize using trip data for locations when itinerary locations are null/empty
         formData.startLocation = item.fromLocation || tripData.startLocation || "";
         formData.endLocation = item.toLocation || tripData.destination || "";
         formData.startTime = item.startTime || "";
         formData.endTime = item.endTime || "";
         formData.isRecurring = item.isRecurring || false;
+        
+        console.log(`Single stop - using startLoc: ${formData.startLocation}, endLoc: ${formData.endLocation}`);
         
         // Convert recurrencePattern to a valid value
         if (item.recurrencePattern) {
