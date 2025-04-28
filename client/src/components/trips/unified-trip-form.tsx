@@ -87,18 +87,33 @@ const formSchema = z.object({
   recurrenceDays: z.array(z.string()).optional(),
   // For multi-stop trips
   stops: z.array(stopSchema).optional(),
-}).refine((data): data is FormSchemaType => {
+}).superRefine((data, ctx) => {
   // Require start/end location for single-stop trips
   if (!data.isMultiStop) {
-    return !!data.startLocation && !!data.endLocation;
+    if (!data.startLocation) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Start location is required for single-stop trips",
+        path: ["startLocation"]
+      });
+    }
+    if (!data.endLocation) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "End location is required for single-stop trips",
+        path: ["endLocation"]
+      });
+    }
+  } else {
+    // Require at least one stop for multi-stop trips
+    if (!data.stops || data.stops.length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "At least one stop is required for multi-stop trips",
+        path: ["stops"]
+      });
+    }
   }
-  // Require at least one stop for multi-stop trips
-  return data.stops !== undefined && data.stops.length > 0;
-}, {
-  message: (data: FormSchemaType): string => data.isMultiStop 
-    ? "At least one stop is required for multi-stop trips" 
-    : "Start and end locations are required",
-  path: (data: FormSchemaType): string[] => data.isMultiStop ? ["stops"] : ["startLocation"],
 });
 
 // Type for the form
@@ -182,24 +197,8 @@ export function UnifiedTripForm({ onSubmit, defaultValues, isLoading = false }: 
     form.setValue("stops", currentStops.filter((_, i) => i !== index));
   };
 
-  // Update form validation on trip type change
-  useEffect(() => {
-    if (isMultiStop) {
-      // If switching to multi-stop, initialize stops if empty
-      const currentStops = form.getValues("stops");
-      if (!currentStops || currentStops.length === 0) {
-        form.setValue("stops", [{
-          day: 1,
-          title: form.getValues("name") || "Day 1",
-          startLocation: form.getValues("startLocation") || "",
-          endLocation: form.getValues("endLocation") || "",
-          description: form.getValues("description") || "",
-          startTime: form.getValues("startTime") || "",
-          endTime: form.getValues("endTime") || "",
-        }]);
-      }
-    }
-  }, [isMultiStop, form]);
+  // We don't need the useEffect hook anymore as we handle
+  // the initialization of stops in the Switch onCheckedChange handler
 
   // Form submission handler
   const handleSubmit = (data: FormData) => {
@@ -327,7 +326,21 @@ export function UnifiedTripForm({ onSubmit, defaultValues, isLoading = false }: 
                   <FormControl>
                     <Switch
                       checked={field.value}
-                      onCheckedChange={field.onChange}
+                      onCheckedChange={(checked) => {
+                        field.onChange(checked);
+                        // If switching to multi-stop, ensure we have at least one stop
+                        if (checked && (!form.getValues("stops") || form.getValues("stops").length === 0)) {
+                          form.setValue("stops", [{
+                            day: 1,
+                            title: form.getValues("name") || "Day 1",
+                            startLocation: form.getValues("startLocation") || "",
+                            endLocation: form.getValues("endLocation") || "",
+                            description: form.getValues("description") || "",
+                            startTime: form.getValues("startTime") || "",
+                            endTime: form.getValues("endTime") || "",
+                          }]);
+                        }
+                      }}
                     />
                   </FormControl>
                 </FormItem>
