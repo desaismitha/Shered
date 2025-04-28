@@ -784,6 +784,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         console.log("Trip updated successfully:", updatedTrip);
         
+        // Handle itinerary items if present in the request
+        if (req.body.itineraryItems && Array.isArray(req.body.itineraryItems)) {
+          console.log(`[TRIP_EDIT] Processing ${req.body.itineraryItems.length} itinerary items after trip update`);
+          
+          try {
+            // Get existing itinerary items
+            const existingItems = await storage.getItineraryItemsByTripId(tripId);
+            console.log(`[TRIP_EDIT] Found ${existingItems.length} existing itinerary items`);
+            
+            // For each item in the request
+            for (const item of req.body.itineraryItems) {
+              console.log(`[TRIP_EDIT] Processing itinerary item: ${JSON.stringify(item)}`);
+              
+              // Ensure the item has the necessary properties
+              if (!item.day) {
+                console.warn("[TRIP_EDIT] Skipping item without day:", item);
+                continue;
+              }
+              
+              // Prepare data for create/update
+              const itemData = {
+                ...item,
+                tripId,
+                createdBy: req.user!.id,
+                // Ensure locations are never empty
+                fromLocation: item.fromLocation || updatedTrip.startLocation || "Unknown location",
+                toLocation: item.toLocation || updatedTrip.destination || "Unknown location"
+              };
+              
+              // If the item has an ID, it's an existing item - update it
+              if (item.id) {
+                // Find the existing item
+                const existingItem = existingItems.find(existing => existing.id === item.id);
+                
+                if (existingItem) {
+                  console.log(`[TRIP_EDIT] Updating existing itinerary item ${item.id}`);
+                  const updatedItem = await storage.updateItineraryItem(item.id, itemData);
+                  console.log(`[TRIP_EDIT] Updated item: ${updatedItem ? 'success' : 'failed'}`);
+                } else {
+                  console.warn(`[TRIP_EDIT] Item with ID ${item.id} not found, creating new`);
+                  const newItem = await storage.createItineraryItem(itemData);
+                  console.log(`[TRIP_EDIT] Created new item: ${newItem.id}`);
+                }
+              }
+              // Otherwise it's a new item - create it
+              else {
+                console.log(`[TRIP_EDIT] Creating new itinerary item`);
+                const newItem = await storage.createItineraryItem(itemData);
+                console.log(`[TRIP_EDIT] Created new item: ${newItem.id}`);
+              }
+            }
+            
+            console.log("[TRIP_EDIT] Finished processing all itinerary items");
+          } catch (err) {
+            console.error("[TRIP_EDIT] Error processing itinerary items:", err);
+            // We don't want to fail the whole request if just the itinerary items fail
+            // so we continue without returning an error
+          }
+        }
+        
         // Include access level in the response like the GET endpoint does
         res.json({
           ...updatedTrip,
