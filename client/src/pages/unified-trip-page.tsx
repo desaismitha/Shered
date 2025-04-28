@@ -317,8 +317,8 @@ export default function UnifiedTripPage() {
             day: stop.day,
             title: stop.title,
             description: stop.description || "",
-            fromLocation: stop.startLocation || "", // Ensure we don't send null/undefined
-            toLocation: stop.endLocation || "",     // Ensure we don't send null/undefined
+            fromLocation: stop.startLocation || tripData?.startLocation || "Unknown location", // Never allow empty locations
+            toLocation: stop.endLocation || tripData?.destination || "Unknown location",     // Never allow empty locations
             startTime: stop.startTime || "",
             endTime: stop.endTime || "",
             isRecurring: false, // Multi-stop trips don't support recurrence per stop
@@ -339,16 +339,16 @@ export default function UnifiedTripPage() {
         startDate: data.startDate,
         endDate: data.endDate,
         status: data.status,
-        startLocation: data.startLocation,
-        destination: data.endLocation,
+        startLocation: data.startLocation || "Unknown location",
+        destination: data.endLocation || "Unknown location",
         groupId: data.groupId,
         // Create a single itinerary item
         itineraryItems: [{
           day: 1,
           title: data.name,
           description: data.description || "",
-          fromLocation: data.startLocation,
-          toLocation: data.endLocation,
+          fromLocation: data.startLocation || "Unknown location",
+          toLocation: data.endLocation || "Unknown location",
           startTime: data.startTime || "",
           endTime: data.endTime || "",
           isRecurring: data.isRecurring || false,

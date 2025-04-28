@@ -364,11 +364,14 @@ export function UnifiedTripForm({
                           // Safely access stops array with a default empty array
                           const stops = form.getValues("stops") || [];
                           if (stops.length === 0) {
+                            const startLocation = form.getValues("startLocation") || "Unknown location";
+                            const endLocation = form.getValues("endLocation") || "Unknown location";
+                            
                             form.setValue("stops", [{
                               day: 1,
                               title: form.getValues("name") || "Day 1",
-                              startLocation: form.getValues("startLocation") || "",
-                              endLocation: form.getValues("endLocation") || "",
+                              startLocation: startLocation,
+                              endLocation: endLocation,
                               description: form.getValues("description") || "",
                               startTime: form.getValues("startTime") || "",
                               endTime: form.getValues("endTime") || "",
