@@ -25,32 +25,6 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 
-// Function to extract coordinates from a location string (same as in itinerary-form.tsx)
-function extractCoordinates(locationStr: string | null | undefined): { lat: number, lng: number } | null {
-  if (!locationStr) return null;
-  
-  // First try the new format with square brackets [lat, lng]
-  let coordsRegex = /\[(-?\d+\.?\d*),\s*(-?\d+\.?\d*)\]/;
-  let match = locationStr.match(coordsRegex);
-  
-  // If not found, try the old format with parentheses (lat, lng)
-  if (!match) {
-    coordsRegex = /\((-?\d+\.?\d*),\s*(-?\d+\.?\d*)\)/;
-    match = locationStr.match(coordsRegex);
-  }
-  
-  if (match && match.length === 3) {
-    const lat = parseFloat(match[1]);
-    const lng = parseFloat(match[2]);
-    
-    if (!isNaN(lat) && !isNaN(lng)) {
-      return { lat, lng };
-    }
-  }
-  
-  return null;
-}
-
 // Map of known city names to coordinates
 const CITY_COORDINATES: Record<string, [number, number]> = {
   'seattle': [47.6062, -122.3321],
@@ -83,6 +57,45 @@ const CITY_COORDINATES: Record<string, [number, number]> = {
   'oregon': [43.8041, -120.5542], // Centralized for the state
   'hyd': [17.3850, 78.4867], // Hyderabad coordinates
 };
+
+// Function to extract coordinates from a location string (same as in itinerary-form.tsx)
+function extractCoordinates(locationStr: string | null | undefined): { lat: number, lng: number } | null {
+  if (!locationStr) return null;
+  
+  // Check for exact matches in our city database first
+  const normalizedName = locationStr.toLowerCase().trim();
+  for (const [cityName, coordinates] of Object.entries(CITY_COORDINATES)) {
+    if (normalizedName === cityName || 
+        normalizedName.startsWith(cityName + " ") || 
+        normalizedName.endsWith(" " + cityName) ||
+        normalizedName.includes(" " + cityName + " ")) {
+      return { lat: coordinates[0], lng: coordinates[1] };
+    }
+  }
+  
+  // First try the new format with square brackets [lat, lng]
+  let coordsRegex = /\[(-?\d+\.?\d*),\s*(-?\d+\.?\d*)\]/;
+  let match = locationStr.match(coordsRegex);
+  
+  // If not found, try the old format with parentheses (lat, lng)
+  if (!match) {
+    coordsRegex = /\((-?\d+\.?\d*),\s*(-?\d+\.?\d*)\)/;
+    match = locationStr.match(coordsRegex);
+  }
+  
+  if (match && match.length === 3) {
+    const lat = parseFloat(match[1]);
+    const lng = parseFloat(match[2]);
+    
+    if (!isNaN(lat) && !isNaN(lng) && 
+        lat >= -90 && lat <= 90 && 
+        lng >= -180 && lng <= 180) {
+      return { lat, lng };
+    }
+  }
+  
+  return null;
+}
 
 // Function to generate default coordinates for location names
 function getDefaultCoordinatesForLocation(
@@ -456,8 +469,14 @@ function TripMap({
             <>
               {/* Get coordinates for start and end locations */}
               {(() => {
-                const startCoords = getDefaultCoordinatesForLocation(startLocation, currentLatitude, currentLongitude, -0.01);
-                const destCoords = getDefaultCoordinatesForLocation(destination, currentLatitude, currentLongitude, 0.01);
+                // Use more realistic coordinates for major cities
+                const startCoords = extractCoordinates(startLocation) || 
+                  getDefaultCoordinatesForLocation(startLocation, null, null, 0);
+                
+                const destCoords = extractCoordinates(destination) || 
+                  getDefaultCoordinatesForLocation(destination, null, null, 0);
+                
+                console.log("Navigation route:", { startLocation, destination, startCoords, destCoords });
                 
                 return (
                   <>
@@ -468,8 +487,8 @@ function TripMap({
                         destCoords as [number, number]
                       ]}
                       color="#4a90e2"
-                      weight={4}
-                      opacity={0.8}
+                      weight={5}
+                      opacity={0.9}
                       dashArray="10, 10"
                     />
                     
