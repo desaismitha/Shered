@@ -18,15 +18,29 @@ function tryParseJSON(jsonString: string | null | undefined | any[], defaultValu
     return jsonString;
   }
   
-  if (!jsonString) return defaultValue;
+  // If it's null, undefined, or empty, return the default value
+  if (jsonString === null || jsonString === undefined || jsonString === '') {
+    return defaultValue;
+  }
+  
+  // If it's already an object (but not an array), use it as is
+  if (typeof jsonString === 'object') {
+    return jsonString;
+  }
   
   try {
-    return JSON.parse(jsonString);
+    const parsed = JSON.parse(jsonString);
+    // Ensure the result matches the expected type
+    if (Array.isArray(defaultValue) && !Array.isArray(parsed)) {
+      console.warn("Parsed JSON is not an array when array was expected:", parsed);
+      return defaultValue;
+    }
+    return parsed;
   } catch (e) {
-    console.error("Failed to parse JSON string:", jsonString);
+    console.error("Failed to parse JSON string:", jsonString, e);
     // If it's not valid JSON and it's a string, treat it as a comma-separated string
-    if (typeof jsonString === 'string') {
-      return jsonString.split(',');
+    if (typeof jsonString === 'string' && jsonString.includes(',')) {
+      return jsonString.split(',').map(item => item.trim());
     }
     return defaultValue;
   }
@@ -166,17 +180,31 @@ export default function UnifiedTripPage() {
           pattern = "custom"; // Default to custom if it's not one of the expected values
         }
         
-        // Handle nulls in locations by using trip data when available
-        // If it's the first item, use trip start location as default
-        // For the last item, use trip destination as default
+        // Create default logical locations if not available in the itinerary item
+        // This ensures we have location data for each stop regardless of DB nulls
+        let startLocation = "";
+        let endLocation = "";
+        
         const isFirstItem = index === 0;
         const isLastItem = index === itineraryItems.length - 1;
         
-        const startLocation = item.fromLocation || 
-                             (isFirstItem ? tripData.startLocation : "");
-                             
-        const endLocation = item.toLocation || 
-                           (isLastItem ? tripData.destination : "");
+        // First try to use the item's fromLocation/toLocation if available
+        if (item.fromLocation) {
+          startLocation = item.fromLocation;
+        } else if (isFirstItem && tripData.startLocation) {
+          // If it's the first stop, fall back to trip start location 
+          startLocation = tripData.startLocation;
+        } else if (index > 0 && itineraryItems[index-1]?.toLocation) {
+          // Or use the previous stop's end location
+          startLocation = itineraryItems[index-1].toLocation || "";
+        }
+        
+        if (item.toLocation) {
+          endLocation = item.toLocation;
+        } else if (isLastItem && tripData.destination) {
+          // If it's the last stop, fall back to trip destination
+          endLocation = tripData.destination;
+        } 
         
         console.log(`Processing stop ${index+1} - fromLoc: ${item.fromLocation}, toLoc: ${item.toLocation}`);
         console.log(`Using startLoc: ${startLocation}, endLoc: ${endLocation}`);
@@ -243,6 +271,8 @@ export default function UnifiedTripPage() {
       // Ensure we have valid stops data before accessing it
       const hasValidStops = data.stops && Array.isArray(data.stops) && data.stops.length > 0;
       
+      console.log("Processing multi-stop trip with stops:", data.stops);
+      
       // Create a variable for the API request
       const tripUpdateData = {
         name: data.name,
@@ -250,24 +280,30 @@ export default function UnifiedTripPage() {
         startDate: data.startDate,
         endDate: data.endDate,
         status: data.status,
-        startLocation: hasValidStops ? data.stops[0]?.startLocation || "" : 
-                       (data.startLocation || ""),
-        destination: hasValidStops ? data.stops[data.stops.length - 1]?.endLocation || "" : 
-                     (data.endLocation || ""),
+        startLocation: hasValidStops && data.stops[0]?.startLocation 
+                      ? data.stops[0].startLocation 
+                      : (tripData?.startLocation || data.startLocation || ""),
+        destination: hasValidStops && data.stops[data.stops.length - 1]?.endLocation 
+                   ? data.stops[data.stops.length - 1].endLocation 
+                   : (tripData?.destination || data.endLocation || ""),
         groupId: data.groupId,
         // Update itinerary items separately via API
-        itineraryItems: hasValidStops ? data.stops.map((stop: any) => ({
-          day: stop.day,
-          title: stop.title,
-          description: stop.description || "",
-          fromLocation: stop.startLocation,
-          toLocation: stop.endLocation,
-          startTime: stop.startTime || "",
-          endTime: stop.endTime || "",
-          isRecurring: false, // Multi-stop trips don't support recurrence per stop
-          recurrencePattern: null,
-          recurrenceDays: null,
-        })) : (itineraryItems || []),
+        itineraryItems: hasValidStops ? data.stops.map((stop: any) => {
+          console.log(`Processing stop in submit: ${stop.title}, startLoc: ${stop.startLocation}, endLoc: ${stop.endLocation}`);
+          
+          return {
+            day: stop.day,
+            title: stop.title,
+            description: stop.description || "",
+            fromLocation: stop.startLocation || "", // Ensure we don't send null/undefined
+            toLocation: stop.endLocation || "",     // Ensure we don't send null/undefined
+            startTime: stop.startTime || "",
+            endTime: stop.endTime || "",
+            isRecurring: false, // Multi-stop trips don't support recurrence per stop
+            recurrencePattern: null,
+            recurrenceDays: null,
+          };
+        }) : (itineraryItems || []),
       };
       
       mutation.mutate(tripUpdateData);
