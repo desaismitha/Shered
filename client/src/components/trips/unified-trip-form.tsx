@@ -43,6 +43,7 @@ type FormSchemaType = {
   endDate: Date;
   description?: string;
   groupId?: number;
+  status: "planning" | "confirmed" | "in-progress" | "completed" | "cancelled";
   isMultiStop: boolean;
   startLocation?: string;
   endLocation?: string;
