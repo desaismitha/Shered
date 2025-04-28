@@ -3,7 +3,8 @@ import { Trip, ItineraryItem } from "@shared/schema";
 import { Link, useLocation, useParams } from "wouter";
 import { 
   PlusIcon, NavigationIcon, MapPinIcon, ArrowLeft, ArrowRight, 
-  Check, Car, PlayCircle, StopCircle, X, MapPin, Info as InfoIcon
+  Check, Car, PlayCircle, StopCircle, X, MapPin, Info as InfoIcon,
+  Clock, Ruler
 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,7 @@ import 'leaflet/dist/leaflet.css';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
+import { useMapboxRoute, formatDuration, formatDistance } from "@/lib/mapUtils";
 
 // Map of known city names to coordinates
 const CITY_COORDINATES: Record<string, [number, number]> = {
@@ -261,6 +263,26 @@ function TripMap({
     ? extractCoordinates(itineraryItem.toLocation)
     : null;
     
+  // If no itinerary coordinates, use trip start/destination
+  const effectiveFromCoords = fromCoords || 
+    (startLocation ? extractCoordinates(startLocation) || 
+    {lat: getDefaultCoordinatesForLocation(startLocation, null, null, 0)[0], 
+     lng: getDefaultCoordinatesForLocation(startLocation, null, null, 0)[1]} : null);
+  
+  const effectiveToCoords = toCoords || 
+    (destination ? extractCoordinates(destination) || 
+    {lat: getDefaultCoordinatesForLocation(destination, null, null, 0)[0], 
+     lng: getDefaultCoordinatesForLocation(destination, null, null, 0)[1]} : null);
+  
+  // Get road route data using the Mapbox API
+  const {
+    geometry: routeGeometry,
+    duration,
+    distance,
+    loading: isRouteLoading,
+    error: routeError
+  } = useMapboxRoute(effectiveFromCoords, effectiveToCoords);
+    
   // Determine the center coordinates for the map
   let centerCoordinates;
   
@@ -291,6 +313,11 @@ function TripMap({
       ? { lat: currentLatitude, lng: currentLongitude } 
       : null 
   });
+  
+  // Prepare road route coordinates for rendering (if available)
+  const roadRoutePositions = routeGeometry?.coordinates 
+    ? routeGeometry.coordinates.map(coord => [coord[1], coord[0]] as [number, number])
+    : [];
   
   return (
     <div style={{ height, width }}>
