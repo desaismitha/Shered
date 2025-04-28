@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Trip } from "@shared/schema";
 import { TripCard } from "@/components/trips/trip-card";
 import { Button } from "@/components/ui/button";
-import { PlusIcon, Search } from "lucide-react";
+import { PlusIcon, RefreshCw, Search } from "lucide-react";
 import { useLocation } from "wouter";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
