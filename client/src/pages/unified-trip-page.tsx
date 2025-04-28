@@ -206,22 +206,31 @@ export default function UnifiedTripPage() {
   
   // Handle form submission
   const handleSubmit = (data: any) => {
+    console.log("Submit form data:", data);
+    
     // Format data for the API
     if (data.isMultiStop) {
       // For multi-stop trips, we need to:
       // 1. Update the trip record with basic info
       // 2. Create/update itinerary items for each stop
-      const tripData = {
+      
+      // Ensure we have valid stops data before accessing it
+      const hasValidStops = data.stops && Array.isArray(data.stops) && data.stops.length > 0;
+      
+      // Create a variable for the API request
+      const tripUpdateData = {
         name: data.name,
         description: data.description,
         startDate: data.startDate,
         endDate: data.endDate,
         status: data.status,
-        startLocation: data.stops[0]?.startLocation || "",
-        destination: data.stops[data.stops.length - 1]?.endLocation || "",
+        startLocation: hasValidStops ? data.stops[0]?.startLocation || "" : 
+                       (data.startLocation || ""),
+        destination: hasValidStops ? data.stops[data.stops.length - 1]?.endLocation || "" : 
+                     (data.endLocation || ""),
         groupId: data.groupId,
         // Update itinerary items separately via API
-        itineraryItems: data.stops.map((stop: any) => ({
+        itineraryItems: hasValidStops ? data.stops.map((stop: any) => ({
           day: stop.day,
           title: stop.title,
           description: stop.description || "",
@@ -232,10 +241,10 @@ export default function UnifiedTripPage() {
           isRecurring: false, // Multi-stop trips don't support recurrence per stop
           recurrencePattern: null,
           recurrenceDays: null,
-        })),
+        })) : (itineraryItems || []),
       };
       
-      mutation.mutate(tripData);
+      mutation.mutate(tripUpdateData);
     } else {
       // For single-stop trips, we create:
       // 1. A trip record with the basic trip info
