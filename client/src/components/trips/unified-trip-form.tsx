@@ -78,6 +78,8 @@ const formSchema = z.object({
   description: z.string().optional(),
   groupId: z.number().optional(),
   isMultiStop: z.boolean().default(false),
+  // Trip status
+  status: z.enum(["planning", "confirmed", "in-progress", "completed", "cancelled"]).default("planning"),
   // Fields for single-stop trips
   startLocation: z.string().optional(),
   endLocation: z.string().optional(),
@@ -96,8 +98,10 @@ type FormData = z.infer<typeof formSchema>;
 // Props for the component
 interface UnifiedTripFormProps {
   onSubmit: (data: FormData) => void;
+  onCancel?: () => void;
   defaultValues?: Partial<FormData>;
   isLoading?: boolean;
+  isEditing?: boolean;
 }
 
 // Days of the week for recurring trips
@@ -111,7 +115,13 @@ const daysOfWeek = [
   { id: "sun", label: "Sun" },
 ];
 
-export function UnifiedTripForm({ onSubmit, defaultValues, isLoading = false }: UnifiedTripFormProps) {
+export function UnifiedTripForm({ 
+  onSubmit, 
+  onCancel, 
+  defaultValues, 
+  isLoading = false,
+  isEditing = false 
+}: UnifiedTripFormProps) {
   // Query for groups
   const { data: groups } = useQuery<Group[]>({
     queryKey: ["/api/groups"],
@@ -257,6 +267,38 @@ export function UnifiedTripForm({ onSubmit, defaultValues, isLoading = false }: 
             />
           </div>
           
+          <div className="grid gap-4 sm:grid-cols-2 mt-4">
+            <FormField
+              control={form.control}
+              name="status"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Trip Status</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a status" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="planning">Planning</SelectItem>
+                      <SelectItem value="confirmed">Confirmed</SelectItem>
+                      <SelectItem value="in-progress">In Progress</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormDescription>
+                    Current status of your trip
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
           <div className="mt-4">
             <FormField
               control={form.control}
