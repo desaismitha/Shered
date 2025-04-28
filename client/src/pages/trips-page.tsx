@@ -19,30 +19,56 @@ export default function TripsPage() {
     queryKey: ["/api/trips"],
   });
 
+  // Debug logging for trips data
+  console.log("Trips data from API:", trips);
+
   // Filter trips based on search query and status
   const filteredTrips = trips?.filter(trip => {
     const matchesSearch = 
       searchQuery === "" || 
-      trip.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      trip.destination.toLowerCase().includes(searchQuery.toLowerCase());
+      trip.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (trip.destination && trip.destination.toLowerCase().includes(searchQuery.toLowerCase()));
     
     const matchesStatus = statusFilter === "all" || trip.status === statusFilter;
     
     return matchesSearch && matchesStatus;
   });
+  
+  // Debug logging for filtered trips
+  console.log("Filtered trips:", filteredTrips);
 
   // Group trips by status
-  const upcomingTrips = filteredTrips?.filter(trip => 
-    new Date(trip.startDate) > new Date() && trip.status !== "cancelled"
-  );
+  const upcomingTrips = filteredTrips?.filter(trip => {
+    if (!trip.startDate) return false;
+    try {
+      // If it's a future trip or currently active trip, include it
+      return (new Date(trip.startDate) > new Date() || trip.status === "in-progress") 
+        && trip.status !== "cancelled" && trip.status !== "completed";
+    } catch (e) {
+      console.error("Error parsing date:", trip.startDate);
+      return false;
+    }
+  });
   
-  const pastTrips = filteredTrips?.filter(trip => 
-    new Date(trip.endDate) < new Date() || trip.status === "completed"
-  );
+  console.log("Upcoming trips:", upcomingTrips);
+  
+  const pastTrips = filteredTrips?.filter(trip => {
+    if (!trip.endDate) return false;
+    try {
+      return new Date(trip.endDate) < new Date() || trip.status === "completed";
+    } catch (e) {
+      console.error("Error parsing date:", trip.endDate);
+      return false;
+    }
+  });
+  
+  console.log("Past trips:", pastTrips);
 
   const cancelledTrips = filteredTrips?.filter(trip => 
     trip.status === "cancelled"
   );
+  
+  console.log("Cancelled trips:", cancelledTrips);
 
   return (
     <AppShell>
