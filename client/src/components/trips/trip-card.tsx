@@ -24,15 +24,16 @@ export function TripCard({ trip }: TripCardProps) {
   const { user } = useAuth();
   const [, navigate] = useLocation();
   
-  // Get group members to display avatars
+  // Get group members to display avatars - only fetch if groupId is not null
   const { data: groupMembers } = useQuery<GroupMember[]>({
     queryKey: ["/api/groups", trip.groupId, "members"],
+    enabled: !!trip.groupId, // Only run this query if there is a groupId
   });
 
   // Get users for member details
   const { data: users } = useQuery<User[]>({
     queryKey: ["/api/users"],
-    enabled: !!groupMembers,
+    enabled: !!groupMembers || !trip.groupId, // Enable if we have members or if it's a personal trip
   });
   
   // Check if user is the creator or admin - use the _accessLevel now
