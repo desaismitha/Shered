@@ -816,10 +816,17 @@ export function UnifiedTripForm({ onSubmit, defaultValues, isLoading = false }: 
         )}
         
         <div className="flex items-center justify-end space-x-4">
-          <Button type="button" variant="outline">
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={() => window.history.back()}
+          >
             Cancel
           </Button>
-          <Button type="submit" disabled={isLoading}>
+          <Button 
+            type="submit" 
+            disabled={isLoading}
+          >
             {isLoading ? "Saving..." : isMultiStop ? "Create Multi-Stop Trip" : "Create Trip"}
           </Button>
         </div>
