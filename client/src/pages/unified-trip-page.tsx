@@ -188,23 +188,42 @@ export default function UnifiedTripPage() {
         const isFirstItem = index === 0;
         const isLastItem = index === itineraryItems.length - 1;
         
-        // First try to use the item's fromLocation/toLocation if available
-        if (item.fromLocation) {
-          startLocation = item.fromLocation;
-        } else if (isFirstItem && tripData.startLocation) {
-          // If it's the first stop, fall back to trip start location 
-          startLocation = tripData.startLocation;
-        } else if (index > 0 && itineraryItems[index-1]?.toLocation) {
-          // Or use the previous stop's end location
-          startLocation = itineraryItems[index-1].toLocation || "";
+        // Enhanced logic for location assignment based on position
+        if (isFirstItem) {
+          // First stop: Use first itinerary fromLocation or trip startLocation
+          startLocation = (item.fromLocation && item.fromLocation !== "") ? 
+                           item.fromLocation : tripData.startLocation || "";
+        } else if (index > 0) {
+          // Middle stops: Use this item's fromLocation, previous item's toLocation, or chain backwards
+          if (item.fromLocation && item.fromLocation !== "") {
+            startLocation = item.fromLocation;
+          } else {
+            // Try to get the previous stop's end location
+            const prevItem = itineraryItems[index-1];
+            if (prevItem?.toLocation && prevItem.toLocation !== "") {
+              startLocation = prevItem.toLocation;
+            } else {
+              // If all fails, use trip start location as last resort
+              startLocation = tripData.startLocation || "";
+            }
+          }
         }
         
-        if (item.toLocation) {
-          endLocation = item.toLocation;
-        } else if (isLastItem && tripData.destination) {
-          // If it's the last stop, fall back to trip destination
-          endLocation = tripData.destination;
-        } 
+        if (isLastItem) {
+          // Last stop: Use last itinerary toLocation or trip destination
+          endLocation = (item.toLocation && item.toLocation !== "") ? 
+                         item.toLocation : tripData.destination || "";
+        } else {
+          // Not the last stop: Use this item's toLocation or try to infer
+          if (item.toLocation && item.toLocation !== "") {
+            endLocation = item.toLocation;
+          } else if (index < itineraryItems.length - 1 && 
+                    itineraryItems[index+1]?.fromLocation && 
+                    itineraryItems[index+1].fromLocation !== "") {
+            // Use next stop's start location if available
+            endLocation = itineraryItems[index+1].fromLocation;
+          }
+        }
         
         console.log(`Processing stop ${index+1} - fromLoc: ${item.fromLocation}, toLoc: ${item.toLocation}`);
         console.log(`Using startLoc: ${startLocation}, endLoc: ${endLocation}`);
