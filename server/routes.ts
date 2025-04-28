@@ -1595,6 +1595,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
         distance += newDistance;
       }
       
+      // Check if the traveler is on the planned route
+      let routeStatus = { isOnRoute: true, distanceFromRoute: 0 };
+      let routeDeviation = null;
+      
+      // Extract coordinates from start and end locations if they exist
+      const startCoords = parseCoordinates(trip.startLocation);
+      const endCoords = parseCoordinates(trip.destination);
+      
+      // Only check route deviation if we have valid start and end coordinates
+      if (startCoords && endCoords) {
+        console.log("[TRIP_UPDATE_LOCATION] Checking route deviation with coordinates:");
+        console.log(`  Start: ${JSON.stringify(startCoords)}`);
+        console.log(`  End: ${JSON.stringify(endCoords)}`);
+        console.log(`  Current: [${latitude}, ${longitude}]`);
+        
+        // Check if current location is on the route with a 10km tolerance
+        routeStatus = isLocationOnRoute(
+          latitude,
+          longitude,
+          startCoords.lat,
+          startCoords.lng,
+          endCoords.lat,
+          endCoords.lng,
+          10.0 // 10km tolerance
+        );
+        
+        if (!routeStatus.isOnRoute) {
+          console.log(`[TRIP_UPDATE_LOCATION] DEVIATION DETECTED! ${routeStatus.distanceFromRoute.toFixed(2)}km from route`);
+          
+          // Create a route deviation object for the response
+          routeDeviation = {
+            latitude,
+            longitude,
+            timestamp: new Date(),
+            distanceFromRoute: routeStatus.distanceFromRoute,
+            tripId
+          };
+          
+          // In a production app, we would save this to the database
+          // and notify trip members via WebSockets
+        } else {
+          console.log(`[TRIP_UPDATE_LOCATION] Traveler is on route (${routeStatus.distanceFromRoute.toFixed(2)}km from route)`);
+        }
+      } else {
+        console.log("[TRIP_UPDATE_LOCATION] Cannot check route deviation - missing valid start/end coordinates");
+      }
+      
       // Update trip with new location
       const data = {
         currentLatitude: latitude,
@@ -1626,7 +1673,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           trip: {
             ...updatedResult,
             _accessLevel: accessLevel
-          }
+          },
+          routeStatus: routeStatus ? {
+            isOnRoute: routeStatus.isOnRoute,
+            distanceFromRoute: routeStatus.distanceFromRoute
+          } : null,
+          deviation: routeDeviation ? {
+            isDeviated: true,
+            distanceFromRoute: routeStatus.distanceFromRoute,
+            message: `You are ${routeStatus.distanceFromRoute.toFixed(2)}km away from the planned route`
+          } : null
         });
       } catch (dbError) {
         console.error("[TRIP_UPDATE_LOCATION] Database error:", dbError);

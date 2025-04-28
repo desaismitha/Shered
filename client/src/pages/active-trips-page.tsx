@@ -259,38 +259,105 @@ function TripMap({
             </Marker>
           )}
           
-          {/* Draw polyline between itinerary locations if both start and end coordinates are available */}
+          {/* Route guidance - Draw polyline between itinerary locations if both start and end coordinates are available */}
           {fromCoords && toCoords && (
-            <Polyline 
-              positions={[
-                [fromCoords.lat, fromCoords.lng] as [number, number],
-                ...(currentLatitude && currentLongitude ? [[[currentLatitude, currentLongitude]] as unknown as [number, number]] : []),
-                [toCoords.lat, toCoords.lng] as [number, number]
-              ]}
-              color="blue"
-              weight={3}
-              opacity={0.7}
-            />
+            <>
+              {/* Planned route line */}
+              <Polyline 
+                positions={[
+                  [fromCoords.lat, fromCoords.lng] as [number, number],
+                  [toCoords.lat, toCoords.lng] as [number, number]
+                ]}
+                color="#4a90e2"
+                weight={4}
+                opacity={0.8}
+                dashArray="10, 10"
+              />
+              
+              {/* Current progress line - from start to current position */}
+              {currentLatitude && currentLongitude && (
+                <Polyline 
+                  positions={[
+                    [fromCoords.lat, fromCoords.lng] as [number, number],
+                    [currentLatitude, currentLongitude] as [number, number]
+                  ]}
+                  color="#34c759"
+                  weight={4}
+                  opacity={0.9}
+                />
+              )}
+              
+              {/* Remaining path line - from current position to destination */}
+              {currentLatitude && currentLongitude && (
+                <Polyline 
+                  positions={[
+                    [currentLatitude, currentLongitude] as [number, number],
+                    [toCoords.lat, toCoords.lng] as [number, number]
+                  ]}
+                  color="#ff9500"
+                  weight={3}
+                  opacity={0.7}
+                  dashArray="5, 8"
+                />
+              )}
+            </>
           )}
           
           {/* Draw polyline between trip locations if itinerary locations are not available */}
-          {!fromCoords && !toCoords && startLocation && destination && currentLatitude && currentLongitude && (
-            <Polyline 
-              positions={[
-                [
-                  currentLatitude - 0.01, 
-                  currentLongitude - 0.01
-                ] as [number, number],
-                [currentLatitude, currentLongitude] as [number, number],
-                [
-                  currentLatitude + 0.01, 
-                  currentLongitude + 0.01
-                ] as [number, number]
-              ]}
-              color="blue"
-              weight={3}
-              opacity={0.7}
-            />
+          {!fromCoords && !toCoords && startLocation && destination && (
+            <>
+              {/* Create default coordinates based on current position */}
+              {currentLatitude && currentLongitude && (
+                <>
+                  {/* Planned route with dashed line */}
+                  <Polyline 
+                    positions={[
+                      [
+                        currentLatitude - 0.01, 
+                        currentLongitude - 0.01
+                      ] as [number, number],
+                      [
+                        currentLatitude + 0.01, 
+                        currentLongitude + 0.01
+                      ] as [number, number]
+                    ]}
+                    color="#4a90e2"
+                    weight={4}
+                    opacity={0.8}
+                    dashArray="10, 10"
+                  />
+                  
+                  {/* Current progress line */}
+                  <Polyline 
+                    positions={[
+                      [
+                        currentLatitude - 0.01, 
+                        currentLongitude - 0.01
+                      ] as [number, number],
+                      [currentLatitude, currentLongitude] as [number, number]
+                    ]}
+                    color="#34c759"
+                    weight={4}
+                    opacity={0.9}
+                  />
+                  
+                  {/* Remaining path line */}
+                  <Polyline 
+                    positions={[
+                      [currentLatitude, currentLongitude] as [number, number],
+                      [
+                        currentLatitude + 0.01, 
+                        currentLongitude + 0.01
+                      ] as [number, number]
+                    ]}
+                    color="#ff9500"
+                    weight={3}
+                    opacity={0.7}
+                    dashArray="5, 8"
+                  />
+                </>
+              )}
+            </>
           )}
         </MapContainer>
       )}
@@ -481,10 +548,27 @@ export default function ActiveTripsPage() {
     },
     onSuccess: (data) => {
       console.log("Location updated successfully:", data);
-      toast({
-        title: "Location updated",
-        description: "Your current location has been updated"
-      });
+      
+      // Check if the response includes route deviation information
+      if (data.deviation && !data.routeStatus?.isOnRoute) {
+        // Show route deviation notification
+        toast({
+          title: "Route Deviation Detected!",
+          description: data.deviation.message || `You are ${data.routeStatus?.distanceFromRoute.toFixed(2)}km away from the planned route`,
+          variant: "destructive",
+          duration: 10000 // longer duration for important alerts
+        });
+        
+        // You could also play a sound or show a more prominent alert
+        // In a production app, this would also notify other trip members
+      } else {
+        // Regular update notification
+        toast({
+          title: "Location updated",
+          description: "Your current location has been updated"
+        });
+      }
+      
       queryClient.invalidateQueries({ queryKey: ["/api/trips", selectedTripId] });
       queryClient.invalidateQueries({ queryKey: ["/api/trips/active"] });
     },
