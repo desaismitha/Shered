@@ -66,6 +66,7 @@ type FormSchemaType = {
 };
 
 // Define the form schema
+// Base schema without validation
 const formSchema = z.object({
   name: z.string().min(1, "Name is required"),
   startDate: z.date({
@@ -78,8 +79,8 @@ const formSchema = z.object({
   groupId: z.number().optional(),
   isMultiStop: z.boolean().default(false),
   // Fields for single-stop trips
-  startLocation: z.string().min(1, "Start location is required").optional(),
-  endLocation: z.string().min(1, "End location is required").optional(),
+  startLocation: z.string().optional(),
+  endLocation: z.string().optional(),
   startTime: z.string().optional(),
   endTime: z.string().optional(),
   isRecurring: z.boolean().default(false),
@@ -87,33 +88,6 @@ const formSchema = z.object({
   recurrenceDays: z.array(z.string()).optional(),
   // For multi-stop trips
   stops: z.array(stopSchema).optional(),
-}).superRefine((data, ctx) => {
-  // Require start/end location for single-stop trips
-  if (!data.isMultiStop) {
-    if (!data.startLocation) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Start location is required for single-stop trips",
-        path: ["startLocation"]
-      });
-    }
-    if (!data.endLocation) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "End location is required for single-stop trips",
-        path: ["endLocation"]
-      });
-    }
-  } else {
-    // Require at least one stop for multi-stop trips
-    if (!data.stops || data.stops.length === 0) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "At least one stop is required for multi-stop trips",
-        path: ["stops"]
-      });
-    }
-  }
 });
 
 // Type for the form
@@ -180,7 +154,7 @@ export function UnifiedTripForm({ onSubmit, defaultValues, isLoading = false }: 
       {
         day: nextDay,
         title: "",
-        startLocation: currentStops.length > 0 
+        startLocation: currentStops.length > 0 && currentStops[currentStops.length - 1].endLocation
           ? currentStops[currentStops.length - 1].endLocation 
           : "",
         endLocation: "",
@@ -329,16 +303,20 @@ export function UnifiedTripForm({ onSubmit, defaultValues, isLoading = false }: 
                       onCheckedChange={(checked) => {
                         field.onChange(checked);
                         // If switching to multi-stop, ensure we have at least one stop
-                        if (checked && (!form.getValues("stops") || form.getValues("stops").length === 0)) {
-                          form.setValue("stops", [{
-                            day: 1,
-                            title: form.getValues("name") || "Day 1",
-                            startLocation: form.getValues("startLocation") || "",
-                            endLocation: form.getValues("endLocation") || "",
-                            description: form.getValues("description") || "",
-                            startTime: form.getValues("startTime") || "",
-                            endTime: form.getValues("endTime") || "",
-                          }]);
+                        if (checked) {
+                          // Safely access stops array with a default empty array
+                          const stops = form.getValues("stops") || [];
+                          if (stops.length === 0) {
+                            form.setValue("stops", [{
+                              day: 1,
+                              title: form.getValues("name") || "Day 1",
+                              startLocation: form.getValues("startLocation") || "",
+                              endLocation: form.getValues("endLocation") || "",
+                              description: form.getValues("description") || "",
+                              startTime: form.getValues("startTime") || "",
+                              endTime: form.getValues("endTime") || "",
+                            }]);
+                          }
                         }
                       }}
                     />
