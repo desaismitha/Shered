@@ -121,6 +121,7 @@ export default function UnifiedTripPage() {
       startDate: new Date(tripData.startDate),
       endDate: new Date(tripData.endDate),
       groupId: tripData.groupId || undefined,
+      status: tripData.status || "planning",
       // These fields are now part of the unified schema but might come from itinerary
       startLocation: tripData.startLocation || "",
       endLocation: tripData.destination || "",
@@ -196,6 +197,7 @@ export default function UnifiedTripPage() {
         description: data.description,
         startDate: data.startDate,
         endDate: data.endDate,
+        status: data.status,
         startLocation: data.stops[0]?.startLocation || "",
         destination: data.stops[data.stops.length - 1]?.endLocation || "",
         groupId: data.groupId,
@@ -224,6 +226,7 @@ export default function UnifiedTripPage() {
         description: data.description,
         startDate: data.startDate,
         endDate: data.endDate,
+        status: data.status,
         startLocation: data.startLocation,
         destination: data.endLocation,
         groupId: data.groupId,
@@ -293,6 +296,8 @@ export default function UnifiedTripPage() {
                     onSubmit={handleSubmit}
                     defaultValues={defaultValues}
                     isLoading={mutation.isPending}
+                    isEditing={true}
+                    onCancel={() => navigate("/trips")}
                   />
                 )}
               </TabsContent>
