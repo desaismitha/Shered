@@ -192,7 +192,7 @@ export default function UnifiedTripPage() {
         if (isFirstItem) {
           // First stop: Use first itinerary fromLocation or trip startLocation
           startLocation = (item.fromLocation && item.fromLocation !== "") ? 
-                           item.fromLocation : tripData.startLocation || "";
+                           item.fromLocation : tripData.startLocation || "Unknown location";
         } else if (index > 0) {
           // Middle stops: Use this item's fromLocation, previous item's toLocation, or chain backwards
           if (item.fromLocation && item.fromLocation !== "") {
@@ -204,7 +204,7 @@ export default function UnifiedTripPage() {
               startLocation = prevItem.toLocation;
             } else {
               // If all fails, use trip start location as last resort
-              startLocation = tripData.startLocation || "";
+              startLocation = tripData.startLocation || "Unknown location";
             }
           }
         }
@@ -212,7 +212,7 @@ export default function UnifiedTripPage() {
         if (isLastItem) {
           // Last stop: Use last itinerary toLocation or trip destination
           endLocation = (item.toLocation && item.toLocation !== "") ? 
-                         item.toLocation : tripData.destination || "";
+                         item.toLocation : tripData.destination || "Unknown location";
         } else {
           // Not the last stop: Use this item's toLocation or try to infer
           if (item.toLocation && item.toLocation !== "") {
@@ -221,10 +221,10 @@ export default function UnifiedTripPage() {
                     itineraryItems[index+1]?.fromLocation && 
                     itineraryItems[index+1].fromLocation !== "") {
             // Use next stop's start location if available
-            endLocation = itineraryItems[index+1].fromLocation || "";
+            endLocation = itineraryItems[index+1].fromLocation || "Unknown location";
           } else if (tripData?.destination) {
             // Fall back to trip destination if nothing else is available
-            endLocation = tripData.destination;
+            endLocation = tripData.destination || "Unknown location";
           }
         }
         
@@ -251,8 +251,8 @@ export default function UnifiedTripPage() {
         console.log("Single-stop trip detected, processing item:", item);
 
         // Prioritize using trip data for locations when itinerary locations are null/empty
-        formData.startLocation = item.fromLocation || tripData.startLocation || "";
-        formData.endLocation = item.toLocation || tripData.destination || "";
+        formData.startLocation = item.fromLocation || tripData.startLocation || "Unknown location";
+        formData.endLocation = item.toLocation || tripData.destination || "Unknown location";
         formData.startTime = item.startTime || "";
         formData.endTime = item.endTime || "";
         formData.isRecurring = item.isRecurring || false;
@@ -304,10 +304,10 @@ export default function UnifiedTripPage() {
         status: data.status,
         startLocation: hasValidStops && data.stops[0]?.startLocation 
                       ? data.stops[0].startLocation 
-                      : (tripData?.startLocation || data.startLocation || ""),
+                      : (tripData?.startLocation || data.startLocation || "Unknown location"),
         destination: hasValidStops && data.stops[data.stops.length - 1]?.endLocation 
                    ? data.stops[data.stops.length - 1].endLocation 
-                   : (tripData?.destination || data.endLocation || ""),
+                   : (tripData?.destination || data.endLocation || "Unknown location"),
         groupId: data.groupId,
         // Update itinerary items separately via API
         itineraryItems: hasValidStops ? data.stops.map((stop: any) => {
