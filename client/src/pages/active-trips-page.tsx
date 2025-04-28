@@ -559,6 +559,7 @@ export default function ActiveTripsPage() {
   const [completionError, setCompletionError] = useState<string | null>(null);
   const [isLocationUpdating, setIsLocationUpdating] = useState(false);
   const [locationUpdateError, setLocationUpdateError] = useState<string | null>(null);
+  const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null);
   
   // Map reference for Leaflet
   const mapRef = useRef<L.Map | null>(null);
@@ -615,7 +616,7 @@ export default function ActiveTripsPage() {
   });
   
   // Group itinerary items by route (based on common destinations)
-  const routeOptions = useMemo(() => {
+  const routeOptionGroups = useMemo(() => {
     if (!itineraryItems || itineraryItems.length === 0) return [];
     
     // Group by destination
@@ -1489,11 +1490,11 @@ export default function ActiveTripsPage() {
         
         {/* Itinerary selection dialog */}
         <Dialog open={showItinerarySelector} onOpenChange={setShowItinerarySelector}>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="sm:max-w-lg">
             <DialogHeader>
-              <DialogTitle>Select Itinerary Items</DialogTitle>
+              <DialogTitle>Plan Your Trip Route</DialogTitle>
               <DialogDescription>
-                Choose which itinerary items you want to track during your trip.
+                Select routes and itinerary items to track during your journey.
               </DialogDescription>
             </DialogHeader>
             
@@ -1505,40 +1506,130 @@ export default function ActiveTripsPage() {
                   <Skeleton className="h-6 w-full" />
                 </div>
               ) : itineraryItems && itineraryItems.length > 0 ? (
-                <div className="space-y-2">
-                  {itineraryItems
-                    .sort((a, b) => a.day - b.day)
-                    .map((item) => (
-                      <div key={item.id} className="flex items-start space-x-3 py-2">
-                        <Checkbox
-                          id={`itinerary-${item.id}`}
-                          checked={selectedItineraryIds.includes(item.id)}
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              setSelectedItineraryIds(prev => [...prev, item.id]);
-                            } else {
-                              setSelectedItineraryIds(prev => prev.filter(id => id !== item.id));
-                            }
-                          }}
-                        />
-                        <div className="grid gap-1.5 leading-none">
-                          <label
-                            htmlFor={`itinerary-${item.id}`}
-                            className="font-medium cursor-pointer"
+                <div className="space-y-6">
+                  {/* Route Options Selection */}
+                  {routeOptionGroups.length > 1 && (
+                    <div className="mb-6">
+                      <h3 className="text-sm font-medium mb-2">Select Travel Route</h3>
+                      <Tabs defaultValue="all" className="w-full">
+                        <TabsList className="mb-2 w-full">
+                          <TabsTrigger value="all" className="flex-1">All Stops</TabsTrigger>
+                          {routeOptionGroups.map((route, index) => (
+                            <TabsTrigger 
+                              key={route.destination} 
+                              value={route.destination}
+                              className="flex-1"
+                            >
+                              Route {index + 1} ({route.count})
+                            </TabsTrigger>
+                          ))}
+                        </TabsList>
+                        
+                        <TabsContent value="all">
+                          <div className="rounded-md border p-4 bg-background/50">
+                            <h4 className="font-medium">All Stops ({itineraryItems.length})</h4>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              Track all stops in your itinerary
+                            </p>
+                            
+                            <Button 
+                              variant="secondary" 
+                              size="sm" 
+                              className="mt-2"
+                              onClick={() => {
+                                // Select all itinerary items
+                                setSelectedItineraryIds(itineraryItems.map(item => item.id));
+                              }}
+                            >
+                              <Check className="h-4 w-4 mr-1" />
+                              Select All Items
+                            </Button>
+                          </div>
+                        </TabsContent>
+                        
+                        {routeOptionGroups.map((route) => (
+                          <TabsContent key={route.destination} value={route.destination}>
+                            <div className="rounded-md border p-4 bg-background/50">
+                              <h4 className="font-medium">
+                                {route.destination === 'unknown' 
+                                  ? 'Unnamed Route' 
+                                  : `Route to ${route.destination}`}
+                              </h4>
+                              <p className="text-sm text-muted-foreground mt-1">
+                                {route.count} stops along this route
+                              </p>
+                              
+                              <Button 
+                                variant="secondary" 
+                                size="sm" 
+                                className="mt-2"
+                                onClick={() => {
+                                  // Select only items from this route
+                                  setSelectedItineraryIds(route.items.map(item => item.id));
+                                }}
+                              >
+                                <Check className="h-4 w-4 mr-1" />
+                                Select This Route
+                              </Button>
+                            </div>
+                          </TabsContent>
+                        ))}
+                      </Tabs>
+                    </div>
+                  )}
+                  
+                  {/* Itinerary Items Selection */}
+                  <div>
+                    <h3 className="text-sm font-medium mb-2">
+                      Itinerary Items
+                      {selectedItineraryIds.length > 0 && 
+                        ` (${selectedItineraryIds.length} selected)`}
+                    </h3>
+                    <div className="space-y-2 max-h-[300px] overflow-y-auto p-1">
+                      {itineraryItems
+                        .sort((a, b) => a.day - b.day)
+                        .map((item) => (
+                          <div 
+                            key={item.id} 
+                            className={cn(
+                              "flex items-start space-x-3 py-2 px-3 rounded-md",
+                              selectedItineraryIds.includes(item.id) && "bg-muted/50"
+                            )}
                           >
-                            {item.title}
-                          </label>
-                          <p className="text-sm text-muted-foreground">
-                            Day {item.day} - {item.location || (item.fromLocation && item.toLocation ? `${item.fromLocation} to ${item.toLocation}` : 'No location specified')}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
+                            <Checkbox
+                              id={`itinerary-${item.id}`}
+                              checked={selectedItineraryIds.includes(item.id)}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setSelectedItineraryIds(prev => [...prev, item.id]);
+                                } else {
+                                  setSelectedItineraryIds(prev => prev.filter(id => id !== item.id));
+                                }
+                              }}
+                            />
+                            <div className="grid gap-1.5 leading-none">
+                              <label
+                                htmlFor={`itinerary-${item.id}`}
+                                className="font-medium cursor-pointer"
+                              >
+                                {item.title}
+                              </label>
+                              <p className="text-sm text-muted-foreground">
+                                Day {item.day} - {item.location || (item.fromLocation && item.toLocation ? `${item.fromLocation} to ${item.toLocation}` : 'No location specified')}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
                 </div>
               ) : (
-                <p className="text-center py-4 text-muted-foreground">
-                  No itinerary items found. You can start the trip without selecting any items.
-                </p>
+                <div className="text-center py-4">
+                  <p className="text-muted-foreground mb-2">
+                    No itinerary items found for this trip.
+                  </p>
+                  <p className="text-sm">You can still start the trip without selecting any items.</p>
+                </div>
               )}
             </div>
             
