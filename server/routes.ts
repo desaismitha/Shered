@@ -36,6 +36,101 @@ function calculateDistance(
 }
 
 /**
+ * Check if a location is on a route between two points with a given tolerance
+ * @param pointLat Latitude of the point to check
+ * @param pointLon Longitude of the point to check
+ * @param startLat Start point latitude
+ * @param startLon Start point longitude
+ * @param endLat End point latitude
+ * @param endLon End point longitude
+ * @param toleranceKm Maximum distance from route line in kilometers
+ * @returns object with isOnRoute boolean and distance from route
+ */
+function isLocationOnRoute(
+  pointLat: number,
+  pointLon: number,
+  startLat: number,
+  startLon: number,
+  endLat: number,
+  endLon: number,
+  toleranceKm: number = 5.0 // Default 5km tolerance
+): { isOnRoute: boolean; distanceFromRoute: number } {
+  // Check for trivial case where route points are the same
+  if (startLat === endLat && startLon === endLon) {
+    const distanceToStart = calculateDistance(pointLat, pointLon, startLat, startLon);
+    return {
+      isOnRoute: distanceToStart <= toleranceKm,
+      distanceFromRoute: distanceToStart
+    };
+  }
+  
+  // Algorithm to find closest point on the line to our point
+  // First, convert lat/lng to a simple 2D coordinate system for calculation
+  const x = pointLat;
+  const y = pointLon;
+  const x1 = startLat;
+  const y1 = startLon;
+  const x2 = endLat;
+  const y2 = endLon;
+
+  // Calculate the line segment length squared
+  const lenSq = (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1);
+  
+  // Calculate projection of point onto line
+  let t = ((x - x1) * (x2 - x1) + (y - y1) * (y2 - y1)) / lenSq;
+  
+  // Clamp t to line segment
+  t = Math.max(0, Math.min(1, t));
+  
+  // Calculate projection coordinates
+  const projX = x1 + t * (x2 - x1);
+  const projY = y1 + t * (y2 - y1);
+  
+  // Calculate actual distance using haversine formula
+  const distanceFromRoute = calculateDistance(
+    pointLat,
+    pointLon,
+    projX,
+    projY
+  );
+  
+  return {
+    isOnRoute: distanceFromRoute <= toleranceKm,
+    distanceFromRoute
+  };
+}
+
+/**
+ * Parse coordinates from a location string
+ * @param locationStr Location string that might contain coordinates in [lat, lng] or (lat, lng) format
+ * @returns Object with lat and lng or null if not found/invalid
+ */
+function parseCoordinates(locationStr: string | null | undefined): { lat: number, lng: number } | null {
+  if (!locationStr) return null;
+  
+  // Try the new format with square brackets [lat, lng]
+  let coordsRegex = /\[(-?\d+\.?\d*),\s*(-?\d+\.?\d*)\]/;
+  let match = locationStr.match(coordsRegex);
+  
+  // If not found, try the old format with parentheses (lat, lng)
+  if (!match) {
+    coordsRegex = /\((-?\d+\.?\d*),\s*(-?\d+\.?\d*)\)/;
+    match = locationStr.match(coordsRegex);
+  }
+  
+  if (match && match.length === 3) {
+    const lat = parseFloat(match[1]);
+    const lng = parseFloat(match[2]);
+    
+    if (!isNaN(lat) && !isNaN(lng)) {
+      return { lat, lng };
+    }
+  }
+  
+  return null;
+}
+
+/**
  * Helper function to check if a user has access to a trip
  * Handles database connection errors and retry logic
  * 
