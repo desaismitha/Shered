@@ -49,6 +49,39 @@ function extractCoordinates(locationStr: string | null | undefined): { lat: numb
   return null;
 }
 
+// Map of known city names to coordinates
+const CITY_COORDINATES: Record<string, [number, number]> = {
+  'seattle': [47.6062, -122.3321],
+  'bellevue': [47.6101, -122.2015],
+  'redmond': [47.6740, -122.1215],
+  'kirkland': [47.6769, -122.2060],
+  'sammamish': [47.6163, -122.0356],
+  'issaquah': [47.5301, -122.0326],
+  'bothell': [47.7601, -122.2054],
+  'woodinville': [47.7543, -122.1635],
+  'tacoma': [47.2529, -122.4443],
+  'everett': [47.9790, -122.2021],
+  'olympia': [47.0379, -122.9007],
+  'vancouver': [49.2827, -123.1207], // Vancouver, BC
+  'portland': [45.5152, -122.6784],
+  'spokane': [47.6588, -117.4260],
+  'san francisco': [37.7749, -122.4194],
+  'los angeles': [34.0522, -118.2437],
+  'san diego': [32.7157, -117.1611],
+  'new york': [40.7128, -74.0060],
+  'chicago': [41.8781, -87.6298],
+  'miami': [25.7617, -80.1918],
+  'dallas': [32.7767, -96.7970],
+  'houston': [29.7604, -95.3698],
+  'denver': [39.7392, -104.9903],
+  'phoenix': [33.4484, -112.0740],
+  'las vegas': [36.1699, -115.1398],
+  'california': [36.7783, -119.4179], // Centralized for the state
+  'washington': [47.7511, -120.7401], // Centralized for the state
+  'oregon': [43.8041, -120.5542], // Centralized for the state
+  'hyd': [17.3850, 78.4867], // Hyderabad coordinates
+};
+
 // Function to generate default coordinates for location names
 function getDefaultCoordinatesForLocation(
   locationName: string | null, 
@@ -58,13 +91,25 @@ function getDefaultCoordinatesForLocation(
 ): [number, number] {
   if (!locationName) {
     // Default coordinates if location name is not provided
-    return [47.614101, -122.329493];
+    return [47.614101, -122.329493]; // Seattle area
   }
   
   // Try to extract coordinates first if they're embedded in the location string
   const coords = extractCoordinates(locationName);
   if (coords) {
     return [coords.lat, coords.lng];
+  }
+  
+  // Check if the location is in our predefined city coordinates map
+  const normalizedName = locationName.toLowerCase().trim();
+  for (const [cityName, coordinates] of Object.entries(CITY_COORDINATES)) {
+    if (normalizedName === cityName || normalizedName.includes(cityName)) {
+      // If we're using predefined coordinates, still apply the offset
+      return [
+        coordinates[0] + (offset * 0.5), 
+        coordinates[1] + (offset * 0.5)
+      ];
+    }
   }
   
   // Use seed-based approach to generate repeatable pseudo-random coordinates
@@ -111,6 +156,65 @@ function getStatusColor(status: string | undefined) {
   }
 }
 
+// Map Controller component to fit bounds and update view
+function MapController({
+  startLocation,
+  destination,
+  fromCoords,
+  toCoords,
+  currentPosition,
+}: {
+  startLocation: [number, number] | null;
+  destination: [number, number] | null;
+  fromCoords: { lat: number, lng: number } | null;
+  toCoords: { lat: number, lng: number } | null;
+  currentPosition: [number, number] | null;
+}) {
+  const map = useMap();
+
+  useEffect(() => {
+    // Collect all valid coordinates
+    const bounds: [number, number][] = [];
+    
+    // Add coordinates from itinerary locations
+    if (fromCoords) {
+      bounds.push([fromCoords.lat, fromCoords.lng]);
+    }
+    
+    if (toCoords) {
+      bounds.push([toCoords.lat, toCoords.lng]);
+    }
+    
+    // Add coordinates from trip locations
+    if (startLocation) {
+      bounds.push(startLocation);
+    }
+    
+    if (destination) {
+      bounds.push(destination);
+    }
+    
+    // Add current position
+    if (currentPosition) {
+      bounds.push(currentPosition);
+    }
+    
+    // If we have at least 2 points, fit the map to those bounds
+    if (bounds.length >= 2) {
+      map.fitBounds(bounds as L.LatLngBoundsExpression, {
+        padding: [50, 50],
+        maxZoom: 13,
+        animate: true,
+      });
+    } else if (bounds.length === 1) {
+      // If we only have one point, center on it with a closer zoom
+      map.setView(bounds[0], 12, { animate: true });
+    }
+  }, [map, startLocation, destination, fromCoords, toCoords, currentPosition]);
+
+  return null;
+}
+
 // Trip Map Component
 function TripMap({
   tripId,
@@ -143,13 +247,27 @@ function TripMap({
     : null;
     
   // Determine the center coordinates for the map
-  const centerCoordinates = currentLatitude && currentLongitude 
-    ? [currentLatitude, currentLongitude]
-    : fromCoords 
-      ? [fromCoords.lat, fromCoords.lng]
-      : toCoords 
-        ? [toCoords.lat, toCoords.lng]
-        : [40.7128, -74.0060]; // Default to NYC if no coords are available
+  let centerCoordinates;
+  
+  if (currentLatitude && currentLongitude) {
+    // If we have a current position, center on that
+    centerCoordinates = [currentLatitude, currentLongitude];
+  } else if (fromCoords) {
+    // If we have coordinates from itinerary start location
+    centerCoordinates = [fromCoords.lat, fromCoords.lng];
+  } else if (toCoords) {
+    // If we have coordinates from itinerary end location
+    centerCoordinates = [toCoords.lat, toCoords.lng];
+  } else if (startLocation) {
+    // If we have a trip start location without embedded coordinates
+    centerCoordinates = getDefaultCoordinatesForLocation(startLocation, null, null, 0);
+  } else if (destination) {
+    // If we have a trip destination without embedded coordinates
+    centerCoordinates = getDefaultCoordinatesForLocation(destination, null, null, 0);
+  } else {
+    // Default to Seattle area if nothing is available
+    centerCoordinates = [47.6062, -122.3321];
+  }
     
   console.log('Map coordinates:', { 
     fromCoords, 
@@ -164,7 +282,7 @@ function TripMap({
       {typeof window !== 'undefined' && (
         <MapContainer
           center={centerCoordinates as [number, number]}
-          zoom={13}
+          zoom={10}
           style={{ height: '100%', width: '100%' }}
           ref={(map) => {
             if (map && mapRef) {
@@ -384,6 +502,36 @@ function TripMap({
               })()}
             </>
           )}
+          
+          {/* Map Legend */}
+          <div className="leaflet-bottom leaflet-left" style={{
+            backgroundColor: 'white',
+            padding: '8px',
+            margin: '10px',
+            borderRadius: '4px',
+            border: '1px solid #ccc',
+            boxShadow: '0 1px 5px rgba(0,0,0,0.2)',
+            zIndex: 1000
+          }}>
+            <div className="leaflet-control" style={{
+              fontSize: '12px',
+              lineHeight: '18px'
+            }}>
+              <div style={{ marginBottom: '4px', fontWeight: 'bold' }}>Route Legend:</div>
+              <div style={{ display: 'flex', alignItems: 'center', marginBottom: '2px' }}>
+                <div style={{ width: '20px', height: '3px', backgroundColor: '#4a90e2', marginRight: '5px', borderTop: '1px dashed white' }}></div>
+                <span>Planned Route</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', marginBottom: '2px' }}>
+                <div style={{ width: '20px', height: '3px', backgroundColor: '#34c759', marginRight: '5px' }}></div>
+                <span>Traveled Path</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <div style={{ width: '20px', height: '3px', backgroundColor: '#ff9500', marginRight: '5px', borderTop: '1px dashed white' }}></div>
+                <span>Remaining Path</span>
+              </div>
+            </div>
+          </div>
         </MapContainer>
       )}
     </div>
