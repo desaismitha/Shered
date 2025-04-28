@@ -644,6 +644,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`Editing trip ID: ${tripId}`);
       console.log(`User making request: ${req.user?.id} (${typeof req.user?.id}), Username: ${req.user?.username}`);
       
+      // Add special handling for itinerary items if present
+      if (req.body.itineraryItems && Array.isArray(req.body.itineraryItems)) {
+        console.log(`[TRIP_EDIT] Trip update includes ${req.body.itineraryItems.length} itinerary items`);
+        
+        // Log all itinerary items for debugging
+        req.body.itineraryItems.forEach((item: any, index: number) => {
+          console.log(`[TRIP_EDIT] Itinerary item ${index + 1}:`, 
+                      `day=${item.day}, title=${item.title}, ` +
+                      `fromLocation=${item.fromLocation || "NULL"}, ` + 
+                      `toLocation=${item.toLocation || "NULL"}`);
+          
+          // Make sure locations are never null/undefined
+          if (!item.fromLocation) {
+            console.log(`[TRIP_EDIT] Setting default fromLocation for item ${index + 1}`);
+            item.fromLocation = req.body.startLocation || "Unknown location";
+          }
+          
+          if (!item.toLocation) {
+            console.log(`[TRIP_EDIT] Setting default toLocation for item ${index + 1}`);
+            item.toLocation = req.body.destination || "Unknown location";
+          }
+        });
+      }
+      
       // Check if the user has access using our helper function with improved logging
       const accessLevel = await checkTripAccess(req, tripId, res, next, "[TRIP_EDIT] ");
       

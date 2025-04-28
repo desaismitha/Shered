@@ -221,7 +221,10 @@ export default function UnifiedTripPage() {
                     itineraryItems[index+1]?.fromLocation && 
                     itineraryItems[index+1].fromLocation !== "") {
             // Use next stop's start location if available
-            endLocation = itineraryItems[index+1].fromLocation;
+            endLocation = itineraryItems[index+1].fromLocation || "";
+          } else if (tripData?.destination) {
+            // Fall back to trip destination if nothing else is available
+            endLocation = tripData.destination;
           }
         }
         
