@@ -22,6 +22,8 @@ import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
 
 // Function to extract coordinates from a location string (same as in itinerary-form.tsx)
 function extractCoordinates(locationStr: string | null | undefined): { lat: number, lng: number } | null {
