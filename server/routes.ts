@@ -575,6 +575,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get base trip data
       const trips = await storage.getTripsByUserId(req.user.id);
       
+      // Print all trip IDs for debugging
+      console.log("ALL TRIPS FROM DB:", trips.map(t => t.id));
+      
       // Enhance each trip with access level information
       const tripsWithAccessLevels = trips.map(trip => {
         // If user is the creator, they're the owner
@@ -587,6 +590,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       console.log(`Returning ${tripsWithAccessLevels.length} trips with access levels`);
+      console.log("ALL TRIP IDS BEING RETURNED:", tripsWithAccessLevels.map(t => t.id));
+      
       res.json(tripsWithAccessLevels);
     } catch (err) {
       console.error("Error fetching trips list:", err);
@@ -2026,6 +2031,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(updatedTripVehicle);
     } catch (err) {
       next(err);
+    }
+  });
+  
+  // Direct test endpoint to see all trips (debugging only)
+  app.get("/api/debug/all-trips", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      // Get user-created trips directly
+      const createdTrips = await db.select().from(trips).where(eq(trips.createdBy, req.user.id));
+      console.log("Direct DB query: User-created trips:", createdTrips.map(t => t.id));
+      
+      // Get trips through storage method
+      const storageTrips = await storage.getTripsByUserId(req.user.id);
+      console.log("Storage method trips:", storageTrips.map(t => t.id));
+      
+      res.json({
+        numberOfCreatedTrips: createdTrips.length,
+        createdTripIds: createdTrips.map(t => t.id),
+        numberOfStorageTrips: storageTrips.length,
+        storageTripIds: storageTrips.map(t => t.id)
+      });
+    } catch (error) {
+      console.error("Debug trips error:", error);
+      res.status(500).json({ error: "Error retrieving trips" });
     }
   });
 
