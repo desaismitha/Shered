@@ -26,8 +26,10 @@ import { Badge } from "@/components/ui/badge";
 const stopSchema = z.object({
   day: z.number().min(1, "Day is required"),
   title: z.string().min(1, "Title is required"),
-  startLocation: z.string().min(1, "Start location is required"),
-  endLocation: z.string().min(1, "End location is required"),
+  startLocation: z.string().min(1, "Start location is required")
+    .transform(val => val || "Unknown location"), // Never allow empty locations
+  endLocation: z.string().min(1, "End location is required")
+    .transform(val => val || "Unknown location"), // Never allow empty locations
   startTime: z.string().optional(),
   endTime: z.string().optional(),
   description: z.string().optional(),
@@ -82,8 +84,10 @@ const formSchema = z.object({
   // Trip status
   status: z.enum(["planning", "confirmed", "in-progress", "completed", "cancelled"]).default("planning"),
   // Fields for single-stop trips
-  startLocation: z.string().optional(),
-  endLocation: z.string().optional(),
+  startLocation: z.string().optional()
+    .transform(val => val || "Unknown location"), // Never allow empty locations
+  endLocation: z.string().optional()
+    .transform(val => val || "Unknown location"), // Never allow empty locations
   startTime: z.string().optional(),
   endTime: z.string().optional(),
   isRecurring: z.boolean().default(false),
@@ -161,15 +165,23 @@ export function UnifiedTripForm({
       ? Math.max(...currentStops.map(stop => stop.day)) + 1 
       : 1;
     
+    // Ensure we have a valid start location - either from previous stop or trip info
+    let startLocation = "";
+    if (currentStops.length > 0 && currentStops[currentStops.length - 1].endLocation) {
+      startLocation = currentStops[currentStops.length - 1].endLocation;
+    } else if (form.getValues("startLocation")) {
+      startLocation = form.getValues("startLocation")!;
+    } else {
+      startLocation = "Unknown location"; // Fallback
+    }
+    
     form.setValue("stops", [
       ...currentStops,
       {
         day: nextDay,
-        title: "",
-        startLocation: currentStops.length > 0 && currentStops[currentStops.length - 1].endLocation
-          ? currentStops[currentStops.length - 1].endLocation 
-          : "",
-        endLocation: "",
+        title: `Day ${nextDay}`,
+        startLocation: startLocation,
+        endLocation: form.getValues("endLocation") || "Unknown location",
         description: "",
         startTime: "",
         endTime: "",
