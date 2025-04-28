@@ -33,7 +33,7 @@ export function TripCard({ trip }: TripCardProps) {
   // Get users for member details
   const { data: users } = useQuery<User[]>({
     queryKey: ["/api/users"],
-    enabled: !!groupMembers || !trip.groupId, // Enable if we have members or if it's a personal trip
+    enabled: true, // Always fetch users so we can display the creator at minimum
   });
   
   // Check if user is the creator or admin - use the _accessLevel now
@@ -121,7 +121,11 @@ export function TripCard({ trip }: TripCardProps) {
         <div className="flex items-center justify-between">
           <div className="text-sm text-neutral-500">
             <Users className="inline-block mr-1 h-4 w-4" />
-            {trip.name || 'Unnamed trip'} ({groupMembers?.length || 0} members)
+            {trip.name || 'Unnamed trip'} 
+            {trip.groupId ? 
+              `(${groupMembers?.length || 0} members)` : 
+              "(Personal Trip)"
+            }
           </div>
           <Badge className={getStatusColor(trip.status)}>
             {trip.status ? (trip.status.charAt(0).toUpperCase() + trip.status.slice(1)) : 'Unknown'}
@@ -129,7 +133,8 @@ export function TripCard({ trip }: TripCardProps) {
         </div>
         <div className="mt-3 flex items-center justify-between">
           <div className="flex -space-x-2">
-            {groupMembers && users ? (
+            {trip.groupId && groupMembers && users ? (
+              // Group trip with members
               groupMembers.slice(0, 4).map((member, index) => {
                 const user = users.find(u => u.id === member.userId);
                 return (
@@ -142,14 +147,29 @@ export function TripCard({ trip }: TripCardProps) {
                 );
               })
             ) : (
-              Array(3).fill(0).map((_, index) => (
+              // Personal trip or loading state
+              users ? (
+                // Find the creator user
+                (() => {
+                  const creator = users.find(u => u.id === trip.createdBy);
+                  return (
+                    <div 
+                      key="creator"
+                      className="w-7 h-7 rounded-full bg-neutral-300 border-2 border-white flex items-center justify-center text-xs text-neutral-600"
+                    >
+                      {creator?.displayName?.[0] || creator?.username?.[0] || "U"}
+                    </div>
+                  );
+                })()
+              ) : (
+                // Loading state
                 <div 
-                  key={index}
+                  key="loading"
                   className="w-7 h-7 rounded-full bg-neutral-300 border-2 border-white flex items-center justify-center text-xs text-neutral-600"
                 />
-              ))
+              )
             )}
-            {groupMembers && groupMembers.length > 4 && (
+            {trip.groupId && groupMembers && groupMembers.length > 4 && (
               <div className="w-7 h-7 rounded-full bg-neutral-200 border-2 border-white flex items-center justify-center text-xs text-neutral-600">
                 +{groupMembers.length - 4}
               </div>
