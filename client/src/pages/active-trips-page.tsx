@@ -1005,6 +1005,24 @@ export default function ActiveTripsPage() {
                   />
                 </div>
               </CardContent>
+              {/* Route Guidance Legend */}
+              <div className="px-6 pb-4 border-t border-border mt-2 pt-3">
+                <h4 className="text-sm font-semibold mb-2">Route Guidance</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                  <div className="flex items-center">
+                    <div className="w-6 h-2 mr-2" style={{ backgroundColor: '#4a90e2', borderTop: '2px dashed white' }}></div>
+                    <span>Planned Route</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-6 h-2 bg-[#34c759] mr-2"></div>
+                    <span>Traveled Path</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-6 h-2 mr-2" style={{ backgroundColor: '#ff9500', borderTop: '2px dashed white' }}></div>
+                    <span>Remaining Route</span>
+                  </div>
+                </div>
+              </div>
             </Card>
             
             {/* Itinerary progress section (if items are selected) */}
