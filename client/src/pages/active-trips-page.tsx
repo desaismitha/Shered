@@ -16,7 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import { format } from "date-fns";
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
@@ -611,6 +611,29 @@ export default function ActiveTripsPage() {
     queryKey: ["/api/trips", selectedTripId, "itinerary"],
     enabled: !!selectedTripId && showItinerarySelector,
   });
+  
+  // Group itinerary items by route (based on common destinations)
+  const routeOptions = useMemo(() => {
+    if (!itineraryItems || itineraryItems.length === 0) return [];
+    
+    // Group by destination
+    const routesByDestination: Record<string, ItineraryItem[]> = {};
+    
+    itineraryItems.forEach(item => {
+      const destination = item.toLocation || 'unknown';
+      if (!routesByDestination[destination]) {
+        routesByDestination[destination] = [];
+      }
+      routesByDestination[destination].push(item);
+    });
+    
+    // Convert to array of route options
+    return Object.entries(routesByDestination).map(([destination, items]) => ({
+      destination,
+      items,
+      count: items.length
+    }));
+  }, [itineraryItems]);
   
   // Effect to auto-start trip with a specific itinerary item if it's in the URL
   useEffect(() => {
