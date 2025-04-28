@@ -40,6 +40,20 @@ interface FormDataWithExtras {
   }>;
 }
 
+// Helper function to safely parse JSON or return the original string as an array
+// This handles cases where the recurrenceDays might be a comma-separated string instead of JSON
+function tryParseJSON(jsonString: string): string[] {
+  try {
+    return JSON.parse(jsonString);
+  } catch (e) {
+    // If it's not valid JSON, treat it as a comma-separated string
+    if (typeof jsonString === 'string') {
+      return jsonString.split(',');
+    }
+    return [];
+  }
+}
+
 export default function UnifiedTripPage() {
   const { toast } = useToast();
   const [, navigate] = useLocation();
@@ -151,7 +165,7 @@ export default function UnifiedTripPage() {
           description: item.description || "",
           isRecurring: item.isRecurring || false,
           recurrencePattern: pattern as "daily" | "weekly" | "monthly" | "custom" | undefined,
-          recurrenceDays: item.recurrenceDays ? JSON.parse(item.recurrenceDays as string) : [],
+          recurrenceDays: item.recurrenceDays ? tryParseJSON(item.recurrenceDays as string) : [],
         };
       });
       
@@ -174,7 +188,7 @@ export default function UnifiedTripPage() {
           }
         }
         
-        formData.recurrenceDays = item.recurrenceDays ? JSON.parse(item.recurrenceDays as string) : [];
+        formData.recurrenceDays = item.recurrenceDays ? tryParseJSON(item.recurrenceDays as string) : [];
       } else {
         // It's a multi-stop trip
         formData.isMultiStop = true;
