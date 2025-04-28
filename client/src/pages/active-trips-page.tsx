@@ -23,26 +23,6 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
-// Function to get status color based on trip status
-function getStatusColor(status: string | undefined) {
-  if (!status) return "bg-neutral-500";
-  
-  switch (status.toLowerCase()) {
-    case 'planning':
-      return "bg-blue-500 hover:bg-blue-600";
-    case 'confirmed':
-      return "bg-green-500 hover:bg-green-600";
-    case 'in-progress':
-      return "bg-amber-500 hover:bg-amber-600";
-    case 'completed':
-      return "bg-purple-500 hover:bg-purple-600";
-    case 'cancelled':
-      return "bg-red-500 hover:bg-red-600";
-    default:
-      return "bg-neutral-500 hover:bg-neutral-600";
-  }
-}
-
 // Function to extract coordinates from a location string (same as in itinerary-form.tsx)
 function extractCoordinates(locationStr: string | null | undefined): { lat: number, lng: number } | null {
   if (!locationStr) return null;
@@ -67,6 +47,68 @@ function extractCoordinates(locationStr: string | null | undefined): { lat: numb
   }
   
   return null;
+}
+
+// Function to generate default coordinates for location names
+function getDefaultCoordinatesForLocation(
+  locationName: string | null, 
+  currentLat: number | null | undefined, 
+  currentLng: number | null | undefined,
+  offset: number
+): [number, number] {
+  if (!locationName) {
+    // Default coordinates if location name is not provided
+    return [47.614101, -122.329493];
+  }
+  
+  // Try to extract coordinates first if they're embedded in the location string
+  const coords = extractCoordinates(locationName);
+  if (coords) {
+    return [coords.lat, coords.lng];
+  }
+  
+  // Use seed-based approach to generate repeatable pseudo-random coordinates
+  // This ensures each city name always maps to the same coordinates
+  const seed = locationName.toLowerCase().split('').reduce((acc, char) => {
+    return acc + char.charCodeAt(0);
+  }, 0);
+  
+  // Generate a repeatable "random" number between 0 and 1 based on the seed
+  const pseudoRandom = (Math.sin(seed) * 10000) % 1;
+  
+  // If we have current position, use it as a base and apply a small offset
+  if (currentLat && currentLng) {
+    return [
+      currentLat + offset + (pseudoRandom * 0.02), 
+      currentLng + offset + (pseudoRandom * 0.02)
+    ];
+  }
+  
+  // Generate coordinates in the general USA region if no current position
+  const baseLat = 37 + (pseudoRandom * 10); // ~US latitude range
+  const baseLng = -118 + (pseudoRandom * 40); // ~US longitude range
+  
+  return [baseLat, baseLng];
+}
+
+// Function to get status color based on trip status
+function getStatusColor(status: string | undefined) {
+  if (!status) return "bg-neutral-500";
+  
+  switch (status.toLowerCase()) {
+    case 'planning':
+      return "bg-blue-500 hover:bg-blue-600";
+    case 'confirmed':
+      return "bg-green-500 hover:bg-green-600";
+    case 'in-progress':
+      return "bg-amber-500 hover:bg-amber-600";
+    case 'completed':
+      return "bg-purple-500 hover:bg-purple-600";
+    case 'cancelled':
+      return "bg-red-500 hover:bg-red-600";
+    default:
+      return "bg-neutral-500 hover:bg-neutral-600";
+  }
 }
 
 // Trip Map Component
@@ -160,14 +202,7 @@ function TripMap({
           {/* Show marker for trip start location if itinerary start location not available */}
           {!fromCoords && startLocation && (
             <Marker 
-              position={[
-                currentLatitude 
-                  ? currentLatitude - 0.01 
-                  : 47.614101, // Seattle-like coordinates
-                currentLongitude 
-                  ? currentLongitude - 0.01 
-                  : -122.329493
-              ]}
+              position={getDefaultCoordinatesForLocation(startLocation, currentLatitude, currentLongitude, -0.01)}
               icon={new L.Icon({
                 iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
                 shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
@@ -211,14 +246,7 @@ function TripMap({
           {/* Show marker for trip destination if itinerary end location not available */}
           {!toCoords && destination && (
             <Marker 
-              position={[
-                currentLatitude 
-                  ? currentLatitude + 0.01 
-                  : 47.6203, // Bellevue-like coordinates
-                currentLongitude 
-                  ? currentLongitude + 0.01 
-                  : -122.2006
-              ]}
+              position={getDefaultCoordinatesForLocation(destination, currentLatitude, currentLongitude, 0.01)}
               icon={new L.Icon({
                 iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
                 shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
@@ -306,57 +334,54 @@ function TripMap({
           {/* Draw polyline between trip locations if itinerary locations are not available */}
           {!fromCoords && !toCoords && startLocation && destination && (
             <>
-              {/* Create default coordinates based on current position */}
-              {currentLatitude && currentLongitude && (
-                <>
-                  {/* Planned route with dashed line */}
-                  <Polyline 
-                    positions={[
-                      [
-                        currentLatitude - 0.01, 
-                        currentLongitude - 0.01
-                      ] as [number, number],
-                      [
-                        currentLatitude + 0.01, 
-                        currentLongitude + 0.01
-                      ] as [number, number]
-                    ]}
-                    color="#4a90e2"
-                    weight={4}
-                    opacity={0.8}
-                    dashArray="10, 10"
-                  />
-                  
-                  {/* Current progress line */}
-                  <Polyline 
-                    positions={[
-                      [
-                        currentLatitude - 0.01, 
-                        currentLongitude - 0.01
-                      ] as [number, number],
-                      [currentLatitude, currentLongitude] as [number, number]
-                    ]}
-                    color="#34c759"
-                    weight={4}
-                    opacity={0.9}
-                  />
-                  
-                  {/* Remaining path line */}
-                  <Polyline 
-                    positions={[
-                      [currentLatitude, currentLongitude] as [number, number],
-                      [
-                        currentLatitude + 0.01, 
-                        currentLongitude + 0.01
-                      ] as [number, number]
-                    ]}
-                    color="#ff9500"
-                    weight={3}
-                    opacity={0.7}
-                    dashArray="5, 8"
-                  />
-                </>
-              )}
+              {/* Get coordinates for start and end locations */}
+              {(() => {
+                const startCoords = getDefaultCoordinatesForLocation(startLocation, currentLatitude, currentLongitude, -0.01);
+                const destCoords = getDefaultCoordinatesForLocation(destination, currentLatitude, currentLongitude, 0.01);
+                
+                return (
+                  <>
+                    {/* Planned route with dashed line */}
+                    <Polyline 
+                      positions={[
+                        startCoords as [number, number],
+                        destCoords as [number, number]
+                      ]}
+                      color="#4a90e2"
+                      weight={4}
+                      opacity={0.8}
+                      dashArray="10, 10"
+                    />
+                    
+                    {/* Current progress line - from start to current position */}
+                    {currentLatitude && currentLongitude && (
+                      <Polyline 
+                        positions={[
+                          startCoords as [number, number],
+                          [currentLatitude, currentLongitude] as [number, number]
+                        ]}
+                        color="#34c759"
+                        weight={4}
+                        opacity={0.9}
+                      />
+                    )}
+                    
+                    {/* Remaining path line - from current position to destination */}
+                    {currentLatitude && currentLongitude && (
+                      <Polyline 
+                        positions={[
+                          [currentLatitude, currentLongitude] as [number, number],
+                          destCoords as [number, number]
+                        ]}
+                        color="#ff9500"
+                        weight={3}
+                        opacity={0.7}
+                        dashArray="5, 8"
+                      />
+                    )}
+                  </>
+                );
+              })()}
             </>
           )}
         </MapContainer>
