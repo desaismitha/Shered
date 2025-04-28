@@ -435,12 +435,28 @@ export class DatabaseStorage implements IStorage {
       const memberships = await db.select().from(groupMembers).where(eq(groupMembers.userId, userId));
       const groupIds = memberships.map(m => m.groupId);
       
+      // Get trips created by the user
+      const userCreatedTrips = await db.select().from(trips).where(eq(trips.createdBy, userId));
+      
+      // If no group memberships, just return user-created trips
       if (groupIds.length === 0) {
-        return [];
+        return userCreatedTrips;
       }
       
       // Get all trips associated with those groups
-      return await db.select().from(trips).where(inArray(trips.groupId, groupIds));
+      const groupTrips = await db.select().from(trips).where(inArray(trips.groupId, groupIds));
+      
+      // Combine and deduplicate (a trip might be both user-created and in a group)
+      const allTrips = [...userCreatedTrips];
+      
+      // Add group trips that aren't already included (not created by the user)
+      for (const trip of groupTrips) {
+        if (!allTrips.some(t => t.id === trip.id)) {
+          allTrips.push(trip);
+        }
+      }
+      
+      return allTrips;
     }, 2);
   }
 
