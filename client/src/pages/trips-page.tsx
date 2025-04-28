@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Trip } from "@shared/schema";
 import { TripCard } from "@/components/trips/trip-card";
 import { Button } from "@/components/ui/button";
-import { PlusIcon, RefreshCw, Search } from "lucide-react";
+import { PlusIcon, Search } from "lucide-react";
 import { useLocation } from "wouter";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
@@ -88,10 +88,10 @@ export default function TripsPage() {
                 console.log("Manually refreshing trips data");
                 refetch();
               }}
-              className="h-9 w-9"
+              className="h-9 w-9 text-lg font-bold"
               title="Refresh trips"
             >
-              <RefreshCw className="h-4 w-4" />
+              ↻
             </Button>
           </div>
           <Button 
