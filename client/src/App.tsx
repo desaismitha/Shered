@@ -9,10 +9,7 @@ import { ProtectedRoute } from "@/lib/protected-route";
 import AuthPage from "@/pages/auth-page";
 import DashboardPage from "@/pages/dashboard-page";
 import TripsPage from "@/pages/trips-page";
-import TripDetailsPage from "@/pages/trip-details-page";
-import NewTripPage from "@/pages/trips/new";
-import EditTripPage from "@/pages/trips/edit";
-import BasicTripEditPage from "@/pages/basic-trip-edit";
+// Using unified trip page instead of separate pages
 import UnifiedTripPage from "@/pages/unified-trip-page";
 import GroupsPage from "@/pages/groups-page";
 import GroupDetailsPage from "@/pages/group-details-page";
@@ -31,12 +28,8 @@ function Router() {
     <Switch>
       <ProtectedRoute path="/" component={DashboardPage} />
       <ProtectedRoute path="/trips" component={TripsPage} />
-      <ProtectedRoute path="/trips/new" component={NewTripPage} />
-      <ProtectedRoute path="/trips/edit/:id" component={EditTripPage} />
-      <ProtectedRoute path="/trips/basic-edit/:id" component={BasicTripEditPage} />
-      <ProtectedRoute path="/trips/unified/new" component={UnifiedTripPage} />
-      <ProtectedRoute path="/trips/unified/:tripId" component={UnifiedTripPage} />
-      <ProtectedRoute path="/trips/:id" component={TripDetailsPage} />
+      <ProtectedRoute path="/trips/new" component={UnifiedTripPage} />
+      <ProtectedRoute path="/trips/:tripId" component={UnifiedTripPage} />
       <ProtectedRoute path="/active-trips" component={ActiveTripsPage} />
       <ProtectedRoute path="/groups/new" component={NewGroupPage} />
       <ProtectedRoute path="/groups/:id" component={GroupDetailsPage} />
