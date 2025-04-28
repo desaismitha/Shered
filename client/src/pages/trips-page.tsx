@@ -46,8 +46,13 @@ export default function TripsPage() {
   const upcomingTrips = filteredTrips?.filter(trip => {
     if (!trip.startDate) return false;
     try {
-      // If it's a future trip or currently active trip, include it
-      return (new Date(trip.startDate) > new Date() || trip.status === "in-progress") 
+      // Consider ALL planning and in-progress trips as upcoming, regardless of dates
+      if (trip.status === "planning" || trip.status === "in-progress") {
+        return true;
+      }
+      
+      // For other statuses, check dates
+      return new Date(trip.startDate) > new Date() 
         && trip.status !== "cancelled" && trip.status !== "completed";
     } catch (e) {
       console.error("Error parsing date:", trip.startDate);
@@ -60,7 +65,8 @@ export default function TripsPage() {
   const pastTrips = filteredTrips?.filter(trip => {
     if (!trip.endDate) return false;
     try {
-      return new Date(trip.endDate) < new Date() || trip.status === "completed";
+      // A trip is considered "past" if it's completed or its end date is in the past
+      return trip.status === "completed" || new Date(trip.endDate) < new Date();
     } catch (e) {
       console.error("Error parsing date:", trip.endDate);
       return false;
