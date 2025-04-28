@@ -136,6 +136,7 @@ export function UnifiedTripForm({
       description: "",
       startDate: new Date(),
       endDate: new Date(new Date().setDate(new Date().getDate() + 7)),
+      status: "planning",
       isMultiStop: false,
       startLocation: "",
       endLocation: "",
@@ -289,6 +290,7 @@ export function UnifiedTripForm({
                       <SelectItem value="confirmed">Confirmed</SelectItem>
                       <SelectItem value="in-progress">In Progress</SelectItem>
                       <SelectItem value="completed">Completed</SelectItem>
+                      <SelectItem value="cancelled">Cancelled</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormDescription>

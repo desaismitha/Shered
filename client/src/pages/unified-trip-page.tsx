@@ -11,6 +11,21 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Trip, ItineraryItem } from "@shared/schema";
 
+// Helper function to safely parse JSON strings or return a default value
+function tryParseJSON(jsonString: string | null | undefined, defaultValue: any = []) {
+  if (!jsonString) return defaultValue;
+  try {
+    return JSON.parse(jsonString);
+  } catch (e) {
+    console.error("Failed to parse JSON string:", jsonString);
+    // If it's not valid JSON and it's a string, treat it as a comma-separated string
+    if (typeof jsonString === 'string') {
+      return jsonString.split(',');
+    }
+    return defaultValue;
+  }
+}
+
 // Define an extended type for our form data structure
 interface FormDataWithExtras {
   name: string;
@@ -38,20 +53,6 @@ interface FormDataWithExtras {
     recurrencePattern?: string;
     recurrenceDays?: string[];
   }>;
-}
-
-// Helper function to safely parse JSON or return the original string as an array
-// This handles cases where the recurrenceDays might be a comma-separated string instead of JSON
-function tryParseJSON(jsonString: string): string[] {
-  try {
-    return JSON.parse(jsonString);
-  } catch (e) {
-    // If it's not valid JSON, treat it as a comma-separated string
-    if (typeof jsonString === 'string') {
-      return jsonString.split(',');
-    }
-    return [];
-  }
 }
 
 export default function UnifiedTripPage() {
@@ -128,6 +129,9 @@ export default function UnifiedTripPage() {
   const prepareFormData = (): any => {
     if (!tripData) return {};
     
+    console.log("Preparing form data with trip data:", tripData);
+    console.log("Using itinerary items:", itineraryItems);
+    
     // Start with basic trip data
     const formData: any = {
       name: tripData.name,
@@ -141,6 +145,7 @@ export default function UnifiedTripPage() {
       endLocation: tripData.destination || "",
       // Default to single stop if we don't have itinerary items
       isMultiStop: false,
+      isRecurring: false,
       startTime: "",
       endTime: ""
     };
