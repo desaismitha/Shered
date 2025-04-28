@@ -615,14 +615,21 @@ export default function ActiveTripsPage() {
     enabled: !!selectedTripId && showItinerarySelector,
   });
   
+  // Define a type for route group
+  type RouteGroup = {
+    destination: string;
+    items: ItineraryItem[];
+    count: number;
+  };
+  
   // Group itinerary items by route (based on common destinations)
-  const routeOptionGroups = useMemo(() => {
+  const routeOptionGroups = useMemo<RouteGroup[]>(() => {
     if (!itineraryItems || itineraryItems.length === 0) return [];
     
     // Group by destination
     const routesByDestination: Record<string, ItineraryItem[]> = {};
     
-    itineraryItems.forEach(item => {
+    itineraryItems.forEach((item: ItineraryItem) => {
       const destination = item.toLocation || 'unknown';
       if (!routesByDestination[destination]) {
         routesByDestination[destination] = [];
@@ -631,7 +638,7 @@ export default function ActiveTripsPage() {
     });
     
     // Convert to array of route options
-    return Object.entries(routesByDestination).map(([destination, items]) => ({
+    return Object.entries(routesByDestination).map(([destination, items]: [string, ItineraryItem[]]) => ({
       destination,
       items,
       count: items.length
@@ -1514,7 +1521,7 @@ export default function ActiveTripsPage() {
                       <Tabs defaultValue="all" className="w-full">
                         <TabsList className="mb-2 w-full">
                           <TabsTrigger value="all" className="flex-1">All Stops</TabsTrigger>
-                          {routeOptionGroups.map((route, index) => (
+                          {routeOptionGroups.map((route: RouteGroup, index: number) => (
                             <TabsTrigger 
                               key={route.destination} 
                               value={route.destination}
@@ -1538,7 +1545,7 @@ export default function ActiveTripsPage() {
                               className="mt-2"
                               onClick={() => {
                                 // Select all itinerary items
-                                setSelectedItineraryIds(itineraryItems.map(item => item.id));
+                                setSelectedItineraryIds(itineraryItems.map((item: ItineraryItem) => item.id));
                               }}
                             >
                               <Check className="h-4 w-4 mr-1" />
@@ -1547,7 +1554,7 @@ export default function ActiveTripsPage() {
                           </div>
                         </TabsContent>
                         
-                        {routeOptionGroups.map((route) => (
+                        {routeOptionGroups.map((route: RouteGroup) => (
                           <TabsContent key={route.destination} value={route.destination}>
                             <div className="rounded-md border p-4 bg-background/50">
                               <h4 className="font-medium">
@@ -1565,7 +1572,7 @@ export default function ActiveTripsPage() {
                                 className="mt-2"
                                 onClick={() => {
                                   // Select only items from this route
-                                  setSelectedItineraryIds(route.items.map(item => item.id));
+                                  setSelectedItineraryIds(route.items.map((item: ItineraryItem) => item.id));
                                 }}
                               >
                                 <Check className="h-4 w-4 mr-1" />
@@ -1588,7 +1595,7 @@ export default function ActiveTripsPage() {
                     <div className="space-y-2 max-h-[300px] overflow-y-auto p-1">
                       {itineraryItems
                         .sort((a, b) => a.day - b.day)
-                        .map((item) => (
+                        .map((item: ItineraryItem) => (
                           <div 
                             key={item.id} 
                             className={cn(
