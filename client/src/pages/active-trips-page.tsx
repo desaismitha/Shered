@@ -254,54 +254,26 @@ function MapController({
   return null;
 }
 
-// Debug and road route display component
+// Super simple direct line display
 function DirectPolylines({ 
   fromCoords, 
   toCoords, 
-  currentCoords,
-  mapboxLeafletPositions
+  currentCoords
 }: { 
   fromCoords: [number, number], 
   toCoords: [number, number], 
-  currentCoords?: [number, number],
-  mapboxLeafletPositions?: [number, number][]
+  currentCoords?: [number, number]
 }) {
-  // Log all our coordinate inputs for debugging
-  console.log('DirectPolylines got data:', {
-    fromCoords,
-    toCoords,
-    currentCoords,
-    mapboxLeafletPositionsCount: mapboxLeafletPositions?.length || 0,
-    firstPosition: mapboxLeafletPositions?.[0],
-    lastPosition: mapboxLeafletPositions?.length ? mapboxLeafletPositions[mapboxLeafletPositions.length - 1] : null
-  });
-  
-  // Always render both the MapBox route (if available) and the direct line
+  // Just render a direct line between the points with a thick blue line
   return (
-    <>
-      {/* Always show direct line for reference */}
-      <Polyline 
-        positions={[fromCoords, toCoords]}
-        pathOptions={{
-          color: '#aaaaaa',  // Gray
-          weight: 3,         // Thin line
-          opacity: 0.5,      // Partially transparent
-          dashArray: '5,10'  // Dashed line
-        }}
-      />
-      
-      {/* Show MapBox route if available */}
-      {mapboxLeafletPositions && mapboxLeafletPositions.length > 0 && (
-        <Polyline 
-          positions={mapboxLeafletPositions}
-          pathOptions={{
-            color: '#4a90e2',  // Blue
-            weight: 6,         // Thicker line
-            opacity: 1,        // Full opacity
-          }}
-        />
-      )}
-    </>
+    <Polyline 
+      positions={[fromCoords, toCoords]}
+      pathOptions={{
+        color: '#4a90e2',  // Blue 
+        weight: 6,         // Thick line
+        opacity: 1,        // Full opacity
+      }}
+    />
   );
 }
 
@@ -631,7 +603,6 @@ function TripMap({
               fromCoords={[effectiveFromCoords.lat, effectiveFromCoords.lng]}
               toCoords={[effectiveToCoords.lat, effectiveToCoords.lng]}
               currentCoords={currentLatitude && currentLongitude ? [currentLatitude, currentLongitude] : undefined}
-              mapboxLeafletPositions={mapboxLeafletPositions}
             />
           )}
           <TileLayer
@@ -864,7 +835,7 @@ function TripMap({
             }}>
               <div style={{ display: 'flex', alignItems: 'center' }}>
                 <div style={{ width: '20px', height: '3px', backgroundColor: '#4a90e2', marginRight: '5px' }}></div>
-                <span>Road Route</span>
+                <span>Direct Route</span>
               </div>
             </div>
           </div>
