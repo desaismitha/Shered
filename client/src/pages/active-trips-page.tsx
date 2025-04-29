@@ -507,23 +507,44 @@ function TripMap({
   // Prepare road route coordinates for rendering (if available)
   const roadRoutePositions = useMemo(() => {
     // First priority: Use the MapBox route geometry if available
-    if (mapboxRouteGeometry && mapboxRouteGeometry.coordinates) {
+    if (mapboxRouteGeometry && mapboxRouteGeometry.coordinates && mapboxRouteGeometry.coordinates.length > 0) {
       console.log('Using MapBox route geometry with', mapboxRouteGeometry.coordinates.length, 'points');
       console.log('MapBox geometry data:', JSON.stringify(mapboxRouteGeometry).substring(0, 200) + '...');
       
-      // Safe type checking
-      const coordinates = mapboxRouteGeometry.coordinates as Array<[number, number]>;
-      
-      // Debug the first few coordinates
-      if (coordinates.length > 0) {
+      // CRITICAL FIX: MapBox returns coordinates as [longitude, latitude], but Leaflet needs [latitude, longitude]
+      // I'm seeing this in the logs: First 3 coordinates from MapBox: [[-122.06264,47.643408],[-122.062665,47.643404],[-122.06272,47.643397]]
+      try {
+        // First check if coordinates have the right format
+        if (!Array.isArray(mapboxRouteGeometry.coordinates[0])) {
+          throw new Error('Coordinates are not in the expected format');
+        }
+        
+        const coordinates = mapboxRouteGeometry.coordinates as Array<[number, number]>;
         console.log('First 3 coordinates from MapBox:', coordinates.slice(0, 3));
+        
+        // Debug coordinate types
+        const firstCoord = coordinates[0];
+        console.log('First coordinate types:', {
+          coord0: typeof firstCoord[0],
+          coord1: typeof firstCoord[1],
+          isNumberArray: typeof firstCoord[0] === 'number' && typeof firstCoord[1] === 'number'
+        });
+        
+        // MapBox returns coordinates as [longitude, latitude], but Leaflet needs [latitude, longitude]
+        const transformedCoords = coordinates.map(coord => {
+          if (coord.length !== 2 || typeof coord[0] !== 'number' || typeof coord[1] !== 'number') {
+            console.error('Invalid coordinate:', coord);
+            return [0, 0] as [number, number]; // Skip invalid coordinates
+          }
+          return [coord[1], coord[0]] as [number, number];
+        });
+        
+        console.log('First 3 transformed coordinates for Leaflet:', transformedCoords.slice(0, 3));
+        return transformedCoords;
+      } catch (error) {
+        console.error('Error transforming coordinates:', error);
+        // Fall back to direct line if coordinate transformation fails
       }
-      
-      // MapBox returns coordinates as [longitude, latitude], but Leaflet needs [latitude, longitude]
-      const transformedCoords = coordinates.map(coord => [coord[1], coord[0]] as [number, number]);
-      console.log('First 3 transformed coordinates for Leaflet:', transformedCoords.slice(0, 3));
-      
-      return transformedCoords;
     }
     
     // Fallback: Create a direct polyline if we have from and to coordinates
