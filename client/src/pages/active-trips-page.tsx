@@ -284,15 +284,25 @@ function DirectPolylines({
   
   // Process and validate mapbox positions when they change
   useEffect(() => {
+    console.log('[ROUTE DEBUG] DirectPolylines validating MapBox positions. Input:', 
+      mapboxLeafletPositions ? mapboxLeafletPositions.length + ' positions' : 'none');
+      
     if (!mapboxLeafletPositions || mapboxLeafletPositions.length < 2) {
-      console.log('[ROUTE] No valid MapBox route data available, using direct line only');
+      console.log('[ROUTE DEBUG] No valid MapBox route data available, using direct line only');
       setValidMapboxPositions([]);
       return;
     }
     
-    console.log('[ROUTE] Processing MapBox route with', mapboxLeafletPositions.length, 'points');
-    console.log('[ROUTE] First position:', mapboxLeafletPositions[0]);
-    console.log('[ROUTE] Last position:', mapboxLeafletPositions[mapboxLeafletPositions.length - 1]);
+    // Debug: Dump the first 3 coordinates
+    console.log('[ROUTE DEBUG] First 3 raw positions:', 
+      mapboxLeafletPositions.slice(0, 3).map(pos => JSON.stringify(pos)));
+    
+    // Check if we have the right format - need to be [lat, lng] pairs
+    const isRightFormat = mapboxLeafletPositions.every(pos => 
+      Array.isArray(pos) && pos.length === 2 && 
+      typeof pos[0] === 'number' && typeof pos[1] === 'number');
+    
+    console.log('[ROUTE DEBUG] Positions are in right format?', isRightFormat);
     
     // Filter out any invalid positions
     const filtered = mapboxLeafletPositions.filter(pos => {
@@ -304,12 +314,15 @@ function DirectPolylines({
              !isNaN(pos[1]);
     });
     
-    console.log(`[ROUTE] Validated ${filtered.length}/${mapboxLeafletPositions.length} MapBox positions`);
+    console.log(`[ROUTE DEBUG] Validated ${filtered.length}/${mapboxLeafletPositions.length} MapBox positions`);
     
     if (filtered.length >= 2) {
+      console.log('[ROUTE DEBUG] Using MapBox route with', filtered.length, 'points');
+      console.log('[ROUTE DEBUG] First position:', filtered[0]);
+      console.log('[ROUTE DEBUG] Last position:', filtered[filtered.length - 1]);
       setValidMapboxPositions(filtered);
     } else {
-      console.log('[ROUTE] Not enough valid points for MapBox route, using direct line');
+      console.log('[ROUTE DEBUG] Not enough valid points for MapBox route, using direct line');
       setValidMapboxPositions([]);
     }
   }, [mapboxLeafletPositions]);
