@@ -564,12 +564,30 @@ function TripMap({
     }
   }, [mapboxRouteGeometry, mapboxLeafletPositions]);
   
-  // SIMPLIFIED VERSION: We'll only use the simple point-to-point direct line
-  // This is more reliable than trying to render the complex MapBox route
+  // Here we'll track when the MapBox route data is available
+  const [mapBoxRouteReady, setMapBoxRouteReady] = useState(false);
+  
+  // Check when MapBox data becomes available
+  useEffect(() => {
+    if (mapboxLeafletPositions && mapboxLeafletPositions.length > 0) {
+      console.log('MAPBOX ROUTE DATA READY WITH', mapboxLeafletPositions.length, 'POINTS');
+      setMapBoxRouteReady(true);
+    } else {
+      setMapBoxRouteReady(false);
+    }
+  }, [mapboxLeafletPositions]);
+  
+  // Always provide a fallback simple line in case MapBox data isn't available
   const roadRoutePositions = useMemo(() => {
+    // Check if MapBox data is available
+    if (mapboxLeafletPositions && mapboxLeafletPositions.length > 0) {
+      console.log('Using MapBox route with', mapboxLeafletPositions.length, 'points');
+      return mapboxLeafletPositions;
+    }
+    
+    // Fallback to direct line
     if (effectiveFromCoords && effectiveToCoords) {
-      // Just create a simple line with only two points
-      console.log('USING SIMPLIFIED DIRECT LINE ONLY');
+      console.log('USING SIMPLIFIED DIRECT LINE ONLY - MapBox data not available');
       return [
         [effectiveFromCoords.lat, effectiveFromCoords.lng],
         [effectiveToCoords.lat, effectiveToCoords.lng]
@@ -578,7 +596,7 @@ function TripMap({
     
     // No coordinates available
     return [];
-  }, [effectiveFromCoords, effectiveToCoords]);
+  }, [effectiveFromCoords, effectiveToCoords, mapboxLeafletPositions, mapBoxRouteReady]);
   
   // Route information panel JSX - We're now using it outside the MapContainer
   const routeInfoPanel = useMemo(() => {

@@ -41,6 +41,7 @@ function createStraightLineRoute(startLat: number, startLng: number, endLat: num
     ]
   };
   
+  // Also include leafletPositions directly to avoid later conversion issues
   return {
     route: {
       type: "LineString",
@@ -50,11 +51,24 @@ function createStraightLineRoute(startLat: number, startLng: number, endLat: num
       ]
     },
     duration,
-    distance
+    distance,
+    leafletPositions: [
+      [startLat, startLng],
+      [endLat, endLng]
+    ] as [number, number][]
   };
 }
 
-export async function fetchMapboxRoute(startLat: number, startLng: number, endLat: number, endLng: number) {
+// Define return type for the fetch function to include leafletPositions
+interface RouteResult {
+  route: any;
+  duration: number;
+  distance: number;
+  steps?: any[];
+  leafletPositions: [number, number][];
+}
+
+export async function fetchMapboxRoute(startLat: number, startLng: number, endLat: number, endLng: number): Promise<RouteResult> {
   try {
     // Validate input coordinates
     if (!isValidCoordinate(startLat, startLng) || !isValidCoordinate(endLat, endLng)) {
@@ -91,11 +105,23 @@ export async function fetchMapboxRoute(startLat: number, startLng: number, endLa
         duration: data.routes[0].duration
       });
       
+      // Process the coordinates for Leaflet right away (convert [lng, lat] to [lat, lng])
+      const coordinates = data.routes[0].geometry.coordinates;
+      const leafletPositions = coordinates.map((coord: [number, number]) => {
+        if (Array.isArray(coord) && coord.length === 2) {
+          return [coord[1], coord[0]] as [number, number];
+        }
+        return null;
+      }).filter(Boolean) as [number, number][];
+      
+      console.log(`Pre-processed ${leafletPositions.length} Leaflet positions for MapBox route`);
+      
       return {
         route: data.routes[0].geometry,
         duration: data.routes[0].duration, // in seconds
         distance: data.routes[0].distance, // in meters
-        steps: data.routes[0].steps || [] // Step-by-step instructions if available
+        steps: data.routes[0].steps || [], // Step-by-step instructions if available
+        leafletPositions // Include pre-processed positions for Leaflet
       };
     } else if (data.message && data.message.includes("Not Authorized")) {
       console.warn('Mapbox API token is invalid. Using straight line route as fallback.');
@@ -204,6 +230,21 @@ export function useMapboxRoute(
         
         if (!isMounted) return; // Safety check
         
+        // Check for Leaflet positions directly from result (from our createStraightLineRoute function)
+        if (result.leafletPositions && result.leafletPositions.length > 0) {
+          console.log(`Result already has ${result.leafletPositions.length} pre-converted Leaflet positions`);
+          setRouteData({
+            geometry: result.route,
+            duration: result.duration,
+            distance: result.distance,
+            loading: false,
+            error: null,
+            leafletPositions: result.leafletPositions
+          });
+          return; // Successfully set the data, exit
+        }
+
+        // Otherwise, process the coordinates from MapBox route data
         if (result && result.route?.coordinates) {
           // Process the coordinates for Leaflet (convert [lng, lat] to [lat, lng])
           const coordinates = result.route.coordinates;
