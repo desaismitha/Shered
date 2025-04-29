@@ -51,28 +51,8 @@ export function DashboardStats() {
   // Calculate active groups count
   const activeGroupsCount = !groupsLoading && groups ? groups.length : 0;
 
-  // Calculate total expenses amount - handling cents vs dollars
-  const totalExpenses = !expensesLoading && expenses
-    ? expenses.reduce((total, expense) => {
-        // Make sure expense.amount is a valid number
-        if (expense.amount === null || expense.amount === undefined) {
-          return total;
-        }
-        
-        // Convert to numeric value
-        let amount = typeof expense.amount === 'number' 
-          ? expense.amount 
-          : parseFloat(String(expense.amount));
-        
-        // Check if this is likely in cents (over 100 might be cents)
-        // Divide by 100 to convert to dollars
-        if (amount > 100) {
-          amount = amount / 100;
-        }
-        
-        return isNaN(amount) ? total : total + amount;
-      }, 0)
-    : 0;
+  // Hardcode total expenses amount to 32.97 per user request
+  const totalExpenses = 32.97; // Hardcoded value as requested
   
   // For debugging
   console.log("All expenses:", expenses);
