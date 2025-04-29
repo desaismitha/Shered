@@ -254,7 +254,7 @@ function MapController({
   return null;
 }
 
-// Emergency Direct Polylines component that renders lines visibly without using external APIs
+// Simple route component that only shows a direct line from start to end
 function DirectPolylines({ 
   fromCoords, 
   toCoords, 
@@ -264,66 +264,17 @@ function DirectPolylines({
   toCoords: [number, number], 
   currentCoords?: [number, number] 
 }) {
-  // We're rendering these as actual React components instead of using the Leaflet API directly
-  // This avoids any potential issues with the map's internal state
-  
-  // Create an array to hold all line segments
-  const segments = [];
-  
-  // Planned route - always visible
-  segments.push(
+  // Just render a direct route line from start to end
+  return (
     <Polyline 
-      key="planned-route"
       positions={[fromCoords, toCoords]}
       pathOptions={{
-        color: '#4a90e2',
-        weight: 10, // Much thicker line
-        opacity: 1, // Full opacity
-        dashArray: '10,10'
+        color: '#4a90e2',  // Blue
+        weight: 6,         // Medium thickness
+        opacity: 1,        // Full opacity
       }}
     />
   );
-  
-  // Only show traveled/remaining segments if we have current coordinates
-  if (currentCoords) {
-    // Traveled segment - from start to current position
-    segments.push(
-      <Polyline 
-        key="traveled-segment"
-        positions={[fromCoords, currentCoords]}
-        pathOptions={{
-          color: '#34c759', // Green
-          weight: 12, // Even thicker line
-          opacity: 1 // Full opacity
-        }}
-      />
-    );
-    
-    // Remaining segment - from current position to destination
-    segments.push(
-      <Polyline 
-        key="remaining-segment"
-        positions={[currentCoords, toCoords]}
-        pathOptions={{
-          color: '#ff9500', // Orange
-          weight: 8, // Slightly less thick than traveled
-          opacity: 1, // Full opacity
-          dashArray: '5,8'
-        }}
-      />
-    );
-  }
-  
-  // Log that we're rendering segments
-  console.log('Rendering emergency polylines as React components', { 
-    segmentCount: segments.length,
-    fromCoords,
-    toCoords,
-    currentCoords
-  });
-  
-  // Return all segments wrapped in a fragment
-  return <>{segments}</>;
 }
 
 // Trip Map Component
@@ -868,7 +819,7 @@ function TripMap({
             currentPosition={currentLatitude && currentLongitude ? [currentLatitude, currentLongitude] : null}
           />
           
-          {/* Map Legend */}
+          {/* Map Legend - Simplified */}
           <div className="leaflet-bottom leaflet-left" style={{
             backgroundColor: 'white',
             padding: '8px',
@@ -882,18 +833,9 @@ function TripMap({
               fontSize: '12px',
               lineHeight: '18px'
             }}>
-              <div style={{ marginBottom: '4px', fontWeight: 'bold' }}>Route Legend:</div>
-              <div style={{ display: 'flex', alignItems: 'center', marginBottom: '2px' }}>
-                <div style={{ width: '20px', height: '3px', backgroundColor: '#4a90e2', marginRight: '5px', borderTop: '1px dashed white' }}></div>
-                <span>Planned Route</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', marginBottom: '2px' }}>
-                <div style={{ width: '20px', height: '3px', backgroundColor: '#34c759', marginRight: '5px' }}></div>
-                <span>Traveled Path</span>
-              </div>
               <div style={{ display: 'flex', alignItems: 'center' }}>
-                <div style={{ width: '20px', height: '3px', backgroundColor: '#ff9500', marginRight: '5px', borderTop: '1px dashed white' }}></div>
-                <span>Remaining Path</span>
+                <div style={{ width: '20px', height: '3px', backgroundColor: '#4a90e2', marginRight: '5px' }}></div>
+                <span>Direct Route</span>
               </div>
             </div>
           </div>
