@@ -254,7 +254,7 @@ function MapController({
   return null;
 }
 
-// Direct Polylines component that directly adds polylines to the map
+// Emergency Direct Polylines component that renders lines visibly without using external APIs
 function DirectPolylines({ 
   fromCoords, 
   toCoords, 
@@ -264,55 +264,66 @@ function DirectPolylines({
   toCoords: [number, number], 
   currentCoords?: [number, number] 
 }) {
-  const map = useMap();
+  // We're rendering these as actual React components instead of using the Leaflet API directly
+  // This avoids any potential issues with the map's internal state
   
-  useEffect(() => {
-    console.log('DirectPolylines mounted with coords:', { fromCoords, toCoords, currentCoords });
-    
-    // Explicitly create Leaflet polylines and add them directly to the map
-    try {
-      // Basic route line
-      const routeLine = L.polyline([fromCoords, toCoords], {
+  // Create an array to hold all line segments
+  const segments = [];
+  
+  // Planned route - always visible
+  segments.push(
+    <Polyline 
+      key="planned-route"
+      positions={[fromCoords, toCoords]}
+      pathOptions={{
         color: '#4a90e2',
-        weight: 6,
-        opacity: 0.8,
-        dashArray: '10, 10'
-      }).addTo(map);
-      
-      // Create segments if we have current coordinates
-      if (currentCoords) {
-        // Traveled segment
-        const traveledLine = L.polyline([fromCoords, currentCoords], {
-          color: '#34c759',  // Green
-          weight: 6,
-          opacity: 0.9
-        }).addTo(map);
-        
-        // Remaining segment
-        const remainingLine = L.polyline([currentCoords, toCoords], {
-          color: '#ff9500',  // Orange
-          weight: 5,
-          opacity: 0.8,
-          dashArray: '5, 8'
-        }).addTo(map);
-      }
-      
-      console.log('Successfully added route polylines directly to map');
-      
-      // Make sure these lines get removed when component unmounts
-      return () => {
-        map.eachLayer((layer) => {
-          if (layer instanceof L.Polyline) {
-            map.removeLayer(layer);
-          }
-        });
-      };
-    } catch (err) {
-      console.error('Failed to create direct polylines:', err);
-    }
-  }, [map, fromCoords, toCoords, currentCoords]);
+        weight: 10, // Much thicker line
+        opacity: 1, // Full opacity
+        dashArray: '10,10'
+      }}
+    />
+  );
   
-  return null; // This component doesn't render anything, it just adds polylines to the map
+  // Only show traveled/remaining segments if we have current coordinates
+  if (currentCoords) {
+    // Traveled segment - from start to current position
+    segments.push(
+      <Polyline 
+        key="traveled-segment"
+        positions={[fromCoords, currentCoords]}
+        pathOptions={{
+          color: '#34c759', // Green
+          weight: 12, // Even thicker line
+          opacity: 1 // Full opacity
+        }}
+      />
+    );
+    
+    // Remaining segment - from current position to destination
+    segments.push(
+      <Polyline 
+        key="remaining-segment"
+        positions={[currentCoords, toCoords]}
+        pathOptions={{
+          color: '#ff9500', // Orange
+          weight: 8, // Slightly less thick than traveled
+          opacity: 1, // Full opacity
+          dashArray: '5,8'
+        }}
+      />
+    );
+  }
+  
+  // Log that we're rendering segments
+  console.log('Rendering emergency polylines as React components', { 
+    segmentCount: segments.length,
+    fromCoords,
+    toCoords,
+    currentCoords
+  });
+  
+  // Return all segments wrapped in a fragment
+  return <>{segments}</>;
 }
 
 // Trip Map Component
