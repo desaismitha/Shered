@@ -1876,8 +1876,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
             tripId
           };
           
-          // In a production app, we would save this to the database
-          // and notify trip members via WebSockets
+          // Send notification to all group members if trip belongs to a group
+          if (trip.groupId) {
+            try {
+              // Send notification to all group members
+              notifyGroupAboutDeviation(
+                trip.groupId,
+                tripId,
+                trip.name,
+                req.user.username, // Username of the person who deviated
+                routeStatus.distanceFromRoute,
+                latitude,
+                longitude
+              );
+            } catch (error) {
+              console.error('[TRIP_UPDATE_LOCATION] Error notifying group members:', error);
+              // Don't fail the request if notification fails
+            }
+          }
         } else {
           console.log(`[TRIP_UPDATE_LOCATION] Traveler is on route (${routeStatus.distanceFromRoute.toFixed(2)}km from route)`);
         }
