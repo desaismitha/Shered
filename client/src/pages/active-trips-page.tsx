@@ -507,44 +507,41 @@ function TripMap({
   // Prepare road route coordinates for rendering (if available)
   const roadRoutePositions = useMemo(() => {
     // First priority: Use the MapBox route geometry if available
-    if (mapboxRouteGeometry && mapboxRouteGeometry.coordinates && mapboxRouteGeometry.coordinates.length > 0) {
+    if (mapboxRouteGeometry && mapboxRouteGeometry.coordinates && Array.isArray(mapboxRouteGeometry.coordinates)) {
       console.log('Using MapBox route geometry with', mapboxRouteGeometry.coordinates.length, 'points');
-      console.log('MapBox geometry data:', JSON.stringify(mapboxRouteGeometry).substring(0, 200) + '...');
+      console.log('MapBox coordinates sample:', mapboxRouteGeometry.coordinates.slice(0, 3));
       
-      // CRITICAL FIX: MapBox returns coordinates as [longitude, latitude], but Leaflet needs [latitude, longitude]
-      // I'm seeing this in the logs: First 3 coordinates from MapBox: [[-122.06264,47.643408],[-122.062665,47.643404],[-122.06272,47.643397]]
       try {
-        // First check if coordinates have the right format
-        if (!Array.isArray(mapboxRouteGeometry.coordinates[0])) {
-          throw new Error('Coordinates are not in the expected format');
-        }
-        
-        const coordinates = mapboxRouteGeometry.coordinates as Array<[number, number]>;
-        console.log('First 3 coordinates from MapBox:', coordinates.slice(0, 3));
-        
-        // Debug coordinate types
-        const firstCoord = coordinates[0];
-        console.log('First coordinate types:', {
-          coord0: typeof firstCoord[0],
-          coord1: typeof firstCoord[1],
-          isNumberArray: typeof firstCoord[0] === 'number' && typeof firstCoord[1] === 'number'
-        });
-        
-        // MapBox returns coordinates as [longitude, latitude], but Leaflet needs [latitude, longitude]
-        const transformedCoords = coordinates.map(coord => {
-          if (coord.length !== 2 || typeof coord[0] !== 'number' || typeof coord[1] !== 'number') {
-            console.error('Invalid coordinate:', coord);
-            return [0, 0] as [number, number]; // Skip invalid coordinates
+        // CRITICAL: MapBox returns coordinates as [longitude, latitude], but Leaflet needs [latitude, longitude]
+        if (mapboxRouteGeometry.coordinates.length > 0) {
+          // Transform the coordinates for Leaflet
+          const transformedCoords = mapboxRouteGeometry.coordinates.map(coord => {
+            // Ensure array with two numbers - [lng, lat] -> [lat, lng]
+            if (Array.isArray(coord) && coord.length === 2 && 
+                typeof coord[0] === 'number' && typeof coord[1] === 'number') {
+              return [coord[1], coord[0]] as [number, number]; // Swap [lng, lat] to [lat, lng]
+            } else {
+              console.error('Invalid coordinate format:', coord);
+              return null; // Skip invalid coordinates
+            }
+          }).filter(Boolean) as [number, number][];
+          
+          console.log('Transformed MapBox coordinates for Leaflet (first 3):', transformedCoords.slice(0, 3));
+          
+          // Safety check: Make sure we have at least 2 valid coordinates
+          if (transformedCoords.length >= 2) {
+            return transformedCoords;
+          } else {
+            console.warn('Not enough valid coordinates in the MapBox route data, using fallback');
           }
-          return [coord[1], coord[0]] as [number, number];
-        });
-        
-        console.log('First 3 transformed coordinates for Leaflet:', transformedCoords.slice(0, 3));
-        return transformedCoords;
+        } else {
+          console.warn('MapBox route has zero coordinates, using fallback');
+        }
       } catch (error) {
-        console.error('Error transforming coordinates:', error);
-        // Fall back to direct line if coordinate transformation fails
+        console.error('Error transforming MapBox coordinates:', error);
       }
+    } else {
+      console.log('No valid MapBox route geometry available, using fallback');
     }
     
     // Fallback: Create a direct polyline if we have from and to coordinates
