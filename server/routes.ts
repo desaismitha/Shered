@@ -1,5 +1,6 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
+import { WebSocketServer, WebSocket } from 'ws';
 import { storage } from "./storage";
 import { db, attemptReconnect, checkDbConnection, cleanupConnections } from "./db";
 import { setupAuth, hashPassword } from "./auth";
@@ -9,6 +10,73 @@ import { eq } from "drizzle-orm";
 import { sendGroupInvitation, sendPasswordResetEmail } from "./email";
 import crypto from "crypto";
 import fetch from "node-fetch";
+
+// Map to store active WebSocket connections by user ID
+const userConnections = new Map<number, WebSocket>();
+
+/**
+ * Send a notification to all group members about a route deviation
+ * @param groupId The ID of the group to notify members of
+ * @param tripId The ID of the trip with the deviation
+ * @param tripName The name of the trip
+ * @param username The username of the person who deviated
+ * @param distanceFromRoute The distance from the route in km
+ * @param latitude Current latitude
+ * @param longitude Current longitude
+ */
+async function notifyGroupAboutDeviation(
+  groupId: number,
+  tripId: number,
+  tripName: string,
+  username: string,
+  distanceFromRoute: number,
+  latitude: number,
+  longitude: number
+) {
+  try {
+    // Only proceed if there's a valid group
+    if (!groupId) {
+      console.log('Cannot send deviation notification - no group associated with trip');
+      return;
+    }
+    
+    // Get all group members
+    const groupMembers = await storage.getGroupMembers(groupId);
+    if (!groupMembers || groupMembers.length === 0) {
+      console.log('No group members to notify about deviation');
+      return;
+    }
+    
+    const notification = {
+      type: 'route-deviation',
+      tripId,
+      tripName,
+      username,
+      message: `${username} has deviated from the planned route by ${distanceFromRoute.toFixed(2)}km`,
+      distanceFromRoute,
+      coordinates: { latitude, longitude },
+      timestamp: new Date().toISOString()
+    };
+    
+    // Get the user IDs of all group members
+    const memberIds = groupMembers.map(member => member.userId);
+    console.log(`Sending deviation notification to ${memberIds.length} group members`);
+    
+    // Send to all connected group members
+    let sentCount = 0;
+    for (const userId of memberIds) {
+      const connection = userConnections.get(userId);
+      if (connection && connection.readyState === WebSocket.OPEN) {
+        connection.send(JSON.stringify(notification));
+        sentCount++;
+      }
+    }
+    
+    console.log(`Successfully sent deviation notifications to ${sentCount} connected group members`);
+  } catch (error) {
+    console.error('Error sending group deviation notifications:', error);
+  }
+}
 
 /**
  * Clean location string by removing any coordinates in brackets or parentheses
@@ -2470,5 +2538,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
+  
+  // Set up WebSocket server on the same server but with different path
+  const wss = new WebSocketServer({ 
+    server: httpServer, 
+    path: '/ws' 
+  });
+  
+  wss.on('connection', (ws: WebSocket, req) => {
+    console.log('New WebSocket connection established');
+    
+    // Parse userId from the connection URL if included
+    // Expected format: /ws?userId=123
+    const urlParams = new URL(req.url || '', `http://${req.headers.host}`);
+    const userId = parseInt(urlParams.searchParams.get('userId') || '0');
+    
+    if (userId > 0) {
+      // Store the connection for this user
+      userConnections.set(userId, ws);
+      console.log(`WebSocket connection registered for user ${userId}`);
+      
+      // Send a welcome message
+      ws.send(JSON.stringify({
+        type: 'connection',
+        message: 'Connected to TravelGroupr WebSocket server',
+        userId: userId,
+        timestamp: new Date().toISOString()
+      }));
+    } else {
+      console.log('WebSocket connection without valid user ID');
+    }
+    
+    // Handle incoming messages
+    ws.on('message', (message) => {
+      try {
+        const data = JSON.parse(message.toString());
+        console.log('Received WebSocket message:', data);
+        
+        // Handle different message types if needed
+      } catch (error) {
+        console.error('Invalid WebSocket message format:', error);
+      }
+    });
+    
+    // Handle disconnection
+    ws.on('close', () => {
+      if (userId > 0) {
+        userConnections.delete(userId);
+        console.log(`WebSocket connection for user ${userId} closed`);
+      }
+    });
+  });
+  
   return httpServer;
 }
