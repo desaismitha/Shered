@@ -507,10 +507,10 @@ function TripMap({
   // Prepare road route coordinates for rendering (if available)
   const roadRoutePositions = useMemo(() => {
     // First priority: Use the MapBox route geometry if available
-    if (routeGeometry && routeGeometry.coordinates) {
-      console.log('Using MapBox route geometry with', routeGeometry.coordinates.length, 'points');
+    if (mapboxRouteGeometry && mapboxRouteGeometry.coordinates) {
+      console.log('Using MapBox route geometry with', mapboxRouteGeometry.coordinates.length, 'points');
       // Safe type checking
-      const coordinates = routeGeometry.coordinates as Array<[number, number]>;
+      const coordinates = mapboxRouteGeometry.coordinates as Array<[number, number]>;
       // MapBox returns coordinates as [longitude, latitude], but Leaflet needs [latitude, longitude]
       return coordinates.map(coord => [coord[1], coord[0]] as [number, number]);
     }
@@ -535,26 +535,26 @@ function TripMap({
     }
     
     return [];
-  }, [effectiveFromCoords, effectiveToCoords, routeGeometry]);
+  }, [effectiveFromCoords, effectiveToCoords, mapboxRouteGeometry]);
   
   // Route information panel JSX - We're now using it outside the MapContainer
   const routeInfoPanel = useMemo(() => {
     return (
       <div className="mb-2 bg-white p-3 rounded-md border border-gray-300 shadow-sm w-full">
         <div className="text-sm font-bold mb-1">Route Information</div>
-        {isRouteLoading ? (
+        {isMapboxRouteLoading ? (
           <div className="text-xs text-gray-600">Loading route information...</div>
-        ) : routeError ? (
+        ) : mapboxRouteError ? (
           <div className="text-xs text-red-500">Error calculating route</div>
-        ) : distance > 0 && duration > 0 ? (
+        ) : mapboxDistance > 0 && mapboxDuration > 0 ? (
           <div className="flex justify-between">
             <div className="flex items-center mb-1 text-xs">
               <Clock size={14} className="mr-1 text-blue-500" />
-              <span>Travel Time: {formatDuration(duration)}</span>
+              <span>Travel Time: {formatDuration(mapboxDuration)}</span>
             </div>
             <div className="flex items-center text-xs">
               <Ruler size={14} className="mr-1 text-blue-500" />
-              <span>Distance: {formatDistance(distance, true)}</span>
+              <span>Distance: {formatDistance(mapboxDistance, true)}</span>
             </div>
           </div>
         ) : (
@@ -564,7 +564,7 @@ function TripMap({
         )}
       </div>
     );
-  }, [isRouteLoading, routeError, distance, duration]);
+  }, [isMapboxRouteLoading, mapboxRouteError, mapboxDistance, mapboxDuration]);
   
   return (
     <div style={{ height, width }}>

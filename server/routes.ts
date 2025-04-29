@@ -412,6 +412,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Missing required parameters" });
       }
       
+      console.log(`[MAPBOX] Token availability: ${token ? 'YES' : 'NO'}`);
+      
       if (!token) {
         console.warn("MAPBOX_ACCESS_TOKEN not found in environment");
         return res.status(500).json({ error: "Mapbox token not configured on server" });
@@ -421,6 +423,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${start};${end}?geometries=geojson&overview=full&steps=true&access_token=${token}`;
       
       console.log(`[MAPBOX] Fetching route from ${start} to ${end}`);
+      console.log(`[MAPBOX] Full request URL: ${url.replace(token, 'API_KEY_HIDDEN')}`);
       
       const response = await fetch(url);
       if (!response.ok) {
@@ -435,10 +438,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const data = await response.json();
       
+      console.log('[MAPBOX] Response data:', JSON.stringify(data).substring(0, 500) + '...');
+      
       if (!data.routes || data.routes.length === 0) {
         console.warn('[MAPBOX] No routes found in response');
         return res.status(404).json({ error: "No route found" });
       }
+      
+      // Debug route structure
+      console.log('[MAPBOX] Route data structure:', {
+        hasGeometry: !!data.routes[0].geometry,
+        geometryType: data.routes[0].geometry?.type,
+        coordinatesCount: data.routes[0].geometry?.coordinates?.length,
+        hasDistance: data.routes[0].distance !== undefined,
+        hasDuration: data.routes[0].duration !== undefined
+      });
       
       // Return only what's needed to reduce response size
       res.json({
