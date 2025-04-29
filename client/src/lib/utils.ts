@@ -6,12 +6,23 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-// Clean location string by removing any coordinates in brackets
+// Clean location string by removing any coordinates in brackets or parentheses
 export function cleanLocationString(location: string | null | undefined): string {
   if (!location) return 'Unknown location';
   
   // Remove any coordinates in square brackets like [47.6062, -122.3321]
-  return location.replace(/\[.*?\]/g, '').trim();
+  let cleaned = location.replace(/\[.*?\]/g, '');
+  
+  // Also remove any coordinates in parentheses like (47.6062, -122.3321)
+  cleaned = cleaned.replace(/\(.*?\)/g, '');
+  
+  // Remove any trailing commas, whitespace, or other artifacts
+  cleaned = cleaned.replace(/,\s*$/, '').trim();
+  
+  // If we've removed everything, return Unknown location
+  if (!cleaned) return 'Unknown location';
+  
+  return cleaned;
 }
 
 // Function that detects if a date is our special marker date (2099-12-31)
