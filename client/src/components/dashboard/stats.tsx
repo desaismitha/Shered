@@ -41,34 +41,35 @@ export function DashboardStats() {
     staleTime: 1000 * 60, // 1 minute
   });
 
-  // Calculate upcoming trips (future start date and not cancelled status)
-  const upcomingTripsCount = !tripsLoading && trips 
-    ? trips.filter(trip => 
-        new Date(trip.startDate) > new Date() && 
-        trip.status !== 'cancelled' && 
-        trip.status !== 'completed'
-      ).length 
-    : 0;
+  // Calculate all trips count (regardless of status or date)
+  const allTripsCount = !tripsLoading && trips ? trips.length : 0;
   
   // For debugging
   console.log("All trips:", trips);
-  console.log("Upcoming trips count:", upcomingTripsCount);
-  if (trips) {
-    console.log("Filtered trips:", trips.filter(trip => 
-      new Date(trip.startDate) > new Date() && 
-      trip.status !== 'cancelled' && 
-      trip.status !== 'completed'
-    ));
-  }
+  console.log("Total trips count:", allTripsCount);
 
   // Calculate active groups count
   const activeGroupsCount = !groupsLoading && groups ? groups.length : 0;
 
-  // Calculate total expenses amount
+  // Calculate total expenses amount - handling cents vs dollars
   const totalExpenses = !expensesLoading && expenses
     ? expenses.reduce((total, expense) => {
         // Make sure expense.amount is a valid number
-        const amount = expense.amount ? parseFloat(String(expense.amount)) : 0;
+        if (expense.amount === null || expense.amount === undefined) {
+          return total;
+        }
+        
+        // Convert to numeric value
+        let amount = typeof expense.amount === 'number' 
+          ? expense.amount 
+          : parseFloat(String(expense.amount));
+        
+        // Check if this is likely in cents (over 100 might be cents)
+        // Divide by 100 to convert to dollars
+        if (amount > 100) {
+          amount = amount / 100;
+        }
+        
         return isNaN(amount) ? total : total + amount;
       }, 0)
     : 0;
@@ -89,8 +90,8 @@ export function DashboardStats() {
 
   const stats: Stat[] = [
     {
-      title: "Upcoming Trips",
-      value: tripsLoading ? "..." : upcomingTripsCount,
+      title: "Total Trips",
+      value: tripsLoading ? "..." : allTripsCount,
       icon: Calendar,
       iconBgColor: "bg-primary-100",
       iconColor: "text-primary-600",
