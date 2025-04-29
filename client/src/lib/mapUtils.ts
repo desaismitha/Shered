@@ -13,8 +13,8 @@ export async function fetchMapboxRoute(startLat: number, startLng: number, endLa
     const accessToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
     
     if (!accessToken) {
-      console.error('Mapbox access token is missing. Make sure MAPBOX_ACCESS_TOKEN is set in environment variables.');
-      return null;
+      console.error('Mapbox access token is missing. Make sure VITE_MAPBOX_ACCESS_TOKEN is set in environment variables.');
+      throw new Error('Mapbox access token is missing');
     }
     
     // Format coordinates as lng,lat as required by Mapbox
@@ -54,6 +54,14 @@ export function useMapboxRoute(
   startCoords: { lat: number, lng: number } | null, 
   endCoords: { lat: number, lng: number } | null
 ) {
+  // Debug: Check if Mapbox token is available
+  useEffect(() => {
+    if (!import.meta.env.VITE_MAPBOX_ACCESS_TOKEN) {
+      console.warn('Mapbox token not available in environment:', import.meta.env);
+    } else {
+      console.log('Mapbox token is available');
+    }
+  }, []);
   const [routeData, setRouteData] = useState<{
     geometry: any;
     duration: number;

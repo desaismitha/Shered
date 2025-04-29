@@ -447,6 +447,26 @@ function TripMap({
             </Marker>
           )}
           
+          {/* Show notice if Mapbox API key is missing */}
+          {!import.meta.env.VITE_MAPBOX_ACCESS_TOKEN && (
+            <div className="leaflet-top leaflet-left" style={{
+              backgroundColor: 'white',
+              padding: '8px',
+              margin: '10px',
+              borderRadius: '4px',
+              border: '1px solid #f59e0b',
+              boxShadow: '0 1px 5px rgba(0,0,0,0.2)',
+              zIndex: 1000
+            }}>
+              <div className="leaflet-control text-amber-600">
+                <div className="flex items-center">
+                  <InfoIcon size={16} className="mr-1" />
+                  <span>Mapbox directions unavailable - API key needed</span>
+                </div>
+              </div>
+            </div>
+          )}
+          
           {/* Road Route from Mapbox API */}
           {roadRoutePositions.length > 0 && (
             <>
