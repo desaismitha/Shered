@@ -254,7 +254,7 @@ function MapController({
   return null;
 }
 
-// Route display component showing both the direct reference line and the actual road route
+// Route display component showing the road route
 function DirectPolylines({ 
   fromCoords, 
   toCoords, 
@@ -266,44 +266,15 @@ function DirectPolylines({
   currentCoords?: [number, number],
   mapboxLeafletPositions?: [number, number][]
 }) {
-  // Create segments for the direct line (current position handling)
-  const directLineSegments: [number, number][][] = [];
-  
-  // First segment: start to current position (if available)
-  if (currentCoords) {
-    directLineSegments.push([fromCoords, currentCoords]);
-    // Second segment: current position to destination
-    directLineSegments.push([currentCoords, toCoords]);
-  } else {
-    // No current position, just show the full direct line
-    directLineSegments.push([fromCoords, toCoords]);
-  }
-  
   // Validate MapBox positions for the road route
   const [validMapboxPositions, setValidMapboxPositions] = useState<[number, number][]>([]);
   
-  // Process and validate mapbox positions when they change
+  // Process mapbox route data when available
   useEffect(() => {
-    console.log('[ROUTE DEBUG] DirectPolylines validating MapBox positions. Input:', 
-      mapboxLeafletPositions ? mapboxLeafletPositions.length + ' positions' : 'none');
-      
+    // Skip if no positions are available
     if (!mapboxLeafletPositions || mapboxLeafletPositions.length < 2) {
-      console.log('[ROUTE DEBUG] No valid MapBox route data available, using direct line only');
-      // Use the direct line as fallback
-      setValidMapboxPositions([fromCoords, toCoords]);
       return;
     }
-    
-    // Debug: Dump the first 3 coordinates
-    console.log('[ROUTE DEBUG] First 3 raw positions:', 
-      mapboxLeafletPositions.slice(0, 3).map(pos => JSON.stringify(pos)));
-    
-    // Check if we have the right format - need to be [lat, lng] pairs
-    const isRightFormat = mapboxLeafletPositions.every(pos => 
-      Array.isArray(pos) && pos.length === 2 && 
-      typeof pos[0] === 'number' && typeof pos[1] === 'number');
-    
-    console.log('[ROUTE DEBUG] Positions are in right format?', isRightFormat);
     
     // Filter out any invalid positions
     const filtered = mapboxLeafletPositions.filter(pos => {
@@ -315,132 +286,27 @@ function DirectPolylines({
              !isNaN(pos[1]);
     });
     
-    console.log(`[ROUTE DEBUG] Validated ${filtered.length}/${mapboxLeafletPositions.length} MapBox positions`);
-    
-    // Try to detect the MapBox route type based on number of points
-    if (filtered.length > 10) {
-      // This is likely the full road route from MapBox
-      console.log('[ROUTE DEBUG] Using full MapBox road route with', filtered.length, 'points');
-      console.log('[ROUTE DEBUG] First position:', filtered[0]);
-      console.log('[ROUTE DEBUG] Last position:', filtered[filtered.length - 1]);
+    // Update state with valid positions if we have enough points
+    if (filtered.length > 2) {
       setValidMapboxPositions(filtered);
-    } else if (filtered.length >= 2) {
-      // Only have start/end or very few points
-      console.log('[ROUTE DEBUG] Limited MapBox route points:', filtered.length);
-      if (filtered.length === 2) {
-        // Compare with the from/to coords to see if they match
-        const firstMapbox = filtered[0];
-        const lastMapbox = filtered[1];
-        const fromMatch = Math.abs(firstMapbox[0] - fromCoords[0]) < 0.01 && 
-                        Math.abs(firstMapbox[1] - fromCoords[1]) < 0.01;
-        const toMatch = Math.abs(lastMapbox[0] - toCoords[0]) < 0.01 && 
-                      Math.abs(lastMapbox[1] - toCoords[1]) < 0.01;
-                      
-        if (fromMatch && toMatch) {
-          console.log('[ROUTE DEBUG] MapBox only provided start/end points, adding direct line');
-          setValidMapboxPositions([fromCoords, toCoords]);
-        } else {
-          console.log('[ROUTE DEBUG] Using limited MapBox route');
-          setValidMapboxPositions(filtered);
-        }
-      } else {
-        console.log('[ROUTE DEBUG] Using limited MapBox route points');
-        setValidMapboxPositions(filtered);
-      }
-    } else {
-      console.log('[ROUTE DEBUG] Not enough valid points for MapBox route, using direct line');
-      // Add direct line as fallback
-      setValidMapboxPositions([fromCoords, toCoords]);
     }
-  }, [mapboxLeafletPositions, fromCoords, toCoords]);
+  }, [mapboxLeafletPositions]);
   
   return (
     <>
-      {/* Reference direct line */}
-      {directLineSegments.map((segment, index) => (
+      {/* Show MapBox route if available (only the road route) */}
+      {validMapboxPositions.length >= 2 && (
         <Polyline 
-          key={`direct-${index}`}
-          positions={segment}
+          key="mapbox-route"
+          positions={validMapboxPositions}
           pathOptions={{
-            color: '#aaaaaa',  // Gray
-            weight: 3,         // Thin line
-            opacity: 0.5,      // Partially transparent
-            dashArray: '5,10'  // Dashed line
+            color: '#2563eb',  // Blue-600
+            weight: 5,         // Thicker line
+            opacity: 0.8,      // Slightly transparent
+            lineCap: 'round',  // Rounded line ends
+            lineJoin: 'round'  // Rounded line joints
           }}
         />
-      ))}
-      
-      {/* Show MapBox route if available */}
-      {validMapboxPositions.length >= 2 && (
-        <>
-          {/* First debug marker at the beginning of the route */}
-          <Marker 
-            position={validMapboxPositions[0]}
-            icon={new L.Icon({
-              iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-yellow.png',
-              shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-              iconSize: [15, 24],
-              iconAnchor: [7, 24],
-              popupAnchor: [1, -24],
-              shadowSize: [24, 24]
-            })}
-          >
-            <Popup>
-              <div className="text-xs">
-                <strong>First MapBox Route Point</strong><br />
-                {JSON.stringify(validMapboxPositions[0])}
-              </div>
-            </Popup>
-          </Marker>
-
-          {/* Debug marker at the end of the route */}
-          <Marker 
-            position={validMapboxPositions[validMapboxPositions.length - 1]}
-            icon={new L.Icon({
-              iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-orange.png',
-              shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-              iconSize: [15, 24],
-              iconAnchor: [7, 24],
-              popupAnchor: [1, -24],
-              shadowSize: [24, 24]
-            })}
-          >
-            <Popup>
-              <div className="text-xs">
-                <strong>Last MapBox Route Point</strong><br />
-                {JSON.stringify(validMapboxPositions[validMapboxPositions.length - 1])}
-              </div>
-            </Popup>
-          </Marker>
-        
-          {/* Simplified test line to debug if polylines are working at all */}
-          <Polyline 
-            key="mapbox-debug-line"
-            positions={[
-              validMapboxPositions[0], 
-              validMapboxPositions[validMapboxPositions.length - 1]
-            ]}
-            pathOptions={{
-              color: '#f59e0b',  // Amber-500
-              weight: 4,
-              opacity: 0.7,
-              dashArray: '10,5'
-            }}
-          />
-        
-          {/* Actual MapBox route line */}
-          <Polyline 
-            key="mapbox-route"
-            positions={validMapboxPositions}
-            pathOptions={{
-              color: '#2563eb',  // Blue-600
-              weight: 5,         // Thicker line
-              opacity: 0.8,      // Slightly transparent
-              lineCap: 'round',  // Rounded line ends
-              lineJoin: 'round'  // Rounded line joints
-            }}
-          />
-        </>
       )}
       
       {/* Display current position indicator if available */}
@@ -1148,10 +1014,7 @@ function TripMap({
                 <div style={{ width: '20px', height: '4px', backgroundColor: '#2563eb', marginRight: '8px', borderRadius: '2px' }}></div>
                 <span>Road Route</span>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', marginBottom: '6px' }}>
-                <div style={{ width: '20px', height: '3px', backgroundColor: '#aaaaaa', marginRight: '8px', borderStyle: 'dashed', borderWidth: '0 0 1px 0' }}></div>
-                <span>Direct Line</span>
-              </div>
+              {/* Direct line reference removed */}
               {currentLatitude && currentLongitude && (
                 <div style={{ display: 'flex', alignItems: 'center', marginBottom: '6px' }}>
                   <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#60a5fa', border: '2px solid #2563eb', marginRight: '8px' }}></div>
