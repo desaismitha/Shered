@@ -10,6 +10,66 @@ import { sendGroupInvitation, sendPasswordResetEmail } from "./email";
 import crypto from "crypto";
 
 /**
+ * Clean location string by removing any coordinates in brackets or parentheses
+ * This is the same function as in client/src/lib/utils.ts
+ */
+function cleanLocationString(location: string | null | undefined): string {
+  if (!location) return 'Unknown location';
+  
+  // Remove any coordinates in square brackets like [47.6062, -122.3321]
+  let cleaned = location.replace(/\[.*?\]/g, '');
+  
+  // Also remove any coordinates in parentheses like (47.6062, -122.3321)
+  cleaned = cleaned.replace(/\(.*?\)/g, '');
+  
+  // Remove any trailing commas, whitespace, or other artifacts
+  cleaned = cleaned.replace(/,\s*$/, '').trim();
+  
+  // If we've removed everything, return Unknown location
+  if (!cleaned) return 'Unknown location';
+  
+  return cleaned;
+}
+
+/**
+ * Clean location data in trip objects before sending to the client
+ */
+function cleanTripLocationData<T extends { startLocation?: string | null; destination?: string | null }>(
+  trip: T
+): T {
+  const cleanedTrip = { ...trip };
+  
+  if (cleanedTrip.startLocation) {
+    cleanedTrip.startLocation = cleanLocationString(cleanedTrip.startLocation);
+  }
+  
+  if (cleanedTrip.destination) {
+    cleanedTrip.destination = cleanLocationString(cleanedTrip.destination);
+  }
+  
+  return cleanedTrip;
+}
+
+/**
+ * Clean location data in itinerary items before sending to the client
+ */
+function cleanItineraryLocationData<T extends { fromLocation?: string | null; toLocation?: string | null }>(
+  item: T
+): T {
+  const cleanedItem = { ...item };
+  
+  if (cleanedItem.fromLocation) {
+    cleanedItem.fromLocation = cleanLocationString(cleanedItem.fromLocation);
+  }
+  
+  if (cleanedItem.toLocation) {
+    cleanedItem.toLocation = cleanLocationString(cleanedItem.toLocation);
+  }
+  
+  return cleanedItem;
+}
+
+/**
  * Calculate distance between two points using the Haversine formula
  * Returns distance in kilometers
  */
@@ -761,13 +821,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Filter to only in-progress trips
       const activeTrips = trips.filter(trip => trip.status === 'in-progress');
       
-      // Enhance each trip with access level information
+      // Enhance each trip with access level information and clean location data
       const activeTripsWithAccessLevels = activeTrips.map(trip => {
         // If user is the creator, they're the owner
         const isOwner = String(trip.createdBy) === String(req.user.id);
         
+        // Clean location data before sending to client
+        const cleanedTrip = cleanTripLocationData(trip);
+        
         return {
-          ...trip,
+          ...cleanedTrip,
           _accessLevel: isOwner ? 'owner' : 'member'
         };
       });
