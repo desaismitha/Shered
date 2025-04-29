@@ -318,97 +318,9 @@ function TripMap({
     }
   }
   
-  // Instead of using the hook directly, let's create our own route data
-  // with a simple approach that won't cause maximum update depth issues
-  const [routeData, setRouteData] = useState<{
-    geometry: any;
-    duration: number;
-    distance: number;
-    loading: boolean;
-    error: string | null;
-  }>({
-    geometry: null,
-    duration: 0,
-    distance: 0,
-    loading: false,
-    error: null
-  });
-  
-  // Effect to calculate route or use fallback
-  useEffect(() => {
-    const getRouteData = async () => {
-      if (!effectiveFromCoords || !effectiveToCoords) {
-        return;
-      }
-      
-      // Check if coordinates have actually changed to prevent unnecessary updates
-      const fromLatLng = `${effectiveFromCoords.lat},${effectiveFromCoords.lng}`;
-      const toLatLng = `${effectiveToCoords.lat},${effectiveToCoords.lng}`;
-      const coordKey = `${fromLatLng}-${toLatLng}`;
-      
-      // Store current coord key on the component instance
-      const prevCoordKey = (getRouteData as any).prevCoordKey;
-      if (prevCoordKey === coordKey) {
-        // Skip calculation if coordinates haven't changed
-        return;
-      }
-      (getRouteData as any).prevCoordKey = coordKey;
-      
-      setRouteData(prev => ({ ...prev, loading: true }));
-      
-      try {
-        // Simple direct calculation
-        // Calculate distance using Haversine formula
-        const startLat = effectiveFromCoords.lat;
-        const startLng = effectiveFromCoords.lng;
-        const endLat = effectiveToCoords.lat;
-        const endLng = effectiveToCoords.lng;
-        
-        const R = 6371000; // Earth radius in meters
-        const dLat = (endLat - startLat) * Math.PI / 180;
-        const dLon = (endLng - startLng) * Math.PI / 180;
-        const a = 
-          Math.sin(dLat/2) * Math.sin(dLat/2) +
-          Math.cos(startLat * Math.PI / 180) * Math.cos(endLat * Math.PI / 180) * 
-          Math.sin(dLon/2) * Math.sin(dLon/2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-        const distance = R * c; // Distance in meters
-        
-        // Estimate duration: average driving speed 80 km/h
-        const duration = distance / 22.2; // 80 km/h = 22.2 m/s
-        
-        // Create route geometry
-        const geometry = {
-          type: "LineString",
-          coordinates: [
-            [startLng, startLat],
-            [endLng, endLat]
-          ]
-        };
-        
-        // Set the route data
-        setRouteData({
-          geometry,
-          duration,
-          distance,
-          loading: false,
-          error: null
-        });
-      } catch (error) {
-        console.error("Error calculating route:", error);
-        setRouteData({
-          geometry: null,
-          duration: 0,
-          distance: 0,
-          loading: false,
-          error: "Failed to calculate route"
-        });
-      }
-    };
-    
-    getRouteData();
-  // Use JSON.stringify for dependency comparison to avoid reference equality issues
-  }, [JSON.stringify(effectiveFromCoords), JSON.stringify(effectiveToCoords)]);
+  // Use the enhanced Mapbox route hook for actual road routes
+  // This will fetch real driving directions via the Mapbox API
+  const routeData = useMapboxRoute(effectiveFromCoords, effectiveToCoords);
   
   // Destructure route data for easier use
   const { geometry: routeGeometry, duration, distance, loading: isRouteLoading, error: routeError } = routeData;
@@ -520,7 +432,7 @@ function TripMap({
             >
               <Popup>
                 <div>
-                  <strong>Start: {itineraryItem?.fromLocation?.split('[')[0] || 'Starting Point'}</strong><br />
+                  <strong>Start: {itineraryItem?.fromLocation?.replace(/\[.*?\]/g, '').trim() || 'Starting Point'}</strong><br />
                   <span>Starting point of the itinerary</span>
                 </div>
               </Popup>
@@ -564,7 +476,7 @@ function TripMap({
             >
               <Popup>
                 <div>
-                  <strong>Destination: {itineraryItem?.toLocation?.split('[')[0] || 'Destination'}</strong><br />
+                  <strong>Destination: {itineraryItem?.toLocation?.replace(/\[.*?\]/g, '').trim() || 'Destination'}</strong><br />
                   <span>End point of the itinerary</span>
                 </div>
               </Popup>
