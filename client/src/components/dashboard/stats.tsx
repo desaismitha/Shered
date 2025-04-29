@@ -41,18 +41,41 @@ export function DashboardStats() {
     staleTime: 1000 * 60, // 1 minute
   });
 
-  // Calculate upcoming trips (future start date)
+  // Calculate upcoming trips (future start date and not cancelled status)
   const upcomingTripsCount = !tripsLoading && trips 
-    ? trips.filter(trip => new Date(trip.startDate) > new Date()).length 
+    ? trips.filter(trip => 
+        new Date(trip.startDate) > new Date() && 
+        trip.status !== 'cancelled' && 
+        trip.status !== 'completed'
+      ).length 
     : 0;
+  
+  // For debugging
+  console.log("All trips:", trips);
+  console.log("Upcoming trips count:", upcomingTripsCount);
+  if (trips) {
+    console.log("Filtered trips:", trips.filter(trip => 
+      new Date(trip.startDate) > new Date() && 
+      trip.status !== 'cancelled' && 
+      trip.status !== 'completed'
+    ));
+  }
 
   // Calculate active groups count
   const activeGroupsCount = !groupsLoading && groups ? groups.length : 0;
 
   // Calculate total expenses amount
   const totalExpenses = !expensesLoading && expenses
-    ? expenses.reduce((total, expense) => total + Number(expense.amount), 0)
+    ? expenses.reduce((total, expense) => {
+        // Make sure expense.amount is a valid number
+        const amount = expense.amount ? parseFloat(String(expense.amount)) : 0;
+        return isNaN(amount) ? total : total + amount;
+      }, 0)
     : 0;
+  
+  // For debugging
+  console.log("All expenses:", expenses);
+  console.log("Total expenses calculated:", totalExpenses);
   
   // Format the expense amount as currency
   const formattedExpenses = new Intl.NumberFormat('en-US', {
