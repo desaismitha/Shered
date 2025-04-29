@@ -485,11 +485,39 @@ function TripMap({
       : null 
   });
   
+  // Use the MapBox Directions API for route data
+  const { 
+    geometry: mapboxRouteGeometry, 
+    duration: mapboxDuration, 
+    distance: mapboxDistance, 
+    loading: isMapboxRouteLoading, 
+    error: mapboxRouteError 
+  } = useMapboxRoute(effectiveFromCoords, effectiveToCoords);
+  
+  // Debug MapBox route data
+  useEffect(() => {
+    if (mapboxRouteGeometry) {
+      console.log('MapBox route geometry received with', 
+        mapboxRouteGeometry.coordinates?.length || 0, 'coordinates');
+    } else {
+      console.log('No MapBox route geometry available yet');
+    }
+  }, [mapboxRouteGeometry]);
+  
   // Prepare road route coordinates for rendering (if available)
   const roadRoutePositions = useMemo(() => {
-    // Direct route if we have from and to coordinates
+    // First priority: Use the MapBox route geometry if available
+    if (routeGeometry && routeGeometry.coordinates) {
+      console.log('Using MapBox route geometry with', routeGeometry.coordinates.length, 'points');
+      // Safe type checking
+      const coordinates = routeGeometry.coordinates as Array<[number, number]>;
+      // MapBox returns coordinates as [longitude, latitude], but Leaflet needs [latitude, longitude]
+      return coordinates.map(coord => [coord[1], coord[0]] as [number, number]);
+    }
+    
+    // Fallback: Create a direct polyline if we have from and to coordinates
     if (effectiveFromCoords && effectiveToCoords) {
-      console.log('Creating direct polyline from:', effectiveFromCoords, 'to:', effectiveToCoords);
+      console.log('Creating direct polyline fallback from:', effectiveFromCoords, 'to:', effectiveToCoords);
       
       const positions: [number, number][] = [];
       const numPoints = 10;
@@ -502,15 +530,8 @@ function TripMap({
         positions.push([lat, lng]);
       }
       
-      console.log('Generated polyline positions:', positions);
+      console.log('Generated fallback polyline positions:', positions);
       return positions;
-    }
-    
-    // Fallback to route geometry if available
-    if (routeGeometry && routeGeometry.coordinates) {
-      // Safe type checking
-      const coordinates = routeGeometry.coordinates as Array<[number, number]>;
-      return coordinates.map(coord => [coord[1], coord[0]] as [number, number]);
     }
     
     return [];
