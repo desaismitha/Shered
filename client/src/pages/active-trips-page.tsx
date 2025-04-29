@@ -254,7 +254,7 @@ function MapController({
   return null;
 }
 
-// Route component that shows the actual road route using MapBox data
+// Debug and road route display component
 function DirectPolylines({ 
   fromCoords, 
   toCoords, 
@@ -266,33 +266,42 @@ function DirectPolylines({
   currentCoords?: [number, number],
   mapboxLeafletPositions?: [number, number][]
 }) {
-  // If we have MapBox route data, use it to show the actual road route
-  if (mapboxLeafletPositions && mapboxLeafletPositions.length > 0) {
-    console.log('Rendering MapBox road route with', mapboxLeafletPositions.length, 'points');
-    return (
+  // Log all our coordinate inputs for debugging
+  console.log('DirectPolylines got data:', {
+    fromCoords,
+    toCoords,
+    currentCoords,
+    mapboxLeafletPositionsCount: mapboxLeafletPositions?.length || 0,
+    firstPosition: mapboxLeafletPositions?.[0],
+    lastPosition: mapboxLeafletPositions?.length ? mapboxLeafletPositions[mapboxLeafletPositions.length - 1] : null
+  });
+  
+  // Always render both the MapBox route (if available) and the direct line
+  return (
+    <>
+      {/* Always show direct line for reference */}
       <Polyline 
-        positions={mapboxLeafletPositions}
+        positions={[fromCoords, toCoords]}
         pathOptions={{
-          color: '#4a90e2',  // Blue
-          weight: 6,         // Medium thickness
-          opacity: 1,        // Full opacity
+          color: '#aaaaaa',  // Gray
+          weight: 3,         // Thin line
+          opacity: 0.5,      // Partially transparent
+          dashArray: '5,10'  // Dashed line
         }}
       />
-    );
-  }
-  
-  // Fallback to direct line if no MapBox data available
-  console.log('Falling back to direct line route');
-  return (
-    <Polyline 
-      positions={[fromCoords, toCoords]}
-      pathOptions={{
-        color: '#4a90e2',  // Blue
-        weight: 6,         // Medium thickness
-        opacity: 1,        // Full opacity
-        dashArray: '5,10'  // Dashed line to indicate it's not an actual road
-      }}
-    />
+      
+      {/* Show MapBox route if available */}
+      {mapboxLeafletPositions && mapboxLeafletPositions.length > 0 && (
+        <Polyline 
+          positions={mapboxLeafletPositions}
+          pathOptions={{
+            color: '#4a90e2',  // Blue
+            weight: 6,         // Thicker line
+            opacity: 1,        // Full opacity
+          }}
+        />
+      )}
+    </>
   );
 }
 
