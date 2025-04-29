@@ -1561,7 +1561,7 @@ export default function ActiveTripsPage() {
                             {selectedItineraryItems[currentItineraryStep].location && (
                               <div>
                                 <span className="text-neutral-500">Location: </span>
-                                <span className="font-medium">{selectedItineraryItems[currentItineraryStep].location}</span>
+                                <span className="font-medium">{cleanLocationString(selectedItineraryItems[currentItineraryStep].location)}</span>
                               </div>
                             )}
                             
@@ -1713,7 +1713,7 @@ export default function ActiveTripsPage() {
                     <CardHeader>
                       <CardTitle>{trip.name}</CardTitle>
                       <CardDescription>
-                        {trip.destination || "No destination specified"}
+                        {trip.destination ? cleanLocationString(trip.destination) : "No destination specified"}
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="flex-grow">
@@ -1913,7 +1913,7 @@ export default function ActiveTripsPage() {
                                 {item.title}
                               </label>
                               <p className="text-sm text-muted-foreground">
-                                Day {item.day} - {item.location || (item.fromLocation && item.toLocation ? `${item.fromLocation} to ${item.toLocation}` : 'No location specified')}
+                                Day {item.day} - {item.location ? cleanLocationString(item.location) : (item.fromLocation && item.toLocation ? `${cleanLocationString(item.fromLocation)} to ${cleanLocationString(item.toLocation)}` : 'No location specified')}
                               </p>
                             </div>
                           </div>
