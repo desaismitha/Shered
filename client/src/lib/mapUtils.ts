@@ -161,14 +161,15 @@ export function useMapboxRoute(
 ) {
   // Debug: Check if Mapbox token is available
   useEffect(() => {
-    const envToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
-    const fallbackToken = HARDCODED_MAPBOX_TOKEN;
-    
-    if (!envToken) {
-      console.log('Using fallback Mapbox token:', fallbackToken ? 'Available' : 'Not available');
-    } else {
-      console.log('Using environment Mapbox token');
-    }
+    // Check if token is available on the server side
+    fetch('/api/mapbox/check-token')
+      .then(response => response.json())
+      .then(data => {
+        console.log('[MAPBOX] Token availability:', data.available ? 'YES' : 'NO');
+      })
+      .catch(err => {
+        console.log('[MAPBOX] Error checking token:', err);
+      });
   }, []);
   
   const [routeData, setRouteData] = useState<{
@@ -221,125 +222,90 @@ export function useMapboxRoute(
           end: [endCoords.lat, endCoords.lng]
         });
         
-        const result = await fetchMapboxRoute(
+        // Format coordinates as lng,lat as required by Mapbox
+        const startCoordStr = `${startCoords.lng},${startCoords.lat}`;
+        const endCoordStr = `${endCoords.lng},${endCoords.lat}`;
+        
+        // First try to fetch from the API directly
+        const response = await fetch(`/api/mapbox/directions?start=${startCoordStr}&end=${endCoordStr}`);
+        
+        if (!response.ok) {
+          throw new Error(`MapBox API request failed: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (!isMounted) return; // Safety check
+        
+        if (!data.routes || data.routes.length === 0) {
+          throw new Error('No routes returned from MapBox API');
+        }
+        
+        // Debug the route data structure
+        console.log('[MAPBOX] Route data structure:', {
+          hasGeometry: !!data.routes[0].geometry,
+          geometryType: data.routes[0].geometry?.type,
+          coordinatesCount: data.routes[0].geometry?.coordinates?.length,
+          hasDistance: !!data.routes[0].distance,
+          hasDuration: !!data.routes[0].duration
+        });
+        
+        // Extract the route coordinates
+        const coordinates = data.routes[0].geometry.coordinates;
+        
+        if (!Array.isArray(coordinates) || coordinates.length === 0) {
+          throw new Error('No valid coordinates in MapBox response');
+        }
+        
+        // Convert from MapBox format [lng, lat] to Leaflet format [lat, lng]
+        const leafletPositions = coordinates.map(coord => {
+          if (Array.isArray(coord) && coord.length >= 2) {
+            return [coord[1], coord[0]] as [number, number];
+          }
+          return null;
+        }).filter(Boolean) as [number, number][];
+        
+        console.log(`[MAPBOX] Converted ${leafletPositions.length} coordinates for Leaflet display`);
+        
+        if (leafletPositions.length > 0) {
+          // Update the route data with the fetched information
+          setRouteData({
+            geometry: data.routes[0].geometry,
+            duration: data.routes[0].duration || 0,
+            distance: data.routes[0].distance || 0,
+            loading: false,
+            error: null,
+            leafletPositions: leafletPositions
+          });
+          return;
+        }
+        
+        // If no valid leaflet positions, fall back to direct line
+        throw new Error('Failed to convert MapBox coordinates to Leaflet format');
+      } catch (error) {
+        console.error('[MAPBOX] Error:', error);
+        
+        if (!isMounted) return;
+        
+        // Create a fallback route using our own function
+        const fallbackResult = createStraightLineRoute(
           startCoords.lat,
           startCoords.lng,
           endCoords.lat,
           endCoords.lng
         );
         
-        if (!isMounted) return; // Safety check
-        
-        // Check for Leaflet positions directly from result (from our createStraightLineRoute function)
-        if (result.leafletPositions && result.leafletPositions.length > 0) {
-          console.log(`Result already has ${result.leafletPositions.length} pre-converted Leaflet positions`);
-          setRouteData({
-            geometry: result.route,
-            duration: result.duration,
-            distance: result.distance,
-            loading: false,
-            error: null,
-            leafletPositions: result.leafletPositions
-          });
-          return; // Successfully set the data, exit
-        }
-
-        // Otherwise, process the coordinates from MapBox route data
-        if (result && result.route?.coordinates) {
-          // Process the coordinates for Leaflet (convert [lng, lat] to [lat, lng])
-          const coordinates = result.route.coordinates;
+        console.log('[MAPBOX] Using fallback direct line with', 
+          fallbackResult.leafletPositions.length, 'points');
           
-          console.log(`MapBox returned ${coordinates.length} coordinates:`, {
-            first: coordinates[0],
-            last: coordinates[coordinates.length - 1]
-          });
-          
-          // Safety check and convert to Leaflet format
-          if (Array.isArray(coordinates) && coordinates.length > 0) {
-            // Process coordinates for Leaflet: [lng, lat] -> [lat, lng]
-            const leafletPositions = coordinates.map(coord => {
-              if (Array.isArray(coord) && coord.length === 2) {
-                return [coord[1], coord[0]] as [number, number];
-              }
-              return null;
-            }).filter(Boolean) as [number, number][];
-            
-            console.log(`Converted ${leafletPositions.length} coordinates for Leaflet:`, {
-              first: leafletPositions[0],
-              last: leafletPositions[leafletPositions.length - 1]
-            });
-            
-            if (leafletPositions.length > 0) {
-              setRouteData({
-                geometry: result.route,
-                duration: result.duration,
-                distance: result.distance,
-                loading: false,
-                error: null,
-                leafletPositions: leafletPositions
-              });
-              return; // Successfully set the data, exit
-            }
-          }
-        }
-        
-        // If we get here, something went wrong with the data
-        console.warn('No valid route coordinates received, using fallback');
-        
-        // Create a fallback straight line route for Leaflet
-        const fallbackPositions: [number, number][] = [];
-        const numPoints = 10;
-        
-        for (let i = 0; i <= numPoints; i++) {
-          const fraction = i / numPoints;
-          const lat = startCoords.lat + fraction * (endCoords.lat - startCoords.lat);
-          const lng = startCoords.lng + fraction * (endCoords.lng - startCoords.lng);
-          fallbackPositions.push([lat, lng]);
-        }
-        
-        console.log('Created fallback route with', fallbackPositions.length, 'points');
-        
         setRouteData({
-          geometry: {
-            type: 'LineString',
-            coordinates: fallbackPositions.map(pos => [pos[1], pos[0]]) // Leaflet [lat, lng] -> GeoJSON [lng, lat]
-          },
-          duration: result?.duration || 0,
-          distance: result?.distance || 0,
+          geometry: fallbackResult.route,
+          duration: fallbackResult.duration,
+          distance: fallbackResult.distance,
           loading: false,
-          error: 'Using straight line route as fallback',
-          leafletPositions: fallbackPositions
+          error: error instanceof Error ? error.message : 'Error fetching route',
+          leafletPositions: fallbackResult.leafletPositions
         });
-      } catch (error) {
-        console.error('Error fetching route:', error);
-        
-        if (!isMounted) return;
-        
-        // Create a fallback straight line for errors
-        if (startCoords && endCoords) {
-          const fallbackPositions: [number, number][] = [
-            [startCoords.lat, startCoords.lng],
-            [endCoords.lat, endCoords.lng]
-          ];
-          
-          setRouteData({
-            geometry: null,
-            duration: 0,
-            distance: 0,
-            loading: false,
-            error: error instanceof Error ? error.message : 'Unknown error',
-            leafletPositions: fallbackPositions
-          });
-        } else {
-          setRouteData({
-            geometry: null,
-            duration: 0,
-            distance: 0,
-            loading: false,
-            error: error instanceof Error ? error.message : 'Unknown error',
-            leafletPositions: []
-          });
-        }
       }
     };
     
