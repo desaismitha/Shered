@@ -402,13 +402,28 @@ function TripMap({
         // Estimate duration: average driving speed 80 km/h
         const duration = distance / 22.2; // 80 km/h = 22.2 m/s
         
-        // Create route geometry
+        // Create route geometry with intermediate points
+        // This creates a more visible polyline on the map
+        const numPoints = 10;
+        const coordinates: [number, number][] = [];
+        
+        // Add start point
+        coordinates.push([startLng, startLat]);
+        
+        // Add intermediate points
+        for (let i = 1; i < numPoints; i++) {
+          const fraction = i / numPoints;
+          const lat = startLat + fraction * (endLat - startLat);
+          const lng = startLng + fraction * (endLng - startLng);
+          coordinates.push([lng, lat]);
+        }
+        
+        // Add end point
+        coordinates.push([endLng, endLat]);
+        
         const geometry = {
           type: "LineString",
-          coordinates: [
-            [startLng, startLat],
-            [endLng, endLat]
-          ]
+          coordinates: coordinates
         };
         
         // Set the route data
