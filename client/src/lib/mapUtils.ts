@@ -8,9 +8,14 @@ import { useEffect, useState } from 'react';
  * @param endLng Ending longitude
  * @returns A promise that resolves to a GeoJSON LineString of the route
  */
+// Fallback token for development purposes only
+// In production, this should be removed and proper environment variables used
+const HARDCODED_MAPBOX_TOKEN = 'pk.eyJ1Ijoic21pdGhhZGVzYWk5IiwiYSI6ImNsZ2M3dzlsZzAyMnMzZXAyeHRjcjRuYzAifQ.AXK4DhZyv1zL1UJ3WxSf1w';
+
 export async function fetchMapboxRoute(startLat: number, startLng: number, endLat: number, endLng: number) {
   try {
-    const accessToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
+    // Try to use environment variable first, fall back to hardcoded token if not available
+    const accessToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || HARDCODED_MAPBOX_TOKEN;
     
     if (!accessToken) {
       console.error('Mapbox access token is missing. Make sure VITE_MAPBOX_ACCESS_TOKEN is set in environment variables.');
@@ -57,7 +62,7 @@ export function useMapboxRoute(
   // Debug: Check if Mapbox token is available
   useEffect(() => {
     if (!import.meta.env.VITE_MAPBOX_ACCESS_TOKEN) {
-      console.warn('Mapbox token not available in environment:', import.meta.env);
+      console.warn('Mapbox token not available in environment');
     } else {
       console.log('Mapbox token is available');
     }

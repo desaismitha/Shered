@@ -447,8 +447,8 @@ function TripMap({
             </Marker>
           )}
           
-          {/* Show notice if Mapbox API key is missing */}
-          {!import.meta.env.VITE_MAPBOX_ACCESS_TOKEN && (
+          {/* Show notice if Mapbox API key is missing (no longer needed with fallback approach) */}
+          {false && (
             <div className="leaflet-top leaflet-left" style={{
               backgroundColor: 'white',
               padding: '8px',
