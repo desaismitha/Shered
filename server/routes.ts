@@ -789,13 +789,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Print all trip IDs for debugging
       console.log("ALL TRIPS FROM DB:", trips.map(t => t.id));
       
-      // Enhance each trip with access level information
+      // Enhance each trip with access level information and clean location data
       const tripsWithAccessLevels = trips.map(trip => {
         // If user is the creator, they're the owner
         const isOwner = String(trip.createdBy) === String(req.user.id);
         
+        // Clean location data before sending to client
+        const cleanedTrip = cleanTripLocationData(trip);
+        
         return {
-          ...trip,
+          ...cleanedTrip,
           _accessLevel: isOwner ? 'owner' : 'member'
         };
       });
@@ -1257,9 +1260,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const trip = await storage.getTrip(tripId);
       console.log(`Trip data for ID ${tripId}:`, trip);
       
+      // Clean location data before sending to client
+      const cleanedTrip = cleanTripLocationData(trip);
+      
       // Include access level in the response to help client determine what actions are allowed
       res.json({
-        ...trip,
+        ...cleanedTrip,
         _accessLevel: accessLevel // Added property to help client control UI permissions
       });
     } catch (err) {
@@ -1296,13 +1302,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error("ERROR: Trips data doesn't have destination field:", trips);
       }
       
-      // Enhance each trip with access level information
+      // Enhance each trip with access level information and clean location data
       const tripsWithAccessLevels = trips.map(trip => {
         // If user is the creator, they're the owner, otherwise they're a member
         const isOwner = String(trip.createdBy) === String(req.user.id);
         
+        // Clean location data before sending to client
+        const cleanedTrip = cleanTripLocationData(trip);
+        
         return {
-          ...trip,
+          ...cleanedTrip,
           _accessLevel: isOwner ? 'owner' : 'member'
         };
       });
@@ -1353,7 +1362,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // If we have access, get the itinerary items
       const items = await storage.getItineraryItemsByTripId(tripId);
-      res.json(items);
+      
+      // Clean location data in itinerary items
+      const cleanedItems = items.map(item => cleanItineraryLocationData(item));
+      
+      res.json(cleanedItems);
     } catch (err) {
       console.error(`Error in itinerary retrieval: ${err}`);
       next(err);
@@ -1379,8 +1392,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return; // Response already sent by checkTripAccess
       }
       
-      // If we have access, return the item
-      res.json(item);
+      // If we have access, clean location data and return the item
+      const cleanedItem = cleanItineraryLocationData(item);
+      res.json(cleanedItem);
     } catch (err) {
       console.error(`Error in itinerary item retrieval: ${err}`);
       next(err);
@@ -1420,7 +1434,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ message: "Failed to update itinerary item" });
       }
       
-      res.json(updatedItem);
+      // Clean location data before sending to client
+      const cleanedItem = cleanItineraryLocationData(updatedItem);
+      res.json(cleanedItem);
     } catch (err) {
       console.error(`Error in itinerary item update: ${err}`);
       next(err);
