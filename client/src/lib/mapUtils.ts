@@ -113,6 +113,7 @@ export function useMapboxRoute(
       console.log('Using environment Mapbox token');
     }
   }, []);
+  
   const [routeData, setRouteData] = useState<{
     geometry: any;
     duration: number;
@@ -127,14 +128,30 @@ export function useMapboxRoute(
     error: null
   });
   
+  // Use a ref to track whether we've already made a request for these coordinates
+  // This prevents the infinite loop in the maximum update depth
+  const requestedForRef = useRef<string | null>(null);
+  
   useEffect(() => {
     let isMounted = true;
     
+    // Only fetch if we have both coordinates
+    if (!startCoords || !endCoords) {
+      return;
+    }
+    
+    // Create a string representation of the coordinates to detect changes
+    const coordKey = `${startCoords.lat},${startCoords.lng}|${endCoords.lat},${endCoords.lng}`;
+    
+    // If we've already requested this exact route, don't request again
+    if (requestedForRef.current === coordKey) {
+      return;
+    }
+    
+    // Mark that we're requesting this route
+    requestedForRef.current = coordKey;
+    
     const fetchRoute = async () => {
-      if (!startCoords || !endCoords) {
-        return;
-      }
-      
       setRouteData(prev => ({ ...prev, loading: true, error: null }));
       
       try {
