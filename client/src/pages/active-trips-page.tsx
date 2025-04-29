@@ -316,7 +316,7 @@ function TripMap({
   
   // Prepare road route coordinates for rendering (if available)
   const roadRoutePositions = routeGeometry?.coordinates 
-    ? routeGeometry.coordinates.map(coord => [coord[1], coord[0]] as [number, number])
+    ? routeGeometry.coordinates.map((coord: [number, number]) => [coord[1], coord[0]] as [number, number])
     : [];
   
   return (
@@ -447,10 +447,71 @@ function TripMap({
             </Marker>
           )}
           
-          {/* Route guidance - Draw polyline between itinerary locations if both start and end coordinates are available */}
-          {fromCoords && toCoords && (
+          {/* Road Route from Mapbox API */}
+          {roadRoutePositions.length > 0 && (
             <>
-              {/* Planned route line */}
+              {/* Full road route with dashed line */}
+              <Polyline 
+                positions={roadRoutePositions}
+                color="#4a90e2"
+                weight={5}
+                opacity={0.8}
+                dashArray="10, 10"
+              />
+              
+              {/* If we have current position, split the route into traveled and remaining portions */}
+              {currentLatitude && currentLongitude && (
+                <>
+                  {/* Find the closest point on the route to current position */}
+                  {(() => {
+                    let closestPointIndex = 0;
+                    let minDistance = Infinity;
+                    
+                    roadRoutePositions.forEach((position: [number, number], index: number) => {
+                      const latDiff = position[0] - currentLatitude!;
+                      const lngDiff = position[1] - currentLongitude!;
+                      const distance = Math.sqrt(latDiff * latDiff + lngDiff * lngDiff);
+                      
+                      if (distance < minDistance) {
+                        minDistance = distance;
+                        closestPointIndex = index;
+                      }
+                    });
+                    
+                    // Split route at closest point
+                    const traveledSegment = roadRoutePositions.slice(0, closestPointIndex + 1);
+                    const remainingSegment = roadRoutePositions.slice(closestPointIndex);
+                    
+                    return (
+                      <>
+                        {/* Traveled portion */}
+                        <Polyline 
+                          positions={traveledSegment}
+                          color="#34c759"
+                          weight={5}
+                          opacity={0.9}
+                        />
+                        
+                        {/* Remaining portion */}
+                        <Polyline 
+                          positions={remainingSegment}
+                          color="#ff9500"
+                          weight={4}
+                          opacity={0.7}
+                          dashArray="5, 8"
+                        />
+                      </>
+                    );
+                  })()}
+                </>
+              )}
+            </>
+          )}
+          
+          {/* Fallback to direct line if no road route available */}
+          {roadRoutePositions.length === 0 && fromCoords && toCoords && (
+            <>
+              {/* Direct line between points */}
               <Polyline 
                 positions={[
                   [fromCoords.lat, fromCoords.lng] as [number, number],
@@ -549,6 +610,72 @@ function TripMap({
                 );
               })()}
             </>
+          )}
+          
+          {/* Loading indicator for route information */}
+          {isRouteLoading && (
+            <div className="leaflet-top leaflet-left" style={{
+              backgroundColor: 'white',
+              padding: '8px',
+              margin: '10px',
+              borderRadius: '4px',
+              border: '1px solid #ccc',
+              boxShadow: '0 1px 5px rgba(0,0,0,0.2)',
+              zIndex: 1000
+            }}>
+              <div className="leaflet-control">
+                <div className="flex items-center">
+                  <div className="animate-spin mr-2 h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+                  <span>Loading route information...</span>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {/* Error display for route information */}
+          {routeError && (
+            <div className="leaflet-top leaflet-left" style={{
+              backgroundColor: 'white',
+              padding: '8px',
+              margin: '10px',
+              borderRadius: '4px',
+              border: '1px solid #f87171',
+              boxShadow: '0 1px 5px rgba(0,0,0,0.2)',
+              zIndex: 1000
+            }}>
+              <div className="leaflet-control text-red-500">
+                <div className="flex items-center">
+                  <X size={16} className="mr-1" />
+                  <span>Couldn't load route directions</span>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {/* Route Information */}
+          {!isRouteLoading && !routeError && distance > 0 && duration > 0 && (
+            <div className="leaflet-top leaflet-right" style={{
+              backgroundColor: 'white',
+              padding: '8px',
+              margin: '10px',
+              borderRadius: '4px',
+              border: '1px solid #ccc',
+              boxShadow: '0 1px 5px rgba(0,0,0,0.2)',
+              zIndex: 1000,
+              width: '180px'
+            }}>
+              <div className="leaflet-control">
+                <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>Route Information</div>
+                <div style={{ display: 'flex', alignItems: 'center', marginBottom: '4px' }}>
+                  <Clock size={14} className="mr-1" />
+                  <span>Travel Time: {formatDuration(duration)}</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <Ruler size={14} className="mr-1" />
+                  <span>Distance: {formatDistance(distance, true)}</span>
+                </div>
+              </div>
+            </div>
           )}
           
           {/* Map Legend */}

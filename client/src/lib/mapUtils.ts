@@ -10,7 +10,12 @@ import { useEffect, useState } from 'react';
  */
 export async function fetchMapboxRoute(startLat: number, startLng: number, endLat: number, endLng: number) {
   try {
-    const accessToken = process.env.MAPBOX_ACCESS_TOKEN;
+    const accessToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
+    
+    if (!accessToken) {
+      console.error('Mapbox access token is missing. Make sure MAPBOX_ACCESS_TOKEN is set in environment variables.');
+      return null;
+    }
     
     // Format coordinates as lng,lat as required by Mapbox
     const startCoords = `${startLng},${startLat}`;
