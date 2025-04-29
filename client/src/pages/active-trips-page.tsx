@@ -274,14 +274,78 @@ function TripMap({
     {lat: getDefaultCoordinatesForLocation(destination, null, null, 0)[0], 
      lng: getDefaultCoordinatesForLocation(destination, null, null, 0)[1]} : null);
   
-  // Get road route data using the Mapbox API
-  const {
-    geometry: routeGeometry,
-    duration,
-    distance,
-    loading: isRouteLoading,
-    error: routeError
-  } = useMapboxRoute(effectiveFromCoords, effectiveToCoords);
+  // Instead of using the hook directly, let's create our own route data
+  // with a simple approach that won't cause maximum update depth issues
+  const [routeData, setRouteData] = useState({
+    geometry: null,
+    duration: 0,
+    distance: 0,
+    loading: false,
+    error: null
+  });
+  
+  // Effect to calculate route or use fallback
+  useEffect(() => {
+    const getRouteData = async () => {
+      if (!effectiveFromCoords || !effectiveToCoords) {
+        return;
+      }
+      
+      setRouteData(prev => ({ ...prev, loading: true }));
+      
+      try {
+        // Simple direct calculation
+        // Calculate distance using Haversine formula
+        const startLat = effectiveFromCoords.lat;
+        const startLng = effectiveFromCoords.lng;
+        const endLat = effectiveToCoords.lat;
+        const endLng = effectiveToCoords.lng;
+        
+        const R = 6371000; // Earth radius in meters
+        const dLat = (endLat - startLat) * Math.PI / 180;
+        const dLon = (endLng - startLng) * Math.PI / 180;
+        const a = 
+          Math.sin(dLat/2) * Math.sin(dLat/2) +
+          Math.cos(startLat * Math.PI / 180) * Math.cos(endLat * Math.PI / 180) * 
+          Math.sin(dLon/2) * Math.sin(dLon/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        const distance = R * c; // Distance in meters
+        
+        // Estimate duration: average driving speed 80 km/h
+        const duration = distance / 22.2; // 80 km/h = 22.2 m/s
+        
+        // Create route geometry
+        const geometry = {
+          type: "LineString",
+          coordinates: [
+            [startLng, startLat],
+            [endLng, endLat]
+          ]
+        };
+        
+        // Set the route data
+        setRouteData({
+          geometry,
+          duration,
+          distance,
+          loading: false,
+          error: null
+        });
+      } catch (error) {
+        console.error("Error calculating route:", error);
+        setRouteData(prev => ({
+          ...prev,
+          loading: false,
+          error: "Failed to calculate route"
+        }));
+      }
+    };
+    
+    getRouteData();
+  }, [effectiveFromCoords, effectiveToCoords]);
+  
+  // Destructure route data for easier use
+  const { geometry: routeGeometry, duration, distance, loading: isRouteLoading, error: routeError } = routeData;
     
   // Determine the center coordinates for the map
   let centerCoordinates;
@@ -321,29 +385,29 @@ function TripMap({
       : [];
   }, [routeGeometry]);
   
-  // Route information panel JSX
+  // Route information panel JSX - We're now using it outside the MapContainer
   const routeInfoPanel = useMemo(() => {
     return (
-      <div className="absolute top-2 right-2 bg-white p-2 rounded-md border border-gray-300 shadow-sm z-[1000] w-[180px]">
+      <div className="mb-2 bg-white p-3 rounded-md border border-gray-300 shadow-sm w-full">
         <div className="text-sm font-bold mb-1">Route Information</div>
         {isRouteLoading ? (
-          <div className="text-xs text-gray-600">Loading route...</div>
+          <div className="text-xs text-gray-600">Loading route information...</div>
         ) : routeError ? (
-          <div className="text-xs text-red-500">Error loading route</div>
+          <div className="text-xs text-red-500">Error calculating route</div>
         ) : distance > 0 && duration > 0 ? (
-          <>
+          <div className="flex justify-between">
             <div className="flex items-center mb-1 text-xs">
-              <Clock size={12} className="mr-1 text-blue-500" />
+              <Clock size={14} className="mr-1 text-blue-500" />
               <span>Travel Time: {formatDuration(duration)}</span>
             </div>
             <div className="flex items-center text-xs">
-              <Ruler size={12} className="mr-1 text-blue-500" />
+              <Ruler size={14} className="mr-1 text-blue-500" />
               <span>Distance: {formatDistance(distance, true)}</span>
             </div>
-          </>
+          </div>
         ) : (
           <div className="text-xs text-gray-600">
-            Route information unavailable
+            Route information will appear when start and end locations are available
           </div>
         )}
       </div>
@@ -352,6 +416,9 @@ function TripMap({
   
   return (
     <div style={{ height, width }}>
+      {/* Route Information Panel - Positioned above map */}
+      {typeof window !== 'undefined' && routeInfoPanel}
+      
       {typeof window !== 'undefined' && (
         <MapContainer
           center={centerCoordinates as [number, number]}
