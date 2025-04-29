@@ -18,7 +18,7 @@ import { Link, useLocation, useParams } from "wouter";
 import { 
   PlusIcon, NavigationIcon, MapPinIcon, ArrowLeft, ArrowRight, 
   Check, Car, PlayCircle, StopCircle, X, MapPin, Info as InfoIcon,
-  Clock, Ruler
+  Clock, Ruler, RefreshCcw, ChevronDown
 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { Button } from "@/components/ui/button";
@@ -252,6 +252,67 @@ function MapController({
   }, [map, effectiveFromCoords, effectiveToCoords, currentPosition]);
 
   return null;
+}
+
+// Direct Polylines component that directly adds polylines to the map
+function DirectPolylines({ 
+  fromCoords, 
+  toCoords, 
+  currentCoords 
+}: { 
+  fromCoords: [number, number], 
+  toCoords: [number, number], 
+  currentCoords?: [number, number] 
+}) {
+  const map = useMap();
+  
+  useEffect(() => {
+    console.log('DirectPolylines mounted with coords:', { fromCoords, toCoords, currentCoords });
+    
+    // Explicitly create Leaflet polylines and add them directly to the map
+    try {
+      // Basic route line
+      const routeLine = L.polyline([fromCoords, toCoords], {
+        color: '#4a90e2',
+        weight: 6,
+        opacity: 0.8,
+        dashArray: '10, 10'
+      }).addTo(map);
+      
+      // Create segments if we have current coordinates
+      if (currentCoords) {
+        // Traveled segment
+        const traveledLine = L.polyline([fromCoords, currentCoords], {
+          color: '#34c759',  // Green
+          weight: 6,
+          opacity: 0.9
+        }).addTo(map);
+        
+        // Remaining segment
+        const remainingLine = L.polyline([currentCoords, toCoords], {
+          color: '#ff9500',  // Orange
+          weight: 5,
+          opacity: 0.8,
+          dashArray: '5, 8'
+        }).addTo(map);
+      }
+      
+      console.log('Successfully added route polylines directly to map');
+      
+      // Make sure these lines get removed when component unmounts
+      return () => {
+        map.eachLayer((layer) => {
+          if (layer instanceof L.Polyline) {
+            map.removeLayer(layer);
+          }
+        });
+      };
+    } catch (err) {
+      console.error('Failed to create direct polylines:', err);
+    }
+  }, [map, fromCoords, toCoords, currentCoords]);
+  
+  return null; // This component doesn't render anything, it just adds polylines to the map
 }
 
 // Trip Map Component
@@ -574,6 +635,14 @@ function TripMap({
             }
           }}
         >
+          {/* Direct Polyline Route - Guaranteed to work */}
+          {effectiveFromCoords && effectiveToCoords && (
+            <DirectPolylines
+              fromCoords={[effectiveFromCoords.lat, effectiveFromCoords.lng]}
+              toCoords={[effectiveToCoords.lat, effectiveToCoords.lng]}
+              currentCoords={currentLatitude && currentLongitude ? [currentLatitude, currentLongitude] : undefined}
+            />
+          )}
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -709,63 +778,7 @@ function TripMap({
             </div>
           )}
           
-          {/* Add a direct line between points - This serves as a fallback */}
-          {effectiveFromCoords && effectiveToCoords && (
-            <Polyline 
-              positions={[
-                [effectiveFromCoords.lat, effectiveFromCoords.lng],
-                [effectiveToCoords.lat, effectiveToCoords.lng]
-              ]}
-              color="#4a90e2"
-              weight={4}
-              opacity={0.7}
-            />
-          )}
-          
-          {/* EXTREMELY SIMPLIFIED ROUTE DISPLAY - Guaranteed to work */}
-          {effectiveFromCoords && effectiveToCoords && (
-            <>
-              {/* Default polyline - simple direct line */}
-              <Polyline 
-                positions={[
-                  [effectiveFromCoords.lat, effectiveFromCoords.lng],
-                  [effectiveToCoords.lat, effectiveToCoords.lng]
-                ]}
-                color="#4a90e2"
-                weight={5}
-                opacity={0.8}
-                dashArray="10, 10"
-              />
-              
-              {/* Only draw traveled/remaining segments if we have current location */}
-              {currentLatitude && currentLongitude && (
-                <>
-                  {/* Traveled portion - from start to current position */}
-                  <Polyline 
-                    positions={[
-                      [effectiveFromCoords.lat, effectiveFromCoords.lng],
-                      [currentLatitude, currentLongitude]
-                    ]}
-                    color="#34c759"
-                    weight={5}
-                    opacity={0.9}
-                  />
-                  
-                  {/* Remaining portion - from current to destination */}
-                  <Polyline 
-                    positions={[
-                      [currentLatitude, currentLongitude],
-                      [effectiveToCoords.lat, effectiveToCoords.lng]
-                    ]}
-                    color="#ff9500"
-                    weight={4}
-                    opacity={0.7}
-                    dashArray="5, 8"
-                  />
-                </>
-              )}
-            </>
-          )}
+          {/* All polylines are now handled by the DirectPolylines component above */}
           
           {/* We're not drawing these lines anymore - using the simplified approach above instead */}
           
