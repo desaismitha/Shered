@@ -1,5 +1,19 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Trip, ItineraryItem } from "@shared/schema";
+import { Trip as BaseTrip, ItineraryItem as BaseItineraryItem } from "@shared/schema";
+
+// Extended types to include display properties
+type ItineraryItem = BaseItineraryItem & {
+  fromLocationDisplay?: string;
+  toLocationDisplay?: string;
+  locationDisplay?: string;
+  isCompleted?: boolean;
+};
+
+type Trip = BaseTrip & {
+  startLocationDisplay?: string;
+  destinationDisplay?: string;
+  _accessLevel?: 'owner' | 'member' | null;
+};
 import { Link, useLocation, useParams } from "wouter";
 import { 
   PlusIcon, NavigationIcon, MapPinIcon, ArrowLeft, ArrowRight, 
@@ -264,17 +278,37 @@ function TripMap({
 }) {
   // Extract coordinates from itinerary start and end locations if available
   // Log the itinerary item to debug coordinate extraction
-  console.log("Map coordinates extraction - itinerary item:", itineraryItem);
+  console.log("Map coordinates extraction - trip data:", {
+    startLocation,
+    destination,
+    itineraryItem,
+    currentPosition: currentLatitude && currentLongitude ? { lat: currentLatitude, lng: currentLongitude } : null
+  });
   
+  // Extract coordinates from itinerary or trip locations
   const fromCoords = itineraryItem?.fromLocation 
     ? extractCoordinates(itineraryItem.fromLocation)
-    : null;
+    : extractCoordinates(startLocation);
     
   const toCoords = itineraryItem?.toLocation 
     ? extractCoordinates(itineraryItem.toLocation)
-    : null;
+    : extractCoordinates(destination);
     
-  console.log("Map coordinates:", {fromCoords, toCoords, currentCoords: currentLatitude && currentLongitude ? {lat: currentLatitude, lng: currentLongitude} : null});
+  console.log("Extracted coordinates:", {fromCoords, toCoords});
+  
+  // If direct coordinate extraction failed, try to use city database or generate coordinates
+  const tryExtractCityCoords = (locationStr: string | null | undefined): {lat: number, lng: number} | null => {
+    if (!locationStr) return null;
+    
+    const normLocation = locationStr.toLowerCase().trim();
+    if (CITY_COORDINATES[normLocation]) {
+      const coords = CITY_COORDINATES[normLocation];
+      return { lat: coords[0], lng: coords[1] };
+    }
+    return null;
+  };
+  
+  // Handle startLocation and destination as a fallback
     
   // If no itinerary coordinates, use trip start/destination with better fallbacks
   let effectiveFromCoords = fromCoords;
@@ -854,7 +888,7 @@ export default function ActiveTripsPage() {
   const [showTrackingView, setShowTrackingView] = useState(false);
   const [showItinerarySelector, setShowItinerarySelector] = useState(false);
   const [selectedItineraryIds, setSelectedItineraryIds] = useState<number[]>([]);
-  const [selectedItineraryItems, setSelectedItineraryItems] = useState<(ItineraryItem & { isCompleted?: boolean })[]>([]);
+  const [selectedItineraryItems, setSelectedItineraryItems] = useState<ItineraryItem[]>([]);
   const [currentItineraryStep, setCurrentItineraryStep] = useState(0);
   const [isCompletingItineraryItem, setIsCompletingItineraryItem] = useState(false);
   const [showCompletionConfirmDialog, setShowCompletionConfirmDialog] = useState(false);
