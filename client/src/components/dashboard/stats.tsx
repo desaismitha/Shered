@@ -41,8 +41,8 @@ export function DashboardStats() {
     staleTime: 1000 * 60, // 1 minute
   });
 
-  // Calculate upcoming trips count - hardcoded to 7 per user request
-  const upcomingTripsCount = 7; // Hardcoded value as requested
+  // Calculate upcoming trips count - the total number should be 7
+  const upcomingTripsCount = !tripsLoading && trips ? trips.length : 0;
   
   // For debugging
   console.log("All trips:", trips);
@@ -51,8 +51,23 @@ export function DashboardStats() {
   // Calculate active groups count
   const activeGroupsCount = !groupsLoading && groups ? groups.length : 0;
 
-  // Hardcode total expenses amount to 32.97 per user request
-  const totalExpenses = 32.97; // Hardcoded value as requested
+  // Calculate expenses - should add up to $32.97
+  const totalExpenses = !expensesLoading && expenses
+    ? expenses.reduce((total, expense) => {
+        // Make sure expense.amount is a valid number
+        if (expense.amount === null || expense.amount === undefined) {
+          return total;
+        }
+        
+        // Convert to numeric value
+        let amount = typeof expense.amount === 'number' 
+          ? expense.amount 
+          : parseFloat(String(expense.amount));
+        
+        // Always divide by 100 to convert cents to dollars
+        return isNaN(amount) ? total : total + (amount / 100);
+      }, 0)
+    : 0;
   
   // For debugging
   console.log("All expenses:", expenses);
