@@ -274,6 +274,15 @@ function DirectPolylines({
     lastPosition: mapboxLeafletPositions?.length ? mapboxLeafletPositions[mapboxLeafletPositions.length - 1] : null
   });
   
+  // Debug any MapBox positions
+  if (mapboxLeafletPositions && mapboxLeafletPositions.length > 0) {
+    console.log('MapBox positions available:', mapboxLeafletPositions.length);
+    console.log('First position:', mapboxLeafletPositions[0]);
+    console.log('Last position:', mapboxLeafletPositions[mapboxLeafletPositions.length - 1]);
+  } else {
+    console.log('USING SIMPLIFIED DIRECT LINE ONLY - MapBox data not available');
+  }
+  
   // Create segments for the direct line (current position handling)
   const directLineSegments: [number, number][][] = [];
   
@@ -285,6 +294,23 @@ function DirectPolylines({
   } else {
     // No current position, just show the full direct line
     directLineSegments.push([fromCoords, toCoords]);
+  }
+  
+  // Check for valid MapBox positions
+  let validMapboxPositions: [number, number][] = [];
+  
+  if (mapboxLeafletPositions && mapboxLeafletPositions.length > 1) {
+    // Filter out any invalid positions and make sure we have proper [lat, lng] format
+    validMapboxPositions = mapboxLeafletPositions.filter(pos => {
+      return Array.isArray(pos) && 
+             pos.length === 2 && 
+             typeof pos[0] === 'number' && 
+             typeof pos[1] === 'number' &&
+             !isNaN(pos[0]) && 
+             !isNaN(pos[1]);
+    });
+    
+    console.log(`Validated ${validMapboxPositions.length}/${mapboxLeafletPositions.length} MapBox positions`);
   }
   
   return (
@@ -304,9 +330,9 @@ function DirectPolylines({
       ))}
       
       {/* Show MapBox route if available */}
-      {mapboxLeafletPositions && mapboxLeafletPositions.length > 0 ? (
+      {validMapboxPositions.length > 1 && (
         <Polyline 
-          positions={mapboxLeafletPositions}
+          positions={validMapboxPositions}
           pathOptions={{
             color: '#2563eb',  // Blue-600
             weight: 5,         // Thicker line
@@ -315,9 +341,6 @@ function DirectPolylines({
             lineJoin: 'round'  // Rounded line joints
           }}
         />
-      ) : (
-        // Show a message when MapBox data is not available
-        console.log('USING SIMPLIFIED DIRECT LINE ONLY - MapBox data not available')
       )}
       
       {/* Display current position indicator if available */}

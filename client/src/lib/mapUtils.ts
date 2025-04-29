@@ -160,15 +160,19 @@ export function useMapboxRoute(
   endCoords: { lat: number, lng: number } | null
 ) {
   // Debug: Check if Mapbox token is available
+  const [tokenAvailable, setTokenAvailable] = useState<boolean | null>(null);
+  
   useEffect(() => {
     // Check if token is available on the server side
     fetch('/api/mapbox/check-token')
       .then(response => response.json())
       .then(data => {
         console.log('[MAPBOX] Token availability:', data.available ? 'YES' : 'NO');
+        setTokenAvailable(data.available);
       })
       .catch(err => {
         console.log('[MAPBOX] Error checking token:', err);
+        setTokenAvailable(false);
       });
   }, []);
   
@@ -201,6 +205,11 @@ export function useMapboxRoute(
       return;
     }
     
+    // If token check hasn't completed yet, wait
+    if (tokenAvailable === null) {
+      return;
+    }
+    
     // Create a string representation of the coordinates to detect changes
     const coordKey = `${startCoords.lat},${startCoords.lng}|${endCoords.lat},${endCoords.lng}`;
     
@@ -217,7 +226,13 @@ export function useMapboxRoute(
     
     const fetchRoute = async () => {
       try {
-        console.log('Fetching MapBox route for coordinates:', {
+        // If token is not available, use fallback immediately
+        if (!tokenAvailable) {
+          console.log('[MAPBOX] Token not available, using fallback route');
+          throw new Error('MapBox API token not available');
+        }
+        
+        console.log('[MAPBOX] Fetching route for coordinates:', {
           start: [startCoords.lat, startCoords.lng],
           end: [endCoords.lat, endCoords.lng]
         });
