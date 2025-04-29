@@ -1310,16 +1310,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error("ERROR: Trips data doesn't have destination field:", trips);
       }
       
-      // Enhance each trip with access level information and clean location data
+      // Enhance each trip with access level information and display-friendly location data
       const tripsWithAccessLevels = trips.map(trip => {
         // If user is the creator, they're the owner, otherwise they're a member
         const isOwner = String(trip.createdBy) === String(req.user.id);
         
-        // Clean location data before sending to client
-        const cleanedTrip = cleanTripLocationData(trip);
+        // Add display-friendly location data
+        const enhancedTrip = cleanTripLocationData(trip);
         
         return {
-          ...cleanedTrip,
+          ...enhancedTrip,
           _accessLevel: isOwner ? 'owner' : 'member'
         };
       });
@@ -1371,10 +1371,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // If we have access, get the itinerary items
       const items = await storage.getItineraryItemsByTripId(tripId);
       
-      // Clean location data in itinerary items
-      const cleanedItems = items.map(item => cleanItineraryLocationData(item));
+      // Add display-friendly location data to itinerary items
+      const enhancedItems = items.map(item => cleanItineraryLocationData(item));
       
-      res.json(cleanedItems);
+      res.json(enhancedItems);
     } catch (err) {
       console.error(`Error in itinerary retrieval: ${err}`);
       next(err);
@@ -1400,9 +1400,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return; // Response already sent by checkTripAccess
       }
       
-      // If we have access, clean location data and return the item
-      const cleanedItem = cleanItineraryLocationData(item);
-      res.json(cleanedItem);
+      // If we have access, add display-friendly location data and return the item
+      const enhancedItem = cleanItineraryLocationData(item);
+      res.json(enhancedItem);
     } catch (err) {
       console.error(`Error in itinerary item retrieval: ${err}`);
       next(err);
@@ -1442,9 +1442,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ message: "Failed to update itinerary item" });
       }
       
-      // Clean location data before sending to client
-      const cleanedItem = cleanItineraryLocationData(updatedItem);
-      res.json(cleanedItem);
+      // Add display-friendly location data to the item
+      const enhancedItem = cleanItineraryLocationData(updatedItem);
+      res.json(enhancedItem);
     } catch (err) {
       console.error(`Error in itinerary item update: ${err}`);
       next(err);
