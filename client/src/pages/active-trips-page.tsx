@@ -276,7 +276,13 @@ function TripMap({
   
   // Instead of using the hook directly, let's create our own route data
   // with a simple approach that won't cause maximum update depth issues
-  const [routeData, setRouteData] = useState({
+  const [routeData, setRouteData] = useState<{
+    geometry: any;
+    duration: number;
+    distance: number;
+    loading: boolean;
+    error: string | null;
+  }>({
     geometry: null,
     duration: 0,
     distance: 0,
@@ -333,11 +339,13 @@ function TripMap({
         });
       } catch (error) {
         console.error("Error calculating route:", error);
-        setRouteData(prev => ({
-          ...prev,
+        setRouteData({
+          geometry: null,
+          duration: 0,
+          distance: 0,
           loading: false,
           error: "Failed to calculate route"
-        }));
+        });
       }
     };
     
@@ -380,9 +388,13 @@ function TripMap({
   
   // Prepare road route coordinates for rendering (if available)
   const roadRoutePositions = useMemo(() => {
-    return routeGeometry?.coordinates 
-      ? routeGeometry.coordinates.map((coord: [number, number]) => [coord[1], coord[0]] as [number, number])
-      : [];
+    if (!routeGeometry || !routeGeometry.coordinates) {
+      return [];
+    }
+    
+    // Safe type checking
+    const coordinates = routeGeometry.coordinates as Array<[number, number]>;
+    return coordinates.map(coord => [coord[1], coord[0]] as [number, number]);
   }, [routeGeometry]);
   
   // Route information panel JSX - We're now using it outside the MapContainer
