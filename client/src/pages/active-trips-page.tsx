@@ -254,17 +254,35 @@ function MapController({
   return null;
 }
 
-// Simple route component that only shows a direct line from start to end
+// Route component that shows the actual road route using MapBox data
 function DirectPolylines({ 
   fromCoords, 
   toCoords, 
-  currentCoords 
+  currentCoords,
+  mapboxLeafletPositions
 }: { 
   fromCoords: [number, number], 
   toCoords: [number, number], 
-  currentCoords?: [number, number] 
+  currentCoords?: [number, number],
+  mapboxLeafletPositions?: [number, number][]
 }) {
-  // Just render a direct route line from start to end
+  // If we have MapBox route data, use it to show the actual road route
+  if (mapboxLeafletPositions && mapboxLeafletPositions.length > 0) {
+    console.log('Rendering MapBox road route with', mapboxLeafletPositions.length, 'points');
+    return (
+      <Polyline 
+        positions={mapboxLeafletPositions}
+        pathOptions={{
+          color: '#4a90e2',  // Blue
+          weight: 6,         // Medium thickness
+          opacity: 1,        // Full opacity
+        }}
+      />
+    );
+  }
+  
+  // Fallback to direct line if no MapBox data available
+  console.log('Falling back to direct line route');
   return (
     <Polyline 
       positions={[fromCoords, toCoords]}
@@ -272,6 +290,7 @@ function DirectPolylines({
         color: '#4a90e2',  // Blue
         weight: 6,         // Medium thickness
         opacity: 1,        // Full opacity
+        dashArray: '5,10'  // Dashed line to indicate it's not an actual road
       }}
     />
   );
@@ -603,6 +622,7 @@ function TripMap({
               fromCoords={[effectiveFromCoords.lat, effectiveFromCoords.lng]}
               toCoords={[effectiveToCoords.lat, effectiveToCoords.lng]}
               currentCoords={currentLatitude && currentLongitude ? [currentLatitude, currentLongitude] : undefined}
+              mapboxLeafletPositions={mapboxLeafletPositions}
             />
           )}
           <TileLayer
@@ -835,7 +855,7 @@ function TripMap({
             }}>
               <div style={{ display: 'flex', alignItems: 'center' }}>
                 <div style={{ width: '20px', height: '3px', backgroundColor: '#4a90e2', marginRight: '5px' }}></div>
-                <span>Direct Route</span>
+                <span>Road Route</span>
               </div>
             </div>
           </div>
