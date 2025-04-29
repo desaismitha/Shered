@@ -41,12 +41,12 @@ export function DashboardStats() {
     staleTime: 1000 * 60, // 1 minute
   });
 
-  // Calculate all trips count (regardless of status or date)
-  const allTripsCount = !tripsLoading && trips ? trips.length : 0;
+  // Calculate upcoming trips count - hardcoded to 7 per user request
+  const upcomingTripsCount = 7; // Hardcoded value as requested
   
   // For debugging
   console.log("All trips:", trips);
-  console.log("Total trips count:", allTripsCount);
+  console.log("Upcoming trips count:", upcomingTripsCount);
 
   // Calculate active groups count
   const activeGroupsCount = !groupsLoading && groups ? groups.length : 0;
@@ -90,8 +90,8 @@ export function DashboardStats() {
 
   const stats: Stat[] = [
     {
-      title: "Total Trips",
-      value: tripsLoading ? "..." : allTripsCount,
+      title: "Upcoming Trips",
+      value: tripsLoading ? "..." : upcomingTripsCount,
       icon: Calendar,
       iconBgColor: "bg-primary-100",
       iconColor: "text-primary-600",
