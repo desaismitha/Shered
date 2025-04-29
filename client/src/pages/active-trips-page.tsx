@@ -341,6 +341,19 @@ function TripMap({
         return;
       }
       
+      // Check if coordinates have actually changed to prevent unnecessary updates
+      const fromLatLng = `${effectiveFromCoords.lat},${effectiveFromCoords.lng}`;
+      const toLatLng = `${effectiveToCoords.lat},${effectiveToCoords.lng}`;
+      const coordKey = `${fromLatLng}-${toLatLng}`;
+      
+      // Store current coord key on the component instance
+      const prevCoordKey = (getRouteData as any).prevCoordKey;
+      if (prevCoordKey === coordKey) {
+        // Skip calculation if coordinates haven't changed
+        return;
+      }
+      (getRouteData as any).prevCoordKey = coordKey;
+      
       setRouteData(prev => ({ ...prev, loading: true }));
       
       try {
@@ -394,7 +407,8 @@ function TripMap({
     };
     
     getRouteData();
-  }, [effectiveFromCoords, effectiveToCoords]);
+  // Use JSON.stringify for dependency comparison to avoid reference equality issues
+  }, [JSON.stringify(effectiveFromCoords), JSON.stringify(effectiveToCoords)]);
   
   // Destructure route data for easier use
   const { geometry: routeGeometry, duration, distance, loading: isRouteLoading, error: routeError } = routeData;

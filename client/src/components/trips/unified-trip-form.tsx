@@ -21,6 +21,7 @@ import { format } from "date-fns";
 import { Group } from "@shared/schema";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import MapLocationPicker from "@/components/maps/map-location-picker";
 
 // Define schema for a single stop (used in multi-stop trips)
 const stopSchema = z.object({
