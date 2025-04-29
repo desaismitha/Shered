@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DbResetButton } from "@/components/ui/db-reset-button";
+import { WebSocketIndicator } from "@/components/ui/websocket-indicator";
 
 export function Sidebar() {
   const { user, logoutMutation } = useAuth();
@@ -36,6 +37,9 @@ export function Sidebar() {
       <div className="flex items-center h-16 px-6 border-b border-neutral-200">
         <Plane className="h-5 w-5 text-primary mr-2" />
         <h1 className="text-xl font-bold text-neutral-800">TravelGroupr</h1>
+        <div className="ml-auto">
+          <WebSocketIndicator />
+        </div>
       </div>
       
       <nav className="flex-1 pt-4 pb-4 overflow-y-auto">

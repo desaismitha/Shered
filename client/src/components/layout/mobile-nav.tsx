@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DbResetButton } from "@/components/ui/db-reset-button";
+import { WebSocketIndicator } from "@/components/ui/websocket-indicator";
 
 export function MobileHeader() {
   const [isOpen, setIsOpen] = useState(false);
@@ -29,8 +30,13 @@ export function MobileHeader() {
             <h1 className="text-xl font-bold text-neutral-800">TravelGroupr</h1>
           </div>
         </div>
-        <div className="w-10 h-10 rounded-full overflow-hidden bg-neutral-200 text-neutral-500 flex items-center justify-center">
-          {user?.displayName?.[0] || user?.username?.[0] || "U"}
+        <div className="flex items-center">
+          <div className="mr-3">
+            <WebSocketIndicator />
+          </div>
+          <div className="w-10 h-10 rounded-full overflow-hidden bg-neutral-200 text-neutral-500 flex items-center justify-center">
+            {user?.displayName?.[0] || user?.username?.[0] || "U"}
+          </div>
         </div>
       </header>
 
