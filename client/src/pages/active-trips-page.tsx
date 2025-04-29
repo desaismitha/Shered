@@ -315,9 +315,40 @@ function TripMap({
   });
   
   // Prepare road route coordinates for rendering (if available)
-  const roadRoutePositions = routeGeometry?.coordinates 
-    ? routeGeometry.coordinates.map((coord: [number, number]) => [coord[1], coord[0]] as [number, number])
-    : [];
+  const roadRoutePositions = useMemo(() => {
+    return routeGeometry?.coordinates 
+      ? routeGeometry.coordinates.map((coord: [number, number]) => [coord[1], coord[0]] as [number, number])
+      : [];
+  }, [routeGeometry]);
+  
+  // Route information panel JSX
+  const routeInfoPanel = useMemo(() => {
+    return (
+      <div className="absolute top-2 right-2 bg-white p-2 rounded-md border border-gray-300 shadow-sm z-[1000] w-[180px]">
+        <div className="text-sm font-bold mb-1">Route Information</div>
+        {isRouteLoading ? (
+          <div className="text-xs text-gray-600">Loading route...</div>
+        ) : routeError ? (
+          <div className="text-xs text-red-500">Error loading route</div>
+        ) : distance > 0 && duration > 0 ? (
+          <>
+            <div className="flex items-center mb-1 text-xs">
+              <Clock size={12} className="mr-1 text-blue-500" />
+              <span>Travel Time: {formatDuration(duration)}</span>
+            </div>
+            <div className="flex items-center text-xs">
+              <Ruler size={12} className="mr-1 text-blue-500" />
+              <span>Distance: {formatDistance(distance, true)}</span>
+            </div>
+          </>
+        ) : (
+          <div className="text-xs text-gray-600">
+            Route information unavailable
+          </div>
+        )}
+      </div>
+    );
+  }, [isRouteLoading, routeError, distance, duration]);
   
   return (
     <div style={{ height, width }}>
