@@ -449,27 +449,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log('[MAPBOX] Response data:', JSON.stringify(data).substring(0, 500) + '...');
       
-      if (!data.routes || data.routes.length === 0) {
+      if (!data || typeof data !== 'object' || !Array.isArray(data.routes) || data.routes.length === 0) {
         console.warn('[MAPBOX] No routes found in response');
         return res.status(404).json({ error: "No route found" });
       }
       
+      // Get the first route safely
+      const route = data.routes[0];
+      
       // Debug route structure
       console.log('[MAPBOX] Route data structure:', {
-        hasGeometry: !!data.routes[0].geometry,
-        geometryType: data.routes[0].geometry?.type,
-        coordinatesCount: data.routes[0].geometry?.coordinates?.length,
-        hasDistance: data.routes[0].distance !== undefined,
-        hasDuration: data.routes[0].duration !== undefined
+        hasGeometry: !!(route && route.geometry),
+        geometryType: route?.geometry?.type,
+        coordinatesCount: route?.geometry?.coordinates?.length,
+        hasDistance: typeof route?.distance === 'number',
+        hasDuration: typeof route?.duration === 'number'
       });
       
       // Return only what's needed to reduce response size
       res.json({
-        routes: data.routes.map(route => ({
-          geometry: route.geometry,
-          duration: route.duration,
-          distance: route.distance,
-          steps: route.legs[0]?.steps || []
+        routes: data.routes.map((routeItem: any) => ({
+          geometry: routeItem.geometry,
+          duration: routeItem.duration,
+          distance: routeItem.distance,
+          steps: routeItem.legs && routeItem.legs[0]?.steps || []
         }))
       });
     } catch (error) {

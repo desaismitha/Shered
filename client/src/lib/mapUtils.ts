@@ -329,7 +329,7 @@ export function useMapboxRoute(
     return () => {
       isMounted = false;
     };
-  }, [startCoords, endCoords]);
+  }, [startCoords, endCoords, tokenAvailable]);
   
   return routeData;
 }
