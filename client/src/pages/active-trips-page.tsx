@@ -584,15 +584,17 @@ function TripMap({
   // Debug MapBox route data
   useEffect(() => {
     if (mapboxRouteGeometry) {
-      console.log('MapBox route geometry received with', 
+      console.log('[MAP] MapBox route geometry received with', 
         mapboxRouteGeometry.coordinates?.length || 0, 'coordinates');
       
       if (mapboxLeafletPositions?.length > 0) {
-        console.log('Pre-transformed Leaflet positions available with', 
+        console.log('[MAP] Pre-transformed Leaflet positions available with', 
           mapboxLeafletPositions.length, 'points');
+        console.log('[MAP] First point:', mapboxLeafletPositions[0]);
+        console.log('[MAP] Last point:', mapboxLeafletPositions[mapboxLeafletPositions.length - 1]);
       }
     } else {
-      console.log('No MapBox route geometry available yet');
+      console.log('[MAP] No MapBox route geometry available yet');
     }
   }, [mapboxRouteGeometry, mapboxLeafletPositions]);
   
@@ -602,24 +604,38 @@ function TripMap({
   // Check when MapBox data becomes available
   useEffect(() => {
     if (mapboxLeafletPositions && mapboxLeafletPositions.length > 0) {
-      console.log('MAPBOX ROUTE DATA READY WITH', mapboxLeafletPositions.length, 'POINTS');
+      console.log('[MAP] MAPBOX ROUTE DATA READY WITH', mapboxLeafletPositions.length, 'POINTS');
       setMapBoxRouteReady(true);
     } else {
       setMapBoxRouteReady(false);
     }
   }, [mapboxLeafletPositions]);
   
-  // Always provide a fallback simple line in case MapBox data isn't available
+  // Process MapBox data for route display
   const roadRoutePositions = useMemo(() => {
     // Check if MapBox data is available
     if (mapboxLeafletPositions && mapboxLeafletPositions.length > 0) {
-      console.log('Using MapBox route with', mapboxLeafletPositions.length, 'points');
-      return mapboxLeafletPositions;
+      console.log('[MAP] Using MapBox route with', mapboxLeafletPositions.length, 'points');
+      
+      // Ensure coordinates are in Leaflet format [lat, lng]
+      const validPositions = mapboxLeafletPositions.filter(pos => {
+        return Array.isArray(pos) && 
+               pos.length === 2 && 
+               typeof pos[0] === 'number' && 
+               typeof pos[1] === 'number' &&
+               !isNaN(pos[0]) && 
+               !isNaN(pos[1]);
+      });
+      
+      if (validPositions.length > 0) {
+        console.log('[MAP] Valid MapBox positions:', validPositions.length);
+        return validPositions;
+      }
     }
     
     // Fallback to direct line
     if (effectiveFromCoords && effectiveToCoords) {
-      console.log('USING SIMPLIFIED DIRECT LINE ONLY - MapBox data not available');
+      console.log('[MAP] USING SIMPLIFIED DIRECT LINE ONLY - MapBox data not available');
       return [
         [effectiveFromCoords.lat, effectiveFromCoords.lng],
         [effectiveToCoords.lat, effectiveToCoords.lng]

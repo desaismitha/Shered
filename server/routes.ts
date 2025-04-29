@@ -400,7 +400,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // API routes
   
-  // Mapbox API proxy to avoid CORS issues
+  // Mapbox API endpoints
+  // Check if token is available
+  app.get("/api/mapbox/check-token", (req, res) => {
+    const token = process.env.MAPBOX_ACCESS_TOKEN;
+    res.json({
+      available: !!token
+    });
+  });
+
+  // Mapbox directions API proxy to avoid CORS issues
   app.get("/api/mapbox/directions", async (req, res) => {
     try {
       // Use the environment variable for the token instead of passing it from the client
