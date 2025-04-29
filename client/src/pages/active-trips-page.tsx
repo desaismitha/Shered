@@ -33,7 +33,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Checkbox } from "@/components/ui/checkbox";
 import { useEffect, useRef, useState, useMemo } from "react";
 import { format } from "date-fns";
-import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, CircleMarker, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -270,34 +270,66 @@ function DirectPolylines({
   console.log('DirectPolylines got data:', {
     fromCoords,
     toCoords,
-    currentCoords,
     mapboxLeafletPositionsCount: mapboxLeafletPositions?.length || 0,
-    firstPosition: mapboxLeafletPositions?.[0],
     lastPosition: mapboxLeafletPositions?.length ? mapboxLeafletPositions[mapboxLeafletPositions.length - 1] : null
   });
   
-  // Always render both the MapBox route (if available) and the direct line
+  // Create segments for the direct line (current position handling)
+  const directLineSegments: [number, number][][] = [];
+  
+  // First segment: start to current position (if available)
+  if (currentCoords) {
+    directLineSegments.push([fromCoords, currentCoords]);
+    // Second segment: current position to destination (possibly traveled portion with different style)
+    directLineSegments.push([currentCoords, toCoords]);
+  } else {
+    // No current position, just show the full direct line
+    directLineSegments.push([fromCoords, toCoords]);
+  }
+  
   return (
     <>
       {/* Reference direct line */}
-      <Polyline 
-        positions={[fromCoords, toCoords]}
-        pathOptions={{
-          color: '#aaaaaa',  // Gray
-          weight: 3,         // Thin line
-          opacity: 0.5,      // Partially transparent
-          dashArray: '5,10'  // Dashed line
-        }}
-      />
+      {directLineSegments.map((segment, index) => (
+        <Polyline 
+          key={`direct-${index}`}
+          positions={segment}
+          pathOptions={{
+            color: '#aaaaaa',  // Gray
+            weight: 3,         // Thin line
+            opacity: 0.5,      // Partially transparent
+            dashArray: '5,10'  // Dashed line
+          }}
+        />
+      ))}
       
       {/* Show MapBox route if available */}
-      {mapboxLeafletPositions && mapboxLeafletPositions.length > 0 && (
+      {mapboxLeafletPositions && mapboxLeafletPositions.length > 0 ? (
         <Polyline 
           positions={mapboxLeafletPositions}
           pathOptions={{
-            color: '#4a90e2',  // Blue
-            weight: 6,         // Thicker line
-            opacity: 1,        // Full opacity
+            color: '#2563eb',  // Blue-600
+            weight: 5,         // Thicker line
+            opacity: 0.8,      // Slightly transparent
+            lineCap: 'round',  // Rounded line ends
+            lineJoin: 'round'  // Rounded line joints
+          }}
+        />
+      ) : (
+        // Show a message when MapBox data is not available
+        console.log('USING SIMPLIFIED DIRECT LINE ONLY - MapBox data not available')
+      )}
+      
+      {/* Display current position indicator if available */}
+      {currentCoords && (
+        <CircleMarker
+          center={currentCoords}
+          radius={6}
+          pathOptions={{
+            color: '#2563eb',  // Blue-600 (matching the route color)
+            weight: 2,
+            fillColor: '#60a5fa', // Blue-400 (lighter fill)
+            fillOpacity: 0.8
           }}
         />
       )}
@@ -869,24 +901,39 @@ function TripMap({
           {/* Map Legend */}
           <div className="leaflet-bottom leaflet-left" style={{
             backgroundColor: 'white',
-            padding: '8px',
+            padding: '10px',
             margin: '10px',
-            borderRadius: '4px',
-            border: '1px solid #ccc',
-            boxShadow: '0 1px 5px rgba(0,0,0,0.2)',
+            borderRadius: '6px',
+            border: '1px solid #ddd',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
             zIndex: 1000
           }}>
             <div className="leaflet-control" style={{
               fontSize: '12px',
-              lineHeight: '18px'
+              lineHeight: '20px'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', marginBottom: '4px' }}>
-                <div style={{ width: '20px', height: '3px', backgroundColor: '#4a90e2', marginRight: '5px' }}></div>
+              <div style={{ fontWeight: 600, marginBottom: '5px' }}>Map Legend</div>
+              <div style={{ display: 'flex', alignItems: 'center', marginBottom: '6px' }}>
+                <div style={{ width: '20px', height: '4px', backgroundColor: '#2563eb', marginRight: '8px', borderRadius: '2px' }}></div>
                 <span>Road Route</span>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                <div style={{ width: '20px', height: '3px', backgroundColor: '#aaaaaa', marginRight: '5px', borderTop: '1px dashed #999' }}></div>
+              <div style={{ display: 'flex', alignItems: 'center', marginBottom: '6px' }}>
+                <div style={{ width: '20px', height: '3px', backgroundColor: '#aaaaaa', marginRight: '8px', borderStyle: 'dashed', borderWidth: '0 0 1px 0' }}></div>
                 <span>Direct Line</span>
+              </div>
+              {currentLatitude && currentLongitude && (
+                <div style={{ display: 'flex', alignItems: 'center', marginBottom: '6px' }}>
+                  <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#60a5fa', border: '2px solid #2563eb', marginRight: '8px' }}></div>
+                  <span>Current Position</span>
+                </div>
+              )}
+              <div style={{ display: 'flex', alignItems: 'center', marginBottom: '6px' }}>
+                <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: 'white', border: '2px solid green', marginRight: '8px' }}></div>
+                <span>Start Location</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: 'white', border: '2px solid red', marginRight: '8px' }}></div>
+                <span>Destination</span>
               </div>
             </div>
           </div>
