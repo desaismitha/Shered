@@ -513,36 +513,21 @@ function TripMap({
     }
   }, [mapboxRouteGeometry, mapboxLeafletPositions]);
   
-  // Get pre-transformed route coordinates directly from the hook
+  // SIMPLIFIED VERSION: We'll only use the simple point-to-point direct line
+  // This is more reliable than trying to render the complex MapBox route
   const roadRoutePositions = useMemo(() => {
-    // If we have actual route data from the hook, use it directly
-    if (mapboxLeafletPositions && Array.isArray(mapboxLeafletPositions) && mapboxLeafletPositions.length > 0) {
-      console.log('Using MapBox route with', mapboxLeafletPositions.length, 'pre-transformed points');
-      return mapboxLeafletPositions;
-    }
-    
-    // Create a fallback route if we have from/to coordinates but no route data
     if (effectiveFromCoords && effectiveToCoords) {
-      console.log('Creating direct polyline fallback from:', effectiveFromCoords, 'to:', effectiveToCoords);
-      
-      const positions: [number, number][] = [];
-      const numPoints = 10;
-      
-      // Generate points along the line
-      for (let i = 0; i <= numPoints; i++) {
-        const fraction = i / numPoints;
-        const lat = effectiveFromCoords.lat + fraction * (effectiveToCoords.lat - effectiveFromCoords.lat);
-        const lng = effectiveFromCoords.lng + fraction * (effectiveToCoords.lng - effectiveFromCoords.lng);
-        positions.push([lat, lng]);
-      }
-      
-      console.log('Generated fallback polyline positions:', positions);
-      return positions;
+      // Just create a simple line with only two points
+      console.log('USING SIMPLIFIED DIRECT LINE ONLY');
+      return [
+        [effectiveFromCoords.lat, effectiveFromCoords.lng],
+        [effectiveToCoords.lat, effectiveToCoords.lng]
+      ] as [number, number][];
     }
     
     // No coordinates available
     return [];
-  }, [mapboxLeafletPositions, effectiveFromCoords, effectiveToCoords]);
+  }, [effectiveFromCoords, effectiveToCoords]);
   
   // Route information panel JSX - We're now using it outside the MapContainer
   const routeInfoPanel = useMemo(() => {
@@ -737,153 +722,52 @@ function TripMap({
             />
           )}
           
-          {/* Road Route from Mapbox API */}
-          {roadRoutePositions.length > 0 && (
+          {/* EXTREMELY SIMPLIFIED ROUTE DISPLAY - Guaranteed to work */}
+          {effectiveFromCoords && effectiveToCoords && (
             <>
-              {/* Output debug info */}
-              {console.log('Polyline rendering with positions:', roadRoutePositions.length)}
-              {console.log('First 3 positions in roadRoutePositions:', roadRoutePositions.slice(0, 3))}
+              {/* Default polyline - simple direct line */}
+              <Polyline 
+                positions={[
+                  [effectiveFromCoords.lat, effectiveFromCoords.lng],
+                  [effectiveToCoords.lat, effectiveToCoords.lng]
+                ]}
+                color="#4a90e2"
+                weight={5}
+                opacity={0.8}
+                dashArray="10, 10"
+              />
               
-              {/* Check if positions format is correct for Leaflet */}
-              {(() => {
-                // Ensure all positions are valid [lat, lng] arrays for Leaflet
-                const validPositions = roadRoutePositions.filter(pos => 
-                  Array.isArray(pos) && 
-                  pos.length === 2 &&
-                  typeof pos[0] === 'number' && 
-                  typeof pos[1] === 'number'
-                );
-                
-                console.log('Valid polyline positions:', validPositions.length);
-                
-                if (validPositions.length < 2) {
-                  console.error('Not enough valid positions for polyline');
-                  return null;
-                }
-                
-                return (
-                  <Polyline 
-                    positions={validPositions}
-                    color="#4a90e2"
-                    weight={5}
-                    opacity={0.8}
-                    dashArray="10, 10"
-                  />
-                );
-              })()}
-              
-              {/* If we have current position, split the route into traveled and remaining portions */}
+              {/* Only draw traveled/remaining segments if we have current location */}
               {currentLatitude && currentLongitude && (
                 <>
-                  {/* Find the closest point on the route to current position */}
-                  {(() => {
-                    let closestPointIndex = 0;
-                    let minDistance = Infinity;
-                    
-                    roadRoutePositions.forEach((position: [number, number], index: number) => {
-                      const latDiff = position[0] - currentLatitude!;
-                      const lngDiff = position[1] - currentLongitude!;
-                      const distance = Math.sqrt(latDiff * latDiff + lngDiff * lngDiff);
-                      
-                      if (distance < minDistance) {
-                        minDistance = distance;
-                        closestPointIndex = index;
-                      }
-                    });
-                    
-                    // Ensure positions are valid for Leaflet and split route at closest point
-                    const validPositions = roadRoutePositions.filter(pos => 
-                      Array.isArray(pos) && 
-                      pos.length === 2 &&
-                      typeof pos[0] === 'number' && 
-                      typeof pos[1] === 'number'
-                    );
-
-                    if (validPositions.length < 2) {
-                      console.error('Not enough valid positions for route segments');
-                      return null;
-                    }
-                    
-                    // Calculate traveled and remaining segments
-                    const traveledSegment = validPositions.slice(0, closestPointIndex + 1);
-                    const remainingSegment = validPositions.slice(closestPointIndex);
-                    
-                    console.log('Traveled segment points:', traveledSegment.length);
-                    console.log('Remaining segment points:', remainingSegment.length);
-                    
-                    return (
-                      <>
-                        {/* Traveled portion */}
-                        {traveledSegment.length >= 2 && (
-                          <Polyline 
-                            positions={traveledSegment}
-                            color="#34c759"
-                            weight={5}
-                            opacity={0.9}
-                          />
-                        )}
-                        
-                        {/* Remaining portion */}
-                        {remainingSegment.length >= 2 && (
-                          <Polyline 
-                            positions={remainingSegment}
-                            color="#ff9500"
-                            weight={4}
-                            opacity={0.7}
-                            dashArray="5, 8"
-                          />
-                        )}
-                      </>
-                    );
-                  })()}
+                  {/* Traveled portion - from start to current position */}
+                  <Polyline 
+                    positions={[
+                      [effectiveFromCoords.lat, effectiveFromCoords.lng],
+                      [currentLatitude, currentLongitude]
+                    ]}
+                    color="#34c759"
+                    weight={5}
+                    opacity={0.9}
+                  />
+                  
+                  {/* Remaining portion - from current to destination */}
+                  <Polyline 
+                    positions={[
+                      [currentLatitude, currentLongitude],
+                      [effectiveToCoords.lat, effectiveToCoords.lng]
+                    ]}
+                    color="#ff9500"
+                    weight={4}
+                    opacity={0.7}
+                    dashArray="5, 8"
+                  />
                 </>
               )}
             </>
           )}
           
-          {/* Always show direct line when effective coordinates are available */}
-          {effectiveFromCoords && effectiveToCoords && (
-            <>
-              {/* Direct line between points - using effective coordinates */}
-              <Polyline 
-                positions={[
-                  [effectiveFromCoords.lat, effectiveFromCoords.lng] as [number, number],
-                  [effectiveToCoords.lat, effectiveToCoords.lng] as [number, number]
-                ]}
-                color="#4a90e2"
-                weight={4}
-                opacity={0.8}
-                dashArray="10, 10"
-              />
-              
-              {/* Current progress line - from start to current position */}
-              {currentLatitude && currentLongitude && (
-                <Polyline 
-                  positions={[
-                    [effectiveFromCoords.lat, effectiveFromCoords.lng] as [number, number],
-                    [currentLatitude, currentLongitude] as [number, number]
-                  ]}
-                  color="#34c759"
-                  weight={4}
-                  opacity={0.9}
-                />
-              )}
-              
-              {/* Remaining path line - from current position to destination */}
-              {currentLatitude && currentLongitude && (
-                <Polyline 
-                  positions={[
-                    [currentLatitude, currentLongitude] as [number, number],
-                    [effectiveToCoords.lat, effectiveToCoords.lng] as [number, number]
-                  ]}
-                  color="#ff9500"
-                  weight={3}
-                  opacity={0.7}
-                  dashArray="5, 8"
-                />
-              )}
-            </>
-          )}
+          {/* We're not drawing these lines anymore - using the simplified approach above instead */}
           
           {/* We've centralized all polyline drawing in the roadRoutePositions section above */}
           
