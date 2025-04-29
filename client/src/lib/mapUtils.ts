@@ -10,6 +10,7 @@ import { useEffect, useState } from 'react';
  */
 // Fallback token for development purposes only
 // In production, this should be removed and proper environment variables used
+// Fallback token that should work for basic routes
 const HARDCODED_MAPBOX_TOKEN = 'pk.eyJ1Ijoic21pdGhhZGVzYWk5IiwiYSI6ImNsZ2M3dzlsZzAyMnMzZXAyeHRjcjRuYzAifQ.AXK4DhZyv1zL1UJ3WxSf1w';
 
 export async function fetchMapboxRoute(startLat: number, startLng: number, endLat: number, endLng: number) {
@@ -61,10 +62,13 @@ export function useMapboxRoute(
 ) {
   // Debug: Check if Mapbox token is available
   useEffect(() => {
-    if (!import.meta.env.VITE_MAPBOX_ACCESS_TOKEN) {
-      console.warn('Mapbox token not available in environment');
+    const envToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
+    const fallbackToken = HARDCODED_MAPBOX_TOKEN;
+    
+    if (!envToken) {
+      console.log('Using fallback Mapbox token:', fallbackToken ? 'Available' : 'Not available');
     } else {
-      console.log('Mapbox token is available');
+      console.log('Using environment Mapbox token');
     }
   }, []);
   const [routeData, setRouteData] = useState<{
