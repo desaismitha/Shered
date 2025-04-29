@@ -289,7 +289,8 @@ function DirectPolylines({
       
     if (!mapboxLeafletPositions || mapboxLeafletPositions.length < 2) {
       console.log('[ROUTE DEBUG] No valid MapBox route data available, using direct line only');
-      setValidMapboxPositions([]);
+      // Use the direct line as fallback
+      setValidMapboxPositions([fromCoords, toCoords]);
       return;
     }
     
@@ -316,17 +317,35 @@ function DirectPolylines({
     
     console.log(`[ROUTE DEBUG] Validated ${filtered.length}/${mapboxLeafletPositions.length} MapBox positions`);
     
-    if (filtered.length >= 2) {
-      console.log('[ROUTE DEBUG] Using MapBox route with', filtered.length, 'points');
+    // Try to detect the MapBox route type based on number of points
+    if (filtered.length > 10) {
+      // This is likely the full road route from MapBox
+      console.log('[ROUTE DEBUG] Using full MapBox road route with', filtered.length, 'points');
       console.log('[ROUTE DEBUG] First position:', filtered[0]);
       console.log('[ROUTE DEBUG] Last position:', filtered[filtered.length - 1]);
       setValidMapboxPositions(filtered);
-      
-      // Force a fallback line if needed
-      if (filtered.length < 3) {
-        console.log('[ROUTE DEBUG] Only start/end points found, adding fallback direct line');
-        // Just to be safe, always ensure at least the start and end are connected
-        setValidMapboxPositions([fromCoords, toCoords]);
+    } else if (filtered.length >= 2) {
+      // Only have start/end or very few points
+      console.log('[ROUTE DEBUG] Limited MapBox route points:', filtered.length);
+      if (filtered.length === 2) {
+        // Compare with the from/to coords to see if they match
+        const firstMapbox = filtered[0];
+        const lastMapbox = filtered[1];
+        const fromMatch = Math.abs(firstMapbox[0] - fromCoords[0]) < 0.01 && 
+                        Math.abs(firstMapbox[1] - fromCoords[1]) < 0.01;
+        const toMatch = Math.abs(lastMapbox[0] - toCoords[0]) < 0.01 && 
+                      Math.abs(lastMapbox[1] - toCoords[1]) < 0.01;
+                      
+        if (fromMatch && toMatch) {
+          console.log('[ROUTE DEBUG] MapBox only provided start/end points, adding direct line');
+          setValidMapboxPositions([fromCoords, toCoords]);
+        } else {
+          console.log('[ROUTE DEBUG] Using limited MapBox route');
+          setValidMapboxPositions(filtered);
+        }
+      } else {
+        console.log('[ROUTE DEBUG] Using limited MapBox route points');
+        setValidMapboxPositions(filtered);
       }
     } else {
       console.log('[ROUTE DEBUG] Not enough valid points for MapBox route, using direct line');
@@ -685,6 +704,51 @@ function TripMap({
     leafletPositions: mapboxLeafletPositions 
   } = mapboxRouteData;
   
+  // Make a manual request to get full route data and use it for display
+  const [manualRouteData, setManualRouteData] = useState<[number, number][]>([]);
+  
+  useEffect(() => {
+    if (effectiveFromCoords && effectiveToCoords) {
+      const fetchFullRoute = async () => {
+        try {
+          console.log('[DEBUG] Making direct test request to MapBox API');
+          const startCoord = `${effectiveFromCoords.lng},${effectiveFromCoords.lat}`;
+          const endCoord = `${effectiveToCoords.lng},${effectiveToCoords.lat}`;
+          const response = await fetch(`/api/mapbox/directions?start=${startCoord}&end=${endCoord}`);
+          const data = await response.json();
+          
+          if (data.routes && data.routes.length > 0 && data.routes[0].geometry && 
+              data.routes[0].geometry.coordinates && 
+              data.routes[0].geometry.coordinates.length > 0) {
+            
+            console.log('[DEBUG] Successfully got route data with', 
+              data.routes[0].geometry.coordinates.length, 'coordinates');
+              
+            // Convert from MapBox format [lng, lat] to Leaflet format [lat, lng]
+            const leafletPoints = data.routes[0].geometry.coordinates.map(coord => {
+              if (Array.isArray(coord) && coord.length >= 2) {
+                return [coord[1], coord[0]] as [number, number];
+              }
+              return null;
+            }).filter(Boolean) as [number, number][];
+            
+            console.log('[DEBUG] Converted to', leafletPoints.length, 'leaflet points');
+            if (leafletPoints.length > 2) {
+              // Only update if we got more than just start/end points
+              setManualRouteData(leafletPoints);
+            }
+          } else {
+            console.log('[DEBUG] No route coordinates found in response');
+          }
+        } catch (err) {
+          console.error('[DEBUG] Error making test request:', err);
+        }
+      };
+      
+      fetchFullRoute();
+    }
+  }, [effectiveFromCoords, effectiveToCoords]);
+  
   // Debug MapBox route data
   useEffect(() => {
     if (mapboxRouteGeometry) {
@@ -808,6 +872,20 @@ function TripMap({
               toCoords={[effectiveToCoords.lat, effectiveToCoords.lng]}
               currentCoords={currentLatitude && currentLongitude ? [currentLatitude, currentLongitude] : undefined}
               mapboxLeafletPositions={mapboxLeafletPositions}
+            />
+          )}
+          
+          {/* Show the actual road route from our direct test fetch */}
+          {manualRouteData.length > 2 && (
+            <Polyline 
+              positions={manualRouteData}
+              pathOptions={{
+                color: '#2563eb',  // Blue-600
+                weight: 5,         // Thicker line
+                opacity: 0.8,      // Slightly transparent
+                lineCap: 'round',  // Rounded line ends
+                lineJoin: 'round'  // Rounded line joints
+              }}
             />
           )}
           <TileLayer

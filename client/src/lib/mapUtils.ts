@@ -291,6 +291,9 @@ export function useMapboxRoute(
           throw new Error('No valid coordinates in MapBox response');
         }
         
+        console.log('[MAPBOX] Received', coordinates.length, 'coordinates in route');
+        console.log('[MAPBOX] First few coordinates:', coordinates.slice(0, 3));
+        
         // Convert from MapBox format [lng, lat] to Leaflet format [lat, lng]
         // and ensure each point is properly formatted
         const leafletPositions: [number, number][] = [];
@@ -303,6 +306,12 @@ export function useMapboxRoute(
             // MapBox returns [lng, lat], Leaflet needs [lat, lng]
             leafletPositions.push([coord[1], coord[0]]);
           }
+        }
+        
+        console.log('[MAPBOX] Converted to', leafletPositions.length, 'Leaflet positions');
+        if (leafletPositions.length > 0) {
+          console.log('[MAPBOX] First position:', leafletPositions[0]);
+          console.log('[MAPBOX] Last position:', leafletPositions[leafletPositions.length - 1]);
         }
         
         // Ensure we have enough valid points (at least start and end)
