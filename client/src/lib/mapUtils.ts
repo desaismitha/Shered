@@ -202,11 +202,13 @@ export function useMapboxRoute(
     
     // Only fetch if we have both coordinates
     if (!startCoords || !endCoords) {
+      console.log('[MAPBOX] Missing coordinates, cannot fetch route');
       return;
     }
     
     // If token check hasn't completed yet, wait
     if (tokenAvailable === null) {
+      console.log('[MAPBOX] Token availability not yet checked');
       return;
     }
     
@@ -215,6 +217,7 @@ export function useMapboxRoute(
     
     // If we've already requested this exact route, don't request again
     if (requestedForRef.current === coordKey) {
+      console.log('[MAPBOX] Already requested this route, using cached data');
       return;
     }
     
@@ -223,6 +226,18 @@ export function useMapboxRoute(
     
     // Set the loading state immediately
     setRouteData(prev => ({ ...prev, loading: true, error: null }));
+    
+    // Add immediate fallback with direct line
+    const directLine: [number, number][] = [
+      [startCoords.lat, startCoords.lng],
+      [endCoords.lat, endCoords.lng]
+    ];
+    
+    // This ensures we always have at least a direct line
+    setRouteData(prev => ({
+      ...prev,
+      leafletPositions: directLine
+    }));
     
     const fetchRoute = async () => {
       try {

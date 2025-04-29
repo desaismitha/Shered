@@ -321,11 +321,19 @@ function DirectPolylines({
       console.log('[ROUTE DEBUG] First position:', filtered[0]);
       console.log('[ROUTE DEBUG] Last position:', filtered[filtered.length - 1]);
       setValidMapboxPositions(filtered);
+      
+      // Force a fallback line if needed
+      if (filtered.length < 3) {
+        console.log('[ROUTE DEBUG] Only start/end points found, adding fallback direct line');
+        // Just to be safe, always ensure at least the start and end are connected
+        setValidMapboxPositions([fromCoords, toCoords]);
+      }
     } else {
       console.log('[ROUTE DEBUG] Not enough valid points for MapBox route, using direct line');
-      setValidMapboxPositions([]);
+      // Add direct line as fallback
+      setValidMapboxPositions([fromCoords, toCoords]);
     }
-  }, [mapboxLeafletPositions]);
+  }, [mapboxLeafletPositions, fromCoords, toCoords]);
   
   return (
     <>
