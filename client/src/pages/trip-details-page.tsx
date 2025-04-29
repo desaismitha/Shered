@@ -6,7 +6,23 @@ import { useParams, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { format, addDays } from "date-fns";
-import { isSpecialDateMarker, formatDateRange, cn, normalizeDate } from "@/lib/utils";
+import { isSpecialDateMarker, formatDateRange, cn, normalizeDate, extractCoordinates } from "@/lib/utils";
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMapEvents, CircleMarker } from "react-leaflet";
+import * as L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import { useMapboxRoute, formatDistance, formatDuration } from "@/lib/mapUtils";
+import { CITY_COORDINATES, getDefaultCoordinatesForLocation } from "@/data/cities";
+
+// This component fixes the broken map icons in React Leaflet
+const DefaultMarkerIcon = L.icon({
+  iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+});
+
+L.Marker.prototype.options.icon = DefaultMarkerIcon;
 import { 
   AlertTriangle, Calendar as CalendarIcon, CalendarRange, MapPin, Users, PlusIcon, PencilIcon, 
   DollarSign, ClipboardList, Info, ArrowLeft, Car, UserCheck, ArrowRight,
