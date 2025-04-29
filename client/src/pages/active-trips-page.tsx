@@ -486,65 +486,42 @@ function TripMap({
   });
   
   // Use the MapBox Directions API for route data
+  const mapboxRouteData = useMapboxRoute(effectiveFromCoords, effectiveToCoords);
+  
+  // Destructure the data for easier reference
   const { 
     geometry: mapboxRouteGeometry, 
     duration: mapboxDuration, 
     distance: mapboxDistance, 
     loading: isMapboxRouteLoading, 
-    error: mapboxRouteError 
-  } = useMapboxRoute(effectiveFromCoords, effectiveToCoords);
+    error: mapboxRouteError,
+    leafletPositions: mapboxLeafletPositions 
+  } = mapboxRouteData;
   
   // Debug MapBox route data
   useEffect(() => {
     if (mapboxRouteGeometry) {
       console.log('MapBox route geometry received with', 
         mapboxRouteGeometry.coordinates?.length || 0, 'coordinates');
+      
+      if (mapboxLeafletPositions?.length > 0) {
+        console.log('Pre-transformed Leaflet positions available with', 
+          mapboxLeafletPositions.length, 'points');
+      }
     } else {
       console.log('No MapBox route geometry available yet');
     }
-  }, [mapboxRouteGeometry]);
+  }, [mapboxRouteGeometry, mapboxLeafletPositions]);
   
-  // Prepare road route coordinates for rendering (if available)
+  // Get pre-transformed route coordinates directly from the hook
   const roadRoutePositions = useMemo(() => {
-    // First priority: Use the MapBox route geometry if available
-    if (mapboxRouteGeometry && mapboxRouteGeometry.coordinates && Array.isArray(mapboxRouteGeometry.coordinates)) {
-      console.log('Using MapBox route geometry with', mapboxRouteGeometry.coordinates.length, 'points');
-      console.log('MapBox coordinates sample:', mapboxRouteGeometry.coordinates.slice(0, 3));
-      
-      try {
-        // CRITICAL: MapBox returns coordinates as [longitude, latitude], but Leaflet needs [latitude, longitude]
-        if (mapboxRouteGeometry.coordinates.length > 0) {
-          // Transform the coordinates for Leaflet
-          const transformedCoords = mapboxRouteGeometry.coordinates.map(coord => {
-            // Ensure array with two numbers - [lng, lat] -> [lat, lng]
-            if (Array.isArray(coord) && coord.length === 2 && 
-                typeof coord[0] === 'number' && typeof coord[1] === 'number') {
-              return [coord[1], coord[0]] as [number, number]; // Swap [lng, lat] to [lat, lng]
-            } else {
-              console.error('Invalid coordinate format:', coord);
-              return null; // Skip invalid coordinates
-            }
-          }).filter(Boolean) as [number, number][];
-          
-          console.log('Transformed MapBox coordinates for Leaflet (first 3):', transformedCoords.slice(0, 3));
-          
-          // Safety check: Make sure we have at least 2 valid coordinates
-          if (transformedCoords.length >= 2) {
-            return transformedCoords;
-          } else {
-            console.warn('Not enough valid coordinates in the MapBox route data, using fallback');
-          }
-        } else {
-          console.warn('MapBox route has zero coordinates, using fallback');
-        }
-      } catch (error) {
-        console.error('Error transforming MapBox coordinates:', error);
-      }
-    } else {
-      console.log('No valid MapBox route geometry available, using fallback');
+    // If we have actual route data from the hook, use it directly
+    if (mapboxLeafletPositions && Array.isArray(mapboxLeafletPositions) && mapboxLeafletPositions.length > 0) {
+      console.log('Using MapBox route with', mapboxLeafletPositions.length, 'pre-transformed points');
+      return mapboxLeafletPositions;
     }
     
-    // Fallback: Create a direct polyline if we have from and to coordinates
+    // Create a fallback route if we have from/to coordinates but no route data
     if (effectiveFromCoords && effectiveToCoords) {
       console.log('Creating direct polyline fallback from:', effectiveFromCoords, 'to:', effectiveToCoords);
       
@@ -563,8 +540,9 @@ function TripMap({
       return positions;
     }
     
+    // No coordinates available
     return [];
-  }, [effectiveFromCoords, effectiveToCoords, mapboxRouteGeometry]);
+  }, [mapboxLeafletPositions, effectiveFromCoords, effectiveToCoords]);
   
   // Route information panel JSX - We're now using it outside the MapContainer
   const routeInfoPanel = useMemo(() => {
