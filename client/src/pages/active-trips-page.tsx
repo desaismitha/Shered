@@ -1391,7 +1391,7 @@ export default function ActiveTripsPage() {
                             <div className="mt-1 text-sm flex items-center">
                               <span className="text-muted-foreground mr-1">Itinerary route:</span>
                               <span className="font-medium">
-                                {selectedItineraryItems[currentItineraryStep].fromLocation || "Start"} → {selectedItineraryItems[currentItineraryStep].toLocation || "End"}
+                                {selectedItineraryItems[currentItineraryStep].fromLocationDisplay || cleanLocationString(selectedItineraryItems[currentItineraryStep].fromLocation) || "Start"} → {selectedItineraryItems[currentItineraryStep].toLocationDisplay || cleanLocationString(selectedItineraryItems[currentItineraryStep].toLocation) || "End"}
                               </span>
                             </div>
                           </div>
@@ -1409,8 +1409,9 @@ export default function ActiveTripsPage() {
                               <h3 className="text-sm font-medium text-green-800 mb-1">Start Location</h3>
                               <p className="text-md font-medium flex items-center">
                                 <MapPin className="h-4 w-4 text-green-600 mr-1" />
-                                {selectedItineraryItems[currentItineraryStep].fromLocation || 
-                                 selectedItineraryItems[currentItineraryStep].location || 'Not specified'}
+                                {selectedItineraryItems[currentItineraryStep].fromLocationDisplay || 
+                                 cleanLocationString(selectedItineraryItems[currentItineraryStep].fromLocation) || 
+                                 cleanLocationString(selectedItineraryItems[currentItineraryStep].location) || 'Not specified'}
                               </p>
                             </div>
                           )}
@@ -1420,7 +1421,7 @@ export default function ActiveTripsPage() {
                               <h3 className="text-sm font-medium text-red-800 mb-1">End Location</h3>
                               <p className="text-md font-medium flex items-center">
                                 <MapPin className="h-4 w-4 text-red-600 mr-1" />
-                                {selectedItineraryItems[currentItineraryStep].toLocation || 'Not specified'}
+                                {selectedItineraryItems[currentItineraryStep].toLocationDisplay || cleanLocationString(selectedItineraryItems[currentItineraryStep].toLocation) || 'Not specified'}
                               </p>
                             </div>
                           )}
@@ -1483,7 +1484,7 @@ export default function ActiveTripsPage() {
                 <CardTitle>Trip Map</CardTitle>
                 {selectedItineraryItems.length > 0 && currentItineraryStep < selectedItineraryItems.length ? (
                   <CardDescription>
-                    Showing route from {cleanLocationString(selectedItineraryItems[currentItineraryStep].fromLocation) || "Starting Point"} to {cleanLocationString(selectedItineraryItems[currentItineraryStep].toLocation) || "Destination"}
+                    Showing route from {selectedItineraryItems[currentItineraryStep].fromLocationDisplay || cleanLocationString(selectedItineraryItems[currentItineraryStep].fromLocation) || "Starting Point"} to {selectedItineraryItems[currentItineraryStep].toLocationDisplay || cleanLocationString(selectedItineraryItems[currentItineraryStep].toLocation) || "Destination"}
                   </CardDescription>
                 ) : (
                   <CardDescription>
@@ -1574,7 +1575,9 @@ export default function ActiveTripsPage() {
                             {selectedItineraryItems[currentItineraryStep].fromLocation && selectedItineraryItems[currentItineraryStep].toLocation && (
                               <div className="sm:col-span-2">
                                 <span className="text-neutral-500">Travel: </span>
-                                <span className="font-medium">{cleanLocationString(selectedItineraryItems[currentItineraryStep].fromLocation)} to {cleanLocationString(selectedItineraryItems[currentItineraryStep].toLocation)}</span>
+                                <span className="font-medium">
+                                  {selectedItineraryItems[currentItineraryStep].fromLocationDisplay || cleanLocationString(selectedItineraryItems[currentItineraryStep].fromLocation)} to {selectedItineraryItems[currentItineraryStep].toLocationDisplay || cleanLocationString(selectedItineraryItems[currentItineraryStep].toLocation)}
+                                </span>
                               </div>
                             )}
                           </div>
@@ -1731,13 +1734,13 @@ export default function ActiveTripsPage() {
                         {trip.startLocation && (
                           <p className="flex items-center mt-2">
                             <span className="font-medium mr-2">From:</span>
-                            <span className="text-neutral-800">{cleanLocationString(trip.startLocation)}</span>
+                            <span className="text-neutral-800">{trip.startLocationDisplay || cleanLocationString(trip.startLocation)}</span>
                           </p>
                         )}
                         {trip.destination && (
                           <p className="flex items-center mt-2">
                             <span className="font-medium mr-2">To:</span>
-                            <span className="text-neutral-800">{cleanLocationString(trip.destination)}</span>
+                            <span className="text-neutral-800">{trip.destinationDisplay || cleanLocationString(trip.destination)}</span>
                           </p>
                         )}
                         {trip.currentLatitude && trip.currentLongitude && (
@@ -1919,7 +1922,11 @@ export default function ActiveTripsPage() {
                                 {item.title}
                               </label>
                               <p className="text-sm text-muted-foreground">
-                                Day {item.day} - {item.location ? cleanLocationString(item.location) : (item.fromLocation && item.toLocation ? `${cleanLocationString(item.fromLocation)} to ${cleanLocationString(item.toLocation)}` : 'No location specified')}
+                                Day {item.day} - {item.location ? 
+                                  (item.locationDisplay || cleanLocationString(item.location)) : 
+                                  (item.fromLocation && item.toLocation ? 
+                                    `${item.fromLocationDisplay || cleanLocationString(item.fromLocation)} to ${item.toLocationDisplay || cleanLocationString(item.toLocation)}` : 
+                                    'No location specified')}
                               </p>
                             </div>
                           </div>
