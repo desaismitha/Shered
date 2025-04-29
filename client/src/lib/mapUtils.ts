@@ -56,11 +56,9 @@ function createStraightLineRoute(startLat: number, startLng: number, endLat: num
 
 export async function fetchMapboxRoute(startLat: number, startLng: number, endLat: number, endLng: number) {
   try {
-    // Try to use environment variable first, fall back to hardcoded token if not available
-    const accessToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || HARDCODED_MAPBOX_TOKEN;
-    
-    if (!accessToken) {
-      console.log('Mapbox access token is missing. Using straight line route as fallback.');
+    // Validate input coordinates
+    if (!isValidCoordinate(startLat, startLng) || !isValidCoordinate(endLat, endLng)) {
+      console.warn('Invalid coordinates provided to fetchMapboxRoute. Using straight line as fallback.');
       return createStraightLineRoute(startLat, startLng, endLat, endLng);
     }
     
@@ -68,31 +66,55 @@ export async function fetchMapboxRoute(startLat: number, startLng: number, endLa
     const startCoords = `${startLng},${startLat}`;
     const endCoords = `${endLng},${endLat}`;
     
+    console.log(`Fetching route from [${startLat}, ${startLng}] to [${endLat}, ${endLng}]`);
+    
     // Use server proxy to avoid CORS issues
-    const response = await fetch(
-      `/api/mapbox/directions?start=${startCoords}&end=${endCoords}&token=${accessToken}`
-    );
+    // We no longer need to send the token - it's stored securely on the server
+    const response = await fetch(`/api/mapbox/directions?start=${startCoords}&end=${endCoords}`);
+    
+    if (!response.ok) {
+      console.warn(`Mapbox API returned ${response.status} ${response.statusText}. Using straight line route as fallback.`);
+      return createStraightLineRoute(startLat, startLng, endLat, endLng);
+    }
     
     const data = await response.json();
     
     // Check if the response contains a valid route
     if (data.routes && data.routes.length > 0) {
+      console.log('Successfully fetched route from Mapbox API');
       return {
         route: data.routes[0].geometry,
         duration: data.routes[0].duration, // in seconds
         distance: data.routes[0].distance, // in meters
+        steps: data.routes[0].steps || [] // Step-by-step instructions if available
       };
     } else if (data.message && data.message.includes("Not Authorized")) {
-      console.log('Mapbox API token is invalid. Using straight line route as fallback.');
+      console.warn('Mapbox API token is invalid. Using straight line route as fallback.');
       return createStraightLineRoute(startLat, startLng, endLat, endLng);
     } else {
-      console.log('No route found from Mapbox. Using straight line route as fallback.');
+      console.warn('No route found from Mapbox. Using straight line route as fallback.');
       return createStraightLineRoute(startLat, startLng, endLat, endLng);
     }
   } catch (error) {
     console.error('Error fetching route, using fallback:', error);
     return createStraightLineRoute(startLat, startLng, endLat, endLng);
   }
+}
+
+/**
+ * Check if a coordinate is valid (not NaN, null, undefined, or out of range)
+ */
+function isValidCoordinate(lat: number, lng: number): boolean {
+  return (
+    lat !== null && 
+    lng !== null && 
+    !isNaN(lat) && 
+    !isNaN(lng) && 
+    lat >= -90 && 
+    lat <= 90 && 
+    lng >= -180 && 
+    lng <= 180
+  );
 }
 
 /**

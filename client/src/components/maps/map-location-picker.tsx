@@ -18,7 +18,9 @@ async function reverseGeocode(lat: number, lng: number): Promise<string> {
     // Convert the response to a human-readable address
     let address = data.display_name || 'Unknown location';
     
-    // Format with coordinates at the end
+    // Format with coordinates as hidden data
+    // Store only first 3 parts of address to keep it concise,
+    // but include coordinates in a hidden format that can be parsed later
     return `${address.split(',').slice(0, 3).join(',')} [${lat.toFixed(6)}, ${lng.toFixed(6)}]`;
   } catch (error) {
     console.error('Error fetching location data:', error);
@@ -212,9 +214,16 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
       )}
       
       {value && (
-        <p className="text-sm text-muted-foreground mt-1 truncate">
-          Selected: {value.replace(/\[.*\]/, '')}
-        </p>
+        <div className="text-sm text-muted-foreground mt-1">
+          <p className="truncate">
+            <span className="font-medium">Selected:</span> {value.replace(/\[.*\]/, '')}
+          </p>
+          {markerPosition && (
+            <p className="text-xs text-muted-foreground/75">
+              <span className="font-medium">Coordinates:</span> {markerPosition[0].toFixed(6)}, {markerPosition[1].toFixed(6)}
+            </p>
+          )}
+        </div>
       )}
     </div>
   );

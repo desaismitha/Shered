@@ -334,18 +334,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Mapbox API proxy to avoid CORS issues
   app.get("/api/mapbox/directions", async (req, res) => {
     try {
-      const { start, end, token } = req.query;
+      // Use the environment variable for the token instead of passing it from the client
+      // This is more secure and avoids exposing the token in browser network requests
+      const token = process.env.MAPBOX_ACCESS_TOKEN;
+      const { start, end } = req.query;
       
-      if (!start || !end || !token) {
+      if (!start || !end) {
         return res.status(400).json({ error: "Missing required parameters" });
       }
       
-      const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${start};${end}?geometries=geojson&access_token=${token}`;
+      if (!token) {
+        console.warn("MAPBOX_ACCESS_TOKEN not found in environment");
+        return res.status(500).json({ error: "Mapbox token not configured on server" });
+      }
+      
+      // Add more options for a better route calculation
+      const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${start};${end}?geometries=geojson&overview=full&steps=true&access_token=${token}`;
+      
+      console.log(`[MAPBOX] Fetching route from ${start} to ${end}`);
       
       const response = await fetch(url);
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`[MAPBOX] Error response: ${response.status} - ${errorText}`);
+        return res.status(response.status).json({ 
+          error: "Mapbox API error", 
+          details: errorText,
+          message: "Not Authorized" // This will trigger fallback in the client
+        });
+      }
+      
       const data = await response.json();
       
-      res.json(data);
+      if (!data.routes || data.routes.length === 0) {
+        console.warn('[MAPBOX] No routes found in response');
+        return res.status(404).json({ error: "No route found" });
+      }
+      
+      // Return only what's needed to reduce response size
+      res.json({
+        routes: data.routes.map(route => ({
+          geometry: route.geometry,
+          duration: route.duration,
+          distance: route.distance,
+          steps: route.legs[0]?.steps || []
+        }))
+      });
     } catch (error) {
       console.error("Error proxying Mapbox request:", error);
       res.status(500).json({ error: "Error fetching directions from Mapbox" });
