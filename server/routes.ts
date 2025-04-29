@@ -466,15 +466,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         hasDuration: typeof route?.duration === 'number'
       });
       
-      // Return only what's needed to reduce response size
-      res.json({
-        routes: data.routes.map((routeItem: any) => ({
-          geometry: routeItem.geometry,
-          duration: routeItem.duration,
-          distance: routeItem.distance,
-          steps: routeItem.legs && routeItem.legs[0]?.steps || []
-        }))
-      });
+      // Return only what's needed to reduce response size and ensure properly typed data
+      const responseData = {
+        routes: Array.isArray(data.routes) ? data.routes.map((routeItem: any) => {
+          if (!routeItem) return null;
+          return {
+            geometry: routeItem.geometry || null,
+            duration: typeof routeItem.duration === 'number' ? routeItem.duration : 0,
+            distance: typeof routeItem.distance === 'number' ? routeItem.distance : 0,
+            steps: Array.isArray(routeItem.legs) && routeItem.legs[0]?.steps ? routeItem.legs[0].steps : []
+          };
+        }).filter(Boolean) : []
+      };
+      
+      res.json(responseData);
     } catch (error) {
       console.error("Error proxying Mapbox request:", error);
       res.status(500).json({ error: "Error fetching directions from Mapbox" });

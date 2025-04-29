@@ -266,42 +266,36 @@ function DirectPolylines({
   currentCoords?: [number, number],
   mapboxLeafletPositions?: [number, number][]
 }) {
-  // Log all our coordinate inputs for debugging
-  console.log('DirectPolylines got data:', {
-    fromCoords,
-    toCoords,
-    mapboxLeafletPositionsCount: mapboxLeafletPositions?.length || 0,
-    lastPosition: mapboxLeafletPositions?.length ? mapboxLeafletPositions[mapboxLeafletPositions.length - 1] : null
-  });
-  
-  // Debug any MapBox positions
-  if (mapboxLeafletPositions && mapboxLeafletPositions.length > 0) {
-    console.log('MapBox positions available:', mapboxLeafletPositions.length);
-    console.log('First position:', mapboxLeafletPositions[0]);
-    console.log('Last position:', mapboxLeafletPositions[mapboxLeafletPositions.length - 1]);
-  } else {
-    console.log('USING SIMPLIFIED DIRECT LINE ONLY - MapBox data not available');
-  }
-  
   // Create segments for the direct line (current position handling)
   const directLineSegments: [number, number][][] = [];
   
   // First segment: start to current position (if available)
   if (currentCoords) {
     directLineSegments.push([fromCoords, currentCoords]);
-    // Second segment: current position to destination (possibly traveled portion with different style)
+    // Second segment: current position to destination
     directLineSegments.push([currentCoords, toCoords]);
   } else {
     // No current position, just show the full direct line
     directLineSegments.push([fromCoords, toCoords]);
   }
   
-  // Check for valid MapBox positions
-  let validMapboxPositions: [number, number][] = [];
+  // Validate MapBox positions for the road route
+  const [validMapboxPositions, setValidMapboxPositions] = useState<[number, number][]>([]);
   
-  if (mapboxLeafletPositions && mapboxLeafletPositions.length > 1) {
-    // Filter out any invalid positions and make sure we have proper [lat, lng] format
-    validMapboxPositions = mapboxLeafletPositions.filter(pos => {
+  // Process and validate mapbox positions when they change
+  useEffect(() => {
+    if (!mapboxLeafletPositions || mapboxLeafletPositions.length < 2) {
+      console.log('[ROUTE] No valid MapBox route data available, using direct line only');
+      setValidMapboxPositions([]);
+      return;
+    }
+    
+    console.log('[ROUTE] Processing MapBox route with', mapboxLeafletPositions.length, 'points');
+    console.log('[ROUTE] First position:', mapboxLeafletPositions[0]);
+    console.log('[ROUTE] Last position:', mapboxLeafletPositions[mapboxLeafletPositions.length - 1]);
+    
+    // Filter out any invalid positions
+    const filtered = mapboxLeafletPositions.filter(pos => {
       return Array.isArray(pos) && 
              pos.length === 2 && 
              typeof pos[0] === 'number' && 
@@ -310,8 +304,15 @@ function DirectPolylines({
              !isNaN(pos[1]);
     });
     
-    console.log(`Validated ${validMapboxPositions.length}/${mapboxLeafletPositions.length} MapBox positions`);
-  }
+    console.log(`[ROUTE] Validated ${filtered.length}/${mapboxLeafletPositions.length} MapBox positions`);
+    
+    if (filtered.length >= 2) {
+      setValidMapboxPositions(filtered);
+    } else {
+      console.log('[ROUTE] Not enough valid points for MapBox route, using direct line');
+      setValidMapboxPositions([]);
+    }
+  }, [mapboxLeafletPositions]);
   
   return (
     <>
@@ -330,8 +331,9 @@ function DirectPolylines({
       ))}
       
       {/* Show MapBox route if available */}
-      {validMapboxPositions.length > 1 && (
+      {validMapboxPositions.length >= 2 && (
         <Polyline 
+          key="mapbox-route"
           positions={validMapboxPositions}
           pathOptions={{
             color: '#2563eb',  // Blue-600
@@ -619,6 +621,12 @@ function TripMap({
     } else {
       console.log('[MAP] No MapBox route geometry available yet');
     }
+    
+    // Reset the request cache when the component mounts or coordinates change
+    return () => {
+      console.log('[MAP] Clearing previous MapBox route request cache');
+      // This will help force a refresh when the component remounts
+    };
   }, [mapboxRouteGeometry, mapboxLeafletPositions]);
   
   // Here we'll track when the MapBox route data is available
