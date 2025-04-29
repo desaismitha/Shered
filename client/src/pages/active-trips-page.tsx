@@ -263,16 +263,52 @@ function TripMap({
     ? extractCoordinates(itineraryItem.toLocation)
     : null;
     
-  // If no itinerary coordinates, use trip start/destination
-  const effectiveFromCoords = fromCoords || 
-    (startLocation ? extractCoordinates(startLocation) || 
-    {lat: getDefaultCoordinatesForLocation(startLocation, null, null, 0)[0], 
-     lng: getDefaultCoordinatesForLocation(startLocation, null, null, 0)[1]} : null);
+  // If no itinerary coordinates, use trip start/destination with better fallbacks
+  let effectiveFromCoords = fromCoords;
+  if (!effectiveFromCoords && startLocation) {
+    // First try to extract coordinates
+    effectiveFromCoords = extractCoordinates(startLocation);
+    
+    // If still null, try to look up in our city database
+    if (!effectiveFromCoords) {
+      const normLocation = startLocation.toLowerCase().trim();
+      if (CITY_COORDINATES[normLocation]) {
+        const coords = CITY_COORDINATES[normLocation];
+        effectiveFromCoords = { lat: coords[0], lng: coords[1] };
+        console.log('Using city database coordinates for', startLocation, effectiveFromCoords);
+      } else {
+        // Last resort fallback
+        const defaultCoords = getDefaultCoordinatesForLocation(startLocation, null, null, 0);
+        effectiveFromCoords = { 
+          lat: defaultCoords[0], 
+          lng: defaultCoords[1] 
+        };
+      }
+    }
+  }
   
-  const effectiveToCoords = toCoords || 
-    (destination ? extractCoordinates(destination) || 
-    {lat: getDefaultCoordinatesForLocation(destination, null, null, 0)[0], 
-     lng: getDefaultCoordinatesForLocation(destination, null, null, 0)[1]} : null);
+  let effectiveToCoords = toCoords;
+  if (!effectiveToCoords && destination) {
+    // First try to extract coordinates
+    effectiveToCoords = extractCoordinates(destination);
+    
+    // If still null, try to look up in our city database
+    if (!effectiveToCoords) {
+      const normLocation = destination.toLowerCase().trim();
+      if (CITY_COORDINATES[normLocation]) {
+        const coords = CITY_COORDINATES[normLocation];
+        effectiveToCoords = { lat: coords[0], lng: coords[1] };
+        console.log('Using city database coordinates for', destination, effectiveToCoords);
+      } else {
+        // Last resort fallback
+        const defaultCoords = getDefaultCoordinatesForLocation(destination, null, null, 0);
+        effectiveToCoords = { 
+          lat: defaultCoords[0], 
+          lng: defaultCoords[1] 
+        };
+      }
+    }
+  }
   
   // Instead of using the hook directly, let's create our own route data
   // with a simple approach that won't cause maximum update depth issues
@@ -470,9 +506,9 @@ function TripMap({
           )}
           
           {/* Show marker for trip start location if itinerary start location not available */}
-          {!fromCoords && startLocation && (
+          {!fromCoords && effectiveFromCoords && (
             <Marker 
-              position={getDefaultCoordinatesForLocation(startLocation, currentLatitude, currentLongitude, -0.01)}
+              position={[effectiveFromCoords.lat, effectiveFromCoords.lng]}
               icon={new L.Icon({
                 iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
                 shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
@@ -514,9 +550,9 @@ function TripMap({
           )}
           
           {/* Show marker for trip destination if itinerary end location not available */}
-          {!toCoords && destination && (
+          {!toCoords && effectiveToCoords && (
             <Marker 
-              position={getDefaultCoordinatesForLocation(destination, currentLatitude, currentLongitude, 0.01)}
+              position={[effectiveToCoords.lat, effectiveToCoords.lng]}
               icon={new L.Icon({
                 iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
                 shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
