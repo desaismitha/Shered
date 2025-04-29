@@ -36,37 +36,45 @@ function cleanLocationString(location: string | null | undefined): string {
  */
 function cleanTripLocationData<T extends { startLocation?: string | null; destination?: string | null }>(
   trip: T
-): T {
-  const cleanedTrip = { ...trip };
+): T & { startLocationDisplay?: string | null; destinationDisplay?: string | null } {
+  const enhancedTrip = { ...trip } as T & { 
+    startLocationDisplay?: string | null; 
+    destinationDisplay?: string | null 
+  };
   
-  if (cleanedTrip.startLocation) {
-    cleanedTrip.startLocation = cleanLocationString(cleanedTrip.startLocation);
+  if (trip.startLocation) {
+    enhancedTrip.startLocationDisplay = cleanLocationString(trip.startLocation);
   }
   
-  if (cleanedTrip.destination) {
-    cleanedTrip.destination = cleanLocationString(cleanedTrip.destination);
+  if (trip.destination) {
+    enhancedTrip.destinationDisplay = cleanLocationString(trip.destination);
   }
   
-  return cleanedTrip;
+  return enhancedTrip;
 }
 
 /**
- * Clean location data in itinerary items before sending to the client
+ * Add display-friendly location data to itinerary items before sending to the client
+ * This keeps the original location data with coordinates for map functionality
+ * but adds clean versions for display purposes
  */
 function cleanItineraryLocationData<T extends { fromLocation?: string | null; toLocation?: string | null }>(
   item: T
-): T {
-  const cleanedItem = { ...item };
+): T & { fromLocationDisplay?: string | null; toLocationDisplay?: string | null } {
+  const enhancedItem = { ...item } as T & { 
+    fromLocationDisplay?: string | null; 
+    toLocationDisplay?: string | null 
+  };
   
-  if (cleanedItem.fromLocation) {
-    cleanedItem.fromLocation = cleanLocationString(cleanedItem.fromLocation);
+  if (item.fromLocation) {
+    enhancedItem.fromLocationDisplay = cleanLocationString(item.fromLocation);
   }
   
-  if (cleanedItem.toLocation) {
-    cleanedItem.toLocation = cleanLocationString(cleanedItem.toLocation);
+  if (item.toLocation) {
+    enhancedItem.toLocationDisplay = cleanLocationString(item.toLocation);
   }
   
-  return cleanedItem;
+  return enhancedItem;
 }
 
 /**
@@ -1260,12 +1268,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const trip = await storage.getTrip(tripId);
       console.log(`Trip data for ID ${tripId}:`, trip);
       
-      // Clean location data before sending to client
-      const cleanedTrip = cleanTripLocationData(trip);
+      // Add display-friendly location data
+      const enhancedTrip = cleanTripLocationData(trip);
       
       // Include access level in the response to help client determine what actions are allowed
       res.json({
-        ...cleanedTrip,
+        ...enhancedTrip,
         _accessLevel: accessLevel // Added property to help client control UI permissions
       });
     } catch (err) {
