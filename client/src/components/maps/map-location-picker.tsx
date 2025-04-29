@@ -61,8 +61,14 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Parse coordinates from the value if they exist
+  // Store the original value with coordinates to prevent loss when toggling map
+  const [originalValue, setOriginalValue] = useState<string>(value);
+  
   useEffect(() => {
     if (value) {
+      // Update the stored original value whenever the value prop changes
+      setOriginalValue(value);
+      
       const match = value.match(/\[(-?\d+\.\d+),\s*(-?\d+\.\d+)\]/);
       if (match) {
         const lat = parseFloat(match[1]);
@@ -77,6 +83,7 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
       }
       setSearchInput(displayValue);
     } else {
+      setOriginalValue('');
       setSearchInput('');
       setMarkerPosition(null);
     }
@@ -187,7 +194,17 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
           type="button"
           variant="outline"
           size="sm"
-          onClick={() => setShowMap(!showMap)}
+          onClick={() => {
+            // Preserve the original value with coordinates when toggling map
+            const nextShowMap = !showMap;
+            setShowMap(nextShowMap);
+            
+            // When showing the map, make sure we have the coordinates in the value
+            if (nextShowMap && originalValue && originalValue.includes('[')) {
+              // Ensure we don't lose coordinates when toggling map visibility
+              onChange(originalValue);
+            }
+          }}
         >
           <MapPin className="h-4 w-4 mr-1" />
           {showMap ? 'Hide Map' : 'Show Map'}
