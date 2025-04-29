@@ -725,25 +725,30 @@ export default function GroupDetailsPage() {
                   </div>
                 ) : groupMembers?.[0] && users ? (
                   <div className="space-y-4">
-                    {/* Force show the group creator as a member since the API is not returning members correctly */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <div className="w-10 h-10 rounded-full bg-neutral-200 text-neutral-600 flex items-center justify-center mr-3">
-                          {users.find(u => u.id === 2)?.displayName?.[0] || "U"}
+                    {/* Show all group members from API data */}
+                    {groupMembers.map(member => {
+                      const memberUser = users.find(u => u.id === member.userId);
+                      return (
+                        <div key={member.id} className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <div className="w-10 h-10 rounded-full bg-neutral-200 text-neutral-600 flex items-center justify-center mr-3">
+                              {memberUser?.displayName?.[0] || memberUser?.username?.[0] || "U"}
+                            </div>
+                            <div>
+                              <p className="font-medium text-neutral-800">
+                                {memberUser?.displayName || memberUser?.username || 'Unknown User'}
+                              </p>
+                              <p className="text-xs text-neutral-500">
+                                {member.role === 'admin' ? 'Admin' : 'Member'}
+                              </p>
+                            </div>
+                          </div>
+                          <Badge variant="default" className="capitalize">
+                            {member.role}
+                          </Badge>
                         </div>
-                        <div>
-                          <p className="font-medium text-neutral-800">
-                            {users.find(u => u.id === 2)?.displayName}
-                          </p>
-                          <p className="text-xs text-neutral-500">
-                            Admin
-                          </p>
-                        </div>
-                      </div>
-                      <Badge variant="default" className="capitalize">
-                        Admin
-                      </Badge>
-                    </div>
+                      );
+                    })}
                   </div>
                 ) : (
                   <div className="text-center py-6">
