@@ -82,6 +82,15 @@ export async function fetchMapboxRoute(startLat: number, startLng: number, endLa
     // Check if the response contains a valid route
     if (data.routes && data.routes.length > 0) {
       console.log('Successfully fetched route from Mapbox API');
+      console.log('Route geometry data:', {
+        type: data.routes[0].geometry.type,
+        coordinatesCount: data.routes[0].geometry.coordinates.length,
+        firstCoordinate: data.routes[0].geometry.coordinates[0],
+        lastCoordinate: data.routes[0].geometry.coordinates[data.routes[0].geometry.coordinates.length - 1],
+        distance: data.routes[0].distance,
+        duration: data.routes[0].duration
+      });
+      
       return {
         route: data.routes[0].geometry,
         duration: data.routes[0].duration, // in seconds
@@ -185,6 +194,12 @@ export function useMapboxRoute(
         );
         
         if (result && isMounted) {
+          console.log('MapBox route fetched successfully!', {
+            hasRoute: !!result.route,
+            routeType: result.route?.type || 'No type',
+            coordinatesCount: result.route?.coordinates?.length || 0
+          });
+          
           setRouteData({
             geometry: result.route,
             duration: result.duration,

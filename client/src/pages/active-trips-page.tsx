@@ -509,10 +509,21 @@ function TripMap({
     // First priority: Use the MapBox route geometry if available
     if (mapboxRouteGeometry && mapboxRouteGeometry.coordinates) {
       console.log('Using MapBox route geometry with', mapboxRouteGeometry.coordinates.length, 'points');
+      console.log('MapBox geometry data:', JSON.stringify(mapboxRouteGeometry).substring(0, 200) + '...');
+      
       // Safe type checking
       const coordinates = mapboxRouteGeometry.coordinates as Array<[number, number]>;
+      
+      // Debug the first few coordinates
+      if (coordinates.length > 0) {
+        console.log('First 3 coordinates from MapBox:', coordinates.slice(0, 3));
+      }
+      
       // MapBox returns coordinates as [longitude, latitude], but Leaflet needs [latitude, longitude]
-      return coordinates.map(coord => [coord[1], coord[0]] as [number, number]);
+      const transformedCoords = coordinates.map(coord => [coord[1], coord[0]] as [number, number]);
+      console.log('First 3 transformed coordinates for Leaflet:', transformedCoords.slice(0, 3));
+      
+      return transformedCoords;
     }
     
     // Fallback: Create a direct polyline if we have from and to coordinates
@@ -733,6 +744,10 @@ function TripMap({
           {/* Road Route from Mapbox API */}
           {roadRoutePositions.length > 0 && (
             <>
+              {/* Output debug info */}
+              {console.log('Polyline rendering with positions:', roadRoutePositions.length)}
+              {console.log('First 3 positions in roadRoutePositions:', roadRoutePositions.slice(0, 3))}
+              
               {/* Full road route with dashed line */}
               <Polyline 
                 positions={roadRoutePositions}
