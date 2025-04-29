@@ -1453,14 +1453,14 @@ export default function ActiveTripsPage() {
                             <h3 className="text-sm font-medium text-green-800 mb-1">Trip Start</h3>
                             <p className="text-md font-medium flex items-center">
                               <MapPin className="h-4 w-4 text-green-600 mr-1" />
-                              {selectedTrip.startLocation || 'Not specified'}
+                              {cleanLocationString(selectedTrip.startLocation) || 'Not specified'}
                             </p>
                           </div>
                           <div className="border rounded-md p-3 bg-red-50 flex-1">
                             <h3 className="text-sm font-medium text-red-800 mb-1">Trip End</h3>
                             <p className="text-md font-medium flex items-center">
                               <MapPin className="h-4 w-4 text-red-600 mr-1" />
-                              {selectedTrip.destination || 'Not specified'}
+                              {cleanLocationString(selectedTrip.destination) || 'Not specified'}
                             </p>
                           </div>
                         </div>
@@ -1477,11 +1477,11 @@ export default function ActiveTripsPage() {
                 <CardTitle>Trip Map</CardTitle>
                 {selectedItineraryItems.length > 0 && currentItineraryStep < selectedItineraryItems.length ? (
                   <CardDescription>
-                    Showing route from {selectedItineraryItems[currentItineraryStep].fromLocation || "Starting Point"} to {selectedItineraryItems[currentItineraryStep].toLocation || "Destination"}
+                    Showing route from {cleanLocationString(selectedItineraryItems[currentItineraryStep].fromLocation) || "Starting Point"} to {cleanLocationString(selectedItineraryItems[currentItineraryStep].toLocation) || "Destination"}
                   </CardDescription>
                 ) : (
                   <CardDescription>
-                    Showing overall trip from {selectedTrip.startLocation || "Starting Point"} to {selectedTrip.destination || "Destination"}
+                    Showing overall trip from {cleanLocationString(selectedTrip.startLocation) || "Starting Point"} to {cleanLocationString(selectedTrip.destination) || "Destination"}
                   </CardDescription>
                 )}
               </CardHeader>
@@ -1568,7 +1568,7 @@ export default function ActiveTripsPage() {
                             {selectedItineraryItems[currentItineraryStep].fromLocation && selectedItineraryItems[currentItineraryStep].toLocation && (
                               <div className="sm:col-span-2">
                                 <span className="text-neutral-500">Travel: </span>
-                                <span className="font-medium">{selectedItineraryItems[currentItineraryStep].fromLocation} to {selectedItineraryItems[currentItineraryStep].toLocation}</span>
+                                <span className="font-medium">{cleanLocationString(selectedItineraryItems[currentItineraryStep].fromLocation)} to {cleanLocationString(selectedItineraryItems[currentItineraryStep].toLocation)}</span>
                               </div>
                             )}
                           </div>
@@ -1725,13 +1725,13 @@ export default function ActiveTripsPage() {
                         {trip.startLocation && (
                           <p className="flex items-center mt-2">
                             <span className="font-medium mr-2">From:</span>
-                            <span className="text-neutral-800">{trip.startLocation}</span>
+                            <span className="text-neutral-800">{cleanLocationString(trip.startLocation)}</span>
                           </p>
                         )}
                         {trip.destination && (
                           <p className="flex items-center mt-2">
                             <span className="font-medium mr-2">To:</span>
-                            <span className="text-neutral-800">{trip.destination}</span>
+                            <span className="text-neutral-800">{cleanLocationString(trip.destination)}</span>
                           </p>
                         )}
                         {trip.currentLatitude && trip.currentLongitude && (
