@@ -94,7 +94,7 @@ export default function AuthPage() {
   return (
     <div className="flex flex-col md:flex-row min-h-screen">
       {/* Auth form - left on desktop, top on mobile */}
-      <div className="flex items-start md:items-center justify-center p-6 pt-2 md:p-12 md:w-1/2 order-last md:order-first">
+      <div className="flex items-start md:items-center justify-center p-4 pt-0 md:p-8 md:w-1/2 order-last md:order-first">
         <Card className="w-full max-w-md">
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl font-bold text-center">
@@ -270,35 +270,35 @@ export default function AuthPage() {
       </div>
       
       {/* Hero section - right on desktop, bottom on mobile */}
-      <div className="bg-primary-600 text-white p-6 pt-4 md:p-12 md:w-1/2 flex flex-col justify-center order-first md:order-last">
+      <div className="bg-primary-600 text-white p-4 pt-3 md:p-12 md:w-1/2 flex flex-col justify-center order-first md:order-last">
         <div className="max-w-md mx-auto">
-          <div className="flex items-center mb-6">
-            <Plane className="h-8 w-8 mr-3" />
-            <h1 className="text-3xl font-bold">TravelGroupr</h1>
+          <div className="flex items-center mb-3">
+            <Plane className="h-6 w-6 mr-2" />
+            <h1 className="text-2xl font-bold">TravelGroupr</h1>
           </div>
-          <h2 className="text-2xl md:text-4xl font-bold mb-4">
+          <h2 className="text-xl md:text-3xl font-bold mb-3">
             Plan trips together, effortlessly
           </h2>
-          <p className="text-primary-100 mb-8">
-            Create travel groups, coordinate plans, and make memories with friends and family. 
-            Our collaborative platform makes group travel planning simple and fun.
+          <p className="text-primary-100 mb-3 text-sm">
+            Create travel groups, coordinate plans, and make memories with friends.
+            Plan together, travel better.
           </p>
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            <div className="bg-primary-700/50 p-4 rounded-lg">
-              <h3 className="font-medium mb-1">Create travel groups</h3>
-              <p className="text-sm text-primary-100">Organize groups for different travel companions</p>
+          <div className="grid grid-cols-2 gap-3 mb-3">
+            <div className="bg-primary-700/50 p-3 rounded-lg">
+              <h3 className="font-medium mb-0.5 text-sm">Create travel groups</h3>
+              <p className="text-xs text-primary-100">Organize groups for different companions</p>
             </div>
-            <div className="bg-primary-700/50 p-4 rounded-lg">
-              <h3 className="font-medium mb-1">Plan itineraries</h3>
-              <p className="text-sm text-primary-100">Build daily schedules everyone can access</p>
+            <div className="bg-primary-700/50 p-3 rounded-lg">
+              <h3 className="font-medium mb-0.5 text-sm">Plan itineraries</h3>
+              <p className="text-xs text-primary-100">Build schedules everyone can access</p>
             </div>
-            <div className="bg-primary-700/50 p-4 rounded-lg">
-              <h3 className="font-medium mb-1">Share expenses</h3>
-              <p className="text-sm text-primary-100">Track and split costs between group members</p>
+            <div className="bg-primary-700/50 p-3 rounded-lg">
+              <h3 className="font-medium mb-0.5 text-sm">Share expenses</h3>
+              <p className="text-xs text-primary-100">Track and split costs between members</p>
             </div>
-            <div className="bg-primary-700/50 p-4 rounded-lg">
-              <h3 className="font-medium mb-1">Coordinate activities</h3>
-              <p className="text-sm text-primary-100">Vote on and organize group activities</p>
+            <div className="bg-primary-700/50 p-3 rounded-lg">
+              <h3 className="font-medium mb-0.5 text-sm">Coordinate activities</h3>
+              <p className="text-xs text-primary-100">Vote on and organize activities</p>
             </div>
           </div>
         </div>
