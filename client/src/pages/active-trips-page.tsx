@@ -345,17 +345,75 @@ function DirectPolylines({
       
       {/* Show MapBox route if available */}
       {validMapboxPositions.length >= 2 && (
-        <Polyline 
-          key="mapbox-route"
-          positions={validMapboxPositions}
-          pathOptions={{
-            color: '#2563eb',  // Blue-600
-            weight: 5,         // Thicker line
-            opacity: 0.8,      // Slightly transparent
-            lineCap: 'round',  // Rounded line ends
-            lineJoin: 'round'  // Rounded line joints
-          }}
-        />
+        <>
+          {/* First debug marker at the beginning of the route */}
+          <Marker 
+            position={validMapboxPositions[0]}
+            icon={new L.Icon({
+              iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-yellow.png',
+              shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+              iconSize: [15, 24],
+              iconAnchor: [7, 24],
+              popupAnchor: [1, -24],
+              shadowSize: [24, 24]
+            })}
+          >
+            <Popup>
+              <div className="text-xs">
+                <strong>First MapBox Route Point</strong><br />
+                {JSON.stringify(validMapboxPositions[0])}
+              </div>
+            </Popup>
+          </Marker>
+
+          {/* Debug marker at the end of the route */}
+          <Marker 
+            position={validMapboxPositions[validMapboxPositions.length - 1]}
+            icon={new L.Icon({
+              iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-orange.png',
+              shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+              iconSize: [15, 24],
+              iconAnchor: [7, 24],
+              popupAnchor: [1, -24],
+              shadowSize: [24, 24]
+            })}
+          >
+            <Popup>
+              <div className="text-xs">
+                <strong>Last MapBox Route Point</strong><br />
+                {JSON.stringify(validMapboxPositions[validMapboxPositions.length - 1])}
+              </div>
+            </Popup>
+          </Marker>
+        
+          {/* Simplified test line to debug if polylines are working at all */}
+          <Polyline 
+            key="mapbox-debug-line"
+            positions={[
+              validMapboxPositions[0], 
+              validMapboxPositions[validMapboxPositions.length - 1]
+            ]}
+            pathOptions={{
+              color: '#f59e0b',  // Amber-500
+              weight: 4,
+              opacity: 0.7,
+              dashArray: '10,5'
+            }}
+          />
+        
+          {/* Actual MapBox route line */}
+          <Polyline 
+            key="mapbox-route"
+            positions={validMapboxPositions}
+            pathOptions={{
+              color: '#2563eb',  // Blue-600
+              weight: 5,         // Thicker line
+              opacity: 0.8,      // Slightly transparent
+              lineCap: 'round',  // Rounded line ends
+              lineJoin: 'round'  // Rounded line joints
+            }}
+          />
+        </>
       )}
       
       {/* Display current position indicator if available */}

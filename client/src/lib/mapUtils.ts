@@ -265,6 +265,10 @@ export function useMapboxRoute(
           hasDuration: !!data.routes[0].duration
         });
         
+        // Sample the raw routes data for debugging
+        console.log('[MAPBOX] Sample raw route coordinates:', 
+          data.routes[0].geometry?.coordinates?.slice(0, 3));
+        
         // Extract the route coordinates
         const coordinates = data.routes[0].geometry.coordinates;
         
@@ -273,12 +277,27 @@ export function useMapboxRoute(
         }
         
         // Convert from MapBox format [lng, lat] to Leaflet format [lat, lng]
-        const leafletPositions = coordinates.map(coord => {
-          if (Array.isArray(coord) && coord.length >= 2) {
-            return [coord[1], coord[0]] as [number, number];
+        // and ensure each point is properly formatted
+        const leafletPositions: [number, number][] = [];
+        
+        for (let i = 0; i < coordinates.length; i++) {
+          const coord = coordinates[i];
+          if (Array.isArray(coord) && coord.length >= 2 && 
+              typeof coord[0] === 'number' && !isNaN(coord[0]) &&
+              typeof coord[1] === 'number' && !isNaN(coord[1])) {
+            // MapBox returns [lng, lat], Leaflet needs [lat, lng]
+            leafletPositions.push([coord[1], coord[0]]);
           }
-          return null;
-        }).filter(Boolean) as [number, number][];
+        }
+        
+        // Ensure we have enough valid points (at least start and end)
+        if (leafletPositions.length < 2) {
+          console.warn('[MAPBOX] Not enough valid coordinates found in response');
+          // Force add the start and end points from our original request
+          leafletPositions.length = 0; // clear any invalid points
+          leafletPositions.push([startCoords.lat, startCoords.lng]);
+          leafletPositions.push([endCoords.lat, endCoords.lng]);
+        }
         
         console.log(`[MAPBOX] Converted ${leafletPositions.length} coordinates for Leaflet display`);
         
