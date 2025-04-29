@@ -185,34 +185,55 @@ function MapController({
 }) {
   const map = useMap();
 
+  // Helper function to validate coordinates
+  function isValidCoordinate(lat: number, lng: number): boolean {
+    return (
+      typeof lat === 'number' && 
+      typeof lng === 'number' && 
+      !isNaN(lat) && 
+      !isNaN(lng) && 
+      lat >= -90 && 
+      lat <= 90 && 
+      lng >= -180 && 
+      lng <= 180
+    );
+  }
+
   useEffect(() => {
-    // Collect all valid coordinates
-    const bounds: [number, number][] = [];
+    if (!map) return;
     
-    // Add start/end coordinates (already processed and validated)
-    if (effectiveFromCoords) {
-      bounds.push([effectiveFromCoords.lat, effectiveFromCoords.lng]);
-    }
-    
-    if (effectiveToCoords) {
-      bounds.push([effectiveToCoords.lat, effectiveToCoords.lng]);
-    }
-    
-    // Add current position
-    if (currentPosition) {
-      bounds.push(currentPosition);
-    }
-    
-    // If we have at least 2 points, fit the map to those bounds
-    if (bounds.length >= 2) {
-      map.fitBounds(bounds as L.LatLngBoundsExpression, {
-        padding: [50, 50],
-        maxZoom: 13,
-        animate: true,
-      });
-    } else if (bounds.length === 1) {
-      // If we only have one point, center on it with a closer zoom
-      map.setView(bounds[0], 12, { animate: true });
+    try {
+      // Collect all valid coordinates
+      const bounds: [number, number][] = [];
+      
+      // Add start/end coordinates with validation
+      if (effectiveFromCoords && isValidCoordinate(effectiveFromCoords.lat, effectiveFromCoords.lng)) {
+        bounds.push([effectiveFromCoords.lat, effectiveFromCoords.lng]);
+      }
+      
+      if (effectiveToCoords && isValidCoordinate(effectiveToCoords.lat, effectiveToCoords.lng)) {
+        bounds.push([effectiveToCoords.lat, effectiveToCoords.lng]);
+      }
+      
+      // Add current position with validation
+      if (currentPosition && isValidCoordinate(currentPosition[0], currentPosition[1])) {
+        bounds.push(currentPosition);
+      }
+      
+      // If we have at least 2 points, fit the map to those bounds
+      if (bounds.length >= 2) {
+        map.fitBounds(bounds as L.LatLngBoundsExpression, {
+          padding: [70, 70],
+          maxZoom: 13,
+          animate: true,
+          duration: 0.5
+        });
+      } else if (bounds.length === 1) {
+        // If we only have one point, center on it with a closer zoom
+        map.setView(bounds[0], 12, { animate: true });
+      }
+    } catch (error) {
+      console.error("Error updating map bounds:", error);
     }
   }, [map, effectiveFromCoords, effectiveToCoords, currentPosition]);
 
@@ -661,62 +682,18 @@ function TripMap({
             </>
           )}
           
-          {/* Fallback to direct line if no road route available */}
-          {roadRoutePositions.length === 0 && fromCoords && toCoords && (
+          {/* Always show direct line when effective coordinates are available */}
+          {effectiveFromCoords && effectiveToCoords && (
             <>
-              {/* Direct line between points */}
-              <Polyline 
-                positions={[
-                  [fromCoords.lat, fromCoords.lng] as [number, number],
-                  [toCoords.lat, toCoords.lng] as [number, number]
-                ]}
-                color="#4a90e2"
-                weight={4}
-                opacity={0.8}
-                dashArray="10, 10"
-              />
-              
-              {/* Current progress line - from start to current position */}
-              {currentLatitude && currentLongitude && (
-                <Polyline 
-                  positions={[
-                    [fromCoords.lat, fromCoords.lng] as [number, number],
-                    [currentLatitude, currentLongitude] as [number, number]
-                  ]}
-                  color="#34c759"
-                  weight={4}
-                  opacity={0.9}
-                />
-              )}
-              
-              {/* Remaining path line - from current position to destination */}
-              {currentLatitude && currentLongitude && (
-                <Polyline 
-                  positions={[
-                    [currentLatitude, currentLongitude] as [number, number],
-                    [toCoords.lat, toCoords.lng] as [number, number]
-                  ]}
-                  color="#ff9500"
-                  weight={3}
-                  opacity={0.7}
-                  dashArray="5, 8"
-                />
-              )}
-            </>
-          )}
-          
-          {/* Draw polyline between trip locations if itinerary locations are not available */}
-          {!fromCoords && !toCoords && effectiveFromCoords && effectiveToCoords && (
-            <>
-              {/* Use our pre-calculated and validated effective coordinates */}
+              {/* Direct line between points - using effective coordinates */}
               <Polyline 
                 positions={[
                   [effectiveFromCoords.lat, effectiveFromCoords.lng] as [number, number],
                   [effectiveToCoords.lat, effectiveToCoords.lng] as [number, number]
                 ]}
                 color="#4a90e2"
-                weight={5}
-                opacity={0.9}
+                weight={4}
+                opacity={0.8}
                 dashArray="10, 10"
               />
               
@@ -748,6 +725,8 @@ function TripMap({
               )}
             </>
           )}
+          
+          {/* We've centralized all polyline drawing in the roadRoutePositions section above */}
           
           {/* Loading indicator for route information */}
           {isRouteLoading && (
