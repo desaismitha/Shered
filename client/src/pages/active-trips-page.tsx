@@ -744,14 +744,33 @@ function TripMap({
               {console.log('Polyline rendering with positions:', roadRoutePositions.length)}
               {console.log('First 3 positions in roadRoutePositions:', roadRoutePositions.slice(0, 3))}
               
-              {/* Full road route with dashed line */}
-              <Polyline 
-                positions={roadRoutePositions}
-                color="#4a90e2"
-                weight={5}
-                opacity={0.8}
-                dashArray="10, 10"
-              />
+              {/* Check if positions format is correct for Leaflet */}
+              {(() => {
+                // Ensure all positions are valid [lat, lng] arrays for Leaflet
+                const validPositions = roadRoutePositions.filter(pos => 
+                  Array.isArray(pos) && 
+                  pos.length === 2 &&
+                  typeof pos[0] === 'number' && 
+                  typeof pos[1] === 'number'
+                );
+                
+                console.log('Valid polyline positions:', validPositions.length);
+                
+                if (validPositions.length < 2) {
+                  console.error('Not enough valid positions for polyline');
+                  return null;
+                }
+                
+                return (
+                  <Polyline 
+                    positions={validPositions}
+                    color="#4a90e2"
+                    weight={5}
+                    opacity={0.8}
+                    dashArray="10, 10"
+                  />
+                );
+              })()}
               
               {/* If we have current position, split the route into traveled and remaining portions */}
               {currentLatitude && currentLongitude && (
@@ -772,28 +791,48 @@ function TripMap({
                       }
                     });
                     
-                    // Split route at closest point
-                    const traveledSegment = roadRoutePositions.slice(0, closestPointIndex + 1);
-                    const remainingSegment = roadRoutePositions.slice(closestPointIndex);
+                    // Ensure positions are valid for Leaflet and split route at closest point
+                    const validPositions = roadRoutePositions.filter(pos => 
+                      Array.isArray(pos) && 
+                      pos.length === 2 &&
+                      typeof pos[0] === 'number' && 
+                      typeof pos[1] === 'number'
+                    );
+
+                    if (validPositions.length < 2) {
+                      console.error('Not enough valid positions for route segments');
+                      return null;
+                    }
+                    
+                    // Calculate traveled and remaining segments
+                    const traveledSegment = validPositions.slice(0, closestPointIndex + 1);
+                    const remainingSegment = validPositions.slice(closestPointIndex);
+                    
+                    console.log('Traveled segment points:', traveledSegment.length);
+                    console.log('Remaining segment points:', remainingSegment.length);
                     
                     return (
                       <>
                         {/* Traveled portion */}
-                        <Polyline 
-                          positions={traveledSegment}
-                          color="#34c759"
-                          weight={5}
-                          opacity={0.9}
-                        />
+                        {traveledSegment.length >= 2 && (
+                          <Polyline 
+                            positions={traveledSegment}
+                            color="#34c759"
+                            weight={5}
+                            opacity={0.9}
+                          />
+                        )}
                         
                         {/* Remaining portion */}
-                        <Polyline 
-                          positions={remainingSegment}
-                          color="#ff9500"
-                          weight={4}
-                          opacity={0.7}
-                          dashArray="5, 8"
-                        />
+                        {remainingSegment.length >= 2 && (
+                          <Polyline 
+                            positions={remainingSegment}
+                            color="#ff9500"
+                            weight={4}
+                            opacity={0.7}
+                            dashArray="5, 8"
+                          />
+                        )}
                       </>
                     );
                   })()}
