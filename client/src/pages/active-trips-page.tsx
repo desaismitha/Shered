@@ -708,16 +708,30 @@ function TripMap({
   const [manualRouteData, setManualRouteData] = useState<[number, number][]>([]);
   
   useEffect(() => {
+    let isMounted = true;
+    
     if (effectiveFromCoords && effectiveToCoords) {
       const fetchFullRoute = async () => {
         try {
           console.log('[DEBUG] Making direct test request to MapBox API');
           const startCoord = `${effectiveFromCoords.lng},${effectiveFromCoords.lat}`;
           const endCoord = `${effectiveToCoords.lng},${effectiveToCoords.lat}`;
+          
+          // Use throttled requests to avoid overloading the API
+          if (sessionStorage.getItem(`route-${startCoord}-${endCoord}`)) {
+            console.log('[DEBUG] Using cached route data');
+            const cachedData = JSON.parse(sessionStorage.getItem(`route-${startCoord}-${endCoord}`) || '[]');
+            if (isMounted && cachedData && cachedData.length > 2) {
+              console.log('[DEBUG] Retrieved', cachedData.length, 'cached coordinates');
+              setManualRouteData(cachedData);
+              return;
+            }
+          }
+          
           const response = await fetch(`/api/mapbox/directions?start=${startCoord}&end=${endCoord}`);
           const data = await response.json();
           
-          if (data.routes && data.routes.length > 0 && data.routes[0].geometry && 
+          if (data && data.routes && data.routes.length > 0 && data.routes[0].geometry && 
               data.routes[0].geometry.coordinates && 
               data.routes[0].geometry.coordinates.length > 0) {
             
@@ -725,7 +739,7 @@ function TripMap({
               data.routes[0].geometry.coordinates.length, 'coordinates');
               
             // Convert from MapBox format [lng, lat] to Leaflet format [lat, lng]
-            const leafletPoints = data.routes[0].geometry.coordinates.map(coord => {
+            const leafletPoints = data.routes[0].geometry.coordinates.map((coord: any) => {
               if (Array.isArray(coord) && coord.length >= 2) {
                 return [coord[1], coord[0]] as [number, number];
               }
@@ -734,8 +748,17 @@ function TripMap({
             
             console.log('[DEBUG] Converted to', leafletPoints.length, 'leaflet points');
             if (leafletPoints.length > 2) {
-              // Only update if we got more than just start/end points
-              setManualRouteData(leafletPoints);
+              // Cache the result
+              try {
+                sessionStorage.setItem(`route-${startCoord}-${endCoord}`, JSON.stringify(leafletPoints));
+              } catch (cacheErr) {
+                console.warn('[DEBUG] Could not cache route data:', cacheErr);
+              }
+              
+              // Only update if we got more than just start/end points and the component is still mounted
+              if (isMounted) {
+                setManualRouteData(leafletPoints);
+              }
             }
           } else {
             console.log('[DEBUG] No route coordinates found in response');
@@ -747,6 +770,10 @@ function TripMap({
       
       fetchFullRoute();
     }
+    
+    return () => {
+      isMounted = false;
+    };
   }, [effectiveFromCoords, effectiveToCoords]);
   
   // Debug MapBox route data
