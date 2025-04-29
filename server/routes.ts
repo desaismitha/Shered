@@ -330,6 +330,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // API routes
+  
+  // Mapbox API proxy to avoid CORS issues
+  app.get("/api/mapbox/directions", async (req, res) => {
+    try {
+      const { start, end, token } = req.query;
+      
+      if (!start || !end || !token) {
+        return res.status(400).json({ error: "Missing required parameters" });
+      }
+      
+      const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${start};${end}?geometries=geojson&access_token=${token}`;
+      
+      const response = await fetch(url);
+      const data = await response.json();
+      
+      res.json(data);
+    } catch (error) {
+      console.error("Error proxying Mapbox request:", error);
+      res.status(500).json({ error: "Error fetching directions from Mapbox" });
+    }
+  });
+  
   // Users
   app.get("/api/users", async (req, res, next) => {
     try {

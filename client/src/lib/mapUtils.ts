@@ -27,9 +27,9 @@ export async function fetchMapboxRoute(startLat: number, startLng: number, endLa
     const startCoords = `${startLng},${startLat}`;
     const endCoords = `${endLng},${endLat}`;
     
+    // Use server proxy to avoid CORS issues
     const response = await fetch(
-      `https://api.mapbox.com/directions/v5/mapbox/driving/${startCoords};${endCoords}?geometries=geojson&access_token=${accessToken}`,
-      { method: 'GET' }
+      `/api/mapbox/directions?start=${startCoords}&end=${endCoords}&token=${accessToken}`
     );
     
     if (!response.ok) {
