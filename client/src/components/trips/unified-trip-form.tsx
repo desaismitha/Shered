@@ -393,22 +393,20 @@ export function UnifiedTripForm({
           <Card className="p-6">
             <h2 className="text-lg font-medium mb-4">Route</h2>
             
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-6 sm:grid-cols-2">
               <FormField
                 control={form.control}
                 name="startLocation"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Start Location</FormLabel>
+                  <FormItem className="space-y-2">
                     <FormControl>
-                      <div className="relative">
-                        <Input
-                          placeholder="Enter start location"
-                          className="pl-8"
-                          {...field}
-                        />
-                        <MapPin className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                      </div>
+                      <MapLocationPicker
+                        value={field.value}
+                        onChange={field.onChange}
+                        label="Start Location"
+                        placeholder="Enter or select start location on map"
+                        defaultLocation={[47.6062, -122.3321]} // Seattle default
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -419,17 +417,15 @@ export function UnifiedTripForm({
                 control={form.control}
                 name="endLocation"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>End Location</FormLabel>
+                  <FormItem className="space-y-2">
                     <FormControl>
-                      <div className="relative">
-                        <Input
-                          placeholder="Enter end location"
-                          className="pl-8"
-                          {...field}
-                        />
-                        <MapPin className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                      </div>
+                      <MapLocationPicker
+                        value={field.value}
+                        onChange={field.onChange}
+                        label="End Location"
+                        placeholder="Enter or select end location on map"
+                        defaultLocation={[47.6062, -122.3321]} // Seattle default
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -687,22 +683,20 @@ export function UnifiedTripForm({
                     </div>
                   </div>
                   
-                  <div className="grid gap-4 sm:grid-cols-2 mt-4">
+                  <div className="grid gap-6 sm:grid-cols-2 mt-4">
                     <FormField
                       control={form.control}
                       name={`stops.${index}.startLocation`}
                       render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Start Location</FormLabel>
+                        <FormItem className="space-y-2">
                           <FormControl>
-                            <div className="relative">
-                              <Input
-                                placeholder="Enter start location"
-                                className="pl-8"
-                                {...field}
-                              />
-                              <MapPin className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                            </div>
+                            <MapLocationPicker
+                              value={field.value}
+                              onChange={field.onChange}
+                              label="Start Location"
+                              placeholder="Enter or select start location on map"
+                              defaultLocation={[47.6062, -122.3321]} // Seattle default
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -713,17 +707,15 @@ export function UnifiedTripForm({
                       control={form.control}
                       name={`stops.${index}.endLocation`}
                       render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>End Location</FormLabel>
+                        <FormItem className="space-y-2">
                           <FormControl>
-                            <div className="relative">
-                              <Input
-                                placeholder="Enter end location"
-                                className="pl-8"
-                                {...field}
-                              />
-                              <MapPin className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                            </div>
+                            <MapLocationPicker
+                              value={field.value}
+                              onChange={field.onChange}
+                              label="End Location"
+                              placeholder="Enter or select end location on map"
+                              defaultLocation={[47.6062, -122.3321]} // Seattle default
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
