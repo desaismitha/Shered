@@ -1,6 +1,9 @@
 import { Calendar, Users, DollarSign, MessageSquare } from "lucide-react";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Link } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+import { Trip, Group, Expense, Message } from "@shared/schema";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface Stat {
   title: string;
@@ -10,45 +13,97 @@ interface Stat {
   iconColor: string;
   href: string;
   linkText: string;
+  isLoading?: boolean;
 }
 
 export function DashboardStats() {
+  // Fetch trips data
+  const { data: trips, isLoading: tripsLoading } = useQuery<Trip[]>({
+    queryKey: ["/api/trips"],
+    staleTime: 1000 * 60, // 1 minute
+  });
+
+  // Fetch groups data
+  const { data: groups, isLoading: groupsLoading } = useQuery<Group[]>({
+    queryKey: ["/api/groups"],
+    staleTime: 1000 * 60, // 1 minute
+  });
+
+  // Fetch expenses data
+  const { data: expenses, isLoading: expensesLoading } = useQuery<Expense[]>({
+    queryKey: ["/api/expenses"],
+    staleTime: 1000 * 60, // 1 minute
+  });
+
+  // Fetch messages data
+  const { data: messages, isLoading: messagesLoading } = useQuery<Message[]>({
+    queryKey: ["/api/messages"],
+    staleTime: 1000 * 60, // 1 minute
+  });
+
+  // Calculate upcoming trips (future start date)
+  const upcomingTripsCount = !tripsLoading && trips 
+    ? trips.filter(trip => new Date(trip.startDate) > new Date()).length 
+    : 0;
+
+  // Calculate active groups count
+  const activeGroupsCount = !groupsLoading && groups ? groups.length : 0;
+
+  // Calculate total expenses amount
+  const totalExpenses = !expensesLoading && expenses
+    ? expenses.reduce((total, expense) => total + Number(expense.amount), 0)
+    : 0;
+  
+  // Format the expense amount as currency
+  const formattedExpenses = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+  }).format(totalExpenses);
+
+  // Calculate unread messages count (assuming all are unread for now)
+  // In a real implementation, you'd filter by read/unread status
+  const unreadMessagesCount = !messagesLoading && messages ? messages.length : 0;
+
   const stats: Stat[] = [
     {
       title: "Upcoming Trips",
-      value: 3,
+      value: tripsLoading ? "..." : upcomingTripsCount,
       icon: Calendar,
       iconBgColor: "bg-primary-100",
       iconColor: "text-primary-600",
       href: "/trips",
-      linkText: "View all trips"
+      linkText: "View all trips",
+      isLoading: tripsLoading
     },
     {
       title: "Active Groups",
-      value: 5,
+      value: groupsLoading ? "..." : activeGroupsCount,
       icon: Users,
       iconBgColor: "bg-orange-100",
       iconColor: "text-orange-600",
       href: "/groups",
-      linkText: "View all groups"
+      linkText: "View all groups",
+      isLoading: groupsLoading
     },
     {
       title: "Shared Expenses",
-      value: "$1,245",
+      value: expensesLoading ? "..." : formattedExpenses,
       icon: DollarSign,
       iconBgColor: "bg-emerald-100",
       iconColor: "text-emerald-600",
       href: "/expenses",
-      linkText: "View details"
+      linkText: "View details",
+      isLoading: expensesLoading
     },
     {
       title: "Unread Messages",
-      value: 12,
+      value: messagesLoading ? "..." : unreadMessagesCount,
       icon: MessageSquare,
       iconBgColor: "bg-primary-100",
       iconColor: "text-primary-600",
       href: "/messages",
-      linkText: "View messages"
+      linkText: "View messages",
+      isLoading: messagesLoading
     },
   ];
   
@@ -65,7 +120,11 @@ export function DashboardStats() {
                 <dl>
                   <dt className="text-sm font-medium text-neutral-500 truncate">{stat.title}</dt>
                   <dd>
-                    <div className="text-lg font-medium text-neutral-900">{stat.value}</div>
+                    {stat.isLoading ? (
+                      <Skeleton className="h-6 w-16" />
+                    ) : (
+                      <div className="text-lg font-medium text-neutral-900">{stat.value}</div>
+                    )}
                   </dd>
                 </dl>
               </div>

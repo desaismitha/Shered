@@ -2020,6 +2020,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get all messages for the current user across all groups
+  app.get("/api/messages", async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+      
+      // Get all groups the user is a member of
+      const groups = await storage.getGroupsByUserId(req.user.id);
+      
+      if (!groups || groups.length === 0) {
+        return res.json([]); // No groups, so no messages
+      }
+      
+      // Collect all messages from all user groups
+      const allMessages = [];
+      
+      for (const group of groups) {
+        try {
+          const messages = await storage.getMessagesByGroupId(group.id);
+          if (messages && messages.length > 0) {
+            // Add each message to our array
+            allMessages.push(...messages);
+          }
+        } catch (err) {
+          console.error(`Error fetching messages for group ${group.id}:`, err);
+          // Continue with other groups even if one fails
+        }
+      }
+      
+      // Sort all messages by creation date (newest first)
+      allMessages.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      
+      res.json(allMessages);
+    } catch (err) {
+      console.error("Error fetching all messages:", err);
+      next(err);
+    }
+  });
+
   // Messages
   app.post("/api/groups/:id/messages", async (req, res, next) => {
     try {
