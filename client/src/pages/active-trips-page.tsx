@@ -263,6 +263,9 @@ function TripMap({
   itineraryItem?: ItineraryItem | null;
 }) {
   // Extract coordinates from itinerary start and end locations if available
+  // Log the itinerary item to debug coordinate extraction
+  console.log("Map coordinates extraction - itinerary item:", itineraryItem);
+  
   const fromCoords = itineraryItem?.fromLocation 
     ? extractCoordinates(itineraryItem.fromLocation)
     : null;
@@ -270,6 +273,8 @@ function TripMap({
   const toCoords = itineraryItem?.toLocation 
     ? extractCoordinates(itineraryItem.toLocation)
     : null;
+    
+  console.log("Map coordinates:", {fromCoords, toCoords, currentCoords: currentLatitude && currentLongitude ? {lat: currentLatitude, lng: currentLongitude} : null});
     
   // If no itinerary coordinates, use trip start/destination with better fallbacks
   let effectiveFromCoords = fromCoords;
