@@ -175,16 +175,12 @@ function getStatusColor(status: string | undefined) {
 
 // Map Controller component to fit bounds and update view
 function MapController({
-  startLocation,
-  destination,
-  fromCoords,
-  toCoords,
+  effectiveFromCoords,
+  effectiveToCoords,
   currentPosition,
 }: {
-  startLocation: [number, number] | null;
-  destination: [number, number] | null;
-  fromCoords: { lat: number, lng: number } | null;
-  toCoords: { lat: number, lng: number } | null;
+  effectiveFromCoords: { lat: number, lng: number } | null;
+  effectiveToCoords: { lat: number, lng: number } | null;
   currentPosition: [number, number] | null;
 }) {
   const map = useMap();
@@ -193,22 +189,13 @@ function MapController({
     // Collect all valid coordinates
     const bounds: [number, number][] = [];
     
-    // Add coordinates from itinerary locations
-    if (fromCoords) {
-      bounds.push([fromCoords.lat, fromCoords.lng]);
+    // Add start/end coordinates (already processed and validated)
+    if (effectiveFromCoords) {
+      bounds.push([effectiveFromCoords.lat, effectiveFromCoords.lng]);
     }
     
-    if (toCoords) {
-      bounds.push([toCoords.lat, toCoords.lng]);
-    }
-    
-    // Add coordinates from trip locations
-    if (startLocation) {
-      bounds.push(startLocation);
-    }
-    
-    if (destination) {
-      bounds.push(destination);
+    if (effectiveToCoords) {
+      bounds.push([effectiveToCoords.lat, effectiveToCoords.lng]);
     }
     
     // Add current position
@@ -227,7 +214,7 @@ function MapController({
       // If we only have one point, center on it with a closer zoom
       map.setView(bounds[0], 12, { animate: true });
     }
-  }, [map, startLocation, destination, fromCoords, toCoords, currentPosition]);
+  }, [map, effectiveFromCoords, effectiveToCoords, currentPosition]);
 
   return null;
 }
@@ -719,62 +706,46 @@ function TripMap({
           )}
           
           {/* Draw polyline between trip locations if itinerary locations are not available */}
-          {!fromCoords && !toCoords && startLocation && destination && (
+          {!fromCoords && !toCoords && effectiveFromCoords && effectiveToCoords && (
             <>
-              {/* Get coordinates for start and end locations */}
-              {(() => {
-                // Use more realistic coordinates for major cities
-                const startCoords = extractCoordinates(startLocation) || 
-                  getDefaultCoordinatesForLocation(startLocation, null, null, 0);
-                
-                const destCoords = extractCoordinates(destination) || 
-                  getDefaultCoordinatesForLocation(destination, null, null, 0);
-                
-                console.log("Navigation route:", { startLocation, destination, startCoords, destCoords });
-                
-                return (
-                  <>
-                    {/* Planned route with dashed line */}
-                    <Polyline 
-                      positions={[
-                        startCoords as [number, number],
-                        destCoords as [number, number]
-                      ]}
-                      color="#4a90e2"
-                      weight={5}
-                      opacity={0.9}
-                      dashArray="10, 10"
-                    />
-                    
-                    {/* Current progress line - from start to current position */}
-                    {currentLatitude && currentLongitude && (
-                      <Polyline 
-                        positions={[
-                          startCoords as [number, number],
-                          [currentLatitude, currentLongitude] as [number, number]
-                        ]}
-                        color="#34c759"
-                        weight={4}
-                        opacity={0.9}
-                      />
-                    )}
-                    
-                    {/* Remaining path line - from current position to destination */}
-                    {currentLatitude && currentLongitude && (
-                      <Polyline 
-                        positions={[
-                          [currentLatitude, currentLongitude] as [number, number],
-                          destCoords as [number, number]
-                        ]}
-                        color="#ff9500"
-                        weight={3}
-                        opacity={0.7}
-                        dashArray="5, 8"
-                      />
-                    )}
-                  </>
-                );
-              })()}
+              {/* Use our pre-calculated and validated effective coordinates */}
+              <Polyline 
+                positions={[
+                  [effectiveFromCoords.lat, effectiveFromCoords.lng] as [number, number],
+                  [effectiveToCoords.lat, effectiveToCoords.lng] as [number, number]
+                ]}
+                color="#4a90e2"
+                weight={5}
+                opacity={0.9}
+                dashArray="10, 10"
+              />
+              
+              {/* Current progress line - from start to current position */}
+              {currentLatitude && currentLongitude && (
+                <Polyline 
+                  positions={[
+                    [effectiveFromCoords.lat, effectiveFromCoords.lng] as [number, number],
+                    [currentLatitude, currentLongitude] as [number, number]
+                  ]}
+                  color="#34c759"
+                  weight={4}
+                  opacity={0.9}
+                />
+              )}
+              
+              {/* Remaining path line - from current position to destination */}
+              {currentLatitude && currentLongitude && (
+                <Polyline 
+                  positions={[
+                    [currentLatitude, currentLongitude] as [number, number],
+                    [effectiveToCoords.lat, effectiveToCoords.lng] as [number, number]
+                  ]}
+                  color="#ff9500"
+                  weight={3}
+                  opacity={0.7}
+                  dashArray="5, 8"
+                />
+              )}
             </>
           )}
           
@@ -843,6 +814,13 @@ function TripMap({
               </div>
             </div>
           )}
+          
+          {/* Add the map controller to update bounds */}
+          <MapController 
+            effectiveFromCoords={effectiveFromCoords} 
+            effectiveToCoords={effectiveToCoords}
+            currentPosition={currentLatitude && currentLongitude ? [currentLatitude, currentLongitude] : null}
+          />
           
           {/* Map Legend */}
           <div className="leaflet-bottom leaflet-left" style={{
