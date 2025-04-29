@@ -487,14 +487,34 @@ function TripMap({
   
   // Prepare road route coordinates for rendering (if available)
   const roadRoutePositions = useMemo(() => {
-    if (!routeGeometry || !routeGeometry.coordinates) {
-      return [];
+    // Direct route if we have from and to coordinates
+    if (effectiveFromCoords && effectiveToCoords) {
+      console.log('Creating direct polyline from:', effectiveFromCoords, 'to:', effectiveToCoords);
+      
+      const positions: [number, number][] = [];
+      const numPoints = 10;
+      
+      // Generate points along the line
+      for (let i = 0; i <= numPoints; i++) {
+        const fraction = i / numPoints;
+        const lat = effectiveFromCoords.lat + fraction * (effectiveToCoords.lat - effectiveFromCoords.lat);
+        const lng = effectiveFromCoords.lng + fraction * (effectiveToCoords.lng - effectiveFromCoords.lng);
+        positions.push([lat, lng]);
+      }
+      
+      console.log('Generated polyline positions:', positions);
+      return positions;
     }
     
-    // Safe type checking
-    const coordinates = routeGeometry.coordinates as Array<[number, number]>;
-    return coordinates.map(coord => [coord[1], coord[0]] as [number, number]);
-  }, [routeGeometry]);
+    // Fallback to route geometry if available
+    if (routeGeometry && routeGeometry.coordinates) {
+      // Safe type checking
+      const coordinates = routeGeometry.coordinates as Array<[number, number]>;
+      return coordinates.map(coord => [coord[1], coord[0]] as [number, number]);
+    }
+    
+    return [];
+  }, [effectiveFromCoords, effectiveToCoords, routeGeometry]);
   
   // Route information panel JSX - We're now using it outside the MapContainer
   const routeInfoPanel = useMemo(() => {
@@ -674,6 +694,19 @@ function TripMap({
                 </div>
               </div>
             </div>
+          )}
+          
+          {/* Add a direct line between points - This serves as a fallback */}
+          {effectiveFromCoords && effectiveToCoords && (
+            <Polyline 
+              positions={[
+                [effectiveFromCoords.lat, effectiveFromCoords.lng],
+                [effectiveToCoords.lat, effectiveToCoords.lng]
+              ]}
+              color="#4a90e2"
+              weight={4}
+              opacity={0.7}
+            />
           )}
           
           {/* Road Route from Mapbox API */}
