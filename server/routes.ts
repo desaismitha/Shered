@@ -8,6 +8,7 @@ import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { sendGroupInvitation, sendPasswordResetEmail } from "./email";
 import crypto from "crypto";
+import fetch from "node-fetch";
 
 /**
  * Clean location string by removing any coordinates in brackets or parentheses
