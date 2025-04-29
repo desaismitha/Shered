@@ -1450,7 +1450,7 @@ export default function ActiveTripsPage() {
                         <div className="border-b pb-2 mb-3">
                           <h3 className="text-sm font-semibold">{selectedTrip.name}</h3>
                           <p className="text-xs text-muted-foreground">
-                            Overall trip: {selectedTrip.startLocation || "Unknown"} to {selectedTrip.destination || "Unknown"}
+                            Overall trip: {selectedTrip.startLocationDisplay || cleanLocationString(selectedTrip.startLocation) || "Unknown"} to {selectedTrip.destinationDisplay || cleanLocationString(selectedTrip.destination) || "Unknown"}
                           </p>
                         </div>
                         
@@ -1459,14 +1459,14 @@ export default function ActiveTripsPage() {
                             <h3 className="text-sm font-medium text-green-800 mb-1">Trip Start</h3>
                             <p className="text-md font-medium flex items-center">
                               <MapPin className="h-4 w-4 text-green-600 mr-1" />
-                              {cleanLocationString(selectedTrip.startLocation) || 'Not specified'}
+                              {selectedTrip.startLocationDisplay || cleanLocationString(selectedTrip.startLocation) || 'Not specified'}
                             </p>
                           </div>
                           <div className="border rounded-md p-3 bg-red-50 flex-1">
                             <h3 className="text-sm font-medium text-red-800 mb-1">Trip End</h3>
                             <p className="text-md font-medium flex items-center">
                               <MapPin className="h-4 w-4 text-red-600 mr-1" />
-                              {cleanLocationString(selectedTrip.destination) || 'Not specified'}
+                              {selectedTrip.destinationDisplay || cleanLocationString(selectedTrip.destination) || 'Not specified'}
                             </p>
                           </div>
                         </div>
@@ -1487,7 +1487,7 @@ export default function ActiveTripsPage() {
                   </CardDescription>
                 ) : (
                   <CardDescription>
-                    Showing overall trip from {cleanLocationString(selectedTrip.startLocation) || "Starting Point"} to {cleanLocationString(selectedTrip.destination) || "Destination"}
+                    Showing overall trip from {selectedTrip.startLocationDisplay || cleanLocationString(selectedTrip.startLocation) || "Starting Point"} to {selectedTrip.destinationDisplay || cleanLocationString(selectedTrip.destination) || "Destination"}
                   </CardDescription>
                 )}
               </CardHeader>
@@ -1719,7 +1719,7 @@ export default function ActiveTripsPage() {
                     <CardHeader>
                       <CardTitle>{trip.name}</CardTitle>
                       <CardDescription>
-                        {trip.destination ? cleanLocationString(trip.destination) : "No destination specified"}
+                        {trip.destinationDisplay || (trip.destination ? cleanLocationString(trip.destination) : "No destination specified")}
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="flex-grow">
