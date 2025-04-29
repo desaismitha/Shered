@@ -92,9 +92,9 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row">
+    <div className="flex flex-col md:flex-row min-h-screen">
       {/* Auth form - left on desktop, top on mobile */}
-      <div className="flex items-center justify-center p-6 md:p-12 md:w-1/2 order-last md:order-first">
+      <div className="flex items-start md:items-center justify-center p-6 pt-2 md:p-12 md:w-1/2 order-last md:order-first">
         <Card className="w-full max-w-md">
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl font-bold text-center">
@@ -270,7 +270,7 @@ export default function AuthPage() {
       </div>
       
       {/* Hero section - right on desktop, bottom on mobile */}
-      <div className="bg-primary-600 text-white p-6 md:p-12 md:w-1/2 flex flex-col justify-center order-first md:order-last">
+      <div className="bg-primary-600 text-white p-6 pt-4 md:p-12 md:w-1/2 flex flex-col justify-center order-first md:order-last">
         <div className="max-w-md mx-auto">
           <div className="flex items-center mb-6">
             <Plane className="h-8 w-8 mr-3" />

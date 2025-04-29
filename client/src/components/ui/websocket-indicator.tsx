@@ -1,9 +1,14 @@
 import { useWebSocketContext } from "@/components/providers/websocket-provider";
+import { useAuth } from "@/hooks/use-auth";
 import { Wifi, WifiOff } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export function WebSocketIndicator() {
   const { isConnected } = useWebSocketContext();
+  const { user } = useAuth();
+
+  // Only show the indicator if user is logged in
+  if (!user) return null;
 
   return (
     <TooltipProvider>
