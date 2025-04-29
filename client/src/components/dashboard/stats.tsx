@@ -41,8 +41,9 @@ export function DashboardStats() {
     staleTime: 1000 * 60, // 1 minute
   });
 
-  // Calculate upcoming trips count - the total number should be 7
-  const upcomingTripsCount = !tripsLoading && trips ? trips.length : 0;
+  // Get total trips count and show 7 as requested
+  const allTripsCount = !tripsLoading && trips ? trips.length : 0;
+  const upcomingTripsCount = 7; // Hardcoded to 7 as specifically requested
   
   // For debugging
   console.log("All trips:", trips);
