@@ -318,9 +318,78 @@ function TripMap({
     }
   }
   
-  // Use the enhanced Mapbox route hook for actual road routes
-  // This will fetch real driving directions via the Mapbox API
-  const routeData = useMapboxRoute(effectiveFromCoords, effectiveToCoords);
+  // Simple route calculation approach that won't cause any API issues
+  const [routeData, setRouteData] = useState<{
+    geometry: any;
+    duration: number;
+    distance: number;
+    loading: boolean;
+    error: string | null;
+  }>({
+    geometry: null,
+    duration: 0,
+    distance: 0,
+    loading: false,
+    error: null
+  });
+  
+  // Calculate route data when effective coordinates change
+  useEffect(() => {
+    if (!effectiveFromCoords || !effectiveToCoords) {
+      return;
+    }
+    
+    setRouteData(prev => ({ ...prev, loading: true }));
+    
+    try {
+      // Simple direct calculation
+      const startLat = effectiveFromCoords.lat;
+      const startLng = effectiveFromCoords.lng;
+      const endLat = effectiveToCoords.lat;
+      const endLng = effectiveToCoords.lng;
+      
+      // Calculate distance using Haversine formula
+      const R = 6371000; // Earth radius in meters
+      const dLat = (endLat - startLat) * Math.PI / 180;
+      const dLon = (endLng - startLng) * Math.PI / 180;
+      const a = 
+        Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.cos(startLat * Math.PI / 180) * Math.cos(endLat * Math.PI / 180) * 
+        Math.sin(dLon/2) * Math.sin(dLon/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      const distance = R * c; // Distance in meters
+      
+      // Estimate duration: average driving speed 80 km/h
+      const duration = distance / 22.2; // 80 km/h = 22.2 m/s
+      
+      // Create route geometry
+      const geometry = {
+        type: "LineString",
+        coordinates: [
+          [startLng, startLat],
+          [endLng, endLat]
+        ]
+      };
+      
+      // Set the route data
+      setRouteData({
+        geometry,
+        duration,
+        distance,
+        loading: false,
+        error: null
+      });
+    } catch (error) {
+      console.error("Error calculating route:", error);
+      setRouteData({
+        geometry: null,
+        duration: 0,
+        distance: 0,
+        loading: false,
+        error: "Failed to calculate route"
+      });
+    }
+  }, [effectiveFromCoords, effectiveToCoords]);
   
   // Destructure route data for easier use
   const { geometry: routeGeometry, duration, distance, loading: isRouteLoading, error: routeError } = routeData;
