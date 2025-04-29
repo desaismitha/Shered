@@ -6,6 +6,14 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+// Clean location string by removing any coordinates in brackets
+export function cleanLocationString(location: string | null | undefined): string {
+  if (!location) return 'Unknown location';
+  
+  // Remove any coordinates in square brackets like [47.6062, -122.3321]
+  return location.replace(/\[.*?\]/g, '').trim();
+}
+
 // Function that detects if a date is our special marker date (2099-12-31)
 export function isSpecialDateMarker(dateStr: string | null | undefined): boolean {
   if (!dateStr) return false;

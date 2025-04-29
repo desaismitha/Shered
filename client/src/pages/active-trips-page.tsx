@@ -10,7 +10,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { formatDateRange } from "@/lib/utils";
+import { formatDateRange, cleanLocationString } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -501,7 +501,7 @@ function TripMap({
             >
               <Popup>
                 <div>
-                  <strong>Start: {itineraryItem?.fromLocation?.replace(/\[.*?\]/g, '').trim() || 'Starting Point'}</strong><br />
+                  <strong>Start: {cleanLocationString(itineraryItem?.fromLocation) || 'Starting Point'}</strong><br />
                   <span>Starting point of the itinerary</span>
                 </div>
               </Popup>
@@ -523,7 +523,7 @@ function TripMap({
             >
               <Popup>
                 <div>
-                  <strong>Start: {startLocation}</strong><br />
+                  <strong>Start: {cleanLocationString(startLocation)}</strong><br />
                   <span>Starting point of the trip</span>
                 </div>
               </Popup>
@@ -545,7 +545,7 @@ function TripMap({
             >
               <Popup>
                 <div>
-                  <strong>Destination: {itineraryItem?.toLocation?.replace(/\[.*?\]/g, '').trim() || 'Destination'}</strong><br />
+                  <strong>Destination: {cleanLocationString(itineraryItem?.toLocation) || 'Destination'}</strong><br />
                   <span>End point of the itinerary</span>
                 </div>
               </Popup>
@@ -567,7 +567,7 @@ function TripMap({
             >
               <Popup>
                 <div>
-                  <strong>Destination: {destination}</strong><br />
+                  <strong>Destination: {cleanLocationString(destination)}</strong><br />
                   <span>Final destination of the trip</span>
                 </div>
               </Popup>
