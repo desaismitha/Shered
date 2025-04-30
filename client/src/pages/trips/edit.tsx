@@ -364,9 +364,7 @@ export default function EditTripPage() {
                               label=""
                               value={field.value || ""}
                               onChange={field.onChange}
-                              placeholder="Enter or select destination on map"
-                              showMap={false}
-                              hideMapToggle={true} // Hide the toggle button
+                              placeholder="Enter destination"
                               required
                             />
                           </FormControl>
