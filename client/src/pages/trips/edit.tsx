@@ -38,6 +38,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { format } from "date-fns";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import MapLocationPicker from "@/components/maps/map-location-picker";
+import RouteMapPreview from "@/components/maps/route-map-preview";
 import { Skeleton } from "@/components/ui/skeleton";
 
 // Extend the schema for update form
@@ -76,12 +78,16 @@ export default function EditTripPage() {
     queryKey: ["/api/groups"],
   });
   
+  // State to manage location inputs 
+  const [startLocation, setStartLocation] = useState<string>("");
+    
   // Set up the form
   const form = useForm<TripUpdateValues>({
     resolver: zodResolver(tripUpdateSchema),
     defaultValues: {
       id: tripId,
       name: "",
+      startLocation: "",
       destination: "",
       startDate: new Date(),
       endDate: new Date(),
@@ -95,10 +101,14 @@ export default function EditTripPage() {
   // Update form with trip data when it's loaded
   useEffect(() => {
     if (trip) {
+      // Set the startLocation state for the RouteMapPreview
+      setStartLocation(trip.startLocation || "");
+      
       form.reset({
         id: trip.id,
         name: trip.name,
-        destination: trip.destination,
+        startLocation: trip.startLocation || "",
+        destination: trip.destination || "",
         startDate: new Date(trip.startDate),
         endDate: new Date(trip.endDate),
         description: trip.description || "",
@@ -119,6 +129,7 @@ export default function EditTripPage() {
       // Step 2: Simplify the payload - only include essential fields
       const payload = {
         name: values.name,
+        startLocation: values.startLocation,
         destination: values.destination,
         startDate: values.startDate instanceof Date 
           ? values.startDate.toISOString() 
@@ -215,6 +226,7 @@ export default function EditTripPage() {
       // Create a stripped-down version with only the fields we want to update
       const updateData = {
         name: values.name,
+        startLocation: values.startLocation,
         destination: values.destination,
         startDate: values.startDate,
         endDate: values.endDate,
@@ -314,6 +326,32 @@ export default function EditTripPage() {
                       </FormItem>
                     )}
                   />
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <FormField
+                    control={form.control}
+                    name="startLocation"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Start Location</FormLabel>
+                        <FormControl>
+                          <MapLocationPicker
+                            label=""
+                            value={field.value || ""}
+                            onChange={(val) => {
+                              field.onChange(val);
+                              setStartLocation(val);
+                            }}
+                            placeholder="Enter or select start location"
+                            showMap={false} // Don't show individual map
+                            required
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                   
                   <FormField
                     control={form.control}
@@ -322,13 +360,32 @@ export default function EditTripPage() {
                       <FormItem>
                         <FormLabel>Destination</FormLabel>
                         <FormControl>
-                          <Input placeholder="Enter destination" {...field} />
+                          <MapLocationPicker
+                            label=""
+                            value={field.value || ""}
+                            onChange={field.onChange}
+                            placeholder="Enter or select destination on map"
+                            showMap={false} // Don't show individual map
+                            required
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                 </div>
+                
+                {/* Add Route Map Preview - only when we have both locations */}
+                {trip?.startLocation && trip?.destination && (
+                  <div className="mt-4 mb-6">
+                    <RouteMapPreview 
+                      startLocation={trip.startLocation}
+                      endLocation={trip.destination}
+                      showMap={true}
+                      onToggleMap={() => {}} // Always showing the map
+                    />
+                  </div>
+                )}
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <FormField
