@@ -1,9 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
-import L from 'leaflet';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Search, MapPin } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 
 // This is a utility function to get the human-readable location from coordinates
@@ -28,17 +26,6 @@ async function reverseGeocode(lat: number, lng: number): Promise<string> {
   }
 }
 
-// This component handles map interactions
-function MapClickHandler({ onLocationSelected }: { onLocationSelected: (lat: number, lng: number) => void }) {
-  const map = useMapEvents({
-    click: (e) => {
-      onLocationSelected(e.latlng.lat, e.latlng.lng);
-    },
-  });
-
-  return null;
-}
-
 interface MapLocationPickerProps {
   value: string;
   onChange: (value: string) => void;
@@ -46,21 +33,16 @@ interface MapLocationPickerProps {
   placeholder?: string;
   defaultLocation?: [number, number]; // Default center coordinates [lat, lng]
   required?: boolean;
-  showMap?: boolean; // Add new prop to control map visibility
-  hideMapToggle?: boolean; // Option to hide the map toggle button
 }
 
 const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
   value,
   onChange,
   label,
-  placeholder = 'Enter location or select on map',
-  defaultLocation = [47.6062, -122.3321], // Default to Seattle
-  required = false,
-  showMap: propShowMap = true, // Default to showing map
-  hideMapToggle = false, // Default to showing the map toggle button
+  placeholder = 'Enter location',
+  defaultLocation = [47.6062, -122.3321], // Default to Seattle (used for coordinates if needed)
+  required = false
 }) => {
-  const [showMap, setShowMap] = useState(propShowMap);
   const [markerPosition, setMarkerPosition] = useState<[number, number] | null>(null);
   const [searchInput, setSearchInput] = useState('');
   const [isSearching, setIsSearching] = useState(false);
@@ -69,7 +51,6 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
   const [showSuggestions, setShowSuggestions] = useState(false);
 
   // Parse coordinates from the value if they exist
-  // Store the original value with coordinates to prevent loss when toggling map
   const [originalValue, setOriginalValue] = useState<string>(value);
   
   useEffect(() => {
@@ -97,13 +78,6 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
     }
   }, [value]);
 
-  // Handle location selection from map
-  const handleLocationSelected = async (lat: number, lng: number) => {
-    setMarkerPosition([lat, lng]);
-    const locationString = await reverseGeocode(lat, lng);
-    onChange(locationString);
-  };
-
   // Handle search for locations
   const handleSearch = useCallback(async () => {
     if (!searchInput.trim()) return;
@@ -124,9 +98,6 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
         setMarkerPosition([latNum, lngNum]);
         const locationString = await reverseGeocode(latNum, lngNum);
         onChange(locationString);
-        
-        // Focus map on this location
-        setShowMap(true);
       } else {
         // No results, but still update the input
         onChange(searchInput);
@@ -137,7 +108,7 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
     } finally {
       setIsSearching(false);
     }
-  }, [searchInput, onChange, setShowMap]);
+  }, [searchInput, onChange]);
 
   // Handle input change
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -205,16 +176,6 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
     }
   };
 
-  // Create custom marker icon
-  const customIcon = new L.Icon({
-    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
-    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-    popupAnchor: [1, -34],
-    shadowSize: [41, 41]
-  });
-
   // Handle selection from suggestions dropdown
   const handleSelectSuggestion = async (suggestion: {place_name: string, lat: number, lon: number}) => {
     setSearchInput(suggestion.place_name.split(',').slice(0, 3).join(','));
@@ -224,9 +185,8 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
     const locationString = `${suggestion.place_name.split(',').slice(0, 3).join(',')} [${suggestion.lat.toFixed(6)}, ${suggestion.lon.toFixed(6)}]`;
     onChange(locationString);
     
-    // Close suggestions and show map
+    // Close suggestions
     setShowSuggestions(false);
-    setShowMap(true);
   };
   
   // Close suggestions when clicking outside
@@ -247,118 +207,50 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
         {label}
       </Label>
       
-      <div className="flex items-center gap-2 mb-2">
-        <div className="relative flex-1">
-          <Input
-            id={`location-input-${label.toLowerCase().replace(/\s+/g, '-')}`}
-            ref={inputRef}
-            value={searchInput}
-            onChange={handleInputChange}
-            onKeyDown={handleKeyDown}
-            placeholder={placeholder}
-            className="pr-10"
-            onFocus={() => {
-              // Show suggestions again if we have them and input is focused
-              if (suggestions.length > 0) {
-                setShowSuggestions(true);
-              }
-            }}
-          />
-          <Button 
-            type="button"
-            variant="ghost" 
-            size="sm" 
-            className="absolute right-0 top-0 h-full"
-            onClick={handleSearch}
-            disabled={isSearching || !searchInput.trim()}
-          >
-            <Search className={`h-4 w-4 ${isSearching ? 'animate-pulse' : ''}`} />
-          </Button>
-          
-          {/* Location suggestions dropdown */}
-          {showSuggestions && suggestions.length > 0 && (
-            <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
-              <ul className="py-1">
-                {suggestions.map((suggestion, index) => (
-                  <li 
-                    key={index}
-                    className="px-3 py-2 text-sm hover:bg-gray-100 cursor-pointer truncate"
-                    onClick={() => handleSelectSuggestion(suggestion)}
-                  >
-                    {suggestion.place_name}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
+      <div className="relative w-full">
+        <Input
+          id={`location-input-${label.toLowerCase().replace(/\s+/g, '-')}`}
+          ref={inputRef}
+          value={searchInput}
+          onChange={handleInputChange}
+          onKeyDown={handleKeyDown}
+          placeholder={placeholder}
+          className="pr-10"
+          onFocus={() => {
+            // Show suggestions again if we have them and input is focused
+            if (suggestions.length > 0) {
+              setShowSuggestions(true);
+            }
+          }}
+        />
+        <Button 
+          type="button"
+          variant="ghost" 
+          size="sm" 
+          className="absolute right-0 top-0 h-full"
+          onClick={handleSearch}
+          disabled={isSearching || !searchInput.trim()}
+        >
+          <Search className={`h-4 w-4 ${isSearching ? 'animate-pulse' : ''}`} />
+        </Button>
         
-        {!hideMapToggle && (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={async () => {
-              // Toggle map visibility
-              const nextShowMap = !showMap;
-              setShowMap(nextShowMap);
-              
-              // When showing the map, search for the location if needed
-              if (nextShowMap) {
-                if (originalValue && originalValue.includes('[')) {
-                  // If we have coordinates already, use them
-                  onChange(originalValue);
-                } else if (searchInput && searchInput.trim()) {
-                  // Try to search for the location text to get coordinates
-                  try {
-                    setIsSearching(true);
-                    const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchInput)}&limit=1`);
-                    
-                    if (response.ok) {
-                      const results = await response.json();
-                      if (results && results.length > 0) {
-                        const { lat, lon, display_name } = results[0];
-                        const latNum = parseFloat(lat);
-                        const lngNum = parseFloat(lon);
-                        
-                        setMarkerPosition([latNum, lngNum]);
-                        const locationString = `${display_name.split(',').slice(0, 3).join(',')} [${latNum.toFixed(6)}, ${lngNum.toFixed(6)}]`;
-                        onChange(locationString);
-                      }
-                    }
-                  } catch (error) {
-                    console.error('Error searching location when showing map:', error);
-                  } finally {
-                    setIsSearching(false);
-                  }
-                }
-              }
-            }}
-          >
-            <MapPin className="h-4 w-4 mr-1" />
-            {showMap ? 'Hide Map' : 'Show Map'}
-          </Button>
+        {/* Location suggestions dropdown */}
+        {showSuggestions && suggestions.length > 0 && (
+          <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
+            <ul className="py-1">
+              {suggestions.map((suggestion, index) => (
+                <li 
+                  key={index}
+                  className="px-3 py-2 text-sm hover:bg-gray-100 cursor-pointer truncate"
+                  onClick={() => handleSelectSuggestion(suggestion)}
+                >
+                  {suggestion.place_name}
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
       </div>
-      
-      {showMap && (
-        <div className="rounded-md overflow-hidden border border-border" style={{ height: '300px' }}>
-          <MapContainer
-            center={markerPosition || defaultLocation}
-            zoom={12}
-            style={{ height: '100%', width: '100%' }}
-          >
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-            {markerPosition && (
-              <Marker position={markerPosition} icon={customIcon} />
-            )}
-            <MapClickHandler onLocationSelected={handleLocationSelected} />
-          </MapContainer>
-        </div>
-      )}
       
       {value && (
         <div className="text-sm text-muted-foreground mt-1">
