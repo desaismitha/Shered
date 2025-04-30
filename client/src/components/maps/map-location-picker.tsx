@@ -59,6 +59,8 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
   const [searchInput, setSearchInput] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [suggestions, setSuggestions] = useState<Array<{place_name: string, lat: number, lon: number}>>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   // Parse coordinates from the value if they exist
   // Store the original value with coordinates to prevent loss when toggling map
@@ -143,16 +145,51 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
     }
   };
   
-  // Add debounce effect for search - searches automatically after user stops typing
+  // Add effect to fetch location suggestions as user types
   useEffect(() => {
-    if (searchInput && searchInput.trim().length > 2) {
-      const timer = setTimeout(() => {
-        handleSearch();
-      }, 1000); // 1 second delay
-      
-      return () => clearTimeout(timer);
+    // Hide suggestions if input is empty
+    if (!searchInput || searchInput.trim().length < 2) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
     }
-  }, [searchInput, handleSearch]);
+    
+    const fetchSuggestions = async () => {
+      try {
+        setIsSearching(true);
+        const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchInput)}&limit=5`);
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch suggestions');
+        }
+        
+        const results = await response.json();
+        if (results && results.length > 0) {
+          setSuggestions(results.map((item: any) => ({
+            place_name: item.display_name,
+            lat: parseFloat(item.lat),
+            lon: parseFloat(item.lon)
+          })));
+          setShowSuggestions(true);
+        } else {
+          setSuggestions([]);
+          setShowSuggestions(false);
+        }
+      } catch (error) {
+        console.error('Error fetching suggestions:', error);
+        setSuggestions([]);
+        setShowSuggestions(false);
+      } finally {
+        setIsSearching(false);
+      }
+    };
+    
+    const timer = setTimeout(() => {
+      fetchSuggestions();
+    }, 500); // shorter delay for suggestions
+    
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   // Handle Enter key in search
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -172,6 +209,32 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
     shadowSize: [41, 41]
   });
 
+  // Handle selection from suggestions dropdown
+  const handleSelectSuggestion = async (suggestion: {place_name: string, lat: number, lon: number}) => {
+    setSearchInput(suggestion.place_name.split(',').slice(0, 3).join(','));
+    setMarkerPosition([suggestion.lat, suggestion.lon]);
+    
+    // Format location with coordinates
+    const locationString = `${suggestion.place_name.split(',').slice(0, 3).join(',')} [${suggestion.lat.toFixed(6)}, ${suggestion.lon.toFixed(6)}]`;
+    onChange(locationString);
+    
+    // Close suggestions and show map
+    setShowSuggestions(false);
+    setShowMap(true);
+  };
+  
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (inputRef.current && !inputRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   return (
     <div className="space-y-2">
       <Label htmlFor={`location-input-${label.toLowerCase().replace(/\s+/g, '-')}`}>
@@ -188,6 +251,12 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
             className="pr-10"
+            onFocus={() => {
+              // Show suggestions again if we have them and input is focused
+              if (suggestions.length > 0) {
+                setShowSuggestions(true);
+              }
+            }}
           />
           <Button 
             type="button"
@@ -199,6 +268,23 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
           >
             <Search className={`h-4 w-4 ${isSearching ? 'animate-pulse' : ''}`} />
           </Button>
+          
+          {/* Location suggestions dropdown */}
+          {showSuggestions && suggestions.length > 0 && (
+            <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
+              <ul className="py-1">
+                {suggestions.map((suggestion, index) => (
+                  <li 
+                    key={index}
+                    className="px-3 py-2 text-sm hover:bg-gray-100 cursor-pointer truncate"
+                    onClick={() => handleSelectSuggestion(suggestion)}
+                  >
+                    {suggestion.place_name}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
         
         <Button
