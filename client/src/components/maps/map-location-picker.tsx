@@ -45,6 +45,8 @@ interface MapLocationPickerProps {
   label: string;
   placeholder?: string;
   defaultLocation?: [number, number]; // Default center coordinates [lat, lng]
+  required?: boolean;
+  showMap?: boolean; // Add new prop to control map visibility
 }
 
 const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
@@ -53,8 +55,10 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
   label,
   placeholder = 'Enter location or select on map',
   defaultLocation = [47.6062, -122.3321], // Default to Seattle
+  required = false,
+  showMap: propShowMap = true, // Default to showing map
 }) => {
-  const [showMap, setShowMap] = useState(false);
+  const [showMap, setShowMap] = useState(propShowMap);
   const [markerPosition, setMarkerPosition] = useState<[number, number] | null>(null);
   const [searchInput, setSearchInput] = useState('');
   const [isSearching, setIsSearching] = useState(false);
