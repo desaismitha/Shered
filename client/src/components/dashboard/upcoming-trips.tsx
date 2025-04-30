@@ -11,9 +11,11 @@ export function UpcomingTrips() {
   });
 
   // Filter to only show upcoming trips (future start date)
-  const upcomingTrips = trips?.filter(trip => 
-    new Date(trip.startDate) > new Date()
-  ).slice(0, 3);
+  // Trips already come filtered by user's groups from the server
+  const upcomingTrips = trips
+    ?.filter(trip => new Date(trip.startDate) > new Date())
+    .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
+    .slice(0, 3);
 
   return (
     <section className="mb-8">
