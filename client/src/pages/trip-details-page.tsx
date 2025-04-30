@@ -687,7 +687,7 @@ export default function TripDetailsPage() {
                       <div className="mb-4">
                         <div className="flex justify-between items-center mb-2">
                           <h3 className="text-sm font-medium">Route Preview</h3>
-                          <Button
+                         <Button
                             type="button"
                             variant="outline"
                             size="sm"
@@ -695,7 +695,7 @@ export default function TripDetailsPage() {
                           >
                             <MapPin className="h-4 w-4 mr-1" />
                             {showMap ? 'Hide Map' : 'Show Map'}
-                          </Button>
+                          </Button> 
                         </div>
                         
                         {showMap && (
