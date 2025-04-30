@@ -391,7 +391,6 @@ export default function TripDetailsPage() {
   const [urlObj, setUrlObj] = useState<URL>(new URL(window.location.href));
   const { user } = useAuth();
   const { toast } = useToast();
-  const [showMap, setShowMap] = useState(true);
   
   // Update URL object when the location changes
   useEffect(() => {
@@ -687,24 +686,27 @@ export default function TripDetailsPage() {
                       <div className="mb-4">
                         <div className="flex justify-between items-center mb-2">
                           <h3 className="text-sm font-medium">Route Preview</h3>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setShowMap(!showMap)}
-                          >
-                            <MapPin className="h-4 w-4 mr-1" />
-                            {showMap ? 'Hide Map' : 'Show Map'}
-                          </Button>
                         </div>
                         
-                        {showMap && (
+                        {/* Only show map when both locations exist */}
+                        {trip.startLocation && trip.destination && (
                           <RouteMapPreview
                             startLocation={trip.startLocation}
                             endLocation={trip.destination}
                             showMap={true}
                             onToggleMap={() => {}}
                           />
+                        )}
+                        
+                        {/* Show message when locations are missing */}
+                        {(!trip.startLocation || !trip.destination) && (
+                          <div className="text-center py-4 text-muted-foreground text-sm border rounded-md">
+                            {!trip.startLocation && !trip.destination 
+                              ? "Start location and destination not specified" 
+                              : !trip.startLocation 
+                                ? "Start location not specified" 
+                                : "Destination not specified"}
+                          </div>
                         )}
                       </div>
                       
