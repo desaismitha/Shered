@@ -142,6 +142,7 @@ const RouteMapPreview: React.FC<RouteMapPreviewProps> = ({
       try {
         const response = await fetch('/api/config');
         const data = await response.json();
+        console.log("[MAP DEBUG] Config API response:", data);
         if (data.mapboxToken) {
           console.log("[MAP DEBUG] Successfully fetched Mapbox token from API");
           setMapboxToken(data.mapboxToken);
