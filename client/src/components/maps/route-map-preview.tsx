@@ -16,16 +16,60 @@ interface RouteMapPreviewProps {
   onToggleMap: () => void;
 }
 
+// City coordinates lookup table
+const CITY_COORDINATES: Record<string, Coordinate> = {
+  'seattle': { lat: 47.6062, lng: -122.3321 },
+  'bellevue': { lat: 47.6101, lng: -122.2015 },
+  'redmond': { lat: 47.6740, lng: -122.1215 },
+  'kirkland': { lat: 47.6769, lng: -122.2060 },
+  'sammamish': { lat: 47.6163, lng: -122.0356 },
+  'issaquah': { lat: 47.5301, lng: -122.0326 },
+  'tacoma': { lat: 47.2529, lng: -122.4443 },
+  'vancouver': { lat: 49.2827, lng: -123.1207 },
+  'portland': { lat: 45.5152, lng: -122.6784 },
+  'san francisco': { lat: 37.7749, lng: -122.4194 },
+  'los angeles': { lat: 34.0522, lng: -118.2437 },
+  'new york': { lat: 40.7128, lng: -74.0060 },
+  'chicago': { lat: 41.8781, lng: -87.6298 },
+  'california': { lat: 36.7783, lng: -119.4179 },
+  'washington': { lat: 47.7511, lng: -120.7401 },
+  'hyderabad': { lat: 17.3850, lng: 78.4867 },
+  'tirupati': { lat: 13.6288, lng: 79.4192 }
+};
+
 function parseCoordinates(locationStr: string | null): Coordinate | null {
   if (!locationStr) return null;
   
-  const match = locationStr.match(/\[(-?\d+\.\d+),\s*(-?\d+\.\d+)\]/);
-  if (match) {
-    return {
-      lat: parseFloat(match[1]),
-      lng: parseFloat(match[2])
-    };
+  // Try to extract coordinates in format [lat, lng]
+  let match = locationStr.match(/\[(-?\d+\.?\d*),\s*(-?\d+\.?\d*)\]/);
+  
+  // If not found, try format (lat, lng)
+  if (!match) {
+    match = locationStr.match(/\((-?\d+\.?\d*),\s*(-?\d+\.?\d*)\)/);
   }
+  
+  if (match && match.length === 3) {
+    const lat = parseFloat(match[1]);
+    const lng = parseFloat(match[2]);
+    
+    if (!isNaN(lat) && !isNaN(lng) && 
+        lat >= -90 && lat <= 90 && 
+        lng >= -180 && lng <= 180) {
+      return { lat, lng };
+    }
+  }
+  
+  // Check for city names
+  const normalizedName = locationStr.toLowerCase().trim();
+  for (const [cityName, coordinates] of Object.entries(CITY_COORDINATES)) {
+    if (normalizedName === cityName || 
+        normalizedName.startsWith(cityName + " ") || 
+        normalizedName.endsWith(" " + cityName) ||
+        normalizedName.includes(" " + cityName + " ")) {
+      return coordinates;
+    }
+  }
+  
   return null;
 }
 
