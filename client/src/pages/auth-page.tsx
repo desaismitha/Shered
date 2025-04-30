@@ -142,9 +142,9 @@ export default function AuthPage() {
                         name="username"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Email</FormLabel>
+                            <FormLabel>Username/Email</FormLabel>
                             <FormControl>
-                              <Input type="email" placeholder="Email" {...field} />
+                              <Input type="email" placeholder="Username/Email" {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -205,9 +205,9 @@ export default function AuthPage() {
                         name="email"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Email</FormLabel>
+                            <FormLabel>Username/Email</FormLabel>
                             <FormControl>
-                              <Input type="email" placeholder="Email" {...field} />
+                              <Input type="email" placeholder="Username/Email" {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
