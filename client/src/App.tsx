@@ -21,6 +21,7 @@ import VehiclesPage from "@/pages/vehicles-page";
 import ActiveTripsPage from "@/pages/active-trips-page";
 import ForgotPasswordPage from "@/pages/forgot-password";
 import ResetPasswordPage from "@/pages/reset-password";
+import VerifyEmailPage from "@/pages/verify-email-page";
 import { DbResetFloatingButton } from "@/components/ui/db-reset-floating-button";
 import { Route } from "wouter";
 
@@ -41,6 +42,7 @@ function Router() {
       <Route path="/auth" component={AuthPage} />
       <Route path="/forgot-password" component={ForgotPasswordPage} />
       <Route path="/reset-password/:token" component={ResetPasswordPage} />
+      <Route path="/verify-email" component={VerifyEmailPage} />
       <Route component={NotFound} />
     </Switch>
   );

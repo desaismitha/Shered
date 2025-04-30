@@ -194,4 +194,132 @@ export function setupAuth(app: Express) {
     const { password, ...userWithoutPassword } = req.user as SelectUser;
     res.json(userWithoutPassword);
   });
+  
+  // Email verification endpoint
+  app.get("/api/verify-email", async (req, res) => {
+    try {
+      const { token } = req.query;
+      
+      if (!token || typeof token !== 'string') {
+        return res.status(400).json({ message: "Invalid verification token" });
+      }
+      
+      const success = await storage.verifyUserEmail(token);
+      
+      if (!success) {
+        return res.status(400).json({ 
+          message: "Email verification failed. Token may be invalid or expired." 
+        });
+      }
+      
+      res.status(200).json({ message: "Email verified successfully" });
+    } catch (err) {
+      console.error("Email verification error:", err);
+      res.status(500).json({ message: "Server error during email verification" });
+    }
+  });
+  
+  // OTP verification endpoint
+  app.post("/api/verify-otp", async (req, res) => {
+    try {
+      const { userId, otp } = req.body;
+      
+      if (!userId || !otp) {
+        return res.status(400).json({ message: "User ID and OTP code are required" });
+      }
+      
+      const success = await storage.verifyUserOtp(userId, otp);
+      
+      if (!success) {
+        return res.status(400).json({ 
+          message: "OTP verification failed. Code may be invalid or expired." 
+        });
+      }
+      
+      res.status(200).json({ message: "OTP verified successfully" });
+    } catch (err) {
+      console.error("OTP verification error:", err);
+      res.status(500).json({ message: "Server error during OTP verification" });
+    }
+  });
+  
+  // Resend verification email endpoint
+  app.post("/api/resend-verification", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "You must be logged in to resend verification" });
+      }
+      
+      const user = req.user as SelectUser;
+      
+      // Generate a new verification token with 24-hour expiry
+      const verificationToken = generateVerificationToken();
+      const verificationExpiry = new Date();
+      verificationExpiry.setHours(verificationExpiry.getHours() + 24);
+      
+      // Store the new token
+      await storage.updateUserVerification(user.id, {
+        verificationToken,
+        verificationTokenExpiry: verificationExpiry
+      });
+      
+      // Construct the verification URL
+      const baseUrl = process.env.BASE_URL || `http://${req.headers.host}`;
+      const verificationUrl = `${baseUrl}/verify-email?token=${verificationToken}`;
+      
+      // Send a new verification email
+      const emailSent = await sendEmailVerification(
+        user.email,
+        user.displayName || user.username,
+        verificationUrl
+      );
+      
+      if (!emailSent) {
+        return res.status(500).json({ message: "Failed to send verification email" });
+      }
+      
+      res.status(200).json({ message: "Verification email resent successfully" });
+    } catch (err) {
+      console.error("Error resending verification email:", err);
+      res.status(500).json({ message: "Server error while resending verification email" });
+    }
+  });
+  
+  // Request new OTP code endpoint
+  app.post("/api/request-otp", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "You must be logged in to request an OTP code" });
+      }
+      
+      const user = req.user as SelectUser;
+      
+      // Generate a new OTP code with 10-minute expiry
+      const otpCode = generateOTP();
+      const otpExpiry = new Date();
+      otpExpiry.setMinutes(otpExpiry.getMinutes() + 10);
+      
+      // Store the hashed OTP
+      await storage.updateUserVerification(user.id, {
+        otpToken: await hashPassword(otpCode),
+        otpTokenExpiry: otpExpiry
+      });
+      
+      // Send the OTP email
+      const otpSent = await sendOTPVerificationCode(
+        user.email,
+        user.displayName || user.username,
+        otpCode
+      );
+      
+      if (!otpSent) {
+        return res.status(500).json({ message: "Failed to send OTP code" });
+      }
+      
+      res.status(200).json({ message: "OTP code sent successfully" });
+    } catch (err) {
+      console.error("Error sending OTP code:", err);
+      res.status(500).json({ message: "Server error while sending OTP code" });
+    }
+  });
 }
