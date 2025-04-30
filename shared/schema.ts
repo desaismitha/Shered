@@ -13,6 +13,13 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow(),
   resetToken: text("reset_token"),
   resetTokenExpiry: timestamp("reset_token_expiry"),
+  // Email verification
+  emailVerified: boolean("email_verified").default(false),
+  verificationToken: text("verification_token"),
+  verificationTokenExpiry: timestamp("verification_token_expiry"),
+  // OTP (One-Time Password)
+  otpToken: text("otp_token"),
+  otpTokenExpiry: timestamp("otp_token_expiry"),
   // Driver license information
   licenseNumber: text("license_number"),
   licenseState: text("license_state"),

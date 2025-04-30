@@ -128,3 +128,98 @@ export async function sendPasswordResetEmail(
     html
   });
 }
+
+export async function sendEmailVerification(
+  email: string,
+  username: string,
+  verificationLink: string
+): Promise<boolean> {
+  const fromEmail = 'noreply@travelgroupr.com';
+  const subject = 'Verify Your Email for TravelGroupr';
+  
+  const text = `
+    Hi ${username},
+    
+    Thank you for signing up with TravelGroupr!
+    
+    To verify your email address, please click the link below:
+    ${verificationLink}
+    
+    This link will expire in 24 hours.
+    
+    If you didn't create an account, you can safely ignore this email.
+    
+    Best regards,
+    The TravelGroupr Team
+  `;
+  
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2>Welcome to TravelGroupr!</h2>
+      <p>Hi <strong>${username}</strong>,</p>
+      <p>Thank you for signing up with TravelGroupr. To complete your registration, please verify your email address.</p>
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="${verificationLink}" style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold;">
+          Verify Email Address
+        </a>
+      </div>
+      <p>This link will expire in 24 hours.</p>
+      <p>If you didn't create an account, you can safely ignore this email.</p>
+      <p>Best regards,<br>The TravelGroupr Team</p>
+    </div>
+  `;
+  
+  return sendEmail({
+    to: email,
+    from: fromEmail,
+    subject,
+    text,
+    html
+  });
+}
+
+export async function sendOTPVerificationCode(
+  email: string,
+  username: string,
+  otp: string
+): Promise<boolean> {
+  const fromEmail = 'noreply@travelgroupr.com';
+  const subject = 'Your Verification Code for TravelGroupr';
+  
+  const text = `
+    Hi ${username},
+    
+    Your verification code for TravelGroupr is: ${otp}
+    
+    This code will expire in 10 minutes.
+    
+    If you didn't request this code, please ignore this email.
+    
+    Best regards,
+    The TravelGroupr Team
+  `;
+  
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2>Your TravelGroupr Verification Code</h2>
+      <p>Hi <strong>${username}</strong>,</p>
+      <p>Your verification code for TravelGroupr is:</p>
+      <div style="text-align: center; margin: 30px 0;">
+        <div style="font-size: 24px; letter-spacing: 5px; font-weight: bold; background-color: #f5f5f5; padding: 15px; border-radius: 4px;">
+          ${otp}
+        </div>
+      </div>
+      <p>This code will expire in 10 minutes.</p>
+      <p>If you didn't request this code, please ignore this email.</p>
+      <p>Best regards,<br>The TravelGroupr Team</p>
+    </div>
+  `;
+  
+  return sendEmail({
+    to: email,
+    from: fromEmail,
+    subject,
+    text,
+    html
+  });
+}

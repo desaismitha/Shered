@@ -1,11 +1,12 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
-import { Express } from "express";
+import { Express, Request, Response, NextFunction } from "express";
 import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
+import { sendEmailVerification, sendOTPVerificationCode } from "./email";
 
 declare global {
   namespace Express {
@@ -26,6 +27,17 @@ export async function comparePasswords(supplied: string, stored: string) {
   const hashedBuf = Buffer.from(hashed, "hex");
   const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
   return timingSafeEqual(hashedBuf, suppliedBuf);
+}
+
+// Generate a secure random token for email verification
+export function generateVerificationToken(): string {
+  return randomBytes(32).toString('hex');
+}
+
+// Generate a 6-digit OTP (One-Time Password)
+export function generateOTP(): string {
+  // Generate a random number between 100000 and 999999
+  return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
 export function setupAuth(app: Express) {
