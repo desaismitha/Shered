@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
 import L from 'leaflet';
 import { MapPin } from 'lucide-react';
@@ -165,45 +165,51 @@ const RouteMapPreview: React.FC<RouteMapPreviewProps> = ({
     return location.replace(/\[.*?\]/, '').trim();
   };
   
+  // Use useRef to prevent React from recreating the map component on every render
+  const mapId = useRef(`map-${Math.random().toString(36).substring(2, 9)}`);
+  
   return (
     <div className="space-y-2">
       <div className="rounded-md overflow-hidden border border-border" style={{ height: '300px' }}>
-        <MapContainer
-          center={getCenter()}
-          bounds={getBounds()}
-          zoom={12}
-          style={{ height: '100%', width: '100%' }}
-        >
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
-          
-          {startCoords && (
-            <Marker position={startCoords} icon={startIcon}>
-              <Popup>
-                Start: {getDisplayName(startLocation)}
-              </Popup>
-            </Marker>
-          )}
-          
-          {endCoords && (
-            <Marker position={endCoords} icon={endIcon}>
-              <Popup>
-                End: {getDisplayName(endLocation)}
-              </Popup>
-            </Marker>
-          )}
-          
-          {routePath.length > 0 && (
-            <Polyline 
-              positions={routePath} 
-              color="#3b82f6" 
-              weight={4} 
-              opacity={0.7} 
+        <div id={mapId.current} style={{ height: '100%', width: '100%' }}>
+          <MapContainer
+            key={mapId.current}
+            center={getCenter()}
+            bounds={getBounds()}
+            zoom={12}
+            style={{ height: '100%', width: '100%' }}
+          >
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
-          )}
-        </MapContainer>
+            
+            {startCoords && (
+              <Marker position={startCoords} icon={startIcon}>
+                <Popup>
+                  Start: {getDisplayName(startLocation)}
+                </Popup>
+              </Marker>
+            )}
+            
+            {endCoords && (
+              <Marker position={endCoords} icon={endIcon}>
+                <Popup>
+                  End: {getDisplayName(endLocation)}
+                </Popup>
+              </Marker>
+            )}
+            
+            {routePath.length > 0 && (
+              <Polyline 
+                positions={routePath} 
+                color="#3b82f6" 
+                weight={4} 
+                opacity={0.7} 
+              />
+            )}
+          </MapContainer>
+        </div>
       </div>
       
       {error && (
