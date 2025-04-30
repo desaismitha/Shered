@@ -171,19 +171,6 @@ const RouteMapPreview: React.FC<RouteMapPreviewProps> = ({
   
   return (
     <div className="space-y-2">
-      <div className="flex justify-between items-center">
-        <h3 className="text-sm font-medium">Route Preview</h3>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={onToggleMap}
-        >
-          <MapPin className="h-4 w-4 mr-1" />
-          {showMap ? 'Hide Map' : 'Show Map'}
-        </Button>
-      </div>
-      
       {showMap && (
         <>
           <div className="rounded-md overflow-hidden border border-border" style={{ height: '300px' }}>

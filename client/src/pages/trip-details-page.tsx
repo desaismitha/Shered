@@ -683,14 +683,29 @@ export default function TripDetailsPage() {
                         </div>
                       )}
                       
-                      {/* Route Map Preview */}
+                      {/* Route Map Preview - Single combined view */}
                       <div className="mb-4">
-                        <RouteMapPreview
-                          startLocation={trip.startLocation}
-                          endLocation={trip.destination}
-                          showMap={showMap}
-                          onToggleMap={() => setShowMap(!showMap)}
-                        />
+                        <div className="flex justify-between items-center mb-2">
+                          <h3 className="text-sm font-medium">Route Preview</h3>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setShowMap(!showMap)}
+                          >
+                            <MapPin className="h-4 w-4 mr-1" />
+                            {showMap ? 'Hide Map' : 'Show Map'}
+                          </Button>
+                        </div>
+                        
+                        {showMap && (
+                          <RouteMapPreview
+                            startLocation={trip.startLocation}
+                            endLocation={trip.destination}
+                            showMap={true}
+                            onToggleMap={() => {}}
+                          />
+                        )}
                       </div>
                       
                       <div>
