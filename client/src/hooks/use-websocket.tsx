@@ -13,7 +13,7 @@ export function useWebSocket() {
   const { toast } = useToast();
   const [isConnected, setIsConnected] = useState(false);
   const [lastMessage, setLastMessage] = useState<WebSocketMessage | null>(null);
-  const socketRef = useRef<WebSocket | null>(null);
+  const socketRef = useRef<ExtendedWebSocket | null>(null);
 
   useEffect(() => {
     // Only connect if user is authenticated
@@ -34,7 +34,7 @@ export function useWebSocket() {
       const wsUrl = `${protocol}//${window.location.host}/ws?userId=${user.id}`;
       console.log('Connecting to WebSocket:', wsUrl);
 
-      const socket = new WebSocket(wsUrl);
+      const socket = new WebSocket(wsUrl) as ExtendedWebSocket;
       socketRef.current = socket;
 
       socket.onopen = () => {
@@ -67,13 +67,20 @@ export function useWebSocket() {
         console.log('WebSocket connection closed');
         setIsConnected(false);
         
-        // Attempt to reconnect after 5 seconds
-        setTimeout(() => {
-          if (user) {
+        // Attempt to reconnect after 5 seconds, but only if user is logged in
+        const timeoutId = setTimeout(() => {
+          // We need to access the latest user value
+          const userId = localStorage.getItem('userId');
+          if (userId) {
             console.log('Attempting to reconnect WebSocket...');
             connectWebSocket();
+          } else {
+            console.log('User is logged out, not reconnecting WebSocket');
           }
         }, 5000);
+        
+        // Store the timeout ID for later cleanup if component unmounts
+        socket.timeoutId = timeoutId;
       };
 
       socket.onerror = (error) => {
