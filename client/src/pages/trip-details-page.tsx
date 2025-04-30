@@ -702,8 +702,6 @@ export default function TripDetailsPage() {
                           <RouteMapPreview
                             startLocation={trip.startLocation}
                             endLocation={trip.destination}
-                            showMap={true}
-                            onToggleMap={() => {}}
                           />
                         )}
                       </div>
