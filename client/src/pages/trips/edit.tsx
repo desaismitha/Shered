@@ -344,9 +344,7 @@ export default function EditTripPage() {
                                 field.onChange(val);
                                 setStartLocation(val);
                               }}
-                              placeholder="Enter or select start location"
-                              showMap={false}
-                              hideMapToggle={true} // Hide the toggle button
+                              placeholder="Enter start location"
                               required
                             />
                           </FormControl>

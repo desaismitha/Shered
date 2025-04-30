@@ -405,8 +405,7 @@ export function UnifiedTripForm({
                         value={field.value}
                         onChange={field.onChange}
                         label="Start Location"
-                        placeholder="Enter or select start location on map"
-                        defaultLocation={[47.6062, -122.3321]} // Seattle default
+                        placeholder="Enter start location"
                       />
                     </FormControl>
                     <FormMessage />
@@ -424,8 +423,7 @@ export function UnifiedTripForm({
                         value={field.value}
                         onChange={field.onChange}
                         label="End Location"
-                        placeholder="Enter or select end location on map"
-                        defaultLocation={[47.6062, -122.3321]} // Seattle default
+                        placeholder="Enter end location"
                       />
                     </FormControl>
                     <FormMessage />

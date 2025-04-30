@@ -143,9 +143,7 @@ export function SimpleTripForm() {
             label="Starting Location"
             value={startLocation}
             onChange={setStartLocation}
-            placeholder="Enter or select starting location on map"
-            showMap={false}
-            hideMapToggle={true} // Hide the individual map toggle button
+            placeholder="Enter starting location"
           />
           {errors.startLocation && <p className="text-red-500 text-sm">{errors.startLocation}</p>}
         </div>
@@ -155,9 +153,7 @@ export function SimpleTripForm() {
             label="Destination"
             value={destination}
             onChange={setDestination}
-            placeholder="Enter or select destination on map"
-            showMap={false}
-            hideMapToggle={true} // Hide the individual map toggle button
+            placeholder="Enter destination"
             required
           />
           {errors.destination && <p className="text-red-500 text-sm">{errors.destination}</p>}
