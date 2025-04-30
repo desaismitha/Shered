@@ -47,6 +47,7 @@ interface MapLocationPickerProps {
   defaultLocation?: [number, number]; // Default center coordinates [lat, lng]
   required?: boolean;
   showMap?: boolean; // Add new prop to control map visibility
+  hideMapToggle?: boolean; // Option to hide the map toggle button
 }
 
 const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
@@ -57,6 +58,7 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
   defaultLocation = [47.6062, -122.3321], // Default to Seattle
   required = false,
   showMap: propShowMap = true, // Default to showing map
+  hideMapToggle = false, // Default to showing the map toggle button
 }) => {
   const [showMap, setShowMap] = useState(propShowMap);
   const [markerPosition, setMarkerPosition] = useState<[number, number] | null>(null);
@@ -291,50 +293,52 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
           )}
         </div>
         
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={async () => {
-            // Toggle map visibility
-            const nextShowMap = !showMap;
-            setShowMap(nextShowMap);
-            
-            // When showing the map, search for the location if needed
-            if (nextShowMap) {
-              if (originalValue && originalValue.includes('[')) {
-                // If we have coordinates already, use them
-                onChange(originalValue);
-              } else if (searchInput && searchInput.trim()) {
-                // Try to search for the location text to get coordinates
-                try {
-                  setIsSearching(true);
-                  const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchInput)}&limit=1`);
-                  
-                  if (response.ok) {
-                    const results = await response.json();
-                    if (results && results.length > 0) {
-                      const { lat, lon, display_name } = results[0];
-                      const latNum = parseFloat(lat);
-                      const lngNum = parseFloat(lon);
-                      
-                      setMarkerPosition([latNum, lngNum]);
-                      const locationString = `${display_name.split(',').slice(0, 3).join(',')} [${latNum.toFixed(6)}, ${lngNum.toFixed(6)}]`;
-                      onChange(locationString);
+        {!hideMapToggle && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={async () => {
+              // Toggle map visibility
+              const nextShowMap = !showMap;
+              setShowMap(nextShowMap);
+              
+              // When showing the map, search for the location if needed
+              if (nextShowMap) {
+                if (originalValue && originalValue.includes('[')) {
+                  // If we have coordinates already, use them
+                  onChange(originalValue);
+                } else if (searchInput && searchInput.trim()) {
+                  // Try to search for the location text to get coordinates
+                  try {
+                    setIsSearching(true);
+                    const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchInput)}&limit=1`);
+                    
+                    if (response.ok) {
+                      const results = await response.json();
+                      if (results && results.length > 0) {
+                        const { lat, lon, display_name } = results[0];
+                        const latNum = parseFloat(lat);
+                        const lngNum = parseFloat(lon);
+                        
+                        setMarkerPosition([latNum, lngNum]);
+                        const locationString = `${display_name.split(',').slice(0, 3).join(',')} [${latNum.toFixed(6)}, ${lngNum.toFixed(6)}]`;
+                        onChange(locationString);
+                      }
                     }
+                  } catch (error) {
+                    console.error('Error searching location when showing map:', error);
+                  } finally {
+                    setIsSearching(false);
                   }
-                } catch (error) {
-                  console.error('Error searching location when showing map:', error);
-                } finally {
-                  setIsSearching(false);
                 }
               }
-            }
-          }}
-        >
-          <MapPin className="h-4 w-4 mr-1" />
-          {showMap ? 'Hide Map' : 'Show Map'}
-        </Button>
+            }}
+          >
+            <MapPin className="h-4 w-4 mr-1" />
+            {showMap ? 'Hide Map' : 'Show Map'}
+          </Button>
+        )}
       </div>
       
       {showMap && (

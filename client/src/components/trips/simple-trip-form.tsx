@@ -137,40 +137,47 @@ export function SimpleTripForm() {
         {errors.name && <p className="text-red-500 text-sm">{errors.name}</p>}
       </div>
 
-      <div className="space-y-2">
-        <MapLocationPicker
-          label="Starting Location"
-          value={startLocation}
-          onChange={setStartLocation}
-          placeholder="Enter or select starting location on map"
-          showMap={false} // Don't show individual maps
-        />
-        {errors.startLocation && <p className="text-red-500 text-sm">{errors.startLocation}</p>}
-      </div>
-
-      <div className="space-y-2">
-        <MapLocationPicker
-          label="Destination"
-          value={destination}
-          onChange={setDestination}
-          placeholder="Enter or select destination on map"
-          showMap={false} // Don't show individual maps
-          required
-        />
-        {errors.destination && <p className="text-red-500 text-sm">{errors.destination}</p>}
-      </div>
-      
-      {/* Route Map Preview - unified view of start and end - only show when both locations exist */}
-      {startLocation && destination && (
-        <div className="mt-4">
-          <RouteMapPreview 
-            startLocation={startLocation}
-            endLocation={destination}
-            showMap={true} 
-            onToggleMap={() => {}} // We're always showing the map
+      <div className="space-y-6">
+        <div className="space-y-2">
+          <MapLocationPicker
+            label="Starting Location"
+            value={startLocation}
+            onChange={setStartLocation}
+            placeholder="Enter or select starting location on map"
+            showMap={false}
+            hideMapToggle={true} // Hide the individual map toggle button
           />
+          {errors.startLocation && <p className="text-red-500 text-sm">{errors.startLocation}</p>}
         </div>
-      )}
+
+        <div className="space-y-2">
+          <MapLocationPicker
+            label="Destination"
+            value={destination}
+            onChange={setDestination}
+            placeholder="Enter or select destination on map"
+            showMap={false}
+            hideMapToggle={true} // Hide the individual map toggle button
+            required
+          />
+          {errors.destination && <p className="text-red-500 text-sm">{errors.destination}</p>}
+        </div>
+        
+        {/* Unified Map View - only when both locations have values */}
+        {startLocation && destination && (
+          <div className="border rounded-md p-4 bg-gray-50">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-sm font-medium">Route Map Preview</h3>
+            </div>
+            <RouteMapPreview 
+              startLocation={startLocation}
+              endLocation={destination}
+              showMap={true} 
+              onToggleMap={() => {}} // We're always showing the map
+            />
+          </div>
+        )}
+      </div>
 
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
         <div className="space-y-2">

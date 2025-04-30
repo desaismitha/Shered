@@ -328,64 +328,71 @@ export default function EditTripPage() {
                   />
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <FormField
-                    control={form.control}
-                    name="startLocation"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Start Location</FormLabel>
-                        <FormControl>
-                          <MapLocationPicker
-                            label=""
-                            value={field.value || ""}
-                            onChange={(val) => {
-                              field.onChange(val);
-                              setStartLocation(val);
-                            }}
-                            placeholder="Enter or select start location"
-                            showMap={false} // Don't show individual map
-                            required
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="destination"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Destination</FormLabel>
-                        <FormControl>
-                          <MapLocationPicker
-                            label=""
-                            value={field.value || ""}
-                            onChange={field.onChange}
-                            placeholder="Enter or select destination on map"
-                            showMap={false} // Don't show individual map
-                            required
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                
-                {/* Add Route Map Preview - only when we have both locations */}
-                {trip?.startLocation && trip?.destination && (
-                  <div className="mt-4 mb-6">
-                    <RouteMapPreview 
-                      startLocation={trip.startLocation}
-                      endLocation={trip.destination}
-                      showMap={true}
-                      onToggleMap={() => {}} // Always showing the map
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <FormField
+                      control={form.control}
+                      name="startLocation"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Start Location</FormLabel>
+                          <FormControl>
+                            <MapLocationPicker
+                              label=""
+                              value={field.value || ""}
+                              onChange={(val) => {
+                                field.onChange(val);
+                                setStartLocation(val);
+                              }}
+                              placeholder="Enter or select start location"
+                              showMap={false}
+                              hideMapToggle={true} // Hide the toggle button
+                              required
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="destination"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Destination</FormLabel>
+                          <FormControl>
+                            <MapLocationPicker
+                              label=""
+                              value={field.value || ""}
+                              onChange={field.onChange}
+                              placeholder="Enter or select destination on map"
+                              showMap={false}
+                              hideMapToggle={true} // Hide the toggle button
+                              required
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
                   </div>
-                )}
+                  
+                  {/* Add Route Map Preview - only when we have both locations */}
+                  {form.watch('startLocation') && form.watch('destination') && (
+                    <div className="border rounded-md p-4 bg-gray-50">
+                      <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-sm font-medium">Route Map Preview</h3>
+                      </div>
+                      <RouteMapPreview 
+                        startLocation={form.watch('startLocation')}
+                        endLocation={form.watch('destination')}
+                        showMap={true}
+                        onToggleMap={() => {}} // Always showing the map
+                      />
+                    </div>
+                  )}
+                </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <FormField
