@@ -6,12 +6,11 @@ import { useParams, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { format, addDays } from "date-fns";
-import { isSpecialDateMarker, formatDateRange, cn, normalizeDate, extractCoordinates } from "@/lib/utils";
-import { MapContainer, TileLayer, Marker, Popup, Polyline, useMapEvents, CircleMarker } from "react-leaflet";
-import * as L from 'leaflet';
+import { isSpecialDateMarker, formatDateRange, cn, normalizeDate } from "@/lib/utils";
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMapEvents, CircleMarker, useMap } from "react-leaflet";
 import 'leaflet/dist/leaflet.css';
+import * as L from 'leaflet';
 import { useMapboxRoute, formatDistance, formatDuration } from "@/lib/mapUtils";
-import { CITY_COORDINATES, getDefaultCoordinatesForLocation } from "@/data/cities";
 import RouteMapPreview from "@/components/maps/route-map-preview";
 
 // This component fixes the broken map icons in React Leaflet
@@ -24,6 +23,7 @@ const DefaultMarkerIcon = L.icon({
 });
 
 L.Marker.prototype.options.icon = DefaultMarkerIcon;
+
 import { 
   AlertTriangle, Calendar as CalendarIcon, CalendarRange, MapPin, Users, PlusIcon, PencilIcon, 
   DollarSign, ClipboardList, Info, ArrowLeft, Car, UserCheck, ArrowRight,
@@ -70,10 +70,6 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-// Import Leaflet map components
-import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
 import { ItineraryItem as ItineraryItemComponent } from "@/components/itinerary/itinerary-item";
 import { ItineraryForm } from "@/components/itinerary/itinerary-form";
 import { ExpenseCard } from "@/components/expenses/expense-card";
@@ -388,13 +384,14 @@ function getStatusColor(status: string | undefined) {
 export default function TripDetailsPage() {
   // Get the trip ID from the URL
   const params = useParams();
-  const tripId = parseInt(params.id);
+  const tripId = parseInt(params.id || "0");
 
   // Get URL query parameters
   const [, navigate] = useLocation();
   const [urlObj, setUrlObj] = useState<URL>(new URL(window.location.href));
   const { user } = useAuth();
   const { toast } = useToast();
+  const [showMap, setShowMap] = useState(true);
   
   // Update URL object when the location changes
   useEffect(() => {
@@ -691,8 +688,8 @@ export default function TripDetailsPage() {
                         <RouteMapPreview
                           startLocation={trip.startLocation}
                           endLocation={trip.destination}
-                          showMap={true}
-                          onToggleMap={() => {}}
+                          showMap={showMap}
+                          onToggleMap={() => setShowMap(!showMap)}
                         />
                       </div>
                       
