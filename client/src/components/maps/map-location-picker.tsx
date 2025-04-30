@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import { Button } from '@/components/ui/button';
@@ -97,7 +97,7 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
   };
 
   // Handle search for locations
-  const handleSearch = async () => {
+  const handleSearch = useCallback(async () => {
     if (!searchInput.trim()) return;
     
     setIsSearching(true);
@@ -129,7 +129,7 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
     } finally {
       setIsSearching(false);
     }
-  };
+  }, [searchInput, onChange, setShowMap]);
 
   // Handle input change
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -142,6 +142,17 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
       onChange('');
     }
   };
+  
+  // Add debounce effect for search - searches automatically after user stops typing
+  useEffect(() => {
+    if (searchInput && searchInput.trim().length > 2) {
+      const timer = setTimeout(() => {
+        handleSearch();
+      }, 1000); // 1 second delay
+      
+      return () => clearTimeout(timer);
+    }
+  }, [searchInput, handleSearch]);
 
   // Handle Enter key in search
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
