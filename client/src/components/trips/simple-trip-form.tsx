@@ -11,18 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { cn, normalizeDate } from "@/lib/utils";
@@ -33,7 +23,7 @@ export function SimpleTripForm() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [, navigate] = useLocation();
-
+  
   // Form state
   const [name, setName] = useState("");
   const [startLocation, setStartLocation] = useState("");
@@ -55,25 +45,25 @@ export function SimpleTripForm() {
   // Validation function
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {};
-
+    
     if (!name || name.trim().length < 3) {
       newErrors.name = "Name must be at least 3 characters";
     }
-
+    
     if (!destination || destination.trim().length < 2) {
       newErrors.destination = "Destination is required";
     }
-
+    
     if (!startDate) {
       newErrors.startDate = "Start date is required";
     }
-
+    
     if (!endDate) {
       newErrors.endDate = "End date is required";
     } else if (startDate && endDate && endDate < startDate) {
       newErrors.endDate = "End date cannot be before start date";
     }
-
+    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -81,11 +71,11 @@ export function SimpleTripForm() {
   // Submit handler
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
+    
     if (!validateForm() || !user) return;
-
+    
     setIsSubmitting(true);
-
+    
     try {
       // Create trip data - Ensure dates are in proper ISO format
       const tripData = {
@@ -99,29 +89,27 @@ export function SimpleTripForm() {
         // Format dates as expected by the backend - use noon UTC format
         startDate: startDate ? startDate.toISOString() : null,
         endDate: endDate ? endDate.toISOString() : null,
-        createdBy: user.id,
+        createdBy: user.id
       };
-
+      
       console.log("Creating trip with data:", tripData);
-
+      
       const res = await apiRequest("POST", "/api/trips", tripData);
       const trip = await res.json();
-
+      
       console.log("Trip created:", trip);
-
+      
       // Success
       queryClient.invalidateQueries({ queryKey: ["/api/trips"] });
       if (groupId) {
-        queryClient.invalidateQueries({
-          queryKey: ["/api/groups", groupId, "trips"],
-        });
+        queryClient.invalidateQueries({ queryKey: ["/api/groups", groupId, "trips"] });
       }
-
+      
       toast({
         title: "Success!",
         description: "Your trip has been created.",
       });
-
+      
       navigate("/trips");
     } catch (error) {
       console.error("Error creating trip:", error);
@@ -138,9 +126,7 @@ export function SimpleTripForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-2">
-        <Label htmlFor="name">
-          Trip Name<span className="text-red-500">*</span>
-        </Label>
+        <Label htmlFor="name">Trip Name<span className="text-red-500">*</span></Label>
         <Input
           id="name"
           value={name}
@@ -159,9 +145,7 @@ export function SimpleTripForm() {
           placeholder="Enter or select starting location on map"
           showMap={false} // Don't show individual maps
         />
-        {errors.startLocation && (
-          <p className="text-red-500 text-sm">{errors.startLocation}</p>
-        )}
+        {errors.startLocation && <p className="text-red-500 text-sm">{errors.startLocation}</p>}
       </div>
 
       <div className="space-y-2">
@@ -173,18 +157,16 @@ export function SimpleTripForm() {
           showMap={false} // Don't show individual maps
           required
         />
-        {errors.destination && (
-          <p className="text-red-500 text-sm">{errors.destination}</p>
-        )}
+        {errors.destination && <p className="text-red-500 text-sm">{errors.destination}</p>}
       </div>
-
+      
       {/* Route Map Preview - unified view of start and end - only show when both locations exist */}
       {startLocation && destination && (
         <div className="mt-4">
-          <RouteMapPreview
+          <RouteMapPreview 
             startLocation={startLocation}
             endLocation={destination}
-            showMap={true}
+            showMap={true} 
             onToggleMap={() => {}} // We're always showing the map
           />
         </div>
@@ -192,9 +174,7 @@ export function SimpleTripForm() {
 
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor="startDate">
-            Start Date<span className="text-red-500">*</span>
-          </Label>
+          <Label htmlFor="startDate">Start Date<span className="text-red-500">*</span></Label>
           <Popover>
             <PopoverTrigger asChild>
               <Button
@@ -203,14 +183,10 @@ export function SimpleTripForm() {
                 className={cn(
                   "w-full justify-start text-left font-normal",
                   !startDate && "text-muted-foreground",
-                  errors.startDate && "border-red-500",
+                  errors.startDate && "border-red-500"
                 )}
               >
-                {startDate ? (
-                  format(startDate, "PPP")
-                ) : (
-                  <span>Pick a date</span>
-                )}
+                {startDate ? format(startDate, "PPP") : <span>Pick a date</span>}
                 <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
               </Button>
             </PopoverTrigger>
@@ -221,7 +197,7 @@ export function SimpleTripForm() {
                 onSelect={(date) => {
                   if (date) {
                     // Create a noon UTC date to avoid timezone issues
-                    const dateStr = `${format(date, "yyyy-MM-dd")}T12:00:00Z`;
+                    const dateStr = `${format(date, 'yyyy-MM-dd')}T12:00:00Z`;
                     setStartDate(new Date(dateStr));
                   } else {
                     setStartDate(undefined);
@@ -232,15 +208,11 @@ export function SimpleTripForm() {
               />
             </PopoverContent>
           </Popover>
-          {errors.startDate && (
-            <p className="text-red-500 text-sm">{errors.startDate}</p>
-          )}
+          {errors.startDate && <p className="text-red-500 text-sm">{errors.startDate}</p>}
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="endDate">
-            End Date<span className="text-red-500">*</span>
-          </Label>
+          <Label htmlFor="endDate">End Date<span className="text-red-500">*</span></Label>
           <Popover>
             <PopoverTrigger asChild>
               <Button
@@ -249,7 +221,7 @@ export function SimpleTripForm() {
                 className={cn(
                   "w-full justify-start text-left font-normal",
                   !endDate && "text-muted-foreground",
-                  errors.endDate && "border-red-500",
+                  errors.endDate && "border-red-500"
                 )}
               >
                 {endDate ? format(endDate, "PPP") : <span>Pick a date</span>}
@@ -263,22 +235,21 @@ export function SimpleTripForm() {
                 onSelect={(date) => {
                   if (date) {
                     // Create a noon UTC date to avoid timezone issues
-                    const dateStr = `${format(date, "yyyy-MM-dd")}T12:00:00Z`;
+                    const dateStr = `${format(date, 'yyyy-MM-dd')}T12:00:00Z`;
                     setEndDate(new Date(dateStr));
                   } else {
                     setEndDate(undefined);
                   }
                 }}
-                disabled={(date) =>
-                  date < new Date() || (startDate ? date < startDate : false)
+                disabled={(date) => 
+                  date < new Date() || 
+                  (startDate ? date < startDate : false)
                 }
                 initialFocus
               />
             </PopoverContent>
           </Popover>
-          {errors.endDate && (
-            <p className="text-red-500 text-sm">{errors.endDate}</p>
-          )}
+          {errors.endDate && <p className="text-red-500 text-sm">{errors.endDate}</p>}
         </div>
       </div>
 
@@ -319,17 +290,13 @@ export function SimpleTripForm() {
 
       <div className="space-y-2">
         <Label htmlFor="groupId">Travel Group</Label>
-        <Select
-          onValueChange={(value) => setGroupId(value ? parseInt(value) : null)}
-        >
+        <Select onValueChange={(value) => setGroupId(value ? parseInt(value) : null)}>
           <SelectTrigger id="groupId">
             <SelectValue placeholder="Select a group" />
           </SelectTrigger>
           <SelectContent>
             {isLoadingGroups ? (
-              <SelectItem value="loading" disabled>
-                Loading groups...
-              </SelectItem>
+              <SelectItem value="loading" disabled>Loading groups...</SelectItem>
             ) : groups && groups.length > 0 ? (
               groups.map((group) => (
                 <SelectItem key={group.id} value={group.id.toString()}>
@@ -353,7 +320,10 @@ export function SimpleTripForm() {
         >
           Cancel
         </Button>
-        <Button type="submit" disabled={isSubmitting}>
+        <Button
+          type="submit"
+          disabled={isSubmitting}
+        >
           {isSubmitting ? "Creating..." : "Create Trip"}
         </Button>
       </div>

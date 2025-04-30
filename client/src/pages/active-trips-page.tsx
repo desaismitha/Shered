@@ -34,7 +34,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useEffect, useRef, useState, useMemo } from "react";
 import { format } from "date-fns";
 import { MapContainer, TileLayer, Marker, Popup, Polyline, CircleMarker, useMap } from 'react-leaflet';
-import MapWrapper from '@/components/maps/map-wrapper';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -749,17 +748,16 @@ function TripMap({
       {typeof window !== 'undefined' && routeInfoPanel}
       
       {typeof window !== 'undefined' && (
-        <MapWrapper id={`active-trip-map-${tripId}`}>
-          <MapContainer
-            center={centerCoordinates as [number, number]}
-            zoom={10}
-            style={{ height: '100%', width: '100%' }}
-            ref={(map) => {
-              if (map && mapRef) {
-                mapRef.current = map;
-              }
-            }}
-          >
+        <MapContainer
+          center={centerCoordinates as [number, number]}
+          zoom={10}
+          style={{ height: '100%', width: '100%' }}
+          ref={(map) => {
+            if (map && mapRef) {
+              mapRef.current = map;
+            }
+          }}
+        >
           {/* Direct Polyline Route - Guaranteed to work */}
           {effectiveFromCoords && effectiveToCoords && (
             <DirectPolylines
@@ -1034,7 +1032,6 @@ function TripMap({
             </div>
           </div>
         </MapContainer>
-        </MapWrapper>
       )}
     </div>
   );

@@ -1,9 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Marker, Popup, Polyline } from 'react-leaflet';
+import React, { useState, useEffect } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
 import L from 'leaflet';
 import { MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import TripMapContainer from './trip-map-container';
 
 interface Coordinate {
   lat: number;
@@ -13,6 +12,8 @@ interface Coordinate {
 interface RouteMapPreviewProps {
   startLocation: string | null;
   endLocation: string | null;
+  showMap: boolean;
+  onToggleMap: () => void;
 }
 
 function parseCoordinates(locationStr: string | null): Coordinate | null {
@@ -30,7 +31,9 @@ function parseCoordinates(locationStr: string | null): Coordinate | null {
 
 const RouteMapPreview: React.FC<RouteMapPreviewProps> = ({
   startLocation,
-  endLocation
+  endLocation,
+  showMap,
+  onToggleMap
 }) => {
   const [startCoords, setStartCoords] = useState<Coordinate | null>(null);
   const [endCoords, setEndCoords] = useState<Coordinate | null>(null);
@@ -166,61 +169,65 @@ const RouteMapPreview: React.FC<RouteMapPreviewProps> = ({
     return location.replace(/\[.*?\]/, '').trim();
   };
   
-  // Generate a stable ID for this map instance based on locations
-  const mapInstanceId = useRef(`route-map-${startLocation?.substring(0, 10)}-${endLocation?.substring(0, 10)}`
-    .replace(/[^a-zA-Z0-9]/g, '-'));
-  
   return (
     <div className="space-y-2">
-      <div className="rounded-md overflow-hidden border border-border">
-        <TripMapContainer
-          id={mapInstanceId.current}
-          center={getCenter()}
-          bounds={getBounds()}
-          zoom={12}
-          height="300px"
-        >
-          {startCoords && (
-            <Marker position={startCoords} icon={startIcon}>
-              <Popup>
-                Start: {getDisplayName(startLocation)}
-              </Popup>
-            </Marker>
+      {showMap && (
+        <>
+          <div className="rounded-md overflow-hidden border border-border" style={{ height: '300px' }}>
+            <MapContainer
+              center={getCenter()}
+              bounds={getBounds()}
+              zoom={12}
+              style={{ height: '100%', width: '100%' }}
+            >
+              <TileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
+              
+              {startCoords && (
+                <Marker position={startCoords} icon={startIcon}>
+                  <Popup>
+                    Start: {getDisplayName(startLocation)}
+                  </Popup>
+                </Marker>
+              )}
+              
+              {endCoords && (
+                <Marker position={endCoords} icon={endIcon}>
+                  <Popup>
+                    End: {getDisplayName(endLocation)}
+                  </Popup>
+                </Marker>
+              )}
+              
+              {routePath.length > 0 && (
+                <Polyline 
+                  positions={routePath} 
+                  color="#3b82f6" 
+                  weight={4} 
+                  opacity={0.7} 
+                />
+              )}
+            </MapContainer>
+          </div>
+          
+          {error && (
+            <div className="text-sm text-red-500">
+              {error}
+            </div>
           )}
           
-          {endCoords && (
-            <Marker position={endCoords} icon={endIcon}>
-              <Popup>
-                End: {getDisplayName(endLocation)}
-              </Popup>
-            </Marker>
-          )}
-          
-          {routePath.length > 0 && (
-            <Polyline 
-              positions={routePath} 
-              color="#3b82f6" 
-              weight={4} 
-              opacity={0.7} 
-            />
-          )}
-        </TripMapContainer>
-      </div>
-      
-      {error && (
-        <div className="text-sm text-red-500">
-          {error}
-        </div>
+          <div className="flex text-xs text-muted-foreground gap-4">
+            <div>
+              <span className="font-medium">Start:</span> {getDisplayName(startLocation)}
+            </div>
+            <div>
+              <span className="font-medium">End:</span> {getDisplayName(endLocation)}
+            </div>
+          </div>
+        </>
       )}
-      
-      <div className="flex text-xs text-muted-foreground gap-4">
-        <div>
-          <span className="font-medium">Start:</span> {getDisplayName(startLocation)}
-        </div>
-        <div>
-          <span className="font-medium">End:</span> {getDisplayName(endLocation)}
-        </div>
-      </div>
     </div>
   );
 };
