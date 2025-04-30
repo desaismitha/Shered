@@ -160,15 +160,17 @@ export function SimpleTripForm() {
         {errors.destination && <p className="text-red-500 text-sm">{errors.destination}</p>}
       </div>
       
-      {/* Route Map Preview - unified view of start and end */}
-      <div className="mt-4">
-        <RouteMapPreview 
-          startLocation={startLocation}
-          endLocation={destination}
-          showMap={true} 
-          onToggleMap={() => {}} // We're always showing the map
-        />
-      </div>
+      {/* Route Map Preview - unified view of start and end - only show when both locations exist */}
+      {startLocation && destination && (
+        <div className="mt-4">
+          <RouteMapPreview 
+            startLocation={startLocation}
+            endLocation={destination}
+            showMap={true} 
+            onToggleMap={() => {}} // We're always showing the map
+          />
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
         <div className="space-y-2">
