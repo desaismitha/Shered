@@ -143,7 +143,7 @@ export function SimpleTripForm() {
           value={startLocation}
           onChange={setStartLocation}
           placeholder="Enter or select starting location on map"
-          showMap={true}
+          showMap={false} // Don't show individual maps
         />
         {errors.startLocation && <p className="text-red-500 text-sm">{errors.startLocation}</p>}
       </div>
@@ -154,23 +154,21 @@ export function SimpleTripForm() {
           value={destination}
           onChange={setDestination}
           placeholder="Enter or select destination on map"
-          showMap={true}
+          showMap={false} // Don't show individual maps
           required
         />
         {errors.destination && <p className="text-red-500 text-sm">{errors.destination}</p>}
       </div>
       
       {/* Route Map Preview - unified view of start and end */}
-      {(startLocation || destination) && (
-        <div className="mt-4">
-          <RouteMapPreview 
-            startLocation={startLocation}
-            endLocation={destination}
-            showMap={true} 
-            onToggleMap={() => {}} // We're always showing the map when locations are present
-          />
-        </div>
-      )}
+      <div className="mt-4">
+        <RouteMapPreview 
+          startLocation={startLocation}
+          endLocation={destination}
+          showMap={true} 
+          onToggleMap={() => {}} // We're always showing the map
+        />
+      </div>
 
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
         <div className="space-y-2">
