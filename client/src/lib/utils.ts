@@ -1,9 +1,31 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import { format, parseISO, addDays } from 'date-fns';
+import { format, parseISO, addDays, startOfDay, isEqual, isBefore, isAfter } from 'date-fns';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
+}
+
+// Compare dates ignoring time component - useful for form validation
+export function compareDates(date1: Date | string | null | undefined, date2: Date | string | null | undefined): 'before' | 'after' | 'same' | 'invalid' {
+  if (!date1 || !date2) return 'invalid';
+  
+  try {
+    // Convert to Date objects if strings
+    const d1 = typeof date1 === 'string' ? new Date(date1) : date1;
+    const d2 = typeof date2 === 'string' ? new Date(date2) : date2;
+    
+    // Create dates with only the date component (no time) in local timezone
+    const day1 = startOfDay(d1);
+    const day2 = startOfDay(d2);
+    
+    if (isEqual(day1, day2)) return 'same';
+    if (isBefore(day1, day2)) return 'before';
+    return 'after';
+  } catch (e) {
+    console.error("Error comparing dates:", e);
+    return 'invalid';
+  }
 }
 
 // Clean location string by removing any coordinates in brackets or parentheses

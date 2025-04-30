@@ -30,9 +30,9 @@ import {
 } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { format } from "date-fns";
+import { format, startOfDay, isEqual, isBefore } from "date-fns";
 import { Calendar as CalendarIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, compareDates } from "@/lib/utils";
 
 const tripSchema = insertTripSchema
   .extend({
@@ -43,7 +43,12 @@ const tripSchema = insertTripSchema
       required_error: "End date is required",
     }),
   })
-  .refine((data) => data.endDate >= data.startDate, {
+  .refine((data) => {
+    // Use our new compareDates function that handles local timezone correctly
+    const comparison = compareDates(data.startDate, data.endDate);
+    // Allow same day or end date after start date
+    return comparison === 'same' || comparison === 'before';
+  }, {
     message: "End date cannot be before start date",
     path: ["endDate"],
   });
@@ -233,10 +238,19 @@ export function TripForm() {
                         setEndDate(date);
                         field.onChange(date);
                       }}
-                      disabled={(date) => 
-                        date < new Date() || 
-                        (startDate ? date < startDate : false)
-                      }
+                      disabled={(date) => {
+                        // Don't allow past dates
+                        if (date < new Date()) return true;
+                        
+                        // Allow the same day as start date
+                        if (startDate) {
+                          const startDay = startOfDay(startDate);
+                          const checkDay = startOfDay(date);
+                          return isEqual(checkDay, startDay) ? false : isBefore(date, startDate);
+                        }
+                        
+                        return false;
+                      }}
                       initialFocus
                     />
                   </PopoverContent>

@@ -42,6 +42,8 @@ import MapLocationPicker from "@/components/maps/map-location-picker";
 import RouteMapPreview from "@/components/maps/route-map-preview";
 import { Skeleton } from "@/components/ui/skeleton";
 
+import { compareDates } from "@/lib/utils";
+
 // Extend the schema for update form
 const tripUpdateSchema = insertTripSchema
   .extend({
@@ -53,7 +55,12 @@ const tripUpdateSchema = insertTripSchema
       required_error: "End date is required",
     }),
   })
-  .refine((data) => data.endDate >= data.startDate, {
+  .refine((data) => {
+    // Use our new compareDates function that handles local timezone correctly
+    const comparison = compareDates(data.startDate, data.endDate);
+    // Allow same day or end date after start date
+    return comparison === 'same' || comparison === 'before';
+  }, {
     message: "End date cannot be before start date",
     path: ["endDate"],
   });
