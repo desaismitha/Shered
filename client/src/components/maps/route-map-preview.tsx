@@ -1,8 +1,32 @@
-import React, { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
+import React, { useState, useEffect, useRef } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+
+// This component updates the map view when props change
+interface MapUpdaterProps {
+  center: Coordinate;
+  bounds: L.LatLngBounds;
+  startCoords: Coordinate | null;
+  endCoords: Coordinate | null;
+}
+
+function MapUpdater({ center, bounds, startCoords, endCoords }: MapUpdaterProps) {
+  const map = useMap();
+  
+  useEffect(() => {
+    if (startCoords && endCoords) {
+      console.log('[MAP DEBUG] Updating map view to fit bounds');
+      map.fitBounds(bounds);
+    } else if (startCoords || endCoords) {
+      console.log('[MAP DEBUG] Updating map center to', center);
+      map.setView([center.lat, center.lng], 13);
+    }
+  }, [map, center, bounds, startCoords, endCoords]);
+  
+  return null;
+}
 
 interface Coordinate {
   lat: number;
@@ -125,11 +149,16 @@ const RouteMapPreview: React.FC<RouteMapPreviewProps> = ({
         return;
       }
       
+      console.log("[MAP DEBUG] Fetching route between:", startCoords, "and", endCoords);
+      
       try {
         setIsLoadingRoute(true);
         setError(null);
         
-        // Try to use cache first - create cache key from coordinates
+        // Always generate interpolated route first so something shows immediately
+        generateInterpolatedRoute(startCoords, endCoords);
+        
+        // Try to get a cached route
         const cacheKey = `route-${startCoords.lat},${startCoords.lng}-${endCoords.lat},${endCoords.lng}`;
         let cachedRoute = null;
         
@@ -139,61 +168,79 @@ const RouteMapPreview: React.FC<RouteMapPreviewProps> = ({
             const parsed = JSON.parse(cachedData);
             if (Array.isArray(parsed) && parsed.length > 0) {
               cachedRoute = parsed.map(point => ({ lat: point[0], lng: point[1] }));
-              console.log('Using cached route with', cachedRoute.length, 'points');
+              console.log('[MAP DEBUG] Using cached route with', cachedRoute.length, 'points');
+              setRoutePath(cachedRoute);
             }
           }
         } catch (cacheErr) {
-          console.warn('Could not retrieve cached route:', cacheErr);
+          console.warn('[MAP DEBUG] Could not retrieve cached route:', cacheErr);
         }
         
+        // If we have a cached route, don't fetch a new one
         if (cachedRoute && cachedRoute.length > 0) {
-          setRoutePath(cachedRoute);
           setIsLoadingRoute(false);
           return;
         }
         
-        // Get route from Mapbox Directions API if we have a token
-        if (import.meta.env.VITE_MAPBOX_ACCESS_TOKEN) {
-          const response = await fetch(
-            `https://api.mapbox.com/directions/v5/mapbox/driving/` +
+        // Get the MAPBOX_ACCESS_TOKEN from environment
+        const mapboxToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
+        console.log("[MAP DEBUG] Have Mapbox token:", !!mapboxToken);
+        
+        if (mapboxToken) {
+          const url = `https://api.mapbox.com/directions/v5/mapbox/driving/` +
             `${startCoords.lng},${startCoords.lat};${endCoords.lng},${endCoords.lat}` +
-            `?steps=true&geometries=geojson&access_token=${import.meta.env.VITE_MAPBOX_ACCESS_TOKEN}`
-          );
-          
-          if (!response.ok) {
-            throw new Error('Failed to fetch route from Mapbox');
-          }
-          
-          const data = await response.json();
-          
-          if (data.routes && data.routes.length > 0) {
-            // Extract the coordinates from the route
-            const routeCoordinates = data.routes[0].geometry.coordinates.map(
-              (coord: [number, number]) => ({ lng: coord[0], lat: coord[1] })
-            );
+            `?steps=true&geometries=geojson&access_token=${mapboxToken}`;
             
-            // Cache the result for future use
-            try {
-              const cacheData = routeCoordinates.map((p: Coordinate) => [p.lat, p.lng]);
-              sessionStorage.setItem(cacheKey, JSON.stringify(cacheData));
-            } catch (cacheErr) {
-              console.warn('Could not cache route data:', cacheErr);
+          console.log("[MAP DEBUG] Fetching from Mapbox:", url.split('?')[0]);
+          
+          try {
+            const response = await fetch(url);
+            
+            if (!response.ok) {
+              throw new Error(`Failed to fetch route: ${response.status} ${response.statusText}`);
             }
             
-            setRoutePath(routeCoordinates);
-          } else {
-            // Create interpolated route with multiple points
-            generateInterpolatedRoute(startCoords, endCoords);
+            const data = await response.json();
+            console.log("[MAP DEBUG] Got Mapbox response:", data);
+            
+            if (data.routes && data.routes.length > 0 && data.routes[0].geometry && 
+                data.routes[0].geometry.coordinates && data.routes[0].geometry.coordinates.length > 0) {
+              
+              // Extract the coordinates from the route (MapBox returns [lng, lat])
+              const routeCoordinates = data.routes[0].geometry.coordinates.map(
+                (coord: [number, number]) => ({ lng: coord[0], lat: coord[1] })
+              );
+              
+              console.log("[MAP DEBUG] Route has", routeCoordinates.length, 
+                "points. First:", routeCoordinates[0], 
+                "Last:", routeCoordinates[routeCoordinates.length - 1]);
+              
+              // Cache the result for future use
+              try {
+                const cacheData = routeCoordinates.map((p: Coordinate) => [p.lat, p.lng]);
+                sessionStorage.setItem(cacheKey, JSON.stringify(cacheData));
+                console.log("[MAP DEBUG] Route cached successfully");
+              } catch (cacheErr) {
+                console.warn('[MAP DEBUG] Could not cache route data:', cacheErr);
+              }
+              
+              setRoutePath(routeCoordinates);
+            } else {
+              console.log("[MAP DEBUG] No routes in Mapbox response, using interpolated route");
+              generateInterpolatedRoute(startCoords, endCoords);
+            }
+          } catch (fetchErr) {
+            console.error('[MAP DEBUG] Mapbox fetch error:', fetchErr);
+            // We already have the interpolated route
           }
         } else {
-          // If no Mapbox token, create interpolated route with multiple points
-          generateInterpolatedRoute(startCoords, endCoords);
+          console.log("[MAP DEBUG] No Mapbox token, using interpolated route only");
+          // We already have the interpolated route
         }
       } catch (err) {
-        console.error('Failed to fetch route:', err);
+        console.error('[MAP DEBUG] Failed to fetch route:', err);
         setError(err instanceof Error ? err.message : 'Unknown error fetching route');
-        // Create fallback interpolated route
-        generateInterpolatedRoute(startCoords, endCoords);
+        // Already have interpolated route
       } finally {
         setIsLoadingRoute(false);
       }
@@ -201,22 +248,37 @@ const RouteMapPreview: React.FC<RouteMapPreviewProps> = ({
     
     // Create a route with intermediate points to make it look more natural
     function generateInterpolatedRoute(start: Coordinate, end: Coordinate) {
-      const numPoints = 10; // Number of intermediate points
+      console.log("[MAP DEBUG] Generating interpolated route between:", start, "and", end);
+      const numPoints = 12; // Increased for smoother path
       const coordinates: Coordinate[] = [];
       
       // Add start point
       coordinates.push(start);
       
-      // Add intermediate points
+      // Add intermediate points with slight variation to make it look more like a road
       for (let i = 1; i < numPoints; i++) {
         const fraction = i / numPoints;
         const lat = start.lat + fraction * (end.lat - start.lat);
         const lng = start.lng + fraction * (end.lng - start.lng);
-        coordinates.push({ lat, lng });
+        
+        // Add a slight curve to the straight line
+        const perpFactor = Math.sin(fraction * Math.PI) * 0.005; // controls the amount of curve
+        const dx = end.lat - start.lat;
+        const dy = end.lng - start.lng;
+        // Perpendicular offset
+        const offsetLat = -dy * perpFactor;
+        const offsetLng = dx * perpFactor;
+        
+        coordinates.push({ 
+          lat: lat + offsetLat, 
+          lng: lng + offsetLng 
+        });
       }
       
       // Add end point
       coordinates.push(end);
+      
+      console.log("[MAP DEBUG] Generated interpolated route with", coordinates.length, "points");
       
       // Set the route
       setRoutePath(coordinates);
@@ -284,11 +346,28 @@ const RouteMapPreview: React.FC<RouteMapPreviewProps> = ({
               bounds={getBounds()}
               zoom={12}
               style={{ height: '100%', width: '100%' }}
+              zoomControl={false} // Move zoom control to right side
             >
+              {/* This custom component updates the map view when coordinates change */}
+              <MapUpdater 
+                center={getCenter()} 
+                bounds={getBounds()} 
+                startCoords={startCoords}
+                endCoords={endCoords}
+              />
+              
               <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
+              
+              {/* Add zoom control in a better position */}
+              <div className="leaflet-top leaflet-right">
+                <div className="leaflet-control-zoom leaflet-bar leaflet-control">
+                  <button title="Zoom in" className="leaflet-control-zoom-in">+</button>
+                  <button title="Zoom out" className="leaflet-control-zoom-out">-</button>
+                </div>
+              </div>
               
               {startCoords && (
                 <Marker position={startCoords} icon={startIcon}>
