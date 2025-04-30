@@ -16,6 +16,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { cn, normalizeDate } from "@/lib/utils";
+import MapLocationPicker from "@/components/maps/map-location-picker";
+import RouteMapPreview from "@/components/maps/route-map-preview";
 
 export function SimpleTripForm() {
   const { user } = useAuth();
@@ -136,28 +138,39 @@ export function SimpleTripForm() {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="startLocation">Starting Location</Label>
-        <Input
-          id="startLocation"
+        <MapLocationPicker
+          label="Starting Location"
           value={startLocation}
-          onChange={(e) => setStartLocation(e.target.value)}
-          placeholder="Your departure city"
-          className={errors.startLocation ? "border-red-500" : ""}
+          onChange={setStartLocation}
+          placeholder="Enter or select starting location on map"
+          showMap={true}
         />
         {errors.startLocation && <p className="text-red-500 text-sm">{errors.startLocation}</p>}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="destination">Destination<span className="text-red-500">*</span></Label>
-        <Input
-          id="destination"
+        <MapLocationPicker
+          label="Destination"
           value={destination}
-          onChange={(e) => setDestination(e.target.value)}
-          placeholder="Bali, Indonesia"
-          className={errors.destination ? "border-red-500" : ""}
+          onChange={setDestination}
+          placeholder="Enter or select destination on map"
+          showMap={true}
+          required
         />
         {errors.destination && <p className="text-red-500 text-sm">{errors.destination}</p>}
       </div>
+      
+      {/* Route Map Preview - unified view of start and end */}
+      {(startLocation || destination) && (
+        <div className="mt-4">
+          <RouteMapPreview 
+            startLocation={startLocation}
+            endLocation={destination}
+            showMap={true} 
+            onToggleMap={() => {}} // We're always showing the map when locations are present
+          />
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
         <div className="space-y-2">
