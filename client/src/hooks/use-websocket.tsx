@@ -8,12 +8,15 @@ type WebSocketMessage = {
   [key: string]: any;
 };
 
+// Store timeoutIds separately instead of on the WebSocket object
+const timeoutIds = new Map<WebSocket, NodeJS.Timeout>();
+
 export function useWebSocket() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [isConnected, setIsConnected] = useState(false);
   const [lastMessage, setLastMessage] = useState<WebSocketMessage | null>(null);
-  const socketRef = useRef<ExtendedWebSocket | null>(null);
+  const socketRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
     // Only connect if user is authenticated
@@ -34,7 +37,7 @@ export function useWebSocket() {
       const wsUrl = `${protocol}//${window.location.host}/ws?userId=${user.id}`;
       console.log('Connecting to WebSocket:', wsUrl);
 
-      const socket = new WebSocket(wsUrl) as ExtendedWebSocket;
+      const socket = new WebSocket(wsUrl);
       socketRef.current = socket;
 
       socket.onopen = () => {
@@ -80,7 +83,7 @@ export function useWebSocket() {
         }, 5000);
         
         // Store the timeout ID for later cleanup if component unmounts
-        socket.timeoutId = timeoutId;
+        timeoutIds.set(socket, timeoutId);
       };
 
       socket.onerror = (error) => {
@@ -98,7 +101,14 @@ export function useWebSocket() {
     return () => {
       if (socketRef.current) {
         console.log('Component unmounting - Closing WebSocket connection');
+        // Clear any reconnection timeout
+        const timeoutId = timeoutIds.get(socketRef.current);
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+          timeoutIds.delete(socketRef.current);
+        }
         socketRef.current.close();
+        socketRef.current = null;
       }
     };
   }, [user, toast]);
