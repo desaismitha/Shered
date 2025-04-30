@@ -78,21 +78,40 @@ const RouteMapPreview: React.FC<RouteMapPreviewProps> = ({
         setIsLoadingRoute(true);
         setError(null);
         
-        // Check for MAPBOX_ACCESS_TOKEN
-        if (!import.meta.env.VITE_MAPBOX_ACCESS_TOKEN) {
-          throw new Error('Mapbox API key is not configured');
+        // Get route from Mapbox Directions API if we have a token
+        if (import.meta.env.VITE_MAPBOX_ACCESS_TOKEN) {
+          const response = await fetch(
+            `https://api.mapbox.com/directions/v5/mapbox/driving/` +
+            `${startCoords.lng},${startCoords.lat};${endCoords.lng},${endCoords.lat}` +
+            `?steps=true&geometries=geojson&access_token=${import.meta.env.VITE_MAPBOX_ACCESS_TOKEN}`
+          );
+          
+          if (!response.ok) {
+            throw new Error('Failed to fetch route from Mapbox');
+          }
+          
+          const data = await response.json();
+          
+          if (data.routes && data.routes.length > 0) {
+            // Extract the coordinates from the route
+            const routeCoordinates = data.routes[0].geometry.coordinates.map(
+              (coord: [number, number]) => ({ lng: coord[0], lat: coord[1] })
+            );
+            
+            setRoutePath(routeCoordinates);
+          } else {
+            // Fallback to direct line if no routes
+            setRoutePath([startCoords, endCoords]);
+          }
+        } else {
+          // If no Mapbox token, just show direct line between points
+          setRoutePath([startCoords, endCoords]);
         }
-        
-        // Create direct line for now (simple preview)
-        // In a full implementation, we would call the Mapbox Directions API
-        setRoutePath([
-          startCoords,
-          endCoords
-        ]);
       } catch (err) {
         console.error('Failed to fetch route:', err);
         setError(err instanceof Error ? err.message : 'Unknown error fetching route');
-        setRoutePath([]);
+        // Fallback to direct line
+        setRoutePath([startCoords, endCoords]);
       } finally {
         setIsLoadingRoute(false);
       }

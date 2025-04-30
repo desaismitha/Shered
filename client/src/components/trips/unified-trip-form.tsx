@@ -434,6 +434,23 @@ export function UnifiedTripForm({
               />
             </div>
             
+            {/* Route Map Preview - unified view of start and end */}
+            <div className="mt-6">
+              {/* The component will automatically populate based on the form inputs */}
+              {form.watch('startLocation') || form.watch('endLocation') ? (
+                <RouteMapPreview 
+                  startLocation={form.watch('startLocation')}
+                  endLocation={form.watch('endLocation')}
+                  showMap={true} 
+                  onToggleMap={() => {}} // We're always showing the map when locations are present
+                />
+              ) : (
+                <div className="text-muted-foreground text-sm">
+                  Enter start and end locations above to see a route preview
+                </div>
+              )}
+            </div>
+            
             <div className="grid gap-4 sm:grid-cols-2 mt-4">
               <FormField
                 control={form.control}
