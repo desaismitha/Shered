@@ -12,6 +12,7 @@ import * as L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useMapboxRoute, formatDistance, formatDuration } from "@/lib/mapUtils";
 import { CITY_COORDINATES, getDefaultCoordinatesForLocation } from "@/data/cities";
+import RouteMapPreview from "@/components/maps/route-map-preview";
 
 // This component fixes the broken map icons in React Leaflet
 const DefaultMarkerIcon = L.icon({
@@ -677,13 +678,23 @@ export default function TripDetailsPage() {
                     <CardTitle>Trip Details</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-4">
+                    <div className="space-y-6">
                       {trip.description && (
                         <div>
                           <h3 className="font-medium text-neutral-800 mb-1">Description</h3>
                           <p className="text-neutral-600">{trip.description}</p>
                         </div>
                       )}
+                      
+                      {/* Route Map Preview */}
+                      <div className="mb-4">
+                        <RouteMapPreview
+                          startLocation={trip.startLocation}
+                          endLocation={trip.destination}
+                          showMap={true}
+                          onToggleMap={() => {}}
+                        />
+                      </div>
                       
                       <div>
                         <h3 className="font-medium text-neutral-800 mb-1">Trip Information</h3>
