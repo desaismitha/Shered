@@ -178,23 +178,35 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
 
   // Handle selection from suggestions dropdown
   const handleSelectSuggestion = async (suggestion: {place_name: string, lat: number, lon: number}) => {
-    setSearchInput(suggestion.place_name.split(',').slice(0, 3).join(','));
-    setMarkerPosition([suggestion.lat, suggestion.lon]);
-    
-    // Format location with coordinates
-    const locationString = `${suggestion.place_name.split(',').slice(0, 3).join(',')} [${suggestion.lat.toFixed(6)}, ${suggestion.lon.toFixed(6)}]`;
-    onChange(locationString);
-    
-    // Close suggestions
+    // First hide suggestions to prevent UI conflicts
     setShowSuggestions(false);
+    
+    // Use a short timeout to ensure UI state is updated before continuing
+    setTimeout(() => {
+      // Update the input field with a shortened display name
+      const displayName = suggestion.place_name.split(',').slice(0, 3).join(',');
+      setSearchInput(displayName);
+      
+      // Update marker position
+      setMarkerPosition([suggestion.lat, suggestion.lon]);
+      
+      // Format location with coordinates for storage
+      const locationString = `${displayName} [${suggestion.lat.toFixed(6)}, ${suggestion.lon.toFixed(6)}]`;
+      
+      // Update parent component with the new value
+      onChange(locationString);
+    }, 10);
   };
   
   // Close suggestions when clicking outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (inputRef.current && !inputRef.current.contains(e.target as Node)) {
-        setShowSuggestions(false);
-      }
+      // Give a short delay to allow suggestion click to be processed first
+      setTimeout(() => {
+        if (inputRef.current && !inputRef.current.contains(e.target as Node)) {
+          setShowSuggestions(false);
+        }
+      }, 50);
     };
     
     document.addEventListener('mousedown', handleClickOutside);
@@ -242,7 +254,11 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
                 <li 
                   key={index}
                   className="px-3 py-2 text-sm hover:bg-gray-100 cursor-pointer truncate"
-                  onClick={() => handleSelectSuggestion(suggestion)}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleSelectSuggestion(suggestion);
+                  }}
                 >
                   {suggestion.place_name}
                 </li>
