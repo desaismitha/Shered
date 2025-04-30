@@ -58,6 +58,13 @@ app.use((req, res, next) => {
       });
     }
   });
+  
+  // Add a configuration endpoint to provide environment variables to the client
+  app.get("/api/config", (_req, res) => {
+    res.json({
+      mapboxToken: process.env.MAPBOX_ACCESS_TOKEN || ''
+    });
+  });
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;

@@ -115,6 +115,7 @@ const RouteMapPreview: React.FC<RouteMapPreviewProps> = ({
   const [routePath, setRoutePath] = useState<Coordinate[]>([]);
   const [isLoadingRoute, setIsLoadingRoute] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [mapboxToken, setMapboxToken] = useState<string>('');
   
   // Define custom marker icons
   const startIcon = new L.Icon({
@@ -135,6 +136,24 @@ const RouteMapPreview: React.FC<RouteMapPreviewProps> = ({
     shadowSize: [41, 41]
   });
   
+  // Fetch Mapbox token from config API
+  useEffect(() => {
+    async function fetchMapboxToken() {
+      try {
+        const response = await fetch('/api/config');
+        const data = await response.json();
+        if (data.mapboxToken) {
+          console.log("[MAP DEBUG] Successfully fetched Mapbox token from API");
+          setMapboxToken(data.mapboxToken);
+        }
+      } catch (error) {
+        console.error("[MAP DEBUG] Failed to fetch Mapbox token:", error);
+      }
+    }
+    
+    fetchMapboxToken();
+  }, []);
+
   // Parse coordinates from location strings
   useEffect(() => {
     setStartCoords(parseCoordinates(startLocation));
@@ -182,8 +201,7 @@ const RouteMapPreview: React.FC<RouteMapPreviewProps> = ({
           return;
         }
         
-        // Get the MAPBOX_ACCESS_TOKEN from environment
-        const mapboxToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
+        // Use the Mapbox token we fetched from the API
         console.log("[MAP DEBUG] Have Mapbox token:", !!mapboxToken);
         
         if (mapboxToken) {
@@ -285,7 +303,7 @@ const RouteMapPreview: React.FC<RouteMapPreviewProps> = ({
     }
     
     fetchRoute();
-  }, [startCoords, endCoords]);
+  }, [startCoords, endCoords, mapboxToken]);
   
   // Calculate map bounds to fit all markers
   const getBounds = () => {
