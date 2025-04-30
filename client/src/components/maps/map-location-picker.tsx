@@ -291,15 +291,40 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
           type="button"
           variant="outline"
           size="sm"
-          onClick={() => {
-            // Preserve the original value with coordinates when toggling map
+          onClick={async () => {
+            // Toggle map visibility
             const nextShowMap = !showMap;
             setShowMap(nextShowMap);
             
-            // When showing the map, make sure we have the coordinates in the value
-            if (nextShowMap && originalValue && originalValue.includes('[')) {
-              // Ensure we don't lose coordinates when toggling map visibility
-              onChange(originalValue);
+            // When showing the map, search for the location if needed
+            if (nextShowMap) {
+              if (originalValue && originalValue.includes('[')) {
+                // If we have coordinates already, use them
+                onChange(originalValue);
+              } else if (searchInput && searchInput.trim()) {
+                // Try to search for the location text to get coordinates
+                try {
+                  setIsSearching(true);
+                  const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchInput)}&limit=1`);
+                  
+                  if (response.ok) {
+                    const results = await response.json();
+                    if (results && results.length > 0) {
+                      const { lat, lon, display_name } = results[0];
+                      const latNum = parseFloat(lat);
+                      const lngNum = parseFloat(lon);
+                      
+                      setMarkerPosition([latNum, lngNum]);
+                      const locationString = `${display_name.split(',').slice(0, 3).join(',')} [${latNum.toFixed(6)}, ${lngNum.toFixed(6)}]`;
+                      onChange(locationString);
+                    }
+                  }
+                } catch (error) {
+                  console.error('Error searching location when showing map:', error);
+                } finally {
+                  setIsSearching(false);
+                }
+              }
             }
           }}
         >
