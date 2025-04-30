@@ -27,7 +27,7 @@ L.Marker.prototype.options.icon = DefaultMarkerIcon;
 import { 
   AlertTriangle, Calendar as CalendarIcon, CalendarRange, MapPin, Users, PlusIcon, PencilIcon, 
   DollarSign, ClipboardList, Info, ArrowLeft, Car, UserCheck, ArrowRight,
-  Map, Navigation, PlayCircle, StopCircle, Share2, Check, X
+  Map as MapIcon, Navigation, PlayCircle, StopCircle, Share2, Check, X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -358,8 +358,31 @@ function TripMap({
   currentLongitude?: number | null;
   mapRef?: React.MutableRefObject<L.Map | null>;
 }) {
-  // Component implementation
-  return <div>Trip map</div>;
+  // Use our route map preview component
+  return (
+    <div className="rounded-md overflow-hidden border border-border" style={{ height, width }}>
+      {startLocation && destination ? (
+        <RouteMapPreview 
+          startLocation={startLocation}
+          endLocation={destination}
+          showMap={true}
+        />
+      ) : (
+        <div className="flex items-center justify-center h-full bg-muted/20">
+          <div className="text-center">
+            <MapIcon className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+            <p className="text-muted-foreground">
+              {!startLocation && !destination 
+                ? "Start location and destination not specified"
+                : !startLocation 
+                  ? "Start location not specified" 
+                  : "Destination not specified"}
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function getStatusColor(status: string | undefined) {

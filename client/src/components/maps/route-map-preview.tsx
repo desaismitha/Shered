@@ -13,7 +13,7 @@ interface RouteMapPreviewProps {
   startLocation: string | null;
   endLocation: string | null;
   showMap: boolean;
-  onToggleMap: () => void;
+  onToggleMap?: () => void;
 }
 
 // City coordinates lookup table
@@ -167,7 +167,7 @@ const RouteMapPreview: React.FC<RouteMapPreviewProps> = ({
             
             // Cache the result for future use
             try {
-              const cacheData = routeCoordinates.map(p => [p.lat, p.lng]);
+              const cacheData = routeCoordinates.map((p: Coordinate) => [p.lat, p.lng]);
               sessionStorage.setItem(cacheKey, JSON.stringify(cacheData));
             } catch (cacheErr) {
               console.warn('Could not cache route data:', cacheErr);
