@@ -122,6 +122,29 @@ const RouteMapPreview: React.FC<RouteMapPreviewProps> = ({
         setIsLoadingRoute(true);
         setError(null);
         
+        // Try to use cache first - create cache key from coordinates
+        const cacheKey = `route-${startCoords.lat},${startCoords.lng}-${endCoords.lat},${endCoords.lng}`;
+        let cachedRoute = null;
+        
+        try {
+          const cachedData = sessionStorage.getItem(cacheKey);
+          if (cachedData) {
+            const parsed = JSON.parse(cachedData);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              cachedRoute = parsed.map(point => ({ lat: point[0], lng: point[1] }));
+              console.log('Using cached route with', cachedRoute.length, 'points');
+            }
+          }
+        } catch (cacheErr) {
+          console.warn('Could not retrieve cached route:', cacheErr);
+        }
+        
+        if (cachedRoute && cachedRoute.length > 0) {
+          setRoutePath(cachedRoute);
+          setIsLoadingRoute(false);
+          return;
+        }
+        
         // Get route from Mapbox Directions API if we have a token
         if (import.meta.env.VITE_MAPBOX_ACCESS_TOKEN) {
           const response = await fetch(
@@ -142,23 +165,54 @@ const RouteMapPreview: React.FC<RouteMapPreviewProps> = ({
               (coord: [number, number]) => ({ lng: coord[0], lat: coord[1] })
             );
             
+            // Cache the result for future use
+            try {
+              const cacheData = routeCoordinates.map(p => [p.lat, p.lng]);
+              sessionStorage.setItem(cacheKey, JSON.stringify(cacheData));
+            } catch (cacheErr) {
+              console.warn('Could not cache route data:', cacheErr);
+            }
+            
             setRoutePath(routeCoordinates);
           } else {
-            // Fallback to direct line if no routes
-            setRoutePath([startCoords, endCoords]);
+            // Create interpolated route with multiple points
+            generateInterpolatedRoute(startCoords, endCoords);
           }
         } else {
-          // If no Mapbox token, just show direct line between points
-          setRoutePath([startCoords, endCoords]);
+          // If no Mapbox token, create interpolated route with multiple points
+          generateInterpolatedRoute(startCoords, endCoords);
         }
       } catch (err) {
         console.error('Failed to fetch route:', err);
         setError(err instanceof Error ? err.message : 'Unknown error fetching route');
-        // Fallback to direct line
-        setRoutePath([startCoords, endCoords]);
+        // Create fallback interpolated route
+        generateInterpolatedRoute(startCoords, endCoords);
       } finally {
         setIsLoadingRoute(false);
       }
+    }
+    
+    // Create a route with intermediate points to make it look more natural
+    function generateInterpolatedRoute(start: Coordinate, end: Coordinate) {
+      const numPoints = 10; // Number of intermediate points
+      const coordinates: Coordinate[] = [];
+      
+      // Add start point
+      coordinates.push(start);
+      
+      // Add intermediate points
+      for (let i = 1; i < numPoints; i++) {
+        const fraction = i / numPoints;
+        const lat = start.lat + fraction * (end.lat - start.lat);
+        const lng = start.lng + fraction * (end.lng - start.lng);
+        coordinates.push({ lat, lng });
+      }
+      
+      // Add end point
+      coordinates.push(end);
+      
+      // Set the route
+      setRoutePath(coordinates);
     }
     
     fetchRoute();
@@ -245,12 +299,14 @@ const RouteMapPreview: React.FC<RouteMapPreviewProps> = ({
                 </Marker>
               )}
               
+              {/* Render the route path */}
               {routePath.length > 0 && (
                 <Polyline 
-                  positions={routePath} 
+                  positions={routePath.map(coord => [coord.lat, coord.lng] as [number, number])} 
                   color="#3b82f6" 
                   weight={4} 
                   opacity={0.7} 
+                  smoothFactor={1}
                 />
               )}
             </MapContainer>
