@@ -39,7 +39,6 @@ export function VerificationModal({ isOpen, onOpenChange, userEmail }: Verificat
     toast({
       title: "Verification skipped",
       description: "You can verify your account later from your profile.",
-      variant: "warning",
     });
     onOpenChange(false);
     setLocation("/dashboard");

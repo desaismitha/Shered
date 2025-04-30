@@ -1,108 +1,178 @@
 import { useEffect, useState } from "react";
-import { Link, useLocation } from "wouter";
-import { Button } from "@/components/ui/button";
+import { useLocation } from "wouter";
+import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, CheckCircle, XCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Loader2, CheckCircle, XCircle, Mail } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import { Link } from "wouter";
+import { OtpVerificationForm } from "@/components/auth/otp-verification-form";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-const VerifyEmailPage = () => {
-  const [location, setLocation] = useLocation();
-  const [verificationStatus, setVerificationStatus] = useState<"loading" | "success" | "error">("loading");
-  const [errorMessage, setErrorMessage] = useState<string>("");
+export default function VerifyEmailPage() {
+  const [, navigate] = useLocation();
+  const { toast } = useToast();
+  const [isVerifying, setIsVerifying] = useState(true);
+  const [verificationSuccess, setVerificationSuccess] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Get token from URL query parameter
+  const searchParams = new URLSearchParams(window.location.search);
+  const token = searchParams.get("token");
 
   useEffect(() => {
-    const verifyEmail = async () => {
-      try {
-        // Get token from URL
-        const urlParams = new URLSearchParams(window.location.search);
-        const token = urlParams.get("token");
+    if (token) {
+      verifyToken(token);
+    } else {
+      setIsVerifying(false);
+      setErrorMessage("No verification token found in URL.");
+    }
+  }, [token]);
 
-        if (!token) {
-          setVerificationStatus("error");
-          setErrorMessage("Verification token is missing.");
-          return;
-        }
-
-        // Call the verification endpoint
-        const response = await apiRequest("GET", `/api/verify-email?token=${token}`);
-        
-        if (response.ok) {
-          setVerificationStatus("success");
-        } else {
-          const data = await response.json();
-          setVerificationStatus("error");
-          setErrorMessage(data.message || "Email verification failed.");
-        }
-      } catch (error) {
-        console.error("Email verification error:", error);
-        setVerificationStatus("error");
-        setErrorMessage("An unexpected error occurred during verification.");
+  const verifyToken = async (token: string) => {
+    try {
+      const response = await apiRequest("POST", "/api/verify-email", { token });
+      
+      if (response.ok) {
+        setVerificationSuccess(true);
+        toast({
+          title: "Email verified",
+          description: "Your email has been successfully verified.",
+        });
+      } else {
+        const error = await response.json();
+        setErrorMessage(error.message || "Token verification failed.");
+        toast({
+          title: "Verification failed",
+          description: error.message || "Failed to verify your email.",
+          variant: "destructive",
+        });
       }
-    };
+    } catch (error) {
+      console.error("Email verification error:", error);
+      setErrorMessage("An unexpected error occurred during verification.");
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred during verification.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsVerifying(false);
+    }
+  };
 
-    verifyEmail();
-  }, []);
+  const handleContinueToApp = () => {
+    navigate("/");
+  };
+
+  const handleGoToLogin = () => {
+    navigate("/auth");
+  };
 
   return (
-    <div className="container flex items-center justify-center min-h-screen py-12">
-      <Card className="w-full max-w-md mx-auto">
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <Card className="max-w-md w-full">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">Email Verification</CardTitle>
+          <CardTitle className="text-2xl">Email Verification</CardTitle>
           <CardDescription>
-            Verifying your email with TravelGroupr
+            Verify your email to access all features
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-col items-center justify-center p-6">
-          {verificationStatus === "loading" && (
-            <div className="flex flex-col items-center space-y-4">
-              <Loader2 className="w-16 h-16 text-primary animate-spin" />
-              <p className="text-center text-muted-foreground">Verifying your email address...</p>
+        <CardContent className="space-y-6">
+          {isVerifying ? (
+            <div className="text-center py-6">
+              <Loader2 className="h-12 w-12 animate-spin mx-auto text-primary" />
+              <p className="mt-4">Verifying your email...</p>
             </div>
-          )}
-
-          {verificationStatus === "success" && (
-            <div className="flex flex-col items-center space-y-4">
-              <CheckCircle className="w-16 h-16 text-green-500" />
-              <div className="text-center">
-                <h3 className="text-xl font-semibold">Verification Successful!</h3>
+          ) : token ? (
+            verificationSuccess ? (
+              <div className="text-center py-6">
+                <CheckCircle className="h-16 w-16 mx-auto text-green-500" />
+                <h2 className="text-xl font-semibold mt-4">
+                  Email Verified!
+                </h2>
                 <p className="text-muted-foreground mt-2">
                   Your email has been successfully verified. You can now access all features of TravelGroupr.
                 </p>
               </div>
-            </div>
-          )}
-
-          {verificationStatus === "error" && (
-            <div className="flex flex-col items-center space-y-4">
-              <XCircle className="w-16 h-16 text-red-500" />
-              <div className="text-center">
-                <h3 className="text-xl font-semibold">Verification Failed</h3>
-                <p className="text-muted-foreground mt-2">{errorMessage}</p>
+            ) : (
+              <div className="text-center py-6">
+                <XCircle className="h-16 w-16 mx-auto text-red-500" />
+                <h2 className="text-xl font-semibold mt-4">
+                  Verification Failed
+                </h2>
+                <p className="text-muted-foreground mt-2">
+                  {errorMessage || "We couldn't verify your email. The token may be invalid or expired."}
+                </p>
               </div>
-            </div>
+            )
+          ) : (
+            <Tabs defaultValue="otp" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="otp">OTP Verification</TabsTrigger>
+                <TabsTrigger value="email">Email Verification</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="otp" className="mt-4">
+                <OtpVerificationForm 
+                  onVerified={() => {
+                    setVerificationSuccess(true);
+                  }}
+                />
+              </TabsContent>
+
+              <TabsContent value="email" className="mt-4">
+                <div className="space-y-6 text-center">
+                  <Mail className="w-16 h-16 mx-auto text-primary" />
+                  <div className="space-y-2">
+                    <h2 className="text-xl font-semibold">Check Your Email</h2>
+                    <p className="text-muted-foreground">
+                      We've sent a verification link to your email address. 
+                      Please check your inbox and click the link to verify your account.
+                    </p>
+                  </div>
+                </div>
+              </TabsContent>
+            </Tabs>
           )}
         </CardContent>
         <CardFooter className="flex justify-center">
-          {verificationStatus === "success" && (
-            <Button onClick={() => setLocation("/dashboard")}>
-              Go to Dashboard
-            </Button>
-          )}
-          
-          {verificationStatus === "error" && (
-            <div className="flex flex-col items-center gap-4">
-              <Button onClick={() => setLocation("/auth")}>
-                Return to Login
+          {isVerifying ? null : (
+            verificationSuccess ? (
+              <Button onClick={handleContinueToApp}>
+                Continue to App
               </Button>
-              <p className="text-sm text-muted-foreground">
-                If you're already logged in, you can request a new verification email from your profile.
-              </p>
-            </div>
+            ) : token ? (
+              <div className="space-y-4 w-full">
+                <Button 
+                  variant="outline" 
+                  className="w-full" 
+                  onClick={() => window.location.href = "/verify-email"}
+                >
+                  Try Another Method
+                </Button>
+                <Button 
+                  className="w-full" 
+                  onClick={handleGoToLogin}
+                >
+                  Back to Login
+                </Button>
+              </div>
+            ) : (
+              <div className="text-center">
+                <p className="mb-4 text-sm text-muted-foreground">
+                  Already have an account?
+                </p>
+                <Link href="/auth">
+                  <Button>
+                    Go to Login
+                  </Button>
+                </Link>
+              </div>
+            )
           )}
         </CardFooter>
       </Card>
     </div>
   );
-};
-
-export default VerifyEmailPage;
+}
