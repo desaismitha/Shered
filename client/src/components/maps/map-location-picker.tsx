@@ -4,28 +4,6 @@ import { Label } from '@/components/ui/label';
 import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 
-// This is a utility function to get the human-readable location from coordinates
-async function reverseGeocode(lat: number, lng: number): Promise<string> {
-  try {
-    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`);
-    if (!response.ok) {
-      throw new Error('Failed to fetch location data');
-    }
-    const data = await response.json();
-    
-    // Convert the response to a human-readable address
-    let address = data.display_name || 'Unknown location';
-    
-    // Format with coordinates as hidden data
-    // Store only first 3 parts of address to keep it concise,
-    // but include coordinates in a hidden format that can be parsed later
-    return `${address.split(',').slice(0, 3).join(',')} [${lat.toFixed(6)}, ${lng.toFixed(6)}]`;
-  } catch (error) {
-    console.error('Error fetching location data:', error);
-    return `Selected Location [${lat.toFixed(6)}, ${lng.toFixed(6)}]`;
-  }
-}
-
 interface MapLocationPickerProps {
   value: string;
   onChange: (value: string) => void;
@@ -49,14 +27,13 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const [suggestions, setSuggestions] = useState<Array<{place_name: string, lat: number, lon: number}>>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [originalValue, setOriginalValue] = useState<string>(value);
   
   // Create caches for search results and suggestions
   const suggestionCache = useRef<Record<string, Array<{place_name: string, lat: number, lon: number}>>>({});
   const searchCache = useRef<Record<string, { lat: number, lon: number }>>({});
-
-  // Parse coordinates from the value if they exist
-  const [originalValue, setOriginalValue] = useState<string>(value);
   
+  // Parse coordinates from the value if they exist
   useEffect(() => {
     if (value) {
       // Update the stored original value whenever the value prop changes

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { MapPin } from 'lucide-react';
@@ -306,9 +306,9 @@ const RouteMapPreview: React.FC<RouteMapPreviewProps> = ({
               setRoutePath(routeCoordinates);
             }
           }
-        } catch (fetchErr) {
+        } catch (error) {
           // We're already showing the interpolated route, so no need to show an error
-          if (fetchErr.name === 'AbortError') {
+          if (error instanceof Error && error.name === 'AbortError') {
             console.warn('Route request timed out, using interpolated route');
           }
         }
