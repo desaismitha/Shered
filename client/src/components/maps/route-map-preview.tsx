@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet'
 import L from 'leaflet';
 import { MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import MapWrapper from './map-wrapper';
 
 interface Coordinate {
   lat: number;
@@ -165,15 +166,15 @@ const RouteMapPreview: React.FC<RouteMapPreviewProps> = ({
     return location.replace(/\[.*?\]/, '').trim();
   };
   
-  // Use useRef to prevent React from recreating the map component on every render
-  const mapId = useRef(`map-${Math.random().toString(36).substring(2, 9)}`);
+  // Generate a stable ID for this map instance based on locations
+  const mapInstanceId = useRef(`route-map-${startLocation?.substring(0, 10)}-${endLocation?.substring(0, 10)}`
+    .replace(/[^a-zA-Z0-9]/g, '-'));
   
   return (
     <div className="space-y-2">
       <div className="rounded-md overflow-hidden border border-border" style={{ height: '300px' }}>
-        <div id={mapId.current} style={{ height: '100%', width: '100%' }}>
+        <MapWrapper id={mapInstanceId.current}>
           <MapContainer
-            key={mapId.current}
             center={getCenter()}
             bounds={getBounds()}
             zoom={12}
@@ -209,7 +210,7 @@ const RouteMapPreview: React.FC<RouteMapPreviewProps> = ({
               />
             )}
           </MapContainer>
-        </div>
+        </MapWrapper>
       </div>
       
       {error && (
