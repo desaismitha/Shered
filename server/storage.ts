@@ -4,6 +4,7 @@ import session from "express-session";
 import { eq, ne, and, inArray, gt } from "drizzle-orm";
 import { db, pool, attemptReconnect, checkDbConnection } from "./db";
 import connectPg from "connect-pg-simple";
+import { comparePasswords } from "./auth";
 
 // Create a custom database error class
 class DatabaseConnectionError extends Error {
@@ -25,6 +26,15 @@ export interface IStorage {
   createPasswordResetToken(userId: number, token: string, expiry: Date): Promise<boolean>;
   getUserByResetToken(token: string): Promise<User | undefined>;
   updateUserPassword(userId: number, newPassword: string): Promise<boolean>;
+  updateUserVerification(userId: number, data: { 
+    emailVerified?: boolean;
+    verificationToken?: string | null;
+    verificationTokenExpiry?: Date | null;
+    otpToken?: string | null; 
+    otpTokenExpiry?: Date | null;
+  }): Promise<boolean>;
+  verifyUserEmail(token: string): Promise<boolean>;
+  verifyUserOtp(userId: number, otp: string): Promise<boolean>;
 
   // Group methods
   createGroup(group: InsertGroup): Promise<Group>;
@@ -186,6 +196,92 @@ export class DatabaseStorage implements IStorage {
           password: newPassword,
           resetToken: null,
           resetTokenExpiry: null
+        })
+        .where(eq(users.id, userId))
+        .returning({ id: users.id });
+      
+      return result.length > 0;
+    });
+  }
+  
+  async updateUserVerification(userId: number, data: {
+    emailVerified?: boolean;
+    verificationToken?: string | null;
+    verificationTokenExpiry?: Date | null;
+    otpToken?: string | null;
+    otpTokenExpiry?: Date | null;
+  }): Promise<boolean> {
+    return this.executeDbOperation(async () => {
+      const result = await db
+        .update(users)
+        .set(data)
+        .where(eq(users.id, userId))
+        .returning({ id: users.id });
+      
+      return result.length > 0;
+    });
+  }
+  
+  async verifyUserEmail(token: string): Promise<boolean> {
+    return this.executeDbOperation(async () => {
+      // First, find the user with this verification token where expiry is in the future
+      const now = new Date();
+      
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(
+          and(
+            eq(users.verificationToken, token),
+            gt(users.verificationTokenExpiry as any, now)
+          )
+        );
+      
+      if (!user) {
+        return false;
+      }
+      
+      // Update the user to mark email as verified and clear the token
+      const result = await db
+        .update(users)
+        .set({
+          emailVerified: true,
+          verificationToken: null,
+          verificationTokenExpiry: null
+        })
+        .where(eq(users.id, user.id))
+        .returning({ id: users.id });
+      
+      return result.length > 0;
+    });
+  }
+  
+  async verifyUserOtp(userId: number, otp: string): Promise<boolean> {
+    return this.executeDbOperation(async () => {
+      // Get the user
+      const user = await this.getUser(userId);
+      if (!user || !user.otpToken || !user.otpTokenExpiry) {
+        return false;
+      }
+      
+      // Check if the OTP is expired
+      const now = new Date();
+      if (new Date(user.otpTokenExpiry) < now) {
+        return false;
+      }
+      
+      // Check if the provided OTP matches the stored one
+      const isValidOtp = await comparePasswords(otp, user.otpToken);
+      if (!isValidOtp) {
+        return false;
+      }
+      
+      // Clear the OTP after successful verification
+      const result = await db
+        .update(users)
+        .set({
+          otpToken: null,
+          otpTokenExpiry: null
         })
         .where(eq(users.id, userId))
         .returning({ id: users.id });

@@ -84,22 +84,79 @@ export function setupAuth(app: Express) {
 
   app.post("/api/register", async (req, res, next) => {
     try {
+      // Check if username already exists
       const existingUser = await storage.getUserByUsername(req.body.username);
       if (existingUser) {
         return res.status(400).json({ message: "Username already exists" });
       }
+      
+      // Check if email already exists
+      const existingEmail = await storage.getUserByEmail(req.body.email);
+      if (existingEmail) {
+        return res.status(400).json({ message: "Email address already in use" });
+      }
 
+      // Generate verification token with 24-hour expiry
+      const verificationToken = generateVerificationToken();
+      const verificationExpiry = new Date();
+      verificationExpiry.setHours(verificationExpiry.getHours() + 24);
+
+      // Create user with verification token
       const user = await storage.createUser({
         ...req.body,
         password: await hashPassword(req.body.password),
+        emailVerified: false,
+        verificationToken,
+        verificationTokenExpiry: verificationExpiry,
       });
 
-      // Remove password from response
-      const { password, ...userWithoutPassword } = user;
+      // Generate OTP code for additional verification
+      const otpCode = generateOTP();
+      const otpExpiry = new Date();
+      otpExpiry.setMinutes(otpExpiry.getMinutes() + 10); // 10 minute expiry
+      
+      // Store OTP code in the user record
+      await storage.updateUserVerification(user.id, {
+        otpToken: await hashPassword(otpCode), // Store hashed OTP for security
+        otpTokenExpiry: otpExpiry
+      });
 
+      // Construct the verification URL
+      const baseUrl = process.env.BASE_URL || `http://${req.headers.host}`;
+      const verificationUrl = `${baseUrl}/verify-email?token=${verificationToken}&userId=${user.id}`;
+      
+      // Send verification email
+      const emailSent = await sendEmailVerification(
+        user.email,
+        user.displayName || user.username,
+        verificationUrl
+      );
+      
+      // Send OTP email
+      const otpSent = await sendOTPVerificationCode(
+        user.email,
+        user.displayName || user.username,
+        otpCode
+      );
+
+      // Remove password and sensitive fields from response
+      const { 
+        password, 
+        verificationToken: token, 
+        otpToken,
+        ...userWithoutSensitiveData 
+      } = user;
+
+      // Log the user in automatically
       req.login(user, (err) => {
         if (err) return next(err);
-        res.status(201).json(userWithoutPassword);
+        
+        res.status(201).json({
+          ...userWithoutSensitiveData,
+          verificationEmailSent: emailSent,
+          otpEmailSent: otpSent,
+          requiresVerification: true
+        });
       });
     } catch (err) {
       next(err);
