@@ -200,10 +200,35 @@ const RouteMapPreview: React.FC<RouteMapPreviewProps> = ({
     return coordinates;
   }, []);
 
-  // Cache for routes
+  // Enhanced route cache with both memory and sessionStorage
   const routeCache = useRef<Record<string, Coordinate[]>>({});
   
-  // Fetch route when both coordinates are available
+  // Pre-load route cache from sessionStorage on component mount
+  useEffect(() => {
+    // Load all route-related keys from sessionStorage into memory cache
+    try {
+      for (let i = 0; i < sessionStorage.length; i++) {
+        const key = sessionStorage.key(i);
+        if (key && key.startsWith('route-')) {
+          const cachedData = sessionStorage.getItem(key);
+          if (cachedData) {
+            try {
+              const parsed = JSON.parse(cachedData);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                routeCache.current[key] = parsed.map(point => ({ lat: point[0], lng: point[1] }));
+              }
+            } catch (e) {
+              // Ignore invalid JSON
+            }
+          }
+        }
+      }
+    } catch (e) {
+      // Silently fail if sessionStorage is not available
+    }
+  }, []);
+  
+  // Fetch route when both coordinates are available - optimized for speed
   useEffect(() => {
     let isMounted = true;
     
@@ -217,10 +242,17 @@ const RouteMapPreview: React.FC<RouteMapPreviewProps> = ({
         setIsLoadingRoute(true);
         setError(null);
         
-        // Create cache key from coordinates rounded to 4 decimal places for better hit rate
+        // Generate interpolated route IMMEDIATELY for instant feedback
+        const interpolatedRoute = generateInterpolatedRoute(startCoords, endCoords);
+        if (isMounted) {
+          setRoutePath(interpolatedRoute);
+        }
+        
+        // Round coordinates to 4 decimals to improve cache hit rate
+        // This is about 11 meters of precision, good enough for most routes
         const cacheKey = `route-${startCoords.lat.toFixed(4)},${startCoords.lng.toFixed(4)}-${endCoords.lat.toFixed(4)},${endCoords.lng.toFixed(4)}`;
         
-        // Check memory cache first (faster than sessionStorage)
+        // Check memory cache (fastest)
         if (routeCache.current[cacheKey]) {
           if (isMounted) {
             setRoutePath(routeCache.current[cacheKey]);
@@ -229,13 +261,36 @@ const RouteMapPreview: React.FC<RouteMapPreviewProps> = ({
           return;
         }
         
-        // Generate interpolated route immediately for responsive UI
-        const interpolatedRoute = generateInterpolatedRoute(startCoords, endCoords);
-        if (isMounted) {
-          setRoutePath(interpolatedRoute);
+        // Check for alternate routes (approximate matches) in the cache
+        const similarRoutes = Object.keys(routeCache.current).filter(key => {
+          // Extract coordinates from the cache key
+          const matches = key.match(/route-(-?\d+\.\d+),(-?\d+\.\d+)-(-?\d+\.\d+),(-?\d+\.\d+)/);
+          if (matches && matches.length === 5) {
+            const [, cachedStartLat, cachedStartLng, cachedEndLat, cachedEndLng] = matches;
+            
+            // Check if the coordinates are close (within ~500 meters)
+            const startLatDiff = Math.abs(parseFloat(cachedStartLat) - startCoords.lat);
+            const startLngDiff = Math.abs(parseFloat(cachedStartLng) - startCoords.lng);
+            const endLatDiff = Math.abs(parseFloat(cachedEndLat) - endCoords.lat);
+            const endLngDiff = Math.abs(parseFloat(cachedEndLng) - endCoords.lng);
+            
+            // If coordinates are very close, reuse the route
+            return (startLatDiff < 0.005 && startLngDiff < 0.005 && 
+                   endLatDiff < 0.005 && endLngDiff < 0.005);
+          }
+          return false;
+        });
+        
+        if (similarRoutes.length > 0) {
+          // Use the first similar route
+          const similarRoute = routeCache.current[similarRoutes[0]];
+          if (isMounted) {
+            setRoutePath(similarRoute);
+            // Still continue to fetch the exact route in background
+          }
         }
         
-        // Check sessionStorage next
+        // Check sessionStorage (slightly slower than memory)
         try {
           const cachedData = sessionStorage.getItem(cacheKey);
           if (cachedData) {
@@ -254,7 +309,7 @@ const RouteMapPreview: React.FC<RouteMapPreviewProps> = ({
             }
           }
         } catch (cacheErr) {
-          // Silent fail, already using interpolated route
+          // Already using interpolated route, continue
         }
         
         // Only proceed with Mapbox API if token is available
@@ -271,10 +326,14 @@ const RouteMapPreview: React.FC<RouteMapPreviewProps> = ({
             `?steps=true&geometries=geojson&access_token=${mapboxToken}`;
           
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+          const timeoutId = setTimeout(() => controller.abort(), 3000); // Reduced timeout to 3 seconds
           
           const response = await fetch(url, { 
-            signal: controller.signal
+            signal: controller.signal,
+            // Add cache headers to improve browser caching
+            headers: {
+              'Cache-Control': 'max-age=86400' // Cache for 24 hours
+            }
           });
           
           clearTimeout(timeoutId);
@@ -287,11 +346,26 @@ const RouteMapPreview: React.FC<RouteMapPreviewProps> = ({
           
           if (data.routes && data.routes.length > 0 && data.routes[0].geometry?.coordinates?.length > 0) {
             // Extract the coordinates from the route (MapBox returns [lng, lat])
-            const routeCoordinates = data.routes[0].geometry.coordinates.map(
-              (coord: [number, number]) => ({ lng: coord[0], lat: coord[1] })
-            );
+            const allCoordinates = data.routes[0].geometry.coordinates;
             
-            // Save to memory cache
+            // Reduce the number of points for better performance
+            // Take approximately 1 point every 100 meters for a smoother look
+            // but fewer total points to render
+            const routeCoordinates: Coordinate[] = [];
+            const stride = Math.max(1, Math.floor(allCoordinates.length / 40)); // No more than 40 points
+            
+            for (let i = 0; i < allCoordinates.length; i += stride) {
+              const coord = allCoordinates[i];
+              routeCoordinates.push({ lng: coord[0], lat: coord[1] });
+            }
+            
+            // Ensure the last point is included
+            if (allCoordinates.length > 0 && (allCoordinates.length - 1) % stride !== 0) {
+              const lastCoord = allCoordinates[allCoordinates.length - 1];
+              routeCoordinates.push({ lng: lastCoord[0], lat: lastCoord[1] });
+            }
+            
+            // Save to memory cache - use a more efficient data structure
             routeCache.current[cacheKey] = routeCoordinates;
             
             // Cache the result in sessionStorage
@@ -299,7 +373,7 @@ const RouteMapPreview: React.FC<RouteMapPreviewProps> = ({
               const cacheData = routeCoordinates.map((p: Coordinate) => [p.lat, p.lng]);
               sessionStorage.setItem(cacheKey, JSON.stringify(cacheData));
             } catch (storageErr) {
-              // Silent fail, we can still use the route
+              // Silent fail, we can still use the route in memory
             }
             
             if (isMounted) {
@@ -323,6 +397,7 @@ const RouteMapPreview: React.FC<RouteMapPreviewProps> = ({
       }
     }
     
+    // Start fetching immediately without any debounce
     fetchRoute();
     
     return () => {

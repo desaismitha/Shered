@@ -146,7 +146,7 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
   
   // Add effect to fetch location suggestions as user types with improved caching
   useEffect(() => {
-    // Hide suggestions if input is empty or too short
+    // Only show suggestions when there are at least 3 characters
     if (!searchInput || searchInput.trim().length < 3) {
       setSuggestions([]);
       setShowSuggestions(false);
@@ -155,23 +155,37 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
     
     const normalizedInput = searchInput.trim().toLowerCase();
     
-    // Check cache first
+    // Check cache first for immediate response
     if (suggestionCache.current[normalizedInput]) {
       setSuggestions(suggestionCache.current[normalizedInput]);
       setShowSuggestions(true);
       return;
     }
     
+    // Check partial matches in cache to provide instant feedback
+    const partialMatches: Array<{place_name: string, lat: number, lon: number}> = [];
+    for (const key in suggestionCache.current) {
+      if (key.includes(normalizedInput) || normalizedInput.includes(key)) {
+        // Add cached results that partially match
+        partialMatches.push(...suggestionCache.current[key]);
+      }
+    }
+    
+    if (partialMatches.length > 0) {
+      // Show partial matches immediately while fetching new results
+      setSuggestions(partialMatches.slice(0, 5)); // Limit to 5 suggestions
+      setShowSuggestions(true);
+    }
+    
     const fetchSuggestions = async () => {
       try {
         setIsSearching(true);
         
-        // Add a slight random delay to avoid rate limiting (250-350ms)
-        await new Promise(resolve => setTimeout(resolve, 250 + Math.random() * 100));
+        // Reduced delay to make it more responsive (150-200ms)
+        await new Promise(resolve => setTimeout(resolve, 150 + Math.random() * 50));
         
         const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchInput)}&limit=5`, {
           headers: {
-            // Add a user agent to comply with Nominatim usage policy
             'User-Agent': 'TravelGroupr App'
           }
         });
@@ -193,23 +207,27 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
           
           setSuggestions(formattedResults);
           setShowSuggestions(true);
-        } else {
+        } else if (partialMatches.length === 0) {
+          // Only clear suggestions if we don't have partial matches
           setSuggestions([]);
           setShowSuggestions(false);
         }
       } catch (error) {
         console.error('Error fetching suggestions:', error);
-        setSuggestions([]);
-        setShowSuggestions(false);
+        // Only clear suggestions if we don't have partial matches
+        if (partialMatches.length === 0) {
+          setSuggestions([]);
+          setShowSuggestions(false);
+        }
       } finally {
         setIsSearching(false);
       }
     };
     
-    // Increased debounce time to reduce API calls
+    // Reduced debounce time for better responsiveness
     const timer = setTimeout(() => {
       fetchSuggestions();
-    }, 800);
+    }, 300); // Reduced from 800ms to 300ms
     
     return () => clearTimeout(timer);
   }, [searchInput]);
