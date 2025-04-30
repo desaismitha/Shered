@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
+import { Marker, Popup, Polyline } from 'react-leaflet';
 import L from 'leaflet';
 import { MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import MapWrapper from './map-wrapper';
+import TripMapContainer from './trip-map-container';
 
 interface Coordinate {
   lat: number;
@@ -172,45 +172,39 @@ const RouteMapPreview: React.FC<RouteMapPreviewProps> = ({
   
   return (
     <div className="space-y-2">
-      <div className="rounded-md overflow-hidden border border-border" style={{ height: '300px' }}>
-        <MapWrapper id={mapInstanceId.current}>
-          <MapContainer
-            center={getCenter()}
-            bounds={getBounds()}
-            zoom={12}
-            style={{ height: '100%', width: '100%' }}
-          >
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+      <div className="rounded-md overflow-hidden border border-border">
+        <TripMapContainer
+          id={mapInstanceId.current}
+          center={getCenter()}
+          bounds={getBounds()}
+          zoom={12}
+          height="300px"
+        >
+          {startCoords && (
+            <Marker position={startCoords} icon={startIcon}>
+              <Popup>
+                Start: {getDisplayName(startLocation)}
+              </Popup>
+            </Marker>
+          )}
+          
+          {endCoords && (
+            <Marker position={endCoords} icon={endIcon}>
+              <Popup>
+                End: {getDisplayName(endLocation)}
+              </Popup>
+            </Marker>
+          )}
+          
+          {routePath.length > 0 && (
+            <Polyline 
+              positions={routePath} 
+              color="#3b82f6" 
+              weight={4} 
+              opacity={0.7} 
             />
-            
-            {startCoords && (
-              <Marker position={startCoords} icon={startIcon}>
-                <Popup>
-                  Start: {getDisplayName(startLocation)}
-                </Popup>
-              </Marker>
-            )}
-            
-            {endCoords && (
-              <Marker position={endCoords} icon={endIcon}>
-                <Popup>
-                  End: {getDisplayName(endLocation)}
-                </Popup>
-              </Marker>
-            )}
-            
-            {routePath.length > 0 && (
-              <Polyline 
-                positions={routePath} 
-                color="#3b82f6" 
-                weight={4} 
-                opacity={0.7} 
-              />
-            )}
-          </MapContainer>
-        </MapWrapper>
+          )}
+        </TripMapContainer>
       </div>
       
       {error && (
