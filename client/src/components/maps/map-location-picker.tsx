@@ -49,6 +49,10 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const [suggestions, setSuggestions] = useState<Array<{place_name: string, lat: number, lon: number}>>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  
+  // Create caches for search results and suggestions
+  const suggestionCache = useRef<Record<string, Array<{place_name: string, lat: number, lon: number}>>>({});
+  const searchCache = useRef<Record<string, { lat: number, lon: number }>>({});
 
   // Parse coordinates from the value if they exist
   const [originalValue, setOriginalValue] = useState<string>(value);
@@ -77,14 +81,50 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
       setMarkerPosition(null);
     }
   }, [value]);
-
-  // Handle search for locations
+  
+  // Handle search for locations with caching
   const handleSearch = useCallback(async () => {
     if (!searchInput.trim()) return;
     
+    const normalizedInput = searchInput.trim().toLowerCase();
+    
+    // Check cache first to avoid unnecessary API calls
+    if (searchCache.current[normalizedInput]) {
+      const { lat, lon } = searchCache.current[normalizedInput];
+      setMarkerPosition([lat, lon]);
+      
+      // Format with coordinates
+      const displayName = searchInput.split(',').slice(0, 3).join(',');
+      const locationString = `${displayName} [${lat.toFixed(6)}, ${lon.toFixed(6)}]`;
+      onChange(locationString);
+      return;
+    }
+    
     setIsSearching(true);
     try {
-      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchInput)}`);
+      // First check if there's an exact match in the suggestions cache
+      for (const key in suggestionCache.current) {
+        const suggestions = suggestionCache.current[key];
+        for (const suggestion of suggestions) {
+          if (suggestion.place_name.toLowerCase().includes(normalizedInput)) {
+            setMarkerPosition([suggestion.lat, suggestion.lon]);
+            const displayName = suggestion.place_name.split(',').slice(0, 3).join(',');
+            const locationString = `${displayName} [${suggestion.lat.toFixed(6)}, ${suggestion.lon.toFixed(6)}]`;
+            onChange(locationString);
+            searchCache.current[normalizedInput] = { lat: suggestion.lat, lon: suggestion.lon };
+            setIsSearching(false);
+            return;
+          }
+        }
+      }
+      
+      // If not in cache, make API request
+      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchInput)}&limit=1`, {
+        headers: {
+          'User-Agent': 'TravelGroupr App'
+        }
+      });
+      
       if (!response.ok) {
         throw new Error('Failed to search location');
       }
@@ -95,8 +135,13 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
         const latNum = parseFloat(lat);
         const lngNum = parseFloat(lon);
         
+        // Add to cache
+        searchCache.current[normalizedInput] = { lat: latNum, lon: lngNum };
+        
         setMarkerPosition([latNum, lngNum]);
-        const locationString = await reverseGeocode(latNum, lngNum);
+        // Just use the display name from the search result instead of making another geocode request
+        const displayName = results[0].display_name.split(',').slice(0, 3).join(',');
+        const locationString = `${displayName} [${latNum.toFixed(6)}, ${lngNum.toFixed(6)}]`;
         onChange(locationString);
       } else {
         // No results, but still update the input
@@ -122,19 +167,37 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
     }
   };
   
-  // Add effect to fetch location suggestions as user types
+  // Add effect to fetch location suggestions as user types with improved caching
   useEffect(() => {
-    // Hide suggestions if input is empty
-    if (!searchInput || searchInput.trim().length < 2) {
+    // Hide suggestions if input is empty or too short
+    if (!searchInput || searchInput.trim().length < 3) {
       setSuggestions([]);
       setShowSuggestions(false);
+      return;
+    }
+    
+    const normalizedInput = searchInput.trim().toLowerCase();
+    
+    // Check cache first
+    if (suggestionCache.current[normalizedInput]) {
+      setSuggestions(suggestionCache.current[normalizedInput]);
+      setShowSuggestions(true);
       return;
     }
     
     const fetchSuggestions = async () => {
       try {
         setIsSearching(true);
-        const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchInput)}&limit=5`);
+        
+        // Add a slight random delay to avoid rate limiting (250-350ms)
+        await new Promise(resolve => setTimeout(resolve, 250 + Math.random() * 100));
+        
+        const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchInput)}&limit=5`, {
+          headers: {
+            // Add a user agent to comply with Nominatim usage policy
+            'User-Agent': 'TravelGroupr App'
+          }
+        });
         
         if (!response.ok) {
           throw new Error('Failed to fetch suggestions');
@@ -142,11 +205,16 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
         
         const results = await response.json();
         if (results && results.length > 0) {
-          setSuggestions(results.map((item: any) => ({
+          const formattedResults = results.map((item: any) => ({
             place_name: item.display_name,
             lat: parseFloat(item.lat),
             lon: parseFloat(item.lon)
-          })));
+          }));
+          
+          // Update cache
+          suggestionCache.current[normalizedInput] = formattedResults;
+          
+          setSuggestions(formattedResults);
           setShowSuggestions(true);
         } else {
           setSuggestions([]);
@@ -161,9 +229,10 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
       }
     };
     
+    // Increased debounce time to reduce API calls
     const timer = setTimeout(() => {
       fetchSuggestions();
-    }, 500); // shorter delay for suggestions
+    }, 800);
     
     return () => clearTimeout(timer);
   }, [searchInput]);

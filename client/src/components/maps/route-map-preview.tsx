@@ -161,150 +161,174 @@ const RouteMapPreview: React.FC<RouteMapPreviewProps> = ({
     setEndCoords(parseCoordinates(endLocation));
   }, [startLocation, endLocation]);
   
+  // Generate an interpolated route with fewer points
+  const generateInterpolatedRoute = useCallback((start: Coordinate, end: Coordinate) => {
+    // Only log in development
+    if (process.env.NODE_ENV === 'development') {
+      console.log("[MAP] Generating interpolated route");
+    }
+    
+    const numPoints = 8; // Reduced for better performance
+    const coordinates: Coordinate[] = [];
+    
+    // Add start point
+    coordinates.push(start);
+    
+    // Add intermediate points with slight variation to make it look more like a road
+    for (let i = 1; i < numPoints; i++) {
+      const fraction = i / numPoints;
+      const lat = start.lat + fraction * (end.lat - start.lat);
+      const lng = start.lng + fraction * (end.lng - start.lng);
+      
+      // Add a slight curve to the straight line
+      const perpFactor = Math.sin(fraction * Math.PI) * 0.005; // controls the amount of curve
+      const dx = end.lat - start.lat;
+      const dy = end.lng - start.lng;
+      // Perpendicular offset
+      const offsetLat = -dy * perpFactor;
+      const offsetLng = dx * perpFactor;
+      
+      coordinates.push({ 
+        lat: lat + offsetLat, 
+        lng: lng + offsetLng 
+      });
+    }
+    
+    // Add end point
+    coordinates.push(end);
+    
+    return coordinates;
+  }, []);
+
+  // Cache for routes
+  const routeCache = useRef<Record<string, Coordinate[]>>({});
+  
   // Fetch route when both coordinates are available
   useEffect(() => {
+    let isMounted = true;
+    
     async function fetchRoute() {
       if (!startCoords || !endCoords) {
         setRoutePath([]);
         return;
       }
       
-      console.log("[MAP DEBUG] Fetching route between:", startCoords, "and", endCoords);
-      
       try {
         setIsLoadingRoute(true);
         setError(null);
         
-        // Always generate interpolated route first so something shows immediately
-        generateInterpolatedRoute(startCoords, endCoords);
+        // Create cache key from coordinates rounded to 4 decimal places for better hit rate
+        const cacheKey = `route-${startCoords.lat.toFixed(4)},${startCoords.lng.toFixed(4)}-${endCoords.lat.toFixed(4)},${endCoords.lng.toFixed(4)}`;
         
-        // Try to get a cached route
-        const cacheKey = `route-${startCoords.lat},${startCoords.lng}-${endCoords.lat},${endCoords.lng}`;
-        let cachedRoute = null;
+        // Check memory cache first (faster than sessionStorage)
+        if (routeCache.current[cacheKey]) {
+          if (isMounted) {
+            setRoutePath(routeCache.current[cacheKey]);
+            setIsLoadingRoute(false);
+          }
+          return;
+        }
         
+        // Generate interpolated route immediately for responsive UI
+        const interpolatedRoute = generateInterpolatedRoute(startCoords, endCoords);
+        if (isMounted) {
+          setRoutePath(interpolatedRoute);
+        }
+        
+        // Check sessionStorage next
         try {
           const cachedData = sessionStorage.getItem(cacheKey);
           if (cachedData) {
             const parsed = JSON.parse(cachedData);
             if (Array.isArray(parsed) && parsed.length > 0) {
-              cachedRoute = parsed.map(point => ({ lat: point[0], lng: point[1] }));
-              console.log('[MAP DEBUG] Using cached route with', cachedRoute.length, 'points');
-              setRoutePath(cachedRoute);
+              const cachedRoute = parsed.map(point => ({ lat: point[0], lng: point[1] }));
+              
+              // Save to memory cache
+              routeCache.current[cacheKey] = cachedRoute;
+              
+              if (isMounted) {
+                setRoutePath(cachedRoute);
+                setIsLoadingRoute(false);
+              }
+              return;
             }
           }
         } catch (cacheErr) {
-          console.warn('[MAP DEBUG] Could not retrieve cached route:', cacheErr);
+          // Silent fail, already using interpolated route
         }
         
-        // If we have a cached route, don't fetch a new one
-        if (cachedRoute && cachedRoute.length > 0) {
-          setIsLoadingRoute(false);
+        // Only proceed with Mapbox API if token is available
+        if (!mapboxToken) {
+          if (isMounted) {
+            setIsLoadingRoute(false);
+          }
           return;
         }
         
-        // Use the Mapbox token we fetched from the API
-        console.log("[MAP DEBUG] Have Mapbox token:", !!mapboxToken);
-        
-        if (mapboxToken) {
+        try {
           const url = `https://api.mapbox.com/directions/v5/mapbox/driving/` +
             `${startCoords.lng},${startCoords.lat};${endCoords.lng},${endCoords.lat}` +
             `?steps=true&geometries=geojson&access_token=${mapboxToken}`;
-            
-          console.log("[MAP DEBUG] Fetching from Mapbox:", url.split('?')[0]);
           
-          try {
-            const response = await fetch(url);
-            
-            if (!response.ok) {
-              throw new Error(`Failed to fetch route: ${response.status} ${response.statusText}`);
-            }
-            
-            const data = await response.json();
-            console.log("[MAP DEBUG] Got Mapbox response:", data);
-            
-            if (data.routes && data.routes.length > 0 && data.routes[0].geometry && 
-                data.routes[0].geometry.coordinates && data.routes[0].geometry.coordinates.length > 0) {
-              
-              // Extract the coordinates from the route (MapBox returns [lng, lat])
-              const routeCoordinates = data.routes[0].geometry.coordinates.map(
-                (coord: [number, number]) => ({ lng: coord[0], lat: coord[1] })
-              );
-              
-              console.log("[MAP DEBUG] Route has", routeCoordinates.length, 
-                "points. First:", routeCoordinates[0], 
-                "Last:", routeCoordinates[routeCoordinates.length - 1]);
-              
-              // Cache the result for future use
-              try {
-                const cacheData = routeCoordinates.map((p: Coordinate) => [p.lat, p.lng]);
-                sessionStorage.setItem(cacheKey, JSON.stringify(cacheData));
-                console.log("[MAP DEBUG] Route cached successfully");
-              } catch (cacheErr) {
-                console.warn('[MAP DEBUG] Could not cache route data:', cacheErr);
-              }
-              
-              setRoutePath(routeCoordinates);
-            } else {
-              console.log("[MAP DEBUG] No routes in Mapbox response, using interpolated route");
-              generateInterpolatedRoute(startCoords, endCoords);
-            }
-          } catch (fetchErr) {
-            console.error('[MAP DEBUG] Mapbox fetch error:', fetchErr);
-            // We already have the interpolated route
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+          
+          const response = await fetch(url, { 
+            signal: controller.signal
+          });
+          
+          clearTimeout(timeoutId);
+          
+          if (!response.ok) {
+            throw new Error(`Failed to fetch route: ${response.status}`);
           }
-        } else {
-          console.log("[MAP DEBUG] No Mapbox token, using interpolated route only");
-          // We already have the interpolated route
+          
+          const data = await response.json();
+          
+          if (data.routes && data.routes.length > 0 && data.routes[0].geometry?.coordinates?.length > 0) {
+            // Extract the coordinates from the route (MapBox returns [lng, lat])
+            const routeCoordinates = data.routes[0].geometry.coordinates.map(
+              (coord: [number, number]) => ({ lng: coord[0], lat: coord[1] })
+            );
+            
+            // Save to memory cache
+            routeCache.current[cacheKey] = routeCoordinates;
+            
+            // Cache the result in sessionStorage
+            try {
+              const cacheData = routeCoordinates.map((p: Coordinate) => [p.lat, p.lng]);
+              sessionStorage.setItem(cacheKey, JSON.stringify(cacheData));
+            } catch (storageErr) {
+              // Silent fail, we can still use the route
+            }
+            
+            if (isMounted) {
+              setRoutePath(routeCoordinates);
+            }
+          }
+        } catch (fetchErr) {
+          // We're already showing the interpolated route, so no need to show an error
+          if (fetchErr.name === 'AbortError') {
+            console.warn('Route request timed out, using interpolated route');
+          }
         }
       } catch (err) {
-        console.error('[MAP DEBUG] Failed to fetch route:', err);
-        setError(err instanceof Error ? err.message : 'Unknown error fetching route');
-        // Already have interpolated route
+        if (isMounted) {
+          setError('Could not calculate route');
+        }
       } finally {
-        setIsLoadingRoute(false);
+        if (isMounted) {
+          setIsLoadingRoute(false);
+        }
       }
-    }
-    
-    // Create a route with intermediate points to make it look more natural
-    function generateInterpolatedRoute(start: Coordinate, end: Coordinate) {
-      console.log("[MAP DEBUG] Generating interpolated route between:", start, "and", end);
-      const numPoints = 12; // Increased for smoother path
-      const coordinates: Coordinate[] = [];
-      
-      // Add start point
-      coordinates.push(start);
-      
-      // Add intermediate points with slight variation to make it look more like a road
-      for (let i = 1; i < numPoints; i++) {
-        const fraction = i / numPoints;
-        const lat = start.lat + fraction * (end.lat - start.lat);
-        const lng = start.lng + fraction * (end.lng - start.lng);
-        
-        // Add a slight curve to the straight line
-        const perpFactor = Math.sin(fraction * Math.PI) * 0.005; // controls the amount of curve
-        const dx = end.lat - start.lat;
-        const dy = end.lng - start.lng;
-        // Perpendicular offset
-        const offsetLat = -dy * perpFactor;
-        const offsetLng = dx * perpFactor;
-        
-        coordinates.push({ 
-          lat: lat + offsetLat, 
-          lng: lng + offsetLng 
-        });
-      }
-      
-      // Add end point
-      coordinates.push(end);
-      
-      console.log("[MAP DEBUG] Generated interpolated route with", coordinates.length, "points");
-      
-      // Set the route
-      setRoutePath(coordinates);
     }
     
     fetchRoute();
-  }, [startCoords, endCoords, mapboxToken]);
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [startCoords, endCoords, mapboxToken, generateInterpolatedRoute]);
   
   // Calculate map bounds to fit all markers
   const getBounds = () => {
