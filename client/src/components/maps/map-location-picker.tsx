@@ -273,11 +273,6 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
           <p className="truncate">
             <span className="font-medium">Selected:</span> {value.replace(/\[.*\]/, '')}
           </p>
-          {markerPosition && (
-            <p className="text-xs text-muted-foreground/75">
-              <span className="font-medium">Coordinates:</span> {markerPosition[0].toFixed(6)}, {markerPosition[1].toFixed(6)}
-            </p>
-          )}
         </div>
       )}
     </div>
