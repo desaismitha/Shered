@@ -40,6 +40,8 @@ const CITY_COORDINATES: Record<string, Coordinate> = {
 function parseCoordinates(locationStr: string | null): Coordinate | null {
   if (!locationStr) return null;
   
+  console.log("[MAP DEBUG] Parsing coordinates for:", locationStr);
+  
   // Try to extract coordinates in format [lat, lng]
   let match = locationStr.match(/\[(-?\d+\.?\d*),\s*(-?\d+\.?\d*)\]/);
   
@@ -55,21 +57,26 @@ function parseCoordinates(locationStr: string | null): Coordinate | null {
     if (!isNaN(lat) && !isNaN(lng) && 
         lat >= -90 && lat <= 90 && 
         lng >= -180 && lng <= 180) {
+      console.log("[MAP DEBUG] Found explicit coordinates:", { lat, lng });
       return { lat, lng };
     }
   }
   
   // Check for city names
   const normalizedName = locationStr.toLowerCase().trim();
+  console.log("[MAP DEBUG] Checking city name:", normalizedName);
+  
   for (const [cityName, coordinates] of Object.entries(CITY_COORDINATES)) {
     if (normalizedName === cityName || 
         normalizedName.startsWith(cityName + " ") || 
         normalizedName.endsWith(" " + cityName) ||
         normalizedName.includes(" " + cityName + " ")) {
+      console.log("[MAP DEBUG] Found city coordinates for", cityName, ":", coordinates);
       return coordinates;
     }
   }
   
+  console.log("[MAP DEBUG] No coordinates found for:", locationStr);
   return null;
 }
 
