@@ -93,7 +93,11 @@ export default function AuthPage() {
 
   // Submit handlers
   const onLoginSubmit = (values: LoginValues) => {
-    loginMutation.mutate(values);
+    loginMutation.mutate(values, {
+      onError: (error) => {
+        console.log('Login error in component:', error);
+      }
+    });
   };
 
   const onRegisterSubmit = (values: RegisterValues) => {
@@ -105,6 +109,10 @@ export default function AuthPage() {
       // Use email as the username
       username: values.email,
       confirmPassword: values.confirmPassword
+    }, {
+      onError: (error) => {
+        console.log('Registration error in component:', error);
+      }
     });
   };
 

@@ -1,5 +1,32 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
+async function extractErrorMessage(res: Response): Promise<string> {
+  // Clone the response to avoid consuming it
+  const resClone = res.clone();
+  
+  // Try to parse JSON response first
+  try {
+    const contentType = resClone.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      const errorData = await resClone.json();
+      if (errorData.message) {
+        return errorData.message;
+      }
+    }
+  } catch (jsonError) {
+    console.error('Error parsing JSON error response:', jsonError);
+  }
+  
+  // Fallback to text response
+  try {
+    const text = await res.text();
+    return text || res.statusText;
+  } catch (textError) {
+    console.error('Error reading response text:', textError);
+    return res.statusText || 'Unknown error';
+  }
+}
+
 async function throwIfResNotOk(res: Response, ignore404 = false) {
   if (!res.ok) {
     // Optionally ignoring 404s if requested
@@ -7,32 +34,8 @@ async function throwIfResNotOk(res: Response, ignore404 = false) {
       return;
     }
     
-    // Clone the response before attempting to read its body
-    const resClone = res.clone();
-    
-    // Try to parse JSON response first, as it might contain error message
-    try {
-      const contentType = res.headers.get('content-type');
-      if (contentType && contentType.includes('application/json')) {
-        const errorData = await res.json();
-        if (errorData.message) {
-          throw new Error(errorData.message);
-        }
-      }
-    } catch (jsonError) {
-      // If JSON parsing fails, continue with text response using the cloned response
-      console.error('Error parsing JSON error response:', jsonError);
-    }
-    
-    // Fallback to text response using the cloned response
-    try {
-      const text = await resClone.text() || res.statusText;
-      throw new Error(`${res.status}: ${text}`);
-    } catch (textError) {
-      // If all attempts to parse the response fail, use the status text
-      console.error('Error reading response text:', textError);
-      throw new Error(`${res.status}: ${res.statusText || 'Unknown error'}`); 
-    }
+    const errorMessage = await extractErrorMessage(res);
+    throw new Error(errorMessage);
   }
 }
 
