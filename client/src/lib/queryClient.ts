@@ -7,6 +7,9 @@ async function throwIfResNotOk(res: Response, ignore404 = false) {
       return;
     }
     
+    // Clone the response before attempting to read its body
+    const resClone = res.clone();
+    
     // Try to parse JSON response first, as it might contain error message
     try {
       const contentType = res.headers.get('content-type');
@@ -17,12 +20,19 @@ async function throwIfResNotOk(res: Response, ignore404 = false) {
         }
       }
     } catch (jsonError) {
-      // If JSON parsing fails, continue with text response
+      // If JSON parsing fails, continue with text response using the cloned response
+      console.error('Error parsing JSON error response:', jsonError);
     }
     
-    // Fallback to text response
-    const text = await res.text() || res.statusText;
-    throw new Error(`${res.status}: ${text}`);
+    // Fallback to text response using the cloned response
+    try {
+      const text = await resClone.text() || res.statusText;
+      throw new Error(`${res.status}: ${text}`);
+    } catch (textError) {
+      // If all attempts to parse the response fail, use the status text
+      console.error('Error reading response text:', textError);
+      throw new Error(`${res.status}: ${res.statusText || 'Unknown error'}`); 
+    }
   }
 }
 
