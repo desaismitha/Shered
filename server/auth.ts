@@ -180,7 +180,7 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/login", (req, res, next) => {
-    passport.authenticate("local", (err, user, info) => {
+    passport.authenticate("local", (err: any, user: SelectUser | false, info: any) => {
       if (err) return next(err);
       if (!user) {
         return res.status(401).json({ message: "Invalid username/email or password" });
@@ -304,12 +304,25 @@ export function setupAuth(app: Express) {
   // Request new OTP code endpoint
   app.post("/api/request-otp", async (req, res) => {
     try {
-      if (!req.isAuthenticated()) {
-        return res.status(401).json({ message: "You must be logged in to request an OTP code" });
+      let userId: number;
+      
+      // Check if user is authenticated or if userId was provided in request body
+      if (req.isAuthenticated()) {
+        userId = (req.user as SelectUser).id;
+      } else if (req.body && req.body.userId) {
+        // Allow requesting OTP without login if userId is explicitly provided
+        userId = parseInt(req.body.userId, 10);
+      } else {
+        return res.status(401).json({ 
+          message: "You must be logged in or provide a userId to request an OTP code" 
+        });
       }
       
-      const user = req.user as SelectUser;
-      
+      // Get user details
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
       // Generate a new OTP code with 10-minute expiry
       const otpCode = generateOTP();
       const otpExpiry = new Date();

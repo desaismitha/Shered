@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -33,6 +33,18 @@ export function OtpVerificationForm({ onVerified, onCancel }: OtpVerificationFor
   const { user } = useAuth();
   const [isVerifying, setIsVerifying] = useState(false);
   const [isResending, setIsResending] = useState(false);
+  const [userId, setUserId] = useState<number | undefined>(user?.id);
+  
+  // Get userId from URL query parameter if available (for direct verification without login)
+  const searchParams = new URLSearchParams(window.location.search);
+  const userIdParam = searchParams.get("userId");
+  
+  // Set userId from URL if available and not already set
+  useEffect(() => {
+    if (userIdParam && !userId) {
+      setUserId(parseInt(userIdParam, 10));
+    }
+  }, [userIdParam, userId]);
   
   const form = useForm<OtpFormValues>({
     resolver: zodResolver(otpFormSchema),
@@ -42,10 +54,11 @@ export function OtpVerificationForm({ onVerified, onCancel }: OtpVerificationFor
   });
 
   const handleVerify = async (values: OtpFormValues) => {
-    if (!user) {
+    // Check if we have userId from either logged in user or URL parameter
+    if (!userId && !user?.id) {
       toast({
         title: "Error",
-        description: "You must be logged in to verify your account",
+        description: "Unable to determine which account to verify",
         variant: "destructive",
       });
       return;
@@ -54,7 +67,7 @@ export function OtpVerificationForm({ onVerified, onCancel }: OtpVerificationFor
     setIsVerifying(true);
     try {
       const response = await apiRequest("POST", "/api/verify-otp", {
-        userId: user.id,
+        userId: userId || user?.id,
         otp: values.otp,
       });
 
@@ -88,10 +101,10 @@ export function OtpVerificationForm({ onVerified, onCancel }: OtpVerificationFor
   };
 
   const handleResendOtp = async () => {
-    if (!user) {
+    if (!userId && !user) {
       toast({
         title: "Error",
-        description: "You must be logged in to request a new code",
+        description: "Unable to determine which account to send code to",
         variant: "destructive",
       });
       return;
@@ -99,7 +112,8 @@ export function OtpVerificationForm({ onVerified, onCancel }: OtpVerificationFor
 
     setIsResending(true);
     try {
-      const response = await apiRequest("POST", "/api/request-otp");
+      // If we have a userId from URL but not logged in, we need to make a special request
+      const response = await apiRequest("POST", "/api/request-otp", userId && !user ? { userId } : undefined);
 
       if (response.ok) {
         toast({
