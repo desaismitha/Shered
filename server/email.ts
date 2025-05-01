@@ -4,6 +4,10 @@ if (!process.env.SENDGRID_API_KEY) {
   console.warn("SENDGRID_API_KEY environment variable is not set. Email functionality will be disabled.");
 }
 
+if (!process.env.SENDGRID_VERIFIED_SENDER) {
+  console.warn("SENDGRID_VERIFIED_SENDER environment variable is not set. Email functionality will use a default sender, which may cause errors.");
+}
+
 const mailService = new MailService();
 mailService.setApiKey(process.env.SENDGRID_API_KEY || '');
 
@@ -24,10 +28,10 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
     
     await mailService.send({
       to: params.to,
-      from: params.from,
+      from: (params.from || process.env.SENDGRID_VERIFIED_SENDER || '') as string,
       subject: params.subject,
-      text: params.text,
-      html: params.html,
+      text: (params.text || '') as string,
+      html: (params.html || '') as string,
     });
     return true;
   } catch (error) {
@@ -42,7 +46,7 @@ export async function sendGroupInvitation(
   inviterName: string,
   inviteLink: string
 ): Promise<boolean> {
-  const fromEmail = 'noreply@travelgroupr.com';
+  const fromEmail = process.env.SENDGRID_VERIFIED_SENDER || 'noreply@travelgroupr.com';
   const subject = `You've been invited to join ${groupName} on TravelGroupr`;
   
   const text = `
@@ -85,7 +89,7 @@ export async function sendPasswordResetEmail(
   username: string,
   resetLink: string
 ): Promise<boolean> {
-  const fromEmail = 'noreply@travelgroupr.com';
+  const fromEmail = process.env.SENDGRID_VERIFIED_SENDER || 'noreply@travelgroupr.com';
   const subject = 'Password Reset for TravelGroupr';
   
   const text = `
@@ -134,7 +138,7 @@ export async function sendEmailVerification(
   username: string,
   verificationLink: string
 ): Promise<boolean> {
-  const fromEmail = 'noreply@travelgroupr.com';
+  const fromEmail = process.env.SENDGRID_VERIFIED_SENDER || 'noreply@travelgroupr.com';
   const subject = 'Verify Your Email for TravelGroupr';
   
   const text = `
@@ -183,7 +187,7 @@ export async function sendOTPVerificationCode(
   username: string,
   otp: string
 ): Promise<boolean> {
-  const fromEmail = 'noreply@travelgroupr.com';
+  const fromEmail = process.env.SENDGRID_VERIFIED_SENDER || 'noreply@travelgroupr.com';
   const subject = 'Your Verification Code for TravelGroupr';
   
   const text = `
