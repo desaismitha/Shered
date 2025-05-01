@@ -6,7 +6,22 @@ async function throwIfResNotOk(res: Response, ignore404 = false) {
     if (ignore404 && res.status === 404) {
       return;
     }
-    const text = (await res.text()) || res.statusText;
+    
+    // Try to parse JSON response first, as it might contain error message
+    try {
+      const contentType = res.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        const errorData = await res.json();
+        if (errorData.message) {
+          throw new Error(errorData.message);
+        }
+      }
+    } catch (jsonError) {
+      // If JSON parsing fails, continue with text response
+    }
+    
+    // Fallback to text response
+    const text = await res.text() || res.statusText;
     throw new Error(`${res.status}: ${text}`);
   }
 }

@@ -103,13 +103,17 @@ export function setupAuth(app: Express) {
       // Check if username already exists
       const existingUser = await storage.getUserByUsername(req.body.username);
       if (existingUser) {
-        return res.status(400).json({ message: "Username already exists" });
+        return res.status(400).json({ 
+          message: "An account with this username already exists. Please use a different username or try logging in." 
+        });
       }
       
       // Check if email already exists
       const existingEmail = await storage.getUserByEmail(req.body.email);
       if (existingEmail) {
-        return res.status(400).json({ message: "Email address already in use" });
+        return res.status(400).json({ 
+          message: "This email is already registered. Please use a different email address or try logging in." 
+        });
       }
 
       // Generate verification token with 24-hour expiry
@@ -183,7 +187,7 @@ export function setupAuth(app: Express) {
     passport.authenticate("local", (err: any, user: SelectUser | false, info: any) => {
       if (err) return next(err);
       if (!user) {
-        return res.status(401).json({ message: "Invalid username/email or password" });
+        return res.status(401).json({ message: "The username/email or password you entered is incorrect. Please try again." });
       }
       
       req.login(user, (loginErr) => {
