@@ -58,8 +58,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Login mutation
   const loginMutation = useMutation<User, Error, LoginData>({
     mutationFn: async (credentials) => {
-      const res = await apiRequest("POST", "/api/login", credentials);
-      return await res.json();
+      try {
+        const res = await apiRequest("POST", "/api/login", credentials);
+        return await res.json();
+      } catch (error) {
+        // Rethrow the error to be handled by onError
+        console.error("Login error:", error);
+        throw error;
+      }
     },
     onSuccess: (userData) => {
       queryClient.setQueryData(["/api/user"], userData);
@@ -70,9 +76,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     },
     onError: (error) => {
+      console.error("Login error in onError handler:", error);
       toast({
         title: "Login failed",
-        description: error.message,
+        description: error instanceof Error ? error.message : "An unknown error occurred",
         variant: "destructive",
       });
     },
@@ -81,10 +88,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Registration mutation
   const registerMutation = useMutation<User, Error, RegisterData>({
     mutationFn: async (credentials) => {
-      // Remove confirmPassword before sending to API
-      const { confirmPassword, ...userToRegister } = credentials;
-      const res = await apiRequest("POST", "/api/register", userToRegister);
-      return await res.json();
+      try {
+        // Remove confirmPassword before sending to API
+        const { confirmPassword, ...userToRegister } = credentials;
+        const res = await apiRequest("POST", "/api/register", userToRegister);
+        return await res.json();
+      } catch (error) {
+        // Rethrow the error to be handled by onError
+        console.error("Registration error:", error);
+        throw error;
+      }
     },
     onSuccess: (userData) => {
       queryClient.setQueryData(["/api/user"], userData);
@@ -95,9 +108,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     },
     onError: (error) => {
+      console.error("Registration error in onError handler:", error);
       toast({
         title: "Registration failed",
-        description: error.message,
+        description: error instanceof Error ? error.message : "An unknown error occurred",
         variant: "destructive",
       });
     },
@@ -106,7 +120,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Logout mutation
   const logoutMutation = useMutation<void, Error, void>({
     mutationFn: async () => {
-      await apiRequest("POST", "/api/logout");
+      try {
+        await apiRequest("POST", "/api/logout");
+      } catch (error) {
+        // Rethrow the error to be handled by onError
+        console.error("Logout error:", error);
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.setQueryData(["/api/user"], null);
@@ -116,9 +136,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     },
     onError: (error) => {
+      console.error("Logout error in onError handler:", error);
       toast({
         title: "Logout failed",
-        description: error.message,
+        description: error instanceof Error ? error.message : "An unknown error occurred",
         variant: "destructive",
       });
     },
