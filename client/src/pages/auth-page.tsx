@@ -83,9 +83,9 @@ export default function AuthPage() {
       console.log('Full URL being processed:', window.location.href);
       console.log('Search params:', window.location.search);
       // Log all available query parameters
-      for (const [key, value] of recheckParams.entries()) {
+      recheckParams.forEach((value, key) => {
         console.log(`Param ${key}: ${value}`);
-      }
+      });
     }
   }, [inviteToken, inviteGroupId]);
   

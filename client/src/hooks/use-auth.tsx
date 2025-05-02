@@ -36,12 +36,18 @@ type LoginData = z.infer<typeof loginSchema> & {
     token?: string;
     groupId?: string;
   };
+  // Also allow these at root level
+  token?: string;
+  groupId?: string;
 };
 type RegisterData = z.infer<typeof registerSchema> & {
   invitation?: {
     token?: string;
     groupId?: string;
   };
+  // Also allow these at root level
+  token?: string;
+  groupId?: string;
 };
 
 export const AuthContext = createContext<AuthContextType | null>(null);
@@ -70,6 +76,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     mutationFn: async (credentials) => {
       try {
         console.log("Login mutation with credentials:", credentials);
+        
+        // Enhanced debugging for invitation params
+        if (credentials.invitation || credentials.token || credentials.groupId) {
+          console.log("INVITATION DATA DETECTED in login:", {
+            nested: credentials.invitation,
+            rootToken: credentials.token,
+            rootGroupId: credentials.groupId
+          });
+        }
+        
         const res = await apiRequest("POST", "/api/login", credentials);
         return await res.json();
       } catch (error) {
@@ -104,10 +120,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const { confirmPassword, ...userToRegister } = credentials;
         console.log('Register mutation with data:', JSON.stringify(userToRegister, null, 2));
         
-        // Log invitation data if present
-        if (userToRegister.invitation) {
-          console.log('Invitation data included in registration:', 
-            JSON.stringify(userToRegister.invitation, null, 2));
+        // Enhanced debugging for invitation params
+        if (userToRegister.invitation || userToRegister.token || userToRegister.groupId) {
+          console.log("INVITATION DATA DETECTED in registration:", {
+            nested: userToRegister.invitation,
+            rootToken: userToRegister.token,
+            rootGroupId: userToRegister.groupId
+          });
         }
         
         const res = await apiRequest("POST", "/api/register", userToRegister);
