@@ -748,7 +748,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
         groupId
       });
       
+      // Get the user being added
+      const addedUser = await storage.getUser(validatedData.userId);
+      if (!addedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Add user to group
       const member = await storage.addUserToGroup(validatedData);
+      
+      // Send email notification to the added user
+      if (addedUser.email) {
+        try {
+          const inviter = req.user;
+          // Create a direct link to the group
+          const baseUrl = process.env.BASE_URL || 'http://localhost:5000';
+          const groupLink = `${baseUrl}/groups/${groupId}`;
+          
+          await sendGroupInvitation(
+            addedUser.email,
+            group.name,
+            inviter.displayName || inviter.username,
+            groupLink,
+            true // Mark as existing user
+          );
+          
+          console.log(`Email notification sent to ${addedUser.email} about being added to group ${group.name}`);
+        } catch (emailError) {
+          // Log but don't fail if email sending fails
+          console.error("Failed to send email notification:", emailError);
+        }
+      }
+      
       res.status(201).json(member);
     } catch (err) {
       next(err);

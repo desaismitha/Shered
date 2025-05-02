@@ -44,36 +44,71 @@ export async function sendGroupInvitation(
   email: string, 
   groupName: string, 
   inviterName: string,
-  inviteLink: string
+  inviteLink: string,
+  isExistingUser: boolean = false
 ): Promise<boolean> {
   const fromEmail = process.env.SENDGRID_VERIFIED_SENDER || 'noreply@travelgroupr.com';
-  const subject = `You've been invited to join ${groupName} on TravelGroupr`;
+  const subject = isExistingUser 
+    ? `You've been added to ${groupName} on TravelGroupr` 
+    : `You've been invited to join ${groupName} on TravelGroupr`;
   
-  const text = `
-    Hi there!
-    
-    ${inviterName} has invited you to join their travel group "${groupName}" on TravelGroupr.
-    
-    To accept the invitation and create your account, please visit:
-    ${inviteLink}
-    
-    Happy travels!
-    The TravelGroupr Team
-  `;
+  let text, html;
   
-  const html = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <h2>You've been invited to TravelGroupr!</h2>
-      <p><strong>${inviterName}</strong> has invited you to join their travel group <strong>"${groupName}"</strong> on TravelGroupr.</p>
-      <p>TravelGroupr makes it easy to plan trips with friends and family, create itineraries, and share expenses.</p>
-      <div style="text-align: center; margin: 30px 0;">
-        <a href="${inviteLink}" style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold;">
-          Accept Invitation & Create Account
-        </a>
+  if (isExistingUser) {
+    // Template for existing users
+    text = `
+      Hi there!
+      
+      ${inviterName} has added you to the travel group "${groupName}" on TravelGroupr.
+      
+      To view the group and plan trips, please visit:
+      ${inviteLink}
+      
+      Happy travels!
+      The TravelGroupr Team
+    `;
+    
+    html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2>You've been added to a travel group!</h2>
+        <p><strong>${inviterName}</strong> has added you to the travel group <strong>"${groupName}"</strong> on TravelGroupr.</p>
+        <p>You can now collaborate on trips, share expenses, and coordinate travel plans with the group members.</p>
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${inviteLink}" style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold;">
+            View Group
+          </a>
+        </div>
+        <p>Happy travels!<br>The TravelGroupr Team</p>
       </div>
-      <p>Happy travels!<br>The TravelGroupr Team</p>
-    </div>
-  `;
+    `;
+  } else {
+    // Template for new users
+    text = `
+      Hi there!
+      
+      ${inviterName} has invited you to join their travel group "${groupName}" on TravelGroupr.
+      
+      To accept the invitation and create your account, please visit:
+      ${inviteLink}
+      
+      Happy travels!
+      The TravelGroupr Team
+    `;
+    
+    html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2>You've been invited to TravelGroupr!</h2>
+        <p><strong>${inviterName}</strong> has invited you to join their travel group <strong>"${groupName}"</strong> on TravelGroupr.</p>
+        <p>TravelGroupr makes it easy to plan trips with friends and family, create itineraries, and share expenses.</p>
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${inviteLink}" style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold;">
+            Accept Invitation & Create Account
+          </a>
+        </div>
+        <p>Happy travels!<br>The TravelGroupr Team</p>
+      </div>
+    `;
+  }
   
   return sendEmail({
     to: email,
