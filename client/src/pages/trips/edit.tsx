@@ -410,8 +410,8 @@ export default function EditTripPage() {
                         <h3 className="text-sm font-medium">Route Map Preview</h3>
                       </div>
                       <RouteMapPreview 
-                        startLocation={form.watch('startLocation') || ''}
-                        endLocation={form.watch('destination') || ''}
+                        startLocation={form.watch('startLocation') as string}
+                        endLocation={form.watch('destination') as string}
                         showMap={true}
                         onToggleMap={() => {}} // Always showing the map
                       />

@@ -46,10 +46,14 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
         setMarkerPosition([lat, lng]);
       }
       
-      // Update search input with the readable part of the value
+      // Update search input with the readable part of the value - clean any coordinates
       let displayValue = value;
       if (displayValue.includes('[')) {
         displayValue = displayValue.substring(0, displayValue.indexOf('[')).trim();
+      }
+      // Also remove any coordinates in parentheses if present
+      if (displayValue.includes('(')) {
+        displayValue = displayValue.substring(0, displayValue.indexOf('(')).trim();
       }
       setSearchInput(displayValue);
     } else {
@@ -335,7 +339,7 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
       {value && (
         <div className="text-sm text-muted-foreground mt-1">
           <p className="truncate">
-            <span className="font-medium">Selected:</span> {value.replace(/\[.*\]/, '').trim()}
+            <span className="font-medium">Selected:</span> {value.replace(/\[.*?\]/g, '').replace(/\(.*?\)/g, '').trim()}
           </p>
         </div>
       )}
