@@ -179,7 +179,7 @@ export function TripForm() {
                         )}
                       >
                         {field.value ? (
-                          format(field.value, "PPP")
+                          format(field.value, "PPP 'at' h:mm a")
                         ) : (
                           <span>Pick a date</span>
                         )}
@@ -188,16 +188,81 @@ export function TripForm() {
                     </FormControl>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={startDate}
-                      onSelect={(date) => {
-                        setStartDate(date);
-                        field.onChange(date);
-                      }}
-                      disabled={(date) => date < new Date()}
-                      initialFocus
-                    />
+                    <div className="p-2">
+                      <Calendar
+                        mode="single"
+                        selected={startDate}
+                        onSelect={(date) => {
+                          if (date) {
+                            // Keep the existing time if there's already a date selected
+                            // otherwise set to noon in the user's local timezone
+                            const newDate = new Date(date);
+                            if (field.value) {
+                              const currentDate = new Date(field.value);
+                              newDate.setHours(currentDate.getHours());
+                              newDate.setMinutes(currentDate.getMinutes());
+                            } else {
+                              // Default to current time + 1 hour (rounded to nearest 15 min)
+                              const now = new Date();
+                              const minutes = Math.ceil(now.getMinutes() / 15) * 15;
+                              newDate.setHours(now.getHours());
+                              newDate.setMinutes(minutes % 60);
+                              if (minutes === 60) newDate.setHours(newDate.getHours() + 1);
+                            }
+                            setStartDate(newDate);
+                            field.onChange(newDate);
+                          }
+                        }}
+                        disabled={(date) => {
+                          // For dates in the past, disable them
+                          // For today, we'll use the time selector below
+                          const today = new Date();
+                          return date < new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                        }}
+                        initialFocus
+                      />
+                      
+                      {startDate && (
+                        <div className="mt-4 border-t pt-4 flex flex-col gap-2">
+                          <h4 className="text-sm font-medium">Time</h4>
+                          <div className="flex items-center gap-4">
+                            <select 
+                              className="flex h-10 w-[120px] items-center rounded-md border border-input bg-background px-3 py-2 text-sm"
+                              value={startDate.getHours()}
+                              onChange={(e) => {
+                                const newDate = new Date(startDate);
+                                newDate.setHours(parseInt(e.target.value));
+                                setStartDate(newDate);
+                                field.onChange(newDate);
+                              }}
+                            >
+                              {Array.from({length: 24}).map((_, i) => (
+                                <option key={i} value={i}>
+                                  {i === 0 ? '12 AM' : i < 12 ? `${i} AM` : i === 12 ? '12 PM' : `${i - 12} PM`}
+                                </option>
+                              ))}
+                            </select>
+                            <span>:</span>
+                            <select
+                              className="flex h-10 w-[120px] items-center rounded-md border border-input bg-background px-3 py-2 text-sm"
+                              value={startDate.getMinutes()}
+                              onChange={(e) => {
+                                const newDate = new Date(startDate);
+                                newDate.setMinutes(parseInt(e.target.value));
+                                setStartDate(newDate);
+                                field.onChange(newDate);
+                              }}
+                            >
+                              {[0, 15, 30, 45].map((minute) => (
+                                <option key={minute} value={minute}>
+                                  {minute.toString().padStart(2, '0')}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </PopoverContent>
                 </Popover>
                 <FormMessage />
