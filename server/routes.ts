@@ -917,19 +917,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isEndAfterStart: endDate >= startDate
       });
       
-      // STEP 3: Validate start date is in the future
-      if (startDate <= validationTime) {
+      // STEP 3: For trip creation, use relaxed validation for dates
+      // Allow current time for trips to start immediately
+      if (startDate < now) {
         return res.status(400).json({
           error: "Invalid start date",
-          details: "Start date must be at least 5 minutes in the future"
+          details: "Start date cannot be in the past"
         });
       }
       
-      // STEP 4: Validate end date is in the future
-      if (endDate <= validationTime) {
+      // STEP 4: Validate end date is not in the past
+      if (endDate < now) {
         return res.status(400).json({
           error: "Invalid end date",
-          details: "End date must be at least 5 minutes in the future"
+          details: "End date cannot be in the past"
         });
       }
       
