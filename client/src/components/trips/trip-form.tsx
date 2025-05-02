@@ -119,6 +119,36 @@ export function TripForm() {
   const onSubmit = (values: TripFormValues) => {
     if (!user) return;
     
+    // Perform additional validation
+    const now = new Date();
+    
+    // Check start date
+    if (values.startDate <= now) {
+      form.setError('startDate', {
+        type: 'manual',
+        message: 'Start date and time must be in the future'
+      });
+      return;
+    }
+    
+    // Check end date
+    if (values.endDate <= now) {
+      form.setError('endDate', {
+        type: 'manual',
+        message: 'End date and time must be in the future'
+      });
+      return;
+    }
+    
+    // Check that end date is after start date
+    if (values.endDate < values.startDate) {
+      form.setError('endDate', {
+        type: 'manual',
+        message: 'End date cannot be before start date'
+      });
+      return;
+    }
+    
     // Add createdBy
     const createTrip: InsertTrip = {
       ...values,
