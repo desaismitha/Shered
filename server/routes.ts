@@ -872,6 +872,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
         endDate: req.body.endDate
       });
       
+      // Additional server-side validation for dates
+      const now = new Date();
+      // Add 5 minutes buffer to allow for slight time differences and server-client time variations
+      const validationTime = new Date(now.getTime() + 5 * 60 * 1000);
+      
+      try {
+        // Ensure these are valid dates before using them
+        const startDate = new Date(req.body.startDate);
+        const endDate = new Date(req.body.endDate);
+        
+        // Log actual date values for debugging
+        console.log("[VALIDATION] Dates for validation:", {
+          startDate,
+          endDate,
+          nowTime: now,
+          validationTime,
+          isStartValid: startDate > validationTime,
+          isEndValid: endDate > validationTime,
+          isOrderValid: endDate >= startDate
+        });
+        
+        // Validate dates manually before schema validation
+        if (startDate <= validationTime) {
+          return res.status(400).json({
+            error: "Invalid start date",
+            details: "Start date and time must be at least 5 minutes in the future"
+          });
+        }
+        
+        if (endDate <= validationTime) {
+          return res.status(400).json({
+            error: "Invalid end date",
+            details: "End date and time must be at least 5 minutes in the future"
+          });
+        }
+        
+        if (endDate < startDate) {
+          return res.status(400).json({
+            error: "Invalid date range",
+            details: "End date cannot be before start date"
+          });
+        }
+      } catch (dateError) {
+        console.error("[VALIDATION] Date validation error:", dateError);
+        return res.status(400).json({
+          error: "Invalid date format",
+          details: "Could not parse date values"
+        });
+      }
+      
       // Create a modified schema that accepts ISO date strings
       const modifiedTripSchema = insertTripSchema.extend({
         startDate: z.string().transform(val => {

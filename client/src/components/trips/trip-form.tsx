@@ -34,26 +34,44 @@ import { format, startOfDay, isEqual, isBefore } from "date-fns";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { cn, compareDates } from "@/lib/utils";
 
+// Function to create a date used for comparison in validation
+function getValidationDate() {
+  // Add 5 minutes to the current time to give a buffer
+  const now = new Date();
+  now.setMinutes(now.getMinutes() + 5);
+  return now;
+}
+
 const tripSchema = insertTripSchema
   .extend({
-    startDate: z.coerce.date({
-      required_error: "Start date is required",
-    }).refine((date) => {
-      // Check if date is in the future
-      const now = new Date();
-      return date > now;
-    }, {
-      message: "Start date and time must be in the future"
-    }),
-    endDate: z.coerce.date({
-      required_error: "End date is required",
-    }).refine((date) => {
-      // Check if date is in the future
-      const now = new Date();
-      return date > now;
-    }, {
-      message: "End date and time must be in the future"
-    }),
+    startDate: z.preprocess(
+      // Ensure we have an actual Date object (crucial for validation)
+      (val) => new Date(val as string | number | Date), 
+      z.date({
+        required_error: "Start date is required",
+        invalid_type_error: "Start date must be a valid date"
+      }).refine((date) => {
+        // Check if date is in the future with 5 min buffer
+        const now = getValidationDate();
+        return date > now;
+      }, {
+        message: "Start date and time must be at least 5 minutes in the future"
+      })
+    ),
+    endDate: z.preprocess(
+      // Ensure we have an actual Date object (crucial for validation)
+      (val) => new Date(val as string | number | Date),
+      z.date({
+        required_error: "End date is required",
+        invalid_type_error: "End date must be a valid date"
+      }).refine((date) => {
+        // Check if date is in the future with 5 min buffer
+        const now = getValidationDate();
+        return date > now;
+      }, {
+        message: "End date and time must be at least 5 minutes in the future"
+      })
+    ),
   })
   .refine((data) => {
     // Use our new compareDates function that handles local timezone correctly
