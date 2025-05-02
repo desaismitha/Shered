@@ -215,15 +215,52 @@ export default function GroupDetailsPage() {
       try {
         console.log("In inviteUserMutation with values:", values);
         
-        // Check if user with this email already exists using our new hook
+        // Check if the user's session is valid
+        const userResponse = await fetch('/api/user', {
+          credentials: 'include'
+        });
+        
+        if (!userResponse.ok) {
+          console.error("Session check failed:", userResponse.status, userResponse.statusText);
+          throw new Error("Your session has expired. Please log in again before inviting users.");
+        }
+        
+        // Check if user with this email already exists using our hook
         try {
           console.log("Looking up email:", values.email);
           const existingUser = await lookupByEmail(values.email);
           
           if (existingUser) {
             console.log("User already exists:", existingUser);
-            // User already exists, prompt to add the user directly
-            throw new Error(`A user with email '${values.email}' already exists. Please use the "Existing User" tab to add them by username.`);
+            // Ask the user if they want to add the existing user directly
+            const shouldAddDirectly = window.confirm(
+              `A user with email '${values.email}' already exists. Would you like to add them to this group directly?`
+            );
+            
+            if (shouldAddDirectly) {
+              // Add existing user to group
+              console.log("Adding existing user directly");
+              const addResponse = await fetch(`/api/groups/${groupId}/members`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  username: existingUser.username,
+                  role: values.role
+                }),
+                credentials: 'include'
+              });
+              
+              if (!addResponse.ok) {
+                const errorText = await addResponse.text();
+                throw new Error(`Failed to add existing user: ${errorText}`);
+              }
+              
+              const result = await addResponse.json();
+              console.log("Add existing user result:", result);
+              return { ...result, existingUser: true };
+            } else {
+              throw new Error(`Please use the "Existing User" tab to add ${existingUser.username}.`);
+            }
           }
         } catch (error: any) {
           // Only ignore 404 errors (expected for new users)
@@ -238,21 +275,43 @@ export default function GroupDetailsPage() {
         }
         
         // Send the invitation
-        console.log(`Making API request to /api/groups/${groupId}/invite with:`, values);
-        const res = await apiRequest("POST", `/api/groups/${groupId}/invite`, values);
+        console.log(`Making direct API request to /api/groups/${groupId}/invite with:`, values);
         
-        console.log("Invitation API response:", { status: res.status, statusText: res.statusText });
+        // Making a direct fetch call with more detailed logging
+        const response = await fetch(`/api/groups/${groupId}/invite`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(values),
+          credentials: 'include'
+        });
         
-        if (!res.ok) {
-          if (res.status === 429) {
-            throw new Error("Too many invitation attempts. Please try again later.");
+        console.log("Invitation direct API response status:", response.status);
+        console.log("Invitation direct API response statusText:", response.statusText);
+        
+        let responseData;
+        try {
+          // Try to parse as JSON first
+          responseData = await response.json();
+          console.log("Invitation response parsed as JSON:", responseData);
+        } catch (e) {
+          // If not JSON, get as text
+          const text = await response.text();
+          console.log("Invitation response as text:", text);
+          responseData = { message: text };
+        }
+        
+        if (!response.ok) {
+          if (response.status === 401) {
+            throw new Error("You need to log in again to perform this action.");
+          } else if (response.status === 403) {
+            throw new Error("You don't have permission to invite users to this group.");
+          } else if (response.status === 409) {
+            throw new Error("This user is already a member of the group.");
           } else {
-            throw new Error(`Server error: ${res.statusText}`);
+            throw new Error(responseData.error || responseData.message || `Server error: ${response.statusText}`);
           }
         }
         
-        const responseData = await res.json();
-        console.log("Invitation API response data:", responseData);
         return responseData;
       } catch (error) {
         console.error("Invitation mutation error:", error);
@@ -263,19 +322,22 @@ export default function GroupDetailsPage() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/groups", groupId, "members"] });
       
-      // Check if email was actually sent
-      if (data.emailSent === false) {
+      if (data.existingUser) {
+        toast({
+          title: "User Added",
+          description: `The existing user has been added to the group.`,
+        });
+      } else if (data.emailSent === false) {
         toast({
           title: "User Invited",
           description: "Email notifications are disabled. Please notify the user directly about this invitation.",
-          // Using destructive variant as warning is not defined
           variant: "destructive",
           duration: 5000,
         });
       } else {
         toast({
           title: "Invitation Sent!",
-          description: "An invitation has been sent to join the group.",
+          description: `An invitation has been sent to ${data.email} to join the group.`,
         });
       }
       
@@ -316,35 +378,12 @@ export default function GroupDetailsPage() {
       phoneNumber: phoneNumber
     };
     
+    // Use the mutation to handle the invitation properly with retry logic, etc.
     try {
-      // Directly make the API call here to troubleshoot the issue
-      console.log(`DIRECT API CALL: Making request to /api/groups/${groupId}/invite with:`, updatedValues);
-      
-      const response = await fetch(`/api/groups/${groupId}/invite`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(updatedValues),
-        credentials: 'include'
-      });
-      
-      console.log("DIRECT API response status:", response.status);
-      console.log("DIRECT API response statusText:", response.statusText);
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("DIRECT API error response:", errorText);
-        throw new Error(`Server error: ${response.statusText} - ${errorText}`);
-      }
-      
-      const responseData = await response.json();
-      console.log("DIRECT API response data:", responseData);
-      
-      // If we reach here, call the mutation for proper handling
+      console.log("Starting invitation process via mutation");
       inviteUserMutation.mutate(updatedValues);
     } catch (error) {
-      console.error("DIRECT API call failed:", error);
+      console.error("Failed to start invitation mutation:", error);
       toast({
         title: "Invitation Failed",
         description: error instanceof Error ? error.message : "Unknown error occurred",
