@@ -1,5 +1,5 @@
-import { users, groups, groupMembers, trips, itineraryItems, expenses, messages, vehicles, tripVehicles } from "@shared/schema";
-import type { User, InsertUser, Group, InsertGroup, GroupMember, InsertGroupMember, Trip, InsertTrip, ItineraryItem, InsertItineraryItem, Expense, InsertExpense, Message, InsertMessage, Vehicle, InsertVehicle, TripVehicle, InsertTripVehicle } from "@shared/schema";
+import { users, groups, groupMembers, trips, itineraryItems, expenses, messages, vehicles, tripVehicles, tripCheckIns } from "@shared/schema";
+import type { User, InsertUser, Group, InsertGroup, GroupMember, InsertGroupMember, Trip, InsertTrip, ItineraryItem, InsertItineraryItem, Expense, InsertExpense, Message, InsertMessage, Vehicle, InsertVehicle, TripVehicle, InsertTripVehicle, TripCheckIn, InsertTripCheckIn } from "@shared/schema";
 import session from "express-session";
 import { eq, ne, and, inArray, gt } from "drizzle-orm";
 import { db, pool, attemptReconnect, checkDbConnection } from "./db";
@@ -75,6 +75,14 @@ export interface IStorage {
   removeTripVehicle(id: number): Promise<boolean>;
   getTripVehicles(tripId: number): Promise<TripVehicle[]>;
   updateTripVehicle(id: number, data: Partial<InsertTripVehicle>): Promise<TripVehicle | undefined>;
+  
+  // Check-in methods
+  createTripCheckIn(checkIn: InsertTripCheckIn): Promise<TripCheckIn>;
+  getTripCheckIns(tripId: number): Promise<TripCheckIn[]>;
+  getUserTripCheckIn(tripId: number, userId: number): Promise<TripCheckIn | undefined>;
+  updateTripCheckIn(id: number, data: Partial<InsertTripCheckIn>): Promise<TripCheckIn | undefined>;
+  deleteTripCheckIn(id: number): Promise<boolean>;
+  getAllTripCheckInStatus(tripId: number): Promise<{ userId: number; status: string }[]>;
   
   // Session store
   sessionStore: any;

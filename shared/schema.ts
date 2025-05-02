@@ -178,6 +178,21 @@ export const insertTripVehicleSchema = createInsertSchema(tripVehicles).omit({
   createdAt: true,
 });
 
+// Trip check-ins schema
+export const tripCheckIns = pgTable("trip_check_ins", {
+  id: serial("id").primaryKey(),
+  tripId: integer("trip_id").notNull().references(() => trips.id),
+  userId: integer("user_id").notNull().references(() => users.id),
+  checkedInAt: timestamp("checked_in_at").defaultNow(),
+  status: text("status").default("ready"), // ready, not-ready, delayed
+  notes: text("notes"),
+});
+
+export const insertTripCheckInSchema = createInsertSchema(tripCheckIns).omit({
+  id: true,
+  checkedInAt: true,
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   groups: many(groups, { relationName: "user_groups" }),
@@ -187,6 +202,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   expenses: many(expenses, { relationName: "user_expenses" }),
   messages: many(messages, { relationName: "user_messages" }),
   vehicles: many(vehicles, { relationName: "user_vehicles" }),
+  tripCheckIns: many(tripCheckIns, { relationName: "user_check_ins" }),
 }));
 
 export const groupsRelations = relations(groups, ({ one, many }) => ({
@@ -227,6 +243,7 @@ export const tripsRelations = relations(trips, ({ one, many }) => ({
   itineraryItems: many(itineraryItems, { relationName: "trip_itinerary" }),
   expenses: many(expenses, { relationName: "trip_expenses" }),
   vehicles: many(tripVehicles, { relationName: "trip_vehicles" }),
+  checkIns: many(tripCheckIns, { relationName: "trip_check_ins" }),
 }));
 
 export const itineraryItemsRelations = relations(itineraryItems, ({ one }) => ({
@@ -294,6 +311,19 @@ export const tripVehiclesRelations = relations(tripVehicles, ({ one }) => ({
   }),
 }));
 
+export const tripCheckInsRelations = relations(tripCheckIns, ({ one }) => ({
+  trip: one(trips, {
+    fields: [tripCheckIns.tripId],
+    references: [trips.id],
+    relationName: "trip_check_ins",
+  }),
+  user: one(users, {
+    fields: [tripCheckIns.userId],
+    references: [users.id],
+    relationName: "user_check_ins",
+  }),
+}));
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -321,3 +351,6 @@ export type InsertVehicle = z.infer<typeof insertVehicleSchema>;
 
 export type TripVehicle = typeof tripVehicles.$inferSelect;
 export type InsertTripVehicle = z.infer<typeof insertTripVehicleSchema>;
+
+export type TripCheckIn = typeof tripCheckIns.$inferSelect;
+export type InsertTripCheckIn = z.infer<typeof insertTripCheckInSchema>;
