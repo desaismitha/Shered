@@ -872,22 +872,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
         endDate: req.body.endDate
       });
       
-      // Additional server-side validation for dates
+      // Enhanced server-side validation for dates
       const now = new Date();
       // Add 5 minutes buffer to allow for slight time differences and server-client time variations
       const validationTime = new Date(now.getTime() + 5 * 60 * 1000);
       
       try {
-        // Ensure these are valid dates before using them
+        // First check if the strings are valid ISO date strings
+        if (!req.body.startDate || !req.body.endDate) {
+          return res.status(400).json({
+            error: "Missing date values",
+            details: "Both start date and end date are required"
+          });
+        }
+        
+        // Check if the date strings are valid ISO format
+        if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z$/.test(req.body.startDate) ||
+            !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z$/.test(req.body.endDate)) {
+          return res.status(400).json({
+            error: "Invalid date format",
+            details: "Dates must be in ISO 8601 format (YYYY-MM-DDTHH:mm:ss.sssZ)"
+          });
+        }
+        
+        // Parse dates
         const startDate = new Date(req.body.startDate);
         const endDate = new Date(req.body.endDate);
         
+        // Verify they're valid Date objects
+        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+          return res.status(400).json({
+            error: "Invalid date values",
+            details: "Could not parse provided dates into valid Date objects"
+          });
+        }
+        
         // Log actual date values for debugging
         console.log("[VALIDATION] Dates for validation:", {
-          startDate,
-          endDate,
-          nowTime: now,
-          validationTime,
+          startDate: startDate.toISOString(),
+          endDate: endDate.toISOString(),
+          nowTime: now.toISOString(),
+          validationTime: validationTime.toISOString(),
           isStartValid: startDate > validationTime,
           isEndValid: endDate > validationTime,
           isOrderValid: endDate >= startDate
@@ -914,24 +939,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
             details: "End date cannot be before start date"
           });
         }
+        
+        // Store the validated dates in a format we control
+        req.body.startDate = startDate.toISOString();
+        req.body.endDate = endDate.toISOString();
+        
       } catch (dateError) {
         console.error("[VALIDATION] Date validation error:", dateError);
         return res.status(400).json({
-          error: "Invalid date format",
-          details: "Could not parse date values"
+          error: "Invalid date processing",
+          details: "Could not process date values: " + (dateError instanceof Error ? dateError.message : String(dateError))
         });
       }
       
       // Create a modified schema that accepts ISO date strings
       const modifiedTripSchema = insertTripSchema.extend({
-        startDate: z.string().transform(val => {
-          console.log("Parsing start date:", val);
-          return new Date(val);
-        }),
-        endDate: z.string().transform(val => {
-          console.log("Parsing end date:", val);
-          return new Date(val);
-        })
+        startDate: z.string()
+          .refine(val => {
+            const date = new Date(val);
+            return !isNaN(date.getTime()) && date > validationTime;
+          }, {
+            message: "Start date must be a valid date in the future"
+          })
+          .transform(val => new Date(val)),
+        endDate: z.string()
+          .refine(val => {
+            const date = new Date(val);
+            return !isNaN(date.getTime()) && date > validationTime;
+          }, {
+            message: "End date must be a valid date in the future"
+          })
+          .transform(val => new Date(val))
+      }).refine(data => {
+        // Ensure end date is not before start date
+        return data.endDate >= data.startDate;
+      }, {
+        message: "End date cannot be before start date",
+        path: ["endDate"]
       });
       
       const validatedData = modifiedTripSchema.parse({
@@ -940,8 +984,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       console.log("Validated trip data with dates:", {
-        startDate: validatedData.startDate,
-        endDate: validatedData.endDate
+        startDate: validatedData.startDate.toISOString(),
+        endDate: validatedData.endDate.toISOString()
       });
       
       // Any authenticated user can create a trip
@@ -949,6 +993,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(trip);
     } catch (err) {
       console.error("Trip creation error:", err);
+      
+      // Improve error handling to provide better feedback
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({
+          error: "Validation error",
+          details: err.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ')
+        });
+      }
+      
       next(err);
     }
   });

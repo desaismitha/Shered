@@ -97,6 +97,33 @@ export function SimpleTripForm() {
     
     if (!validateForm() || !user) return;
     
+    // Double-check the dates one more time before submitting
+    const now = new Date();
+    const validationTime = getValidationDate();
+    const validationErrors = [];
+    
+    if (!startDate || startDate <= validationTime) {
+      validationErrors.push("Start date must be in the future");
+    }
+    
+    if (!endDate || endDate <= validationTime) {
+      validationErrors.push("End date must be in the future");
+    }
+    
+    if (startDate && endDate && endDate < startDate) {
+      validationErrors.push("End date cannot be before start date");
+    }
+    
+    if (validationErrors.length > 0) {
+      console.error("Validation errors detected before submission:", validationErrors);
+      toast({
+        title: "Cannot create trip",
+        description: validationErrors.join(". "),
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setIsSubmitting(true);
     
     try {
@@ -109,7 +136,7 @@ export function SimpleTripForm() {
         imageUrl: imageUrl || null,
         status,
         groupId: groupId,
-        // Format dates as expected by the backend - use noon UTC format
+        // Format dates as expected by the backend - use proper ISO format
         startDate: startDate ? startDate.toISOString() : null,
         endDate: endDate ? endDate.toISOString() : null,
         createdBy: user.id
@@ -118,8 +145,18 @@ export function SimpleTripForm() {
       console.log("Creating trip with data:", tripData);
       
       const res = await apiRequest("POST", "/api/trips", tripData);
-      const trip = await res.json();
       
+      // Check if response is ok before parsing JSON
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => null);
+        throw new Error(
+          errorData?.details || 
+          errorData?.error || 
+          `Server returned ${res.status}: ${res.statusText}`
+        );
+      }
+      
+      const trip = await res.json();
       console.log("Trip created:", trip);
       
       // Success
