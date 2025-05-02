@@ -115,7 +115,18 @@ export default function AuthPage() {
 
   // Submit handlers
   const onLoginSubmit = (values: LoginValues) => {
-    loginMutation.mutate(values, {
+    // Add invitation data if present in URL params
+    const invitationData: { token?: string; groupId?: string } = {};
+    if (inviteToken) invitationData.token = inviteToken;
+    if (inviteGroupId) invitationData.groupId = inviteGroupId;
+    
+    console.log("Login with invitation data:", invitationData);
+    
+    loginMutation.mutate({
+      ...values,
+      // Add invitation data if we have it
+      ...(Object.keys(invitationData).length > 0 ? { invitation: invitationData } : {})
+    }, {
       onError: (error) => {
         console.log('Login error in component:', error);
       }
