@@ -195,6 +195,42 @@ function TripQuickEdit({ trip, onSuccess }: { trip: Trip, onSuccess: () => void 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Add validation for dates
+    const now = new Date();
+    const validationTime = new Date(now.getTime() + 5 * 60 * 1000); // 5 minute buffer
+    
+    // Check start date is in the future
+    if (startDate < validationTime) {
+      toast({
+        title: "Invalid start date",
+        description: "Start date must be at least 5 minutes in the future",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Check end date is in the future
+    if (endDate < validationTime) {
+      toast({
+        title: "Invalid end date",
+        description: "End date must be at least 5 minutes in the future",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Check end date is not before start date
+    if (endDate < startDate) {
+      toast({
+        title: "Invalid date range",
+        description: "End date cannot be before start date",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // If validation passes, submit the form
     const values = {
       name,
       status,

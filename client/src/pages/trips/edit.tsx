@@ -55,6 +55,27 @@ const tripUpdateSchema = insertTripSchema
       required_error: "End date is required",
     }),
   })
+  // Ensure dates are valid
+  .refine((data) => {
+    // First validate that dates are not in the past
+    const now = new Date();
+    // Add 5 minutes buffer for form submission
+    const validTime = new Date(now.getTime() + 5 * 60 * 1000);
+    return data.startDate >= validTime;
+  }, {
+    message: "Start date must be at least 5 minutes in the future",
+    path: ["startDate"],
+  })
+  .refine((data) => {
+    // Validate end date is not in the past
+    const now = new Date();
+    // Add 5 minutes buffer for form submission
+    const validTime = new Date(now.getTime() + 5 * 60 * 1000);
+    return data.endDate >= validTime;
+  }, {
+    message: "End date must be at least 5 minutes in the future",
+    path: ["endDate"],
+  })
   .refine((data) => {
     // Use our new compareDates function that handles local timezone correctly
     const comparison = compareDates(data.startDate, data.endDate);
@@ -250,6 +271,41 @@ export default function EditTripPage() {
       
       if (!(values.endDate instanceof Date)) {
         values.endDate = new Date(values.endDate);
+      }
+      
+      // Extra date validation before submission (in addition to schema validation)
+      // This catches any last minute changes or validation issues
+      const now = new Date();
+      const validationTime = new Date(now.getTime() + 5 * 60 * 1000); // 5 minute buffer
+      
+      // Check start date is in the future
+      if (values.startDate < validationTime) {
+        toast({
+          title: "Invalid start date",
+          description: "Start date must be at least 5 minutes in the future",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Check end date is in the future
+      if (values.endDate < validationTime) {
+        toast({
+          title: "Invalid end date",
+          description: "End date must be at least 5 minutes in the future",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Check end date is not before start date
+      if (values.endDate < values.startDate) {
+        toast({
+          title: "Invalid date range",
+          description: "End date cannot be before start date",
+          variant: "destructive",
+        });
+        return;
       }
       
       // Create a stripped-down version with only the fields we want to update
