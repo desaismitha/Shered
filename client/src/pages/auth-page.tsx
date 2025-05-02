@@ -74,6 +74,21 @@ export default function AuthPage() {
   const inviteEmail = searchParams.get('email');
   const inviteMode = searchParams.get('mode');
   
+  // Check if we need to wait for URL parameters to fully load
+  useEffect(() => {
+    // This helps ensure we properly capture URL parameters, especially in invitation flows
+    if (window.location.pathname.includes('/auth/invite') && (!inviteToken || !inviteGroupId)) {
+      console.log('Detected invite URL path but missing params - rechecking...');
+      const recheckParams = new URLSearchParams(window.location.search);
+      console.log('Full URL being processed:', window.location.href);
+      console.log('Search params:', window.location.search);
+      // Log all available query parameters
+      for (const [key, value] of recheckParams.entries()) {
+        console.log(`Param ${key}: ${value}`);
+      }
+    }
+  }, [inviteToken, inviteGroupId]);
+  
   // Debug log invitation parameters
   useEffect(() => {
     console.log('Auth page invitation parameters:', {

@@ -40,6 +40,8 @@ function Router() {
       <ProtectedRoute path="/messages" component={MessagesPage} />
       <ProtectedRoute path="/vehicles" component={VehiclesPage} />
       <Route path="/auth" component={AuthPage} />
+      {/* Add explicit invitation route */}
+      <Route path="/auth/invite" component={AuthPage} />
       <Route path="/forgot-password" component={ForgotPasswordPage} />
       <Route path="/reset-password/:token" component={ResetPasswordPage} />
       <Route path="/verify-email" component={VerifyEmailPage} />
