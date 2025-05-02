@@ -31,8 +31,18 @@ const registerSchema = insertUserSchema.extend({
   path: ["confirmPassword"]
 });
 
-type LoginData = z.infer<typeof loginSchema>;
-type RegisterData = z.infer<typeof registerSchema>;
+type LoginData = z.infer<typeof loginSchema> & {
+  invitation?: {
+    token?: string;
+    groupId?: string;
+  };
+};
+type RegisterData = z.infer<typeof registerSchema> & {
+  invitation?: {
+    token?: string;
+    groupId?: string;
+  };
+};
 
 export const AuthContext = createContext<AuthContextType | null>(null);
 
@@ -59,6 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loginMutation = useMutation<User, Error, LoginData>({
     mutationFn: async (credentials) => {
       try {
+        console.log("Login mutation with credentials:", credentials);
         const res = await apiRequest("POST", "/api/login", credentials);
         return await res.json();
       } catch (error) {
