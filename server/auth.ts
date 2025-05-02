@@ -179,31 +179,48 @@ export function setupAuth(app: Express) {
       );
 
       // Handle group invitation if present in the request
-      if (req.body.invitation && req.body.invitation.token && req.body.invitation.groupId) {
+      // Check for invitation data in either format
+      const invitation = req.body.invitation || {};
+      
+      if ((invitation.token && invitation.groupId) || 
+          (req.body.token && req.body.groupId)) {
         try {
-          console.log("Processing group invitation during registration:", req.body.invitation);
+          const token = invitation.token || req.body.token;
+          const groupIdStr = invitation.groupId || req.body.groupId;
           
-          const groupId = parseInt(req.body.invitation.groupId);
-          // Verify the group exists
-          const group = await storage.getGroup(groupId);
+          console.log("Processing group invitation during registration with data:", { 
+            token, 
+            groupId: groupIdStr 
+          });
           
-          if (!group) {
-            console.log(`Group ${groupId} not found during invitation processing`);
+          const groupId = parseInt(groupIdStr);
+          if (isNaN(groupId)) {
+            console.log(`Invalid group ID format: ${groupIdStr}`);
+            // Continue with registration despite invalid group ID
           } else {
-            // Add user to the group with member role
-            const groupMember = await storage.addUserToGroup({
-              groupId,
-              userId: user.id,
-              role: 'member'
-              // joinedAt is handled by the database default
-            });
+            // Verify the group exists
+            const group = await storage.getGroup(groupId);
             
-            console.log(`User ${user.id} successfully added to group ${groupId} via invitation`);
+            if (!group) {
+              console.log(`Group ${groupId} not found during invitation processing`);
+            } else {
+              // Add user to the group with member role
+              const groupMember = await storage.addUserToGroup({
+                groupId,
+                userId: user.id,
+                role: 'member'
+                // joinedAt is handled by the database default
+              });
+              
+              console.log(`User ${user.id} successfully added to group ${groupId} via invitation`);
+            }
           }
         } catch (inviteError) {
           // Log but don't fail registration if group invitation fails
           console.error("Error processing group invitation during registration:", inviteError);
         }
+      } else {
+        console.log("No valid invitation data found in registration request");
       }
       
       // Remove password and sensitive fields from response
@@ -250,38 +267,55 @@ export function setupAuth(app: Express) {
       console.log("User authenticated successfully:", { id: user.id, username: user.username });
       
       // Handle group invitation if present in the request
-      if (req.body.invitation && req.body.invitation.token && req.body.invitation.groupId) {
+      // Check for invitation data in either format
+      const invitation = req.body.invitation || {};
+      
+      if ((invitation.token && invitation.groupId) || 
+          (req.body.token && req.body.groupId)) {
         try {
-          console.log("Processing group invitation during login:", req.body.invitation);
+          const token = invitation.token || req.body.token;
+          const groupIdStr = invitation.groupId || req.body.groupId;
           
-          const groupId = parseInt(req.body.invitation.groupId);
-          // Verify the group exists
-          const group = await storage.getGroup(groupId);
+          console.log("Processing group invitation during login with data:", { 
+            token, 
+            groupId: groupIdStr 
+          });
           
-          if (!group) {
-            console.log(`Group ${groupId} not found during invitation processing`);
+          const groupId = parseInt(groupIdStr);
+          if (isNaN(groupId)) {
+            console.log(`Invalid group ID format: ${groupIdStr}`);
+            // Continue with login despite invalid group ID
           } else {
-            // Check if user is already a member of this group
-            const members = await storage.getGroupMembers(groupId);
-            const isMember = members.some(member => member.userId === user.id);
+            // Verify the group exists
+            const group = await storage.getGroup(groupId);
             
-            if (isMember) {
-              console.log(`User ${user.id} is already a member of group ${groupId}`);
+            if (!group) {
+              console.log(`Group ${groupId} not found during invitation processing`);
             } else {
-              // Add user to the group with member role
-              const groupMember = await storage.addUserToGroup({
-                groupId,
-                userId: user.id,
-                role: 'member'
-              });
+              // Check if user is already a member of this group
+              const members = await storage.getGroupMembers(groupId);
+              const isMember = members.some(member => member.userId === user.id);
               
-              console.log(`User ${user.id} successfully added to group ${groupId} via invitation during login`);
+              if (isMember) {
+                console.log(`User ${user.id} is already a member of group ${groupId}`);
+              } else {
+                // Add user to the group with member role
+                const groupMember = await storage.addUserToGroup({
+                  groupId,
+                  userId: user.id,
+                  role: 'member'
+                });
+                
+                console.log(`User ${user.id} successfully added to group ${groupId} via invitation during login`);
+              }
             }
           }
         } catch (inviteError) {
           // Log but don't fail login if group invitation fails
           console.error("Error processing group invitation during login:", inviteError);
         }
+      } else {
+        console.log("No valid invitation data found in login request");
       }
       
       req.login(user, (loginErr) => {

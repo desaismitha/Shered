@@ -139,11 +139,16 @@ export default function AuthPage() {
     
     console.log("Login with invitation data:", invitationData);
     
-    // Create the complete login data
+    // Create the complete login data with both formats for maximum compatibility
+    // 1. As a nested object under 'invitation'
+    // 2. At the root level of the request
     const fullLoginData = {
       ...values,
-      // Add invitation data if we have it
-      ...(Object.keys(invitationData).length > 0 ? { invitation: invitationData } : {})
+      // Add invitation data in nested format if we have it
+      ...(Object.keys(invitationData).length > 0 ? { invitation: invitationData } : {}),
+      // Also add at root level
+      ...(inviteToken ? { token: inviteToken } : {}),
+      ...(inviteGroupId ? { groupId: inviteGroupId } : {})
     };
     
     // Log the complete data being sent to the server for debugging
@@ -167,14 +172,19 @@ export default function AuthPage() {
     
     console.log("Registering with invitation data:", invitationData);
     
-    // Create the complete registration data
+    // Create the complete registration data with both formats for maximum compatibility
+    // 1. As a nested object under 'invitation'
+    // 2. At the root level of the request
     const fullRegistrationData = {
       ...registerData,
       // Use email as the username
       username: values.email,
       confirmPassword: values.confirmPassword,
-      // Add invitation data if we have it
-      ...(Object.keys(invitationData).length > 0 ? { invitation: invitationData } : {})
+      // Add invitation data in nested format if we have it
+      ...(Object.keys(invitationData).length > 0 ? { invitation: invitationData } : {}),
+      // Also add at root level
+      ...(inviteToken ? { token: inviteToken } : {}),
+      ...(inviteGroupId ? { groupId: inviteGroupId } : {})
     };
     
     // Log the complete data being sent to the server for debugging
