@@ -169,6 +169,34 @@ export function setupAuth(app: Express) {
         otpCode
       );
 
+      // Handle group invitation if present in the request
+      if (req.body.invitation && req.body.invitation.token && req.body.invitation.groupId) {
+        try {
+          console.log("Processing group invitation during registration:", req.body.invitation);
+          
+          const groupId = parseInt(req.body.invitation.groupId);
+          // Verify the group exists
+          const group = await storage.getGroup(groupId);
+          
+          if (!group) {
+            console.log(`Group ${groupId} not found during invitation processing`);
+          } else {
+            // Add user to the group with member role
+            const groupMember = await storage.addUserToGroup({
+              groupId,
+              userId: user.id,
+              role: 'member'
+              // joinedAt is handled by the database default
+            });
+            
+            console.log(`User ${user.id} successfully added to group ${groupId} via invitation`);
+          }
+        } catch (inviteError) {
+          // Log but don't fail registration if group invitation fails
+          console.error("Error processing group invitation during registration:", inviteError);
+        }
+      }
+      
       // Remove password and sensitive fields from response
       const { 
         password, 
@@ -194,10 +222,45 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/login", (req, res, next) => {
-    passport.authenticate("local", (err: any, user: SelectUser | false, info: any) => {
+    passport.authenticate("local", async (err: any, user: SelectUser | false, info: any) => {
       if (err) return next(err);
       if (!user) {
         return res.status(401).json({ message: "The username/email or password you entered is incorrect. Please try again." });
+      }
+      
+      // Handle group invitation if present in the request
+      if (req.body.invitation && req.body.invitation.token && req.body.invitation.groupId) {
+        try {
+          console.log("Processing group invitation during login:", req.body.invitation);
+          
+          const groupId = parseInt(req.body.invitation.groupId);
+          // Verify the group exists
+          const group = await storage.getGroup(groupId);
+          
+          if (!group) {
+            console.log(`Group ${groupId} not found during invitation processing`);
+          } else {
+            // Check if user is already a member of this group
+            const members = await storage.getGroupMembers(groupId);
+            const isMember = members.some(member => member.userId === user.id);
+            
+            if (isMember) {
+              console.log(`User ${user.id} is already a member of group ${groupId}`);
+            } else {
+              // Add user to the group with member role
+              const groupMember = await storage.addUserToGroup({
+                groupId,
+                userId: user.id,
+                role: 'member'
+              });
+              
+              console.log(`User ${user.id} successfully added to group ${groupId} via invitation during login`);
+            }
+          }
+        } catch (inviteError) {
+          // Log but don't fail login if group invitation fails
+          console.error("Error processing group invitation during login:", inviteError);
+        }
       }
       
       req.login(user, (loginErr) => {

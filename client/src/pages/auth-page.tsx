@@ -127,7 +127,7 @@ export default function AuthPage() {
     setRegisteredEmail(values.email);
     
     // Add invitation data if present in URL params
-    const invitationData = {};
+    const invitationData: { token?: string; groupId?: string } = {};
     if (inviteToken) invitationData.token = inviteToken;
     if (inviteGroupId) invitationData.groupId = inviteGroupId;
     
