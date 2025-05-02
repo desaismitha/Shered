@@ -762,7 +762,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         try {
           const inviter = req.user;
           // Create a direct link to the group
-          const baseUrl = process.env.BASE_URL || 'http://localhost:5000';
+          const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+          const host = req.headers.host || 'localhost:5000';
+          const baseUrl = process.env.BASE_URL || `${protocol}://${host}`;
+          
+          console.log("Using base URL for group link:", baseUrl);
           const groupLink = `${baseUrl}/groups/${groupId}`;
           
           await sendGroupInvitation(
@@ -874,8 +878,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // For now, we'll just send the email with a registration link that includes the token
       
       // Create an invite link
-      const baseUrl = process.env.BASE_URL || 'http://localhost:5000';
-      const inviteLink = `${baseUrl}/register?token=${token}&groupId=${groupId}&email=${encodeURIComponent(validatedData.email)}`;
+      // Determine base URL from the request or fallback to environment variable
+      const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+      const host = req.headers.host || 'localhost:5000';
+      const baseUrl = process.env.BASE_URL || `${protocol}://${host}`;
+      
+      console.log("Using base URL for invitation:", baseUrl);
+      // Create invite link for the auth page
+      const inviteLink = `${baseUrl}/auth?token=${token}&groupId=${groupId}&email=${encodeURIComponent(validatedData.email)}&mode=register`;
       
       // Send invitation email
       const inviter = req.user;
