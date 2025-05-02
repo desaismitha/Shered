@@ -213,11 +213,15 @@ export default function GroupDetailsPage() {
   const inviteUserMutation = useMutation({
     mutationFn: async (values: InviteUserValues) => {
       try {
+        console.log("In inviteUserMutation with values:", values);
+        
         // Check if user with this email already exists using our new hook
         try {
+          console.log("Looking up email:", values.email);
           const existingUser = await lookupByEmail(values.email);
           
           if (existingUser) {
+            console.log("User already exists:", existingUser);
             // User already exists, prompt to add the user directly
             throw new Error(`A user with email '${values.email}' already exists. Please use the "Existing User" tab to add them by username.`);
           }
@@ -228,12 +232,16 @@ export default function GroupDetailsPage() {
             console.log(`Email lookup for ${values.email}: User not found, proceeding with invitation`);
           } else {
             // For other errors, re-throw so they're handled properly
+            console.error("Error during email lookup:", error);
             throw error;
           }
         }
         
         // Send the invitation
+        console.log(`Making API request to /api/groups/${groupId}/invite with:`, values);
         const res = await apiRequest("POST", `/api/groups/${groupId}/invite`, values);
+        
+        console.log("Invitation API response:", { status: res.status, statusText: res.statusText });
         
         if (!res.ok) {
           if (res.status === 429) {
@@ -243,8 +251,11 @@ export default function GroupDetailsPage() {
           }
         }
         
-        return await res.json();
+        const responseData = await res.json();
+        console.log("Invitation API response data:", responseData);
+        return responseData;
       } catch (error) {
+        console.error("Invitation mutation error:", error);
         // Re-throw the error
         throw error;
       }
@@ -285,10 +296,13 @@ export default function GroupDetailsPage() {
   };
   
   const onInviteUserSubmit = (values: InviteUserValues) => {
+    console.log("Invite form submitted with values:", values);
+    
     // Phone validation - ensure it's exactly 10 digits if provided
     const phoneNumber = values.phoneNumber ? values.phoneNumber.replace(/\D/g, '') : values.phoneNumber;
     
     if (phoneNumber && phoneNumber.length !== 10) {
+      console.log("Phone number validation failed:", phoneNumber);
       inviteUserForm.setError("phoneNumber", {
         type: "manual",
         message: "Phone number must be exactly 10 digits"
@@ -302,6 +316,7 @@ export default function GroupDetailsPage() {
       phoneNumber: phoneNumber
     };
     
+    console.log("Calling inviteUserMutation with:", updatedValues);
     inviteUserMutation.mutate(updatedValues);
   };
 
