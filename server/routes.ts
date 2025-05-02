@@ -867,15 +867,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       if (!req.isAuthenticated()) return res.sendStatus(401);
       
+      console.log("Creating trip with dates:", {
+        startDate: req.body.startDate,
+        endDate: req.body.endDate
+      });
+      
       // Create a modified schema that accepts ISO date strings
       const modifiedTripSchema = insertTripSchema.extend({
-        startDate: z.string().transform(val => new Date(val)),
-        endDate: z.string().transform(val => new Date(val))
+        startDate: z.string().transform(val => {
+          console.log("Parsing start date:", val);
+          return new Date(val);
+        }),
+        endDate: z.string().transform(val => {
+          console.log("Parsing end date:", val);
+          return new Date(val);
+        })
       });
       
       const validatedData = modifiedTripSchema.parse({
         ...req.body,
         createdBy: req.user.id
+      });
+      
+      console.log("Validated trip data with dates:", {
+        startDate: validatedData.startDate,
+        endDate: validatedData.endDate
       });
       
       // Any authenticated user can create a trip

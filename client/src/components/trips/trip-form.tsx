@@ -140,7 +140,7 @@ export function TripForm() {
             <FormItem>
               <FormLabel>Starting Location</FormLabel>
               <FormControl>
-                <Input placeholder="Your departure city" {...field} />
+                <Input placeholder="Your departure city" {...field} value={field.value || ''} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -154,7 +154,7 @@ export function TripForm() {
             <FormItem>
               <FormLabel>Destination</FormLabel>
               <FormControl>
-                <Input placeholder="Bali, Indonesia" {...field} />
+                <Input placeholder="Bali, Indonesia" {...field} value={field.value || ''} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -287,7 +287,7 @@ export function TripForm() {
                         )}
                       >
                         {field.value ? (
-                          format(field.value, "PPP")
+                          format(field.value, "PPP 'at' h:mm a")
                         ) : (
                           <span>Pick a date</span>
                         )}
@@ -296,28 +296,96 @@ export function TripForm() {
                     </FormControl>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={endDate}
-                      onSelect={(date) => {
-                        setEndDate(date);
-                        field.onChange(date);
-                      }}
-                      disabled={(date) => {
-                        // Don't allow past dates
-                        if (date < new Date()) return true;
-                        
-                        // Allow the same day as start date
-                        if (startDate) {
-                          const startDay = startOfDay(startDate);
-                          const checkDay = startOfDay(date);
-                          return isEqual(checkDay, startDay) ? false : isBefore(date, startDate);
-                        }
-                        
-                        return false;
-                      }}
-                      initialFocus
-                    />
+                    <div className="p-2">
+                      <Calendar
+                        mode="single"
+                        selected={endDate}
+                        onSelect={(date) => {
+                          if (date) {
+                            // Keep the existing time if there's already a date selected
+                            // otherwise set time based on start date or default
+                            const newDate = new Date(date);
+                            if (field.value) {
+                              const currentDate = new Date(field.value);
+                              newDate.setHours(currentDate.getHours());
+                              newDate.setMinutes(currentDate.getMinutes());
+                            } else if (startDate) {
+                              // Use same time as the start date if available
+                              newDate.setHours(startDate.getHours());
+                              newDate.setMinutes(startDate.getMinutes());
+                            } else {
+                              // Default to current time + 2 hours (rounded to nearest 15 min)
+                              const now = new Date();
+                              const minutes = Math.ceil(now.getMinutes() / 15) * 15;
+                              newDate.setHours(now.getHours() + 1); // An hour later than start time by default
+                              newDate.setMinutes(minutes % 60);
+                              if (minutes === 60) newDate.setHours(newDate.getHours() + 1);
+                            }
+                            setEndDate(newDate);
+                            field.onChange(newDate);
+                          }
+                        }}
+                        disabled={(date) => {
+                          // For dates in the past or before start date, disable them
+                          const today = new Date();
+                          
+                          // Allow selecting today, we'll validate the actual time with time picker
+                          if (date < new Date(today.getFullYear(), today.getMonth(), today.getDate())) {
+                            return true;
+                          }
+                          
+                          // If we have a start date, don't allow dates before the start date
+                          if (startDate) {
+                            const startDay = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+                            if (date < startDay) return true;
+                          }
+                          
+                          return false;
+                        }}
+                        initialFocus
+                      />
+                      
+                      {endDate && (
+                        <div className="mt-4 border-t pt-4 flex flex-col gap-2">
+                          <h4 className="text-sm font-medium">Time</h4>
+                          <div className="flex items-center gap-4">
+                            <select 
+                              className="flex h-10 w-[120px] items-center rounded-md border border-input bg-background px-3 py-2 text-sm"
+                              value={endDate.getHours()}
+                              onChange={(e) => {
+                                const newDate = new Date(endDate);
+                                newDate.setHours(parseInt(e.target.value));
+                                setEndDate(newDate);
+                                field.onChange(newDate);
+                              }}
+                            >
+                              {Array.from({length: 24}).map((_, i) => (
+                                <option key={i} value={i}>
+                                  {i === 0 ? '12 AM' : i < 12 ? `${i} AM` : i === 12 ? '12 PM' : `${i - 12} PM`}
+                                </option>
+                              ))}
+                            </select>
+                            <span>:</span>
+                            <select
+                              className="flex h-10 w-[120px] items-center rounded-md border border-input bg-background px-3 py-2 text-sm"
+                              value={endDate.getMinutes()}
+                              onChange={(e) => {
+                                const newDate = new Date(endDate);
+                                newDate.setMinutes(parseInt(e.target.value));
+                                setEndDate(newDate);
+                                field.onChange(newDate);
+                              }}
+                            >
+                              {[0, 15, 30, 45].map((minute) => (
+                                <option key={minute} value={minute}>
+                                  {minute.toString().padStart(2, '0')}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </PopoverContent>
                 </Popover>
                 <FormMessage />
@@ -337,6 +405,7 @@ export function TripForm() {
                   placeholder="Tell us about your trip plans" 
                   className="resize-none" 
                   {...field} 
+                  value={field.value || ''}
                 />
               </FormControl>
               <FormMessage />
@@ -351,7 +420,7 @@ export function TripForm() {
             <FormItem>
               <FormLabel>Image URL (optional)</FormLabel>
               <FormControl>
-                <Input placeholder="https://example.com/image.jpg" {...field} />
+                <Input placeholder="https://example.com/image.jpg" {...field} value={field.value || ''} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -364,7 +433,7 @@ export function TripForm() {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Status</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select onValueChange={field.onChange} defaultValue={field.value || 'planning'}>
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Select status" />

@@ -66,22 +66,35 @@ export function isSpecialDateMarker(dateStr: string | null | undefined): boolean
 
 // Function to normalize date displays independent of timezone
 // This fixes the issue where dates appear one day earlier than selected
+// and also preserves the time component when it exists
 export function normalizeDate(dateStr: string | Date | null | undefined): Date | null {
   if (!dateStr) return null;
-  if (isSpecialDateMarker(dateStr as string)) return null;
+  if (typeof dateStr === 'string' && isSpecialDateMarker(dateStr)) return null;
   
   try {
     // Convert to Date object first
     const date = typeof dateStr === 'string' ? new Date(dateStr) : dateStr;
     
-    // Create a date string in YYYY-MM-DD format to strip out time info
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const dateOnlyStr = `${year}-${month}-${day}`;
+    // Check if the date has a meaningful time component (not midnight UTC)
+    const hasTimeComponent = date.getHours() !== 0 || date.getMinutes() !== 0 || date.getSeconds() !== 0;
     
-    // Parse this string back into a Date at noon UTC to avoid timezone issues
-    return new Date(`${dateOnlyStr}T12:00:00Z`);
+    if (hasTimeComponent) {
+      // If the date already has a valid time component, preserve it
+      // Create a new date to avoid reference issues
+      return new Date(date);
+    } else {
+      // Create a date string in YYYY-MM-DD format to strip out time info
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const dateOnlyStr = `${year}-${month}-${day}`;
+      
+      // For dates that don't have a meaningful time component, set to noon local time
+      // This ensures the date is the same in any timezone
+      const result = new Date(dateOnlyStr);
+      result.setHours(12, 0, 0, 0);
+      return result;
+    }
   } catch (e) {
     console.error("Error normalizing date:", e);
     return null;
