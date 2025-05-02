@@ -38,9 +38,21 @@ const tripSchema = insertTripSchema
   .extend({
     startDate: z.coerce.date({
       required_error: "Start date is required",
+    }).refine((date) => {
+      // Check if date is in the future
+      const now = new Date();
+      return date > now;
+    }, {
+      message: "Start date and time must be in the future"
     }),
     endDate: z.coerce.date({
       required_error: "End date is required",
+    }).refine((date) => {
+      // Check if date is in the future
+      const now = new Date();
+      return date > now;
+    }, {
+      message: "End date and time must be in the future"
     }),
   })
   .refine((data) => {
@@ -211,6 +223,17 @@ export function TripForm() {
                             }
                             setStartDate(newDate);
                             field.onChange(newDate);
+                            
+                            // Check if the selected time is valid
+                            const now = new Date();
+                            if (newDate <= now) {
+                              form.setError('startDate', {
+                                type: 'manual',
+                                message: 'Start date and time must be in the future'
+                              });
+                            } else {
+                              form.clearErrors('startDate');
+                            }
                           }
                         }}
                         disabled={(date) => {
@@ -234,6 +257,17 @@ export function TripForm() {
                                 newDate.setHours(parseInt(e.target.value));
                                 setStartDate(newDate);
                                 field.onChange(newDate);
+                                
+                                // Trigger validation check
+                                const now = new Date();
+                                if (newDate <= now) {
+                                  form.setError('startDate', {
+                                    type: 'manual',
+                                    message: 'Start date and time must be in the future'
+                                  });
+                                } else {
+                                  form.clearErrors('startDate');
+                                }
                               }}
                             >
                               {Array.from({length: 24}).map((_, i) => (
@@ -251,6 +285,17 @@ export function TripForm() {
                                 newDate.setMinutes(parseInt(e.target.value));
                                 setStartDate(newDate);
                                 field.onChange(newDate);
+                                
+                                // Trigger validation check
+                                const now = new Date();
+                                if (newDate <= now) {
+                                  form.setError('startDate', {
+                                    type: 'manual',
+                                    message: 'Start date and time must be in the future'
+                                  });
+                                } else {
+                                  form.clearErrors('startDate');
+                                }
                               }}
                             >
                               {[0, 15, 30, 45].map((minute) => (
@@ -323,6 +368,22 @@ export function TripForm() {
                             }
                             setEndDate(newDate);
                             field.onChange(newDate);
+                            
+                            // Trigger validation check
+                            const now = new Date();
+                            if (newDate <= now) {
+                              form.setError('endDate', {
+                                type: 'manual',
+                                message: 'End date and time must be in the future'
+                              });
+                            } else if (startDate && newDate < startDate) {
+                              form.setError('endDate', {
+                                type: 'manual',
+                                message: 'End date cannot be before start date'
+                              });
+                            } else {
+                              form.clearErrors('endDate');
+                            }
                           }
                         }}
                         disabled={(date) => {
@@ -357,6 +418,22 @@ export function TripForm() {
                                 newDate.setHours(parseInt(e.target.value));
                                 setEndDate(newDate);
                                 field.onChange(newDate);
+                                
+                                // Trigger validation check
+                                const now = new Date();
+                                if (newDate <= now) {
+                                  form.setError('endDate', {
+                                    type: 'manual',
+                                    message: 'End date and time must be in the future'
+                                  });
+                                } else if (startDate && newDate < startDate) {
+                                  form.setError('endDate', {
+                                    type: 'manual',
+                                    message: 'End date cannot be before start date'
+                                  });
+                                } else {
+                                  form.clearErrors('endDate');
+                                }
                               }}
                             >
                               {Array.from({length: 24}).map((_, i) => (
@@ -374,6 +451,22 @@ export function TripForm() {
                                 newDate.setMinutes(parseInt(e.target.value));
                                 setEndDate(newDate);
                                 field.onChange(newDate);
+                                
+                                // Trigger validation check
+                                const now = new Date();
+                                if (newDate <= now) {
+                                  form.setError('endDate', {
+                                    type: 'manual',
+                                    message: 'End date and time must be in the future'
+                                  });
+                                } else if (startDate && newDate < startDate) {
+                                  form.setError('endDate', {
+                                    type: 'manual',
+                                    message: 'End date cannot be before start date'
+                                  });
+                                } else {
+                                  form.clearErrors('endDate');
+                                }
                               }}
                             >
                               {[0, 15, 30, 45].map((minute) => (
