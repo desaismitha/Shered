@@ -2817,6 +2817,210 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Trip Check-in routes
+  // Get all check-ins for a trip
+  app.get('/api/trips/:tripId/check-ins', async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+      
+      const tripId = parseInt(req.params.tripId);
+      if (isNaN(tripId)) {
+        return res.status(400).json({ error: 'Invalid trip ID' });
+      }
+
+      // Verify user has access to this trip
+      const accessLevel = await checkTripAccess(req, tripId, res, next, "[CHECKINS] ");
+      if (!accessLevel) return; // Response already sent by checkTripAccess
+
+      const checkIns = await storage.getTripCheckIns(tripId);
+      res.json(checkIns);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Get a specific user's check-in for a trip
+  app.get('/api/trips/:tripId/check-ins/user/:userId', async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+      
+      const tripId = parseInt(req.params.tripId);
+      const userId = parseInt(req.params.userId);
+      
+      if (isNaN(tripId) || isNaN(userId)) {
+        return res.status(400).json({ error: 'Invalid trip or user ID' });
+      }
+
+      // Verify user has access to this trip
+      const accessLevel = await checkTripAccess(req, tripId, res, next, "[CHECKIN_USER] ");
+      if (!accessLevel) return; // Response already sent by checkTripAccess
+
+      // Only allow users to view their own check-in or trip owners to view any check-ins
+      if (userId !== req.user?.id && accessLevel !== 'owner') {
+        return res.status(403).json({ error: 'Not authorized to view this check-in' });
+      }
+
+      const checkIn = await storage.getUserTripCheckIn(tripId, userId);
+      if (!checkIn) {
+        return res.status(404).json({ error: 'Check-in not found' });
+      }
+
+      res.json(checkIn);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Create or update a check-in for the current user
+  app.post('/api/trips/:tripId/check-ins', async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+      
+      const tripId = parseInt(req.params.tripId);
+      if (isNaN(tripId)) {
+        return res.status(400).json({ error: 'Invalid trip ID' });
+      }
+
+      // Verify user has access to this trip
+      const accessLevel = await checkTripAccess(req, tripId, res, next, "[CHECKIN_CREATE] ");
+      if (!accessLevel) return; // Response already sent by checkTripAccess
+
+      const userId = req.user!.id;
+      
+      // Check if user already has a check-in
+      const existingCheckIn = await storage.getUserTripCheckIn(tripId, userId);
+      
+      // Create or update based on existing status
+      let checkIn;
+      if (existingCheckIn) {
+        // Update existing check-in
+        checkIn = await storage.updateTripCheckIn(existingCheckIn.id, {
+          status: req.body.status,
+          notes: req.body.notes
+        });
+      } else {
+        // Create new check-in
+        checkIn = await storage.createTripCheckIn({
+          tripId,
+          userId,
+          status: req.body.status || 'ready',
+          notes: req.body.notes
+        });
+      }
+
+      // Check if all members have checked in with 'ready' status and update trip status if needed
+      const checkIns = await storage.getAllTripCheckInStatus(tripId);
+      
+      // Get the trip
+      const trip = await storage.getTrip(tripId);
+      if (!trip) {
+        return res.status(404).json({ error: 'Trip not found' });
+      }
+      
+      // If the trip has a group, check if all group members have checked in
+      let allReady = false;
+      let notification = null;
+      
+      if (trip.groupId) {
+        // Get all group members
+        const groupMembers = await storage.getGroupMembers(trip.groupId);
+        
+        // Check if all members have checked in with 'ready' status
+        const allMemberIds = groupMembers.map(member => member.userId);
+        const checkedInUserIds = checkIns.map(checkIn => checkIn.userId);
+        
+        // All members have checked in and all are ready
+        const allMembersCheckedIn = allMemberIds.every(id => checkedInUserIds.includes(id));
+        const allCheckInsReady = checkIns.every(checkIn => checkIn.status === 'ready');
+        
+        allReady = allMembersCheckedIn && allCheckInsReady;
+        
+        if (allReady && trip.status === 'planning') {
+          // Update trip status to 'confirmed'
+          await storage.updateTrip(tripId, { status: 'confirmed' });
+          
+          // Create notification data to send to clients
+          notification = {
+            type: 'trip_ready',
+            tripId,
+            tripName: trip.name,
+            message: 'All members are ready! Trip status updated to confirmed.'
+          };
+          
+          // Send notification to all group members via WebSocket
+          for (const memberId of allMemberIds) {
+            const connection = userConnections.get(memberId);
+            if (connection && connection.readyState === WebSocket.OPEN) {
+              connection.send(JSON.stringify(notification));
+            }
+          }
+        }
+      }
+
+      res.json({ 
+        checkIn, 
+        allReady,
+        notification
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Update a specific check-in (admin/trip owner only)
+  app.put('/api/trips/:tripId/check-ins/:checkInId', async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+      
+      const tripId = parseInt(req.params.tripId);
+      const checkInId = parseInt(req.params.checkInId);
+      
+      if (isNaN(tripId) || isNaN(checkInId)) {
+        return res.status(400).json({ error: 'Invalid trip or check-in ID' });
+      }
+
+      // Verify user has access to this trip and is owner
+      const accessLevel = await checkTripAccess(req, tripId, res, next, "[CHECKIN_UPDATE] ");
+      if (!accessLevel || accessLevel !== 'owner') {
+        return res.status(403).json({ error: 'Only the trip owner can update other users\'s check-ins' });
+      }
+
+      const updatedCheckIn = await storage.updateTripCheckIn(checkInId, {
+        status: req.body.status,
+        notes: req.body.notes
+      });
+
+      if (!updatedCheckIn) {
+        return res.status(404).json({ error: 'Check-in not found' });
+      }
+
+      res.json(updatedCheckIn);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Get all check-in statuses for a trip
+  app.get('/api/trips/:tripId/check-in-status', async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+      
+      const tripId = parseInt(req.params.tripId);
+      if (isNaN(tripId)) {
+        return res.status(400).json({ error: 'Invalid trip ID' });
+      }
+
+      // Verify user has access to this trip
+      const accessLevel = await checkTripAccess(req, tripId, res, next, "[CHECKIN_STATUS] ");
+      if (!accessLevel) return; // Response already sent by checkTripAccess
+
+      const checkInStatus = await storage.getAllTripCheckInStatus(tripId);
+      res.json(checkInStatus);
+    } catch (error) {
+      next(error);
+    }
+  });
+
   const httpServer = createServer(app);
   
   // Set up WebSocket server on the same server but with different path

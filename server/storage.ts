@@ -928,6 +928,92 @@ export class DatabaseStorage implements IStorage {
       return updatedTripVehicle;
     });
   }
+
+  // Check-in methods
+  async createTripCheckIn(checkIn: InsertTripCheckIn): Promise<TripCheckIn> {
+    return this.executeDbOperation(async () => {
+      console.log("[STORAGE] Creating trip check-in with data:", JSON.stringify(checkIn));
+      const [checkInRecord] = await db.insert(tripCheckIns).values(checkIn).returning();
+      console.log("[STORAGE] Trip check-in created:", JSON.stringify(checkInRecord));
+      return checkInRecord;
+    });
+  }
+
+  async getTripCheckIns(tripId: number): Promise<TripCheckIn[]> {
+    return this.executeDbOperation(async () => {
+      console.log("[STORAGE] Getting check-ins for trip:", tripId);
+      const checkIns = await db.select().from(tripCheckIns).where(eq(tripCheckIns.tripId, tripId));
+      console.log(`[STORAGE] Found ${checkIns.length} check-ins for trip ${tripId}`);
+      return checkIns;
+    });
+  }
+
+  async getUserTripCheckIn(tripId: number, userId: number): Promise<TripCheckIn | undefined> {
+    return this.executeDbOperation(async () => {
+      console.log(`[STORAGE] Getting check-in for trip ${tripId} and user ${userId}`);
+      const [checkIn] = await db
+        .select()
+        .from(tripCheckIns)
+        .where(
+          and(
+            eq(tripCheckIns.tripId, tripId),
+            eq(tripCheckIns.userId, userId)
+          )
+        );
+      return checkIn;
+    });
+  }
+
+  async updateTripCheckIn(id: number, data: Partial<InsertTripCheckIn>): Promise<TripCheckIn | undefined> {
+    return this.executeDbOperation(async () => {
+      console.log(`[STORAGE] Updating check-in ${id} with data:`, JSON.stringify(data));
+      
+      // Make a copy of data to avoid modifying the original
+      const updateData = { ...data };
+      
+      // Never update these fields
+      delete updateData.tripId;
+      delete updateData.userId;
+      
+      const [updatedCheckIn] = await db
+        .update(tripCheckIns)
+        .set(updateData)
+        .where(eq(tripCheckIns.id, id))
+        .returning();
+      
+      console.log("[STORAGE] Updated check-in result:", JSON.stringify(updatedCheckIn));
+      return updatedCheckIn;
+    });
+  }
+
+  async deleteTripCheckIn(id: number): Promise<boolean> {
+    return this.executeDbOperation(async () => {
+      console.log(`[STORAGE] Deleting check-in ${id}`);
+      const result = await db
+        .delete(tripCheckIns)
+        .where(eq(tripCheckIns.id, id))
+        .returning({ id: tripCheckIns.id });
+      
+      console.log(`[STORAGE] Delete check-in result: ${result.length > 0 ? 'success' : 'failed'}`);
+      return result.length > 0;
+    });
+  }
+
+  async getAllTripCheckInStatus(tripId: number): Promise<{ userId: number; status: string }[]> {
+    return this.executeDbOperation(async () => {
+      console.log(`[STORAGE] Getting all check-in statuses for trip ${tripId}`);
+      const checkIns = await db
+        .select({
+          userId: tripCheckIns.userId,
+          status: tripCheckIns.status
+        })
+        .from(tripCheckIns)
+        .where(eq(tripCheckIns.tripId, tripId));
+      
+      console.log(`[STORAGE] Found ${checkIns.length} check-in statuses`);
+      return checkIns;
+    });
+  }
 }
 
 export const storage = new DatabaseStorage();
