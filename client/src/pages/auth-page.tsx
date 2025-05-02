@@ -67,17 +67,39 @@ export default function AuthPage() {
     }
   });
 
-  // Register form
+  // Get URL params for handling invitations
+  const searchParams = new URLSearchParams(window.location.search);
+  const inviteToken = searchParams.get('token');
+  const inviteGroupId = searchParams.get('groupId');
+  const inviteEmail = searchParams.get('email');
+  const inviteMode = searchParams.get('mode');
+  
+  // If we have invite params, default to register tab
+  useEffect(() => {
+    if (inviteEmail || inviteToken || inviteMode === 'register') {
+      setActiveTab("register");
+      console.log("Detected invitation params, switching to register tab");
+    }
+  }, [inviteEmail, inviteToken, inviteMode]);
+  
+  // Register form with pre-filled email if coming from invitation
   const registerForm = useForm<RegisterValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
       displayName: "",
-      email: "",
+      email: inviteEmail || "",
       phoneNumber: "",
       password: "",
       confirmPassword: "",
     }
   });
+  
+  // Keep the email field updated if the URL params change
+  useEffect(() => {
+    if (inviteEmail) {
+      registerForm.setValue("email", inviteEmail);
+    }
+  }, [inviteEmail, registerForm]);
   
   useEffect(() => {
     // Show verification modal if registration is successful
@@ -103,15 +125,30 @@ export default function AuthPage() {
   const onRegisterSubmit = (values: RegisterValues) => {
     const { confirmPassword, ...registerData } = values;
     setRegisteredEmail(values.email);
+    
+    // Add invitation data if present in URL params
+    const invitationData = {};
+    if (inviteToken) invitationData.token = inviteToken;
+    if (inviteGroupId) invitationData.groupId = inviteGroupId;
+    
+    console.log("Registering with invitation data:", invitationData);
+    
     // Need to pass the full data object due to type requirements
     registerMutation.mutate({
       ...registerData,
       // Use email as the username
       username: values.email,
-      confirmPassword: values.confirmPassword
+      confirmPassword: values.confirmPassword,
+      // Add invitation data if we have it
+      ...(Object.keys(invitationData).length > 0 ? { invitation: invitationData } : {})
     }, {
       onError: (error) => {
         console.log('Registration error in component:', error);
+      },
+      onSuccess: () => {
+        // If this was an invitation registration and it succeeded,
+        // we could redirect to the group page after verification
+        console.log('Registration successful', { hasInvitation: !!inviteToken });
       }
     });
   };
