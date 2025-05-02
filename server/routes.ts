@@ -872,136 +872,102 @@ export async function registerRoutes(app: Express): Promise<Server> {
         endDate: req.body.endDate
       });
       
-      // Enhanced server-side validation for dates
+      // Get current time plus 5 minutes for validation
       const now = new Date();
-      // Add 5 minutes buffer to allow for slight time differences and server-client time variations
       const validationTime = new Date(now.getTime() + 5 * 60 * 1000);
       
-      try {
-        // First check if the strings are valid ISO date strings
-        if (!req.body.startDate || !req.body.endDate) {
-          return res.status(400).json({
-            error: "Missing date values",
-            details: "Both start date and end date are required"
-          });
-        }
-        
-        // Check if the date strings are valid ISO format
-        if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z$/.test(req.body.startDate) ||
-            !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z$/.test(req.body.endDate)) {
-          return res.status(400).json({
-            error: "Invalid date format",
-            details: "Dates must be in ISO 8601 format (YYYY-MM-DDTHH:mm:ss.sssZ)"
-          });
-        }
-        
-        // Parse dates
-        const startDate = new Date(req.body.startDate);
-        const endDate = new Date(req.body.endDate);
-        
-        // Verify they're valid Date objects
-        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-          return res.status(400).json({
-            error: "Invalid date values",
-            details: "Could not parse provided dates into valid Date objects"
-          });
-        }
-        
-        // Log actual date values for debugging
-        console.log("[VALIDATION] Dates for validation:", {
-          startDate: startDate.toISOString(),
-          endDate: endDate.toISOString(),
-          nowTime: now.toISOString(),
-          validationTime: validationTime.toISOString(),
-          isStartValid: startDate > validationTime,
-          isEndValid: endDate > validationTime,
-          isOrderValid: endDate >= startDate
-        });
-        
-        // Validate dates manually before schema validation
-        if (startDate <= validationTime) {
-          return res.status(400).json({
-            error: "Invalid start date",
-            details: "Start date and time must be at least 5 minutes in the future"
-          });
-        }
-        
-        if (endDate <= validationTime) {
-          return res.status(400).json({
-            error: "Invalid end date",
-            details: "End date and time must be at least 5 minutes in the future"
-          });
-        }
-        
-        if (endDate < startDate) {
-          return res.status(400).json({
-            error: "Invalid date range",
-            details: "End date cannot be before start date"
-          });
-        }
-        
-        // Store the validated dates in a format we control
-        req.body.startDate = startDate.toISOString();
-        req.body.endDate = endDate.toISOString();
-        
-      } catch (dateError) {
-        console.error("[VALIDATION] Date validation error:", dateError);
+      // STEP 1: Basic validation checks
+      if (!req.body.startDate || !req.body.endDate) {
         return res.status(400).json({
-          error: "Invalid date processing",
-          details: "Could not process date values: " + (dateError instanceof Error ? dateError.message : String(dateError))
+          error: "Missing date values",
+          details: "Both start date and end date are required"
         });
       }
       
-      // Create a modified schema that accepts ISO date strings
-      const modifiedTripSchema = insertTripSchema.extend({
-        startDate: z.string()
-          .refine(val => {
-            const date = new Date(val);
-            return !isNaN(date.getTime()) && date > validationTime;
-          }, {
-            message: "Start date must be a valid date in the future"
-          })
-          .transform(val => new Date(val)),
-        endDate: z.string()
-          .refine(val => {
-            const date = new Date(val);
-            return !isNaN(date.getTime()) && date > validationTime;
-          }, {
-            message: "End date must be a valid date in the future"
-          })
-          .transform(val => new Date(val))
-      }).refine(data => {
-        // Ensure end date is not before start date
-        return data.endDate >= data.startDate;
-      }, {
-        message: "End date cannot be before start date",
-        path: ["endDate"]
+      // STEP 2: Parse dates and check if they're valid
+      let startDate, endDate;
+      
+      try {
+        startDate = new Date(req.body.startDate);
+        endDate = new Date(req.body.endDate);
+        
+        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+          return res.status(400).json({
+            error: "Invalid date format",
+            details: "The dates provided could not be parsed as valid dates"
+          });
+        }
+      } catch (e) {
+        return res.status(400).json({
+          error: "Date parsing error",
+          details: "Could not convert the provided values to dates"
+        });
+      }
+      
+      // Log actual date values for debugging
+      console.log("[DATE CHECK]\nValidating dates:", {
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+        now: now.toISOString(),
+        validationTime: validationTime.toISOString(),
+      });
+      console.log("Validation results:", {
+        isStartInFuture: startDate > validationTime,
+        isEndInFuture: endDate > validationTime,
+        isEndAfterStart: endDate >= startDate
       });
       
-      const validatedData = modifiedTripSchema.parse({
+      // STEP 3: Validate start date is in the future
+      if (startDate <= validationTime) {
+        return res.status(400).json({
+          error: "Invalid start date",
+          details: "Start date must be at least 5 minutes in the future"
+        });
+      }
+      
+      // STEP 4: Validate end date is in the future
+      if (endDate <= validationTime) {
+        return res.status(400).json({
+          error: "Invalid end date",
+          details: "End date must be at least 5 minutes in the future"
+        });
+      }
+      
+      // STEP 5: Validate end date is not before start date
+      if (endDate < startDate) {
+        console.log("[DATE CHECK FAILED] End date is before start date");
+        console.log(`Start: ${startDate.toISOString()}`);
+        console.log(`End: ${endDate.toISOString()}`);
+        
+        return res.status(400).json({
+          error: "Invalid date range",
+          details: "End date cannot be before start date"
+        });
+      }
+      
+      // If we reached here, dates are valid
+      console.log("[DATE CHECK PASSED] All date validations passed");
+      
+      // Process the dates into a standard format
+      const tripData = {
         ...req.body,
+        startDate: startDate,  // Use the parsed Date object
+        endDate: endDate,      // Use the parsed Date object
         createdBy: req.user.id
-      });
+      };
       
-      console.log("Validated trip data with dates:", {
-        startDate: validatedData.startDate.toISOString(),
-        endDate: validatedData.endDate.toISOString()
-      });
-      
-      // Any authenticated user can create a trip
-      const trip = await storage.createTrip(validatedData);
+      // Create the trip
+      const trip = await storage.createTrip(tripData);
       res.status(201).json(trip);
+      
     } catch (err) {
       console.error("Trip creation error:", err);
-      
-      // Improve error handling to provide better feedback
       if (err instanceof z.ZodError) {
         return res.status(400).json({
           error: "Validation error",
           details: err.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ')
         });
       }
-      
       next(err);
     }
   });
@@ -1087,6 +1053,91 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const tripId = parseInt(req.params.id);
       console.log(`Editing trip ID: ${tripId}`);
       console.log(`User making request: ${req.user?.id} (${typeof req.user?.id}), Username: ${req.user?.username}`);
+      
+      // VALIDATE DATES FIRST if they're being updated
+      if (req.body.startDate || req.body.endDate) {
+        // Get current time plus 5 minutes for validation
+        const now = new Date();
+        const validationTime = new Date(now.getTime() + 5 * 60 * 1000);
+        
+        let startDate = req.body.startDate ? new Date(req.body.startDate) : null;
+        let endDate = req.body.endDate ? new Date(req.body.endDate) : null;
+        
+        // Log date validation attempt
+        console.log("[TRIP_EDIT] Date validation check:", {
+          startDateProvided: !!req.body.startDate,
+          endDateProvided: !!req.body.endDate,
+          startDateParsed: startDate ? startDate.toISOString() : null,
+          endDateParsed: endDate ? endDate.toISOString() : null
+        });
+        
+        // Validate dates only if they were provided in the update
+        if (startDate) {
+          if (isNaN(startDate.getTime())) {
+            return res.status(400).json({
+              error: "Invalid start date format",
+              details: "The start date provided could not be parsed"
+            });
+          }
+          
+          if (startDate <= validationTime) {
+            return res.status(400).json({
+              error: "Invalid start date",
+              details: "Start date must be at least 5 minutes in the future"
+            });
+          }
+        }
+        
+        if (endDate) {
+          if (isNaN(endDate.getTime())) {
+            return res.status(400).json({
+              error: "Invalid end date format",
+              details: "The end date provided could not be parsed"
+            });
+          }
+          
+          if (endDate <= validationTime) {
+            return res.status(400).json({
+              error: "Invalid end date",
+              details: "End date must be at least 5 minutes in the future"
+            });
+          }
+        }
+        
+        // If both dates are provided, we can check their relationship
+        if (startDate && endDate && endDate < startDate) {
+          return res.status(400).json({
+            error: "Invalid date range",
+            details: "End date cannot be before start date"
+          });
+        }
+        
+        // If only one date is provided, we need to check against the existing trip
+        if ((startDate && !endDate) || (!startDate && endDate)) {
+          // Fetch the current trip to get the other date
+          const trip = await storage.getTrip(tripId);
+          if (!trip) {
+            return res.status(404).json({ error: "Trip not found" });
+          }
+          
+          // Now we have both dates to compare
+          const fullStartDate = startDate || new Date(trip.startDate);
+          const fullEndDate = endDate || new Date(trip.endDate);
+          
+          console.log("[TRIP_EDIT] Comparing dates:", {
+            startDate: fullStartDate.toISOString(),
+            endDate: fullEndDate.toISOString(), 
+            isValid: fullEndDate >= fullStartDate
+          });
+          
+          if (fullEndDate < fullStartDate) {
+            return res.status(400).json({
+              error: "Invalid date range",
+              details: "End date cannot be before start date"
+            });
+          }
+        }
+      }
       
       // Add special handling for itinerary items if present
       if (req.body.itineraryItems && Array.isArray(req.body.itineraryItems)) {
