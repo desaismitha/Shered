@@ -858,12 +858,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Send invitation email
       const inviter = req.user;
+      console.log(`Attempting to send invitation email to ${validatedData.email} for group ${group.name}`);
+      console.log(`Invite link: ${inviteLink}`);
+      
       const success = await sendGroupInvitation(
         validatedData.email,
         group.name,
         inviter.displayName || inviter.username,
         inviteLink
       );
+      
+      console.log(`Email invitation result: ${success ? 'Success' : 'Failed'}`);
       
       if (!success) {
         // If we can't send email due to SendGrid not being available,

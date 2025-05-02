@@ -26,6 +26,8 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
       return false;
     }
     
+    console.log(`Attempting to send email to ${params.to} with subject "${params.subject}"`);
+    
     await mailService.send({
       to: params.to,
       from: (params.from || process.env.SENDGRID_VERIFIED_SENDER || '') as string,
@@ -33,6 +35,8 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
       text: (params.text || '') as string,
       html: (params.html || '') as string,
     });
+    
+    console.log(`Email successfully sent to ${params.to}`);
     return true;
   } catch (error) {
     console.error('SendGrid email error:', error);
