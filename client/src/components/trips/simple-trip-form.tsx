@@ -42,9 +42,19 @@ export function SimpleTripForm() {
     queryKey: ["/api/groups"],
   });
 
+  // Function to create a date with buffer for validation
+  function getValidationDate() {
+    // Add 5 minutes to the current time to give a buffer
+    const now = new Date();
+    now.setMinutes(now.getMinutes() + 5);
+    return now;
+  }
+
   // Validation function
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {};
+    const now = new Date();
+    const validationTime = getValidationDate();
     
     if (!name || name.trim().length < 3) {
       newErrors.name = "Name must be at least 3 characters";
@@ -56,13 +66,26 @@ export function SimpleTripForm() {
     
     if (!startDate) {
       newErrors.startDate = "Start date is required";
+    } else if (startDate <= validationTime) {
+      newErrors.startDate = "Start date and time must be at least 5 minutes in the future";
     }
     
     if (!endDate) {
       newErrors.endDate = "End date is required";
+    } else if (endDate <= validationTime) {
+      newErrors.endDate = "End date and time must be at least 5 minutes in the future";
     } else if (startDate && endDate && endDate < startDate) {
       newErrors.endDate = "End date cannot be before start date";
     }
+    
+    console.log("Date validation:", {
+      startDate,
+      endDate,
+      now,
+      validationTime,
+      isStartValid: startDate && startDate > validationTime,
+      isEndValid: endDate && endDate > validationTime
+    });
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -189,26 +212,128 @@ export function SimpleTripForm() {
                   errors.startDate && "border-red-500"
                 )}
               >
-                {startDate ? format(startDate, "PPP") : <span>Pick a date</span>}
+                {startDate ? format(startDate, "PPP p") : <span>Pick a date</span>}
                 <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={startDate}
-                onSelect={(date) => {
-                  if (date) {
-                    // Create a noon UTC date to avoid timezone issues
-                    const dateStr = `${format(date, 'yyyy-MM-dd')}T12:00:00Z`;
-                    setStartDate(new Date(dateStr));
-                  } else {
-                    setStartDate(undefined);
-                  }
-                }}
-                disabled={(date) => date < new Date()}
-                initialFocus
-              />
+              <div className="p-2">
+                <Calendar
+                  mode="single"
+                  selected={startDate}
+                  onSelect={(date) => {
+                    if (date) {
+                      // Keep the existing time if there's already a date selected
+                      // otherwise set to current time + 1 hour rounded to nearest 15 min
+                      const newDate = new Date(date);
+                      if (startDate) {
+                        const currentDate = new Date(startDate);
+                        newDate.setHours(currentDate.getHours());
+                        newDate.setMinutes(currentDate.getMinutes());
+                      } else {
+                        // Default to current time + 1 hour (rounded to nearest 15 min)
+                        const now = new Date();
+                        const minutes = Math.ceil(now.getMinutes() / 15) * 15;
+                        newDate.setHours(now.getHours() + 1);
+                        newDate.setMinutes(minutes % 60);
+                      }
+                      setStartDate(newDate);
+                      
+                      // Validate the date after setting
+                      const validationTime = getValidationDate();
+                      if (newDate <= validationTime) {
+                        setErrors(prev => ({
+                          ...prev,
+                          startDate: "Start date and time must be at least 5 minutes in the future"
+                        }));
+                      } else {
+                        setErrors(prev => {
+                          const newErrors = {...prev};
+                          delete newErrors.startDate;
+                          return newErrors;
+                        });
+                      }
+                    } else {
+                      setStartDate(undefined);
+                    }
+                  }}
+                  disabled={(date) => {
+                    // For dates in the past, disable them
+                    const today = new Date();
+                    return date < new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                  }}
+                  initialFocus
+                />
+                
+                {startDate && (
+                  <div className="mt-4 border-t pt-4 flex flex-col gap-2">
+                    <h4 className="text-sm font-medium">Time</h4>
+                    <div className="flex items-center gap-4">
+                      <select 
+                        className="flex h-10 w-[120px] items-center rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        value={startDate.getHours()}
+                        onChange={(e) => {
+                          const newDate = new Date(startDate);
+                          newDate.setHours(parseInt(e.target.value));
+                          setStartDate(newDate);
+                          
+                          // Trigger validation check
+                          const validationTime = getValidationDate();
+                          if (newDate <= validationTime) {
+                            setErrors(prev => ({
+                              ...prev,
+                              startDate: "Start date and time must be at least 5 minutes in the future"
+                            }));
+                          } else {
+                            setErrors(prev => {
+                              const newErrors = {...prev};
+                              delete newErrors.startDate;
+                              return newErrors;
+                            });
+                          }
+                        }}
+                      >
+                        {Array.from({length: 24}).map((_, i) => (
+                          <option key={i} value={i}>
+                            {i === 0 ? '12 AM' : i < 12 ? `${i} AM` : i === 12 ? '12 PM' : `${i - 12} PM`}
+                          </option>
+                        ))}
+                      </select>
+                      <span>:</span>
+                      <select
+                        className="flex h-10 w-[120px] items-center rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        value={startDate.getMinutes()}
+                        onChange={(e) => {
+                          const newDate = new Date(startDate);
+                          newDate.setMinutes(parseInt(e.target.value));
+                          setStartDate(newDate);
+                          
+                          // Trigger validation check
+                          const validationTime = getValidationDate();
+                          if (newDate <= validationTime) {
+                            setErrors(prev => ({
+                              ...prev,
+                              startDate: "Start date and time must be at least 5 minutes in the future"
+                            }));
+                          } else {
+                            setErrors(prev => {
+                              const newErrors = {...prev};
+                              delete newErrors.startDate;
+                              return newErrors;
+                            });
+                          }
+                        }}
+                      >
+                        {[0, 15, 30, 45].map((minute) => (
+                          <option key={minute} value={minute}>
+                            {minute.toString().padStart(2, '0')}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                )}
+              </div>
             </PopoverContent>
           </Popover>
           {errors.startDate && <p className="text-red-500 text-sm">{errors.startDate}</p>}
@@ -227,29 +352,148 @@ export function SimpleTripForm() {
                   errors.endDate && "border-red-500"
                 )}
               >
-                {endDate ? format(endDate, "PPP") : <span>Pick a date</span>}
+                {endDate ? format(endDate, "PPP p") : <span>Pick a date</span>}
                 <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={endDate}
-                onSelect={(date) => {
-                  if (date) {
-                    // Create a noon UTC date to avoid timezone issues
-                    const dateStr = `${format(date, 'yyyy-MM-dd')}T12:00:00Z`;
-                    setEndDate(new Date(dateStr));
-                  } else {
-                    setEndDate(undefined);
-                  }
-                }}
-                disabled={(date) => 
-                  date < new Date() || 
-                  (startDate ? date < startDate : false)
-                }
-                initialFocus
-              />
+              <div className="p-2">
+                <Calendar
+                  mode="single"
+                  selected={endDate}
+                  onSelect={(date) => {
+                    if (date) {
+                      // Keep the existing time if there's already a date selected
+                      // otherwise set to current time + 2 hours rounded to nearest 15 min
+                      const newDate = new Date(date);
+                      if (endDate) {
+                        const currentDate = new Date(endDate);
+                        newDate.setHours(currentDate.getHours());
+                        newDate.setMinutes(currentDate.getMinutes());
+                      } else if (startDate) {
+                        // If start date exists, use that time + 1 hour
+                        const startTime = new Date(startDate);
+                        newDate.setHours(startTime.getHours() + 1);
+                        newDate.setMinutes(startTime.getMinutes());
+                      } else {
+                        // Default to current time + 2 hours (rounded to nearest 15 min)
+                        const now = new Date();
+                        const minutes = Math.ceil(now.getMinutes() / 15) * 15;
+                        newDate.setHours(now.getHours() + 2);
+                        newDate.setMinutes(minutes % 60);
+                      }
+                      setEndDate(newDate);
+                      
+                      // Validate the date after setting
+                      const validationTime = getValidationDate();
+                      if (newDate <= validationTime) {
+                        setErrors(prev => ({
+                          ...prev,
+                          endDate: "End date and time must be at least 5 minutes in the future"
+                        }));
+                      } else if (startDate && newDate < startDate) {
+                        setErrors(prev => ({
+                          ...prev,
+                          endDate: "End date cannot be before start date"
+                        }));
+                      } else {
+                        setErrors(prev => {
+                          const newErrors = {...prev};
+                          delete newErrors.endDate;
+                          return newErrors;
+                        });
+                      }
+                    } else {
+                      setEndDate(undefined);
+                    }
+                  }}
+                  disabled={(date) => {
+                    // For dates in the past, disable them
+                    const today = new Date();
+                    return date < new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                  }}
+                  initialFocus
+                />
+                
+                {endDate && (
+                  <div className="mt-4 border-t pt-4 flex flex-col gap-2">
+                    <h4 className="text-sm font-medium">Time</h4>
+                    <div className="flex items-center gap-4">
+                      <select 
+                        className="flex h-10 w-[120px] items-center rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        value={endDate.getHours()}
+                        onChange={(e) => {
+                          const newDate = new Date(endDate);
+                          newDate.setHours(parseInt(e.target.value));
+                          setEndDate(newDate);
+                          
+                          // Trigger validation check
+                          const validationTime = getValidationDate();
+                          if (newDate <= validationTime) {
+                            setErrors(prev => ({
+                              ...prev,
+                              endDate: "End date and time must be at least 5 minutes in the future"
+                            }));
+                          } else if (startDate && newDate < startDate) {
+                            setErrors(prev => ({
+                              ...prev,
+                              endDate: "End date cannot be before start date"
+                            }));
+                          } else {
+                            setErrors(prev => {
+                              const newErrors = {...prev};
+                              delete newErrors.endDate;
+                              return newErrors;
+                            });
+                          }
+                        }}
+                      >
+                        {Array.from({length: 24}).map((_, i) => (
+                          <option key={i} value={i}>
+                            {i === 0 ? '12 AM' : i < 12 ? `${i} AM` : i === 12 ? '12 PM' : `${i - 12} PM`}
+                          </option>
+                        ))}
+                      </select>
+                      <span>:</span>
+                      <select
+                        className="flex h-10 w-[120px] items-center rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        value={endDate.getMinutes()}
+                        onChange={(e) => {
+                          const newDate = new Date(endDate);
+                          newDate.setMinutes(parseInt(e.target.value));
+                          setEndDate(newDate);
+                          
+                          // Trigger validation check
+                          const validationTime = getValidationDate();
+                          if (newDate <= validationTime) {
+                            setErrors(prev => ({
+                              ...prev,
+                              endDate: "End date and time must be at least 5 minutes in the future"
+                            }));
+                          } else if (startDate && newDate < startDate) {
+                            setErrors(prev => ({
+                              ...prev,
+                              endDate: "End date cannot be before start date"
+                            }));
+                          } else {
+                            setErrors(prev => {
+                              const newErrors = {...prev};
+                              delete newErrors.endDate;
+                              return newErrors;
+                            });
+                          }
+                        }}
+                      >
+                        {[0, 15, 30, 45].map((minute) => (
+                          <option key={minute} value={minute}>
+                            {minute.toString().padStart(2, '0')}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                )}
+              </div>
             </PopoverContent>
           </Popover>
           {errors.endDate && <p className="text-red-500 text-sm">{errors.endDate}</p>}
