@@ -295,7 +295,7 @@ export default function GroupDetailsPage() {
     addMemberMutation.mutate(values);
   };
   
-  const onInviteUserSubmit = (values: InviteUserValues) => {
+  const onInviteUserSubmit = async (values: InviteUserValues) => {
     console.log("Invite form submitted with values:", values);
     
     // Phone validation - ensure it's exactly 10 digits if provided
@@ -316,8 +316,41 @@ export default function GroupDetailsPage() {
       phoneNumber: phoneNumber
     };
     
-    console.log("Calling inviteUserMutation with:", updatedValues);
-    inviteUserMutation.mutate(updatedValues);
+    try {
+      // Directly make the API call here to troubleshoot the issue
+      console.log(`DIRECT API CALL: Making request to /api/groups/${groupId}/invite with:`, updatedValues);
+      
+      const response = await fetch(`/api/groups/${groupId}/invite`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(updatedValues),
+        credentials: 'include'
+      });
+      
+      console.log("DIRECT API response status:", response.status);
+      console.log("DIRECT API response statusText:", response.statusText);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("DIRECT API error response:", errorText);
+        throw new Error(`Server error: ${response.statusText} - ${errorText}`);
+      }
+      
+      const responseData = await response.json();
+      console.log("DIRECT API response data:", responseData);
+      
+      // If we reach here, call the mutation for proper handling
+      inviteUserMutation.mutate(updatedValues);
+    } catch (error) {
+      console.error("DIRECT API call failed:", error);
+      toast({
+        title: "Invitation Failed",
+        description: error instanceof Error ? error.message : "Unknown error occurred",
+        variant: "destructive",
+      });
+    }
   };
 
   if (isLoadingGroup) {
@@ -495,11 +528,32 @@ export default function GroupDetailsPage() {
                       <Form {...inviteUserForm}>
                         <form 
                           onSubmit={(e) => {
+                            e.preventDefault();
                             console.log("Form submit event fired");
-                            inviteUserForm.handleSubmit((data) => {
-                              console.log("Form validated successfully with data:", data);
-                              onInviteUserSubmit(data);
-                            })(e);
+                            // Extract values directly to ensure we have the most current data
+                            const formData = {
+                              email: inviteUserForm.getValues("email"),
+                              phoneNumber: inviteUserForm.getValues("phoneNumber"),
+                              role: inviteUserForm.getValues("role")
+                            };
+                            console.log("Form data extracted directly:", formData);
+                            
+                            // Validate the form data manually
+                            try {
+                              const result = inviteUserSchema.parse(formData);
+                              console.log("Manual validation passed:", result);
+                              onInviteUserSubmit(result);
+                            } catch (error) {
+                              console.error("Manual validation error:", error);
+                              // Show validation errors
+                              if (error instanceof z.ZodError) {
+                                error.errors.forEach(err => {
+                                  inviteUserForm.setError(err.path[0].toString() as any, {
+                                    message: err.message
+                                  });
+                                });
+                              }
+                            }
                           }} 
                           className="space-y-4">
                           <div className="space-y-2">
