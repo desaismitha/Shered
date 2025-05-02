@@ -1011,7 +1011,11 @@ export class DatabaseStorage implements IStorage {
         .where(eq(tripCheckIns.tripId, tripId));
       
       console.log(`[STORAGE] Found ${checkIns.length} check-in statuses`);
-      return checkIns;
+      // Filter out null statuses and provide default for type safety
+      return checkIns.map(checkIn => ({
+        userId: checkIn.userId,
+        status: checkIn.status || 'unknown'
+      }));
     });
   }
 }

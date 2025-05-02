@@ -724,6 +724,7 @@ export default function TripDetailsPage() {
                 <TabsTrigger value="expenses">Expenses</TabsTrigger>
                 <TabsTrigger value="vehicles">Vehicles</TabsTrigger>
                 <TabsTrigger value="drivers">Drivers</TabsTrigger>
+                <TabsTrigger value="check-in">Check-In</TabsTrigger>
               </TabsList>
               
               {/* Trip Info tab */}
@@ -1051,6 +1052,23 @@ export default function TripDetailsPage() {
                     )}
                   </CardContent>
                 </Card>
+              </TabsContent>
+              
+              {/* Check-In tab */}
+              <TabsContent value="check-in">
+                <TripCheckIn
+                  tripId={tripId}
+                  accessLevel={trip._accessLevel as 'owner' | 'member'}
+                  groupMembers={users?.filter(u => {
+                    // Find this user in group members
+                    if (!groupMembers) return false;
+                    return groupMembers.some(gm => gm.userId === u.id);
+                  }).map(u => ({
+                    id: u.id,
+                    username: u.username,
+                    displayName: u.displayName
+                  })) || []}
+                />
               </TabsContent>
             </Tabs>
           </div>
