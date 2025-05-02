@@ -1071,6 +1071,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           endDateParsed: endDate ? endDate.toISOString() : null
         });
         
+        // Get existing trip to check if we're editing a trip that has already started
+        const existingTrip = await storage.getTrip(tripId);
+        if (!existingTrip) {
+          return res.status(404).json({ error: "Trip not found" });
+        }
+        
+        console.log("[TRIP_EDIT] Existing trip dates:", {
+          tripId,
+          startDate: existingTrip.startDate,
+          endDate: existingTrip.endDate
+        });
+        
         // Validate dates only if they were provided in the update
         if (startDate) {
           if (isNaN(startDate.getTime())) {
@@ -1080,7 +1092,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
             });
           }
           
-          if (startDate <= validationTime) {
+          // For editing existing trips, we'll be more relaxed with date validation:
+          // 1. If the trip has already started (existing start date is in the past),
+          //    we don't validate whether the new date is in the future
+          // 2. If the trip hasn't started yet, we enforce the 5 minute future rule
+          const existingStartDate = new Date(existingTrip.startDate);
+          const tripAlreadyStarted = existingStartDate <= now;
+          
+          if (!tripAlreadyStarted && startDate <= validationTime) {
+            console.log("[TRIP_EDIT] Start date validation failed: date not in future");
             return res.status(400).json({
               error: "Invalid start date",
               details: "Start date must be at least 5 minutes in the future"
@@ -1096,7 +1116,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
             });
           }
           
-          if (endDate <= validationTime) {
+          // For editing the end date, we'll allow setting it to a past date only if 
+          // the trip has already started
+          const existingStartDate = new Date(existingTrip.startDate);
+          const tripAlreadyStarted = existingStartDate <= now;
+          
+          if (!tripAlreadyStarted && endDate <= validationTime) {
+            console.log("[TRIP_EDIT] End date validation failed: date not in future");
             return res.status(400).json({
               error: "Invalid end date",
               details: "End date must be at least 5 minutes in the future"
@@ -1106,6 +1132,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // If both dates are provided, we can check their relationship
         if (startDate && endDate && endDate < startDate) {
+          console.log("[TRIP_EDIT] Date validation failed: end date before start date");
           return res.status(400).json({
             error: "Invalid date range",
             details: "End date cannot be before start date"
@@ -1114,15 +1141,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // If only one date is provided, we need to check against the existing trip
         if ((startDate && !endDate) || (!startDate && endDate)) {
-          // Fetch the current trip to get the other date
-          const trip = await storage.getTrip(tripId);
-          if (!trip) {
-            return res.status(404).json({ error: "Trip not found" });
-          }
-          
           // Now we have both dates to compare
-          const fullStartDate = startDate || new Date(trip.startDate);
-          const fullEndDate = endDate || new Date(trip.endDate);
+          const fullStartDate = startDate || new Date(existingTrip.startDate);
+          const fullEndDate = endDate || new Date(existingTrip.endDate);
           
           console.log("[TRIP_EDIT] Comparing dates:", {
             startDate: fullStartDate.toISOString(),
@@ -1131,6 +1152,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
           
           if (fullEndDate < fullStartDate) {
+            console.log("[TRIP_EDIT] Date validation failed: derived end date before start date");
             return res.status(400).json({
               error: "Invalid date range",
               details: "End date cannot be before start date"
