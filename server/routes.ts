@@ -923,7 +923,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // STEP 3: For trip creation, use relaxed validation for dates
       // Allow current time for trips to start immediately
       // Use the buffer time to allow for slight delays in form submission
-      if (startDate < bufferTime) {
+      
+      // Special handling for same-day trips - check if the startDate is today
+      const startDay = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const isStartingToday = startDay.getTime() === today.getTime();
+      
+      // If the trip is starting today, allow it even if the exact time is in the past
+      // This handles the case where the form was loaded at one time, but submitted later
+      if (startDate < bufferTime && !isStartingToday) {
         console.log("[DATE CHECK FAILED] Start date is in the past:", 
                     `start: ${startDate.toISOString()}, buffer: ${bufferTime.toISOString()}`);
         return res.status(400).json({
@@ -932,14 +940,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      // If the trip is starting today and the time is in the past, update it to now + 1 min
+      if (isStartingToday && startDate < now) {
+        console.log("[DATE CHECK] Adjusting today's start time to now:", 
+                   `original: ${startDate.toISOString()}, adjusted: ${new Date(now.getTime() + 60000).toISOString()}`);
+        startDate = new Date(now.getTime() + 60000); // Set to 1 minute from now
+      }
+      
       // STEP 4: Validate end date is not in the past
-      if (endDate < bufferTime) {
+      if (endDate < bufferTime && !isStartingToday) {
         console.log("[DATE CHECK FAILED] End date is in the past:", 
                     `end: ${endDate.toISOString()}, buffer: ${bufferTime.toISOString()}`);
         return res.status(400).json({
           error: "Invalid end date",
           details: "End date cannot be in the past"
         });
+      }
+      
+      // If the trip is starting today and the end time is in the past, update it
+      // End date should be at least after the start date
+      if (isStartingToday && endDate < now) {
+        // Make sure end date is after start date
+        const newEndDate = new Date(Math.max(startDate.getTime() + 3600000, now.getTime() + 3600000)); // 1 hour later than start or now
+        console.log("[DATE CHECK] Adjusting today's end time:", 
+                   `original: ${endDate.toISOString()}, adjusted: ${newEndDate.toISOString()}`);
+        endDate = newEndDate;
       }
       
       // STEP 5: Validate end date is not before start date
