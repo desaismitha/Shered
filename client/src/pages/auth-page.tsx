@@ -74,6 +74,18 @@ export default function AuthPage() {
   const inviteEmail = searchParams.get('email');
   const inviteMode = searchParams.get('mode');
   
+  // Debug log invitation parameters
+  useEffect(() => {
+    console.log('Auth page invitation parameters:', {
+      token: inviteToken,
+      groupId: inviteGroupId,
+      email: inviteEmail,
+      mode: inviteMode,
+      fullUrl: window.location.href,
+      urlSearchParams: window.location.search
+    });
+  }, [inviteToken, inviteGroupId, inviteEmail, inviteMode]);
+  
   // If we have invite params, default to register tab
   useEffect(() => {
     if (inviteEmail || inviteToken || inviteMode === 'register') {

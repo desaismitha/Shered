@@ -102,6 +102,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         // Remove confirmPassword before sending to API
         const { confirmPassword, ...userToRegister } = credentials;
+        console.log('Register mutation with data:', JSON.stringify(userToRegister, null, 2));
+        
+        // Log invitation data if present
+        if (userToRegister.invitation) {
+          console.log('Invitation data included in registration:', 
+            JSON.stringify(userToRegister.invitation, null, 2));
+        }
+        
         const res = await apiRequest("POST", "/api/register", userToRegister);
         return await res.json();
       } catch (error) {

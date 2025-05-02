@@ -8,6 +8,11 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 app.use((req, res, next) => {
+  // Log all request paths and queries for debugging
+  if (req.path.startsWith('/auth') || req.path.startsWith('/api/login') || req.path.startsWith('/api/register')) {
+    console.log(`[AUTH-DEBUG] ${req.method} ${req.path}${req.query ? ' Query: ' + JSON.stringify(req.query) : ''}`);
+  }
+  
   const start = Date.now();
   const path = req.path;
   let capturedJsonResponse: Record<string, any> | undefined = undefined;

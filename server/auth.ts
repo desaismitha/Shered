@@ -222,7 +222,13 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/login", (req, res, next) => {
-    console.log("Login request received with body:", req.body);
+    console.log("Login request received with body:", JSON.stringify(req.body, null, 2));
+    // Specifically check the invitation data structure
+    if (req.body.invitation) {
+      console.log("Invitation data received:", JSON.stringify(req.body.invitation, null, 2));
+    } else {
+      console.log("No invitation data in login request");
+    }
     passport.authenticate("local", async (err: any, user: SelectUser | false, info: any) => {
       if (err) {
         console.log("Login authentication error:", err);
