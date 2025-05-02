@@ -91,8 +91,13 @@ export default function AuthPage() {
     if (inviteEmail || inviteToken || inviteMode === 'register') {
       setActiveTab("register");
       console.log("Detected invitation params, switching to register tab");
+      console.log("Invitiation data to use:", {
+        token: inviteToken,
+        groupId: inviteGroupId,
+        email: inviteEmail
+      });
     }
-  }, [inviteEmail, inviteToken, inviteMode]);
+  }, [inviteEmail, inviteToken, inviteMode, inviteGroupId]);
   
   // Register form with pre-filled email if coming from invitation
   const registerForm = useForm<RegisterValues>({
@@ -134,11 +139,17 @@ export default function AuthPage() {
     
     console.log("Login with invitation data:", invitationData);
     
-    loginMutation.mutate({
+    // Create the complete login data
+    const fullLoginData = {
       ...values,
       // Add invitation data if we have it
       ...(Object.keys(invitationData).length > 0 ? { invitation: invitationData } : {})
-    }, {
+    };
+    
+    // Log the complete data being sent to the server for debugging
+    console.log("Complete login data being sent to server:", fullLoginData);
+    
+    loginMutation.mutate(fullLoginData, {
       onError: (error) => {
         console.log('Login error in component:', error);
       }
@@ -156,15 +167,21 @@ export default function AuthPage() {
     
     console.log("Registering with invitation data:", invitationData);
     
-    // Need to pass the full data object due to type requirements
-    registerMutation.mutate({
+    // Create the complete registration data
+    const fullRegistrationData = {
       ...registerData,
       // Use email as the username
       username: values.email,
       confirmPassword: values.confirmPassword,
       // Add invitation data if we have it
       ...(Object.keys(invitationData).length > 0 ? { invitation: invitationData } : {})
-    }, {
+    };
+    
+    // Log the complete data being sent to the server for debugging
+    console.log("Complete registration data being sent to server:", fullRegistrationData);
+    
+    // Need to pass the full data object due to type requirements
+    registerMutation.mutate(fullRegistrationData, {
       onError: (error) => {
         console.log('Registration error in component:', error);
       },

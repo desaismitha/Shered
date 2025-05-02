@@ -105,6 +105,15 @@ export function setupAuth(app: Express) {
 
   app.post("/api/register", async (req, res, next) => {
     try {
+      console.log("Registration request received with body:", JSON.stringify(req.body, null, 2));
+      
+      // Check for invitation data
+      if (req.body.invitation) {
+        console.log("Invitation data in registration:", JSON.stringify(req.body.invitation, null, 2));
+      } else {
+        console.log("No invitation data in registration request");
+      }
+      
       // Set username to email value if not explicitly provided
       if (!req.body.username) {
         req.body.username = req.body.email;
