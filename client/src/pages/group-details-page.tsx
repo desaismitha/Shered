@@ -493,7 +493,15 @@ export default function GroupDetailsPage() {
                       </Form>
                     ) : (
                       <Form {...inviteUserForm}>
-                        <form onSubmit={inviteUserForm.handleSubmit(onInviteUserSubmit)} className="space-y-4">
+                        <form 
+                          onSubmit={(e) => {
+                            console.log("Form submit event fired");
+                            inviteUserForm.handleSubmit((data) => {
+                              console.log("Form validated successfully with data:", data);
+                              onInviteUserSubmit(data);
+                            })(e);
+                          }} 
+                          className="space-y-4">
                           <div className="space-y-2">
                             <label className="text-sm font-medium" htmlFor="invite-email">
                               Email Address
@@ -596,8 +604,19 @@ export default function GroupDetailsPage() {
                               Cancel
                             </Button>
                             <Button 
-                              type="submit" 
+                              type="button" 
                               disabled={inviteUserMutation.isPending}
+                              onClick={(e) => {
+                                console.log("Send Invitation button clicked");
+                                // Use a normal submit to trigger the onSubmit handler
+                                const form = e.currentTarget.closest('form');
+                                if (form) {
+                                  console.log("Form found, submitting");
+                                  form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+                                } else {
+                                  console.error("Form not found");
+                                }
+                              }}
                             >
                               {inviteUserMutation.isPending ? "Sending..." : "Send Invitation"}
                             </Button>

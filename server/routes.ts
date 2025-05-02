@@ -817,23 +817,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Invite new user to group by email/phone
   app.post("/api/groups/:id/invite", async (req, res, next) => {
+    console.log("[INVITE] Received invitation request:", {
+      endpoint: `/api/groups/${req.params.id}/invite`,
+      method: "POST",
+      body: req.body,
+      user: req.user?.id,
+      headers: req.headers
+    });
+    
     try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
+      if (!req.isAuthenticated()) {
+        console.log("[INVITE] Rejecting - User not authenticated");
+        return res.sendStatus(401);
+      }
       
       const groupId = parseInt(req.params.id);
       const group = await storage.getGroup(groupId);
       
       if (!group) {
+        console.log(`[INVITE] Rejecting - Group ${groupId} not found`);
         return res.status(404).json({ message: "Group not found" });
       }
       
       // Check if user is an admin of the group
       const members = await storage.getGroupMembers(groupId);
+      console.log(`[INVITE] Group ${groupId} members:`, members);
+      
       const isAdmin = members.some(
         member => member.userId === req.user.id && member.role === "admin"
       );
       
+      console.log(`[INVITE] User ${req.user.id} admin status for group ${groupId}:`, isAdmin);
+      
       if (!isAdmin) {
+        console.log(`[INVITE] Rejecting - User ${req.user.id} is not an admin of group ${groupId}`);
         return res.status(403).json({ message: "Only group admins can invite members" });
       }
       
@@ -844,10 +861,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         role: z.enum(["member", "admin"]).default("member"),
       });
       
-      const validatedData = inviteSchema.parse(req.body);
+      console.log("[INVITE] Validating request body:", req.body);
       
-      // Generate a unique token for this invitation
-      const token = crypto.randomBytes(32).toString('hex');
+      try {
+        const validatedData = inviteSchema.parse(req.body);
+        console.log("[INVITE] Request data validation passed:", validatedData);
+      
+        // Generate a unique token for this invitation
+        const token = crypto.randomBytes(32).toString('hex');
       
       // In a production app, we would store this token in the database
       // For now, we'll just send the email with a registration link that includes the token
@@ -892,10 +913,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         token,
         emailSent: true
       });
-    } catch (err) {
-      console.error("Error sending invitation:", err);
-      next(err);
+    } catch (validationError) {
+      console.error("[INVITE] Validation error:", validationError);
+      
+      if (validationError instanceof z.ZodError) {
+        return res.status(400).json({
+          error: "Validation error",
+          details: validationError.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ')
+        });
+      }
+      
+      throw validationError;
     }
+  } catch (err) {
+    console.error("Error sending invitation:", err);
+    next(err);
+  }
   });
 
   // Trips
