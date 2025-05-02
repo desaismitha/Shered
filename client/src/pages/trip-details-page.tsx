@@ -77,6 +77,7 @@ import { ExpenseForm } from "@/components/expenses/expense-form";
 import { TripVehicleList } from "@/components/vehicles/trip-vehicle-list";
 import { DriverInfoSection } from "@/components/user/driver-info-section";
 import { TripDriverAssignment } from "@/components/user/trip-driver-assignment";
+import { TripCheckIn } from "@/components/trips/trip-check-in";
 import { useToast } from "@/hooks/use-toast";
 
 // Extended Trip type with access level and location data

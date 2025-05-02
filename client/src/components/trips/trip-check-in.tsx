@@ -49,13 +49,17 @@ export function TripCheckIn({ tripId, accessLevel = 'member', groupMembers = [] 
   const { data: myCheckIn, isLoading: isLoadingMyCheckIn } = useQuery<TripCheckInType>({
     queryKey: [`/api/trips/${tripId}/check-ins/user/${user?.id}`],
     enabled: !!tripId && !!user?.id,
-    onSuccess: (data) => {
-      if (data) {
-        setStatus(data.status || 'ready');
-        setNotes(data.notes || '');
-      }
-    }
+    // Use the onSuccess callback from the component to update state
+    refetchOnWindowFocus: false,
   });
+  
+  // Update status and notes when myCheckIn data changes
+  useEffect(() => {
+    if (myCheckIn) {
+      setStatus(myCheckIn.status || 'ready');
+      setNotes(myCheckIn.notes || '');
+    }
+  }, [myCheckIn]);
 
   // Create or update check-in
   const checkInMutation = useMutation({
