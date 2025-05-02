@@ -912,14 +912,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         validationTime: validationTime.toISOString(),
       });
       console.log("Validation results:", {
-        isStartInFuture: startDate > validationTime,
-        isEndInFuture: endDate > validationTime,
+        isStartInPast: startDate < now,
+        isEndInPast: endDate < now,
         isEndAfterStart: endDate >= startDate
       });
       
+      // Add a small buffer (10 seconds) to account for network delays and server processing time
+      const bufferTime = new Date(now.getTime() - 10 * 1000); // 10 seconds in the past
+      
       // STEP 3: For trip creation, use relaxed validation for dates
       // Allow current time for trips to start immediately
-      if (startDate < now) {
+      // Use the buffer time to allow for slight delays in form submission
+      if (startDate < bufferTime) {
+        console.log("[DATE CHECK FAILED] Start date is in the past:", 
+                    `start: ${startDate.toISOString()}, buffer: ${bufferTime.toISOString()}`);
         return res.status(400).json({
           error: "Invalid start date",
           details: "Start date cannot be in the past"
@@ -927,7 +933,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // STEP 4: Validate end date is not in the past
-      if (endDate < now) {
+      if (endDate < bufferTime) {
+        console.log("[DATE CHECK FAILED] End date is in the past:", 
+                    `end: ${endDate.toISOString()}, buffer: ${bufferTime.toISOString()}`);
         return res.status(400).json({
           error: "Invalid end date",
           details: "End date cannot be in the past"
