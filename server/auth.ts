@@ -222,11 +222,17 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/login", (req, res, next) => {
+    console.log("Login request received with body:", req.body);
     passport.authenticate("local", async (err: any, user: SelectUser | false, info: any) => {
-      if (err) return next(err);
+      if (err) {
+        console.log("Login authentication error:", err);
+        return next(err);
+      }
       if (!user) {
+        console.log("Login failed - invalid credentials");
         return res.status(401).json({ message: "The username/email or password you entered is incorrect. Please try again." });
       }
+      console.log("User authenticated successfully:", { id: user.id, username: user.username });
       
       // Handle group invitation if present in the request
       if (req.body.invitation && req.body.invitation.token && req.body.invitation.groupId) {
