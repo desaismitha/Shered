@@ -111,13 +111,24 @@ export default function EditTripPage() {
       // Set the startLocation state for the RouteMapPreview
       setStartLocation(trip.startLocation || "");
       
+      // Make sure to properly normalize dates to prevent timezone issues
+      const normalizedStartDate = trip.startDate ? new Date(trip.startDate) : new Date();
+      const normalizedEndDate = trip.endDate ? new Date(trip.endDate) : new Date();
+      
+      console.log("Normalizing dates:", {
+        originalStart: trip.startDate,
+        originalEnd: trip.endDate,
+        normalizedStart: normalizedStartDate,
+        normalizedEnd: normalizedEndDate
+      });
+      
       form.reset({
         id: trip.id,
         name: trip.name,
         startLocation: trip.startLocation || "",
         destination: trip.destination || "",
-        startDate: new Date(trip.startDate),
-        endDate: new Date(trip.endDate),
+        startDate: normalizedStartDate,
+        endDate: normalizedEndDate,
         description: trip.description || "",
         imageUrl: trip.imageUrl || "",
         status: trip.status || "planning",
@@ -133,17 +144,28 @@ export default function EditTripPage() {
       console.log(`MUTATION - Preparing to update trip ${tripId}`);
       console.log("MUTATION - Raw values:", values);
       
-      // Step 2: Simplify the payload - only include essential fields
+      // Step 2: Simplify the payload and properly normalize dates
+      const startDate = values.startDate instanceof Date 
+        ? values.startDate 
+        : new Date(values.startDate);
+      
+      const endDate = values.endDate instanceof Date 
+        ? values.endDate 
+        : new Date(values.endDate);
+        
+      console.log("Date values before conversion:", {
+        rawStartDate: values.startDate,
+        rawEndDate: values.endDate,
+        processedStartDate: startDate,
+        processedEndDate: endDate
+      });
+      
       const payload = {
         name: values.name,
         startLocation: values.startLocation,
         destination: values.destination,
-        startDate: values.startDate instanceof Date 
-          ? values.startDate.toISOString() 
-          : new Date(values.startDate).toISOString(),
-        endDate: values.endDate instanceof Date 
-          ? values.endDate.toISOString() 
-          : new Date(values.endDate).toISOString(),
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
         status: values.status,
         groupId: values.groupId,
         description: values.description || "",
@@ -388,8 +410,8 @@ export default function EditTripPage() {
                         <h3 className="text-sm font-medium">Route Map Preview</h3>
                       </div>
                       <RouteMapPreview 
-                        startLocation={form.watch('startLocation')}
-                        endLocation={form.watch('destination')}
+                        startLocation={form.watch('startLocation') || ''}
+                        endLocation={form.watch('destination') || ''}
                         showMap={true}
                         onToggleMap={() => {}} // Always showing the map
                       />

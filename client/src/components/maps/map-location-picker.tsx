@@ -335,7 +335,7 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
       {value && (
         <div className="text-sm text-muted-foreground mt-1">
           <p className="truncate">
-            <span className="font-medium">Selected:</span> {value.replace(/\[.*\]/, '')}
+            <span className="font-medium">Selected:</span> {value.replace(/\[.*\]/, '').trim()}
           </p>
         </div>
       )}
