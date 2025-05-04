@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useQuery } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
 import { ChevronDown, ChevronUp, Plus, MapPin, Clock, Trash2, ArrowRight, Repeat } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -129,6 +130,7 @@ export function UnifiedTripForm({
   isLoading = false,
   isEditing = false 
 }: UnifiedTripFormProps) {
+  const [, navigate] = useLocation();
   // Query for groups
   const { data: groups } = useQuery<Group[]>({
     queryKey: ["/api/groups"],
@@ -877,8 +879,8 @@ export function UnifiedTripForm({
                     onSubmit(cancelData);
                     console.log('Trip cancelled successfully');
                     
-                    // Use history navigation without full page reload
-                    window.location.replace('/trips');
+                    // Use React Router for navigation
+                    navigate('/trips');
                   } catch (err) {
                     console.error('Error in cancel submit:', err);
                   }
@@ -910,9 +912,9 @@ export function UnifiedTripForm({
                     }
                   }
                   
-                  // Use history navigation without full page reload
-                  console.log('Using replace for smoother navigation to /trips');
-                  window.location.replace('/trips');
+                  // Use React Router for navigation
+                  console.log('Using React Router navigation to /trips');
+                  navigate('/trips');
                 } else {
                   console.log('User cancelled discard');
                 }
@@ -957,7 +959,7 @@ export function UnifiedTripForm({
                   // Navigate smoothly without confirmation in production
                   // Remove the confirmation dialog once testing is complete
                   if (window.confirm('Save successful. Return to trips list?')) {
-                    window.location.replace('/trips');
+                    navigate('/trips');
                   }
                 } catch (err) {
                   console.error('Error in form submission:', err);
