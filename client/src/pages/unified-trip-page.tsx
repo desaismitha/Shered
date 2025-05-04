@@ -108,8 +108,11 @@ export default function UnifiedTripPage() {
     }
   };
   
+  // Define extended Trip type with _accessLevel
+  type ExtendedTrip = Trip & { _accessLevel?: 'owner' | 'member'; startLocationDisplay?: string; destinationDisplay?: string; };
+
   // Query for existing trip if editing
-  const { data: tripData, isLoading: isLoadingTrip } = useQuery<Trip>({
+  const { data: tripData, isLoading: isLoadingTrip } = useQuery<ExtendedTrip>({
     queryKey: tripId ? ["/api/trips", parseInt(tripId)] : (["/api/trips", "no-id"] as const),
     enabled: !!tripId,
   });
