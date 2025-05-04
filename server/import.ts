@@ -93,10 +93,10 @@ export function setupImportRoutes(app: Express) {
 
   // Endpoint to download template
   app.get('/api/groups/import/template', (req: Request, res: Response) => {
-    // In a real implementation, this would generate and serve an Excel template
-    // For now, just return a JSON example of the expected format
+    // Simplified template as JSON for now
     res.setHeader('Content-Type', 'application/json');
-    res.setHeader('Content-Disposition', 'attachment; filename="member_import_template.json"');
+    res.setHeader('Content-Disposition', 'attachment; filename=travelgroupr_member_import_template.json');
+    
     res.json([
       {
         email: 'member1@example.com',
@@ -112,7 +112,7 @@ export function setupImportRoutes(app: Express) {
         email: 'member2@example.com',
         displayName: 'Member Two',
         phoneNumber: '987-654-3210',
-        role: 'member',
+        role: 'admin',
         licenseNumber: '',
         licenseState: '',
         licenseExpiry: '',
@@ -226,10 +226,10 @@ async function processMemberImports(groupId: number, members: ImportMemberData[]
           try {
             await sendGroupInvitation(
               user.email,
-              user.username,
               group.name,
-              groupId.toString(),
-              user.id.toString()
+              user.username, // inviterName
+              `${req.protocol}://${req.get('host')}/groups/${groupId}`, // inviteLink
+              true // isExistingUser
             );
           } catch (emailError) {
             console.error('Failed to send invitation email:', emailError);
