@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Trip, ItineraryItem } from "@shared/schema";
 import { TripCheckIn } from "@/components/trips/trip-check-in";
+import { TripCheckInStatus } from "@/components/trips/trip-check-in-status";
 
 // Helper function to safely parse JSON strings or return a default value
 function tryParseJSON(jsonString: string | null | undefined | any[], defaultValue: any = []) {
