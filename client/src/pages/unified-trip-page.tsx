@@ -5,6 +5,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { Button } from "@/components/ui/button";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import * as React from "react";
 import { useState, useEffect, useMemo } from "react";
 import { Loader2, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -166,10 +167,36 @@ export default function UnifiedTripPage() {
   });
   
   // Query for group members if the trip belongs to a group
-  const { data: groupMembers } = useQuery<{id: number; username: string; displayName: string}[]>({
-    queryKey: tripData?.groupId ? ["/api/groups", tripData.groupId, "members"] : ["/api/no-group-members"],
+  const { data: groupMembersData } = useQuery({
+    queryKey: [`/api/groups/${tripData?.groupId}/members`],
     enabled: !!tripData?.groupId,
   });
+  
+  // Query for all users to get user information
+  const { data: users } = useQuery({
+    queryKey: [`/api/users`],
+    enabled: !!tripData?.groupId,
+  });
+  
+  // Create properly formatted group members data, with userId property
+  const groupMembers = React.useMemo(() => {
+    if (!groupMembersData || !users) return [];
+    
+    // Map group member IDs to user information
+    const membersList = Array.isArray(groupMembersData) 
+      ? groupMembersData.map(member => {
+          const user = Array.isArray(users) ? users.find(u => u.id === member.userId) : null;
+          return user ? {
+            id: member.id,
+            userId: member.userId,
+            username: user.username,
+            displayName: user.displayName || user.username
+          } : null;
+        }).filter(Boolean)
+      : [];
+    
+    return membersList;
+  }, [groupMembersData, users]);
   
   // Mutation for creating/updating trips
   const mutation = useMutation({
@@ -409,64 +436,47 @@ export default function UnifiedTripPage() {
                    ? data.stops[data.stops.length - 1].endLocation 
                    : (data.endLocation || tripData?.destination || "Unknown location"),
         groupId: data.groupId,
-        isMultiStop: true,
         isRecurring: data.isRecurring || false,
         recurrencePattern: data.recurrencePattern || null,
-        // Update itinerary items separately via API
-        itineraryItems: hasValidStops ? data.stops.map((stop: any) => {
-          console.log(`Processing stop in submit: ${stop.title}, startLoc: ${stop.startLocation}, endLoc: ${stop.endLocation}`);
-          
-          // Create the base item data
-          const itemData = {
-            day: stop.day || 1, // Ensure day is never undefined
-            title: stop.title || "",
-            description: stop.description || "",
-            fromLocation: stop.startLocation || tripData?.startLocation || "Unknown location", // Never allow empty locations
-            toLocation: stop.endLocation || tripData?.destination || "Unknown location",     // Never allow empty locations
-            startTime: stop.startTime || "",
-            endTime: stop.endTime || "",
-            isRecurring: false, // Multi-stop trips don't support recurrence per stop
-            recurrencePattern: null,
-            recurrenceDays: null,
-          };
-          
-          // IMPORTANT: If this stop has an id, make sure it's parsed as a number
-          // This ensures the server type-checks properly when comparing IDs
-          if (stop.id) {
-            console.log(`Including existing itinerary item ID: ${stop.id} (type: ${typeof stop.id})`);
-            const numericId = typeof stop.id === 'string' ? parseInt(stop.id) : stop.id;
-            console.log(`Converted ID type: ${typeof numericId}, value: ${numericId}`);
-            return {
-              ...itemData,
-              id: numericId
-            };
-          }
-          
-          return itemData;
-        }) : (itineraryItems || []),
+        // Convert the stops data to itinerary items
+        itineraryItems: hasValidStops 
+          ? data.stops.map((stop: any) => {
+              const itemData = {
+                day: stop.day || 1, // Ensure day is never undefined
+                title: stop.title || "",
+                description: stop.description || "",
+                fromLocation: stop.startLocation || data.startLocation || "", // Use stop's start location or trip's start location
+                toLocation: stop.endLocation || data.endLocation || "", // Use stop's end location or trip's end location
+                startTime: stop.startTime || "",
+                endTime: stop.endTime || "",
+                isRecurring: stop.isRecurring || false,
+                recurrencePattern: stop.recurrencePattern || null,
+                recurrenceDays: stop.recurrenceDays?.length ? JSON.stringify(stop.recurrenceDays) : null,
+              };
+              
+              // If we have an ID, add it to update the existing item instead of creating a new one
+              if (stop.id) {
+                return { id: stop.id, ...itemData };
+              }
+              
+              return itemData;
+            }) 
+          : []
       };
       
-      // Explicitly add ID for trip updates
-      if (tripId) {
-        (tripUpdateData as any).id = parseInt(tripId);
-      }
-      
-      console.log("Final multi-stop trip update data:", JSON.stringify(tripUpdateData));
+      console.log("Multi-trip update data:", JSON.stringify(tripUpdateData));
       mutation.mutate(tripUpdateData);
     } else {
-      // For single-stop trips, we create:
-      // 1. A trip record with the basic trip info
-      // 2. A single itinerary item for the start/end locations
+      // For single-stop trips, create a single itinerary item
       const singleTripData = {
         name: data.name,
         description: data.description,
         startDate: data.startDate,
         endDate: data.endDate,
-        status: data.status,
-        startLocation: data.startLocation || "Unknown location",
-        destination: data.endLocation || "Unknown location", // Map endLocation from form to destination for DB
+        startLocation: data.startLocation,
+        destination: data.endLocation,
         groupId: data.groupId,
-        isMultiStop: false,
+        status: data.status,
         isRecurring: data.isRecurring || false,
         recurrencePattern: data.recurrencePattern || null,
         // Create a single itinerary item
@@ -627,7 +637,7 @@ export default function UnifiedTripPage() {
                           tripId={parseInt(tripId)} 
                           accessLevel={tripData?._accessLevel || 'member'} 
                           tripStatus={tripData?.status || 'planning'} 
-                          groupMembers={Array.isArray(groupMembers) ? groupMembers : []}
+                          groupMembers={groupMembers}
                         />
                       </div>
                     </div>
@@ -647,12 +657,27 @@ export default function UnifiedTripPage() {
                       <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                     </div>
                   ) : tripData ? (
-                    <TripCheckIn 
-                      tripId={parseInt(tripId)} 
-                      accessLevel={tripData._accessLevel || 'member'} 
-                      tripStatus={tripData.status || 'planning'}
-                      groupMembers={Array.isArray(groupMembers) ? groupMembers : []}
-                    />
+                    <div className="space-y-6">
+                      {/* Display check-in status */}
+                      <TripCheckInStatus 
+                        tripId={parseInt(tripId)} 
+                        accessLevel={tripData?._accessLevel || 'member'} 
+                        tripStatus={tripData?.status || 'planning'} 
+                        groupMembers={groupMembers}
+                      />
+                      
+                      {/* Display check-in form */}
+                      <TripCheckIn 
+                        tripId={parseInt(tripId)} 
+                        accessLevel={tripData?._accessLevel || 'member'} 
+                        tripStatus={tripData?.status || 'planning'}
+                        groupMembers={groupMembers.map(member => ({
+                          id: member.userId,
+                          username: member.username,
+                          displayName: member.displayName
+                        }))}
+                      />
+                    </div>
                   ) : (
                     <div className="text-center py-8 text-muted-foreground">
                       Trip data not available
