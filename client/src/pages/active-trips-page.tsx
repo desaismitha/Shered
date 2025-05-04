@@ -78,18 +78,9 @@ const CITY_COORDINATES: Record<string, [number, number]> = {
 function extractCoordinates(locationStr: string | null | undefined): { lat: number, lng: number } | null {
   if (!locationStr) return null;
   
-  // Check for exact matches in our city database first
-  const normalizedName = locationStr.toLowerCase().trim();
-  for (const [cityName, coordinates] of Object.entries(CITY_COORDINATES)) {
-    if (normalizedName === cityName || 
-        normalizedName.startsWith(cityName + " ") || 
-        normalizedName.endsWith(" " + cityName) ||
-        normalizedName.includes(" " + cityName + " ")) {
-      return { lat: coordinates[0], lng: coordinates[1] };
-    }
-  }
+  console.log("[DEBUG] Extracting coordinates from:", locationStr);
   
-  // First try the new format with square brackets [lat, lng]
+  // First try the new format with square brackets [lat, lng] - prioritize this over city lookup
   let coordsRegex = /\[(-?\d+\.?\d*),\s*(-?\d+\.?\d*)\]/;
   let match = locationStr.match(coordsRegex);
   
@@ -106,10 +97,24 @@ function extractCoordinates(locationStr: string | null | undefined): { lat: numb
     if (!isNaN(lat) && !isNaN(lng) && 
         lat >= -90 && lat <= 90 && 
         lng >= -180 && lng <= 180) {
+      console.log("[DEBUG] Found embedded coordinates:", lat, lng);
       return { lat, lng };
     }
   }
   
+  // Check for exact matches in our city database if no embedded coordinates found
+  const normalizedName = locationStr.toLowerCase().trim();
+  for (const [cityName, coordinates] of Object.entries(CITY_COORDINATES)) {
+    if (normalizedName === cityName || 
+        normalizedName.startsWith(cityName + " ") || 
+        normalizedName.endsWith(" " + cityName) ||
+        normalizedName.includes(" " + cityName + " ")) {
+      console.log("[DEBUG] Found city coordinates for:", cityName, coordinates);
+      return { lat: coordinates[0], lng: coordinates[1] };
+    }
+  }
+  
+  console.log("[DEBUG] No coordinates found for:", locationStr);
   return null;
 }
 
