@@ -1511,6 +1511,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   app.patch("/api/trips/:id", (req, res, next) => {
     console.log("PATCH /api/trips/:id - Full request body:", JSON.stringify(req.body));
+    // Debug itinerary items specifically
+    if (req.body && req.body.itineraryItems) {
+      console.log(`PATCH request contains ${req.body.itineraryItems.length} itinerary items`);
+      req.body.itineraryItems.forEach((item: any, index: number) => {
+        console.log(`Itinerary item ${index}: fromLoc=${item.fromLocation}, toLoc=${item.toLocation}`);
+      });
+    }
     handleTripUpdate(req, res, next, "PATCH");
   });
 

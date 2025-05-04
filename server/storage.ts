@@ -387,6 +387,11 @@ export class DatabaseStorage implements IStorage {
         if (tripData.imageUrl !== undefined) updateData.imageUrl = tripData.imageUrl;
         if (tripData.status !== undefined) updateData.status = tripData.status;
         if (tripData.groupId !== undefined) updateData.groupId = tripData.groupId;
+        if (tripData.recurrencePattern !== undefined) updateData.recurrencePattern = tripData.recurrencePattern;
+        if (tripData.isRecurring !== undefined) updateData.isRecurring = tripData.isRecurring;
+        if (tripData.notes !== undefined) updateData.notes = tripData.notes;
+        if (tripData.isMultiStop !== undefined) updateData.isMultiStop = tripData.isMultiStop;
+        if (tripData.distanceTraveled !== undefined) updateData.distanceTraveled = tripData.distanceTraveled;
         
         // Convert date strings to Date objects
         // Drizzle requires actual Date objects for timestamp fields
