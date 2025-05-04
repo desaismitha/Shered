@@ -165,6 +165,12 @@ export default function UnifiedTripPage() {
     enabled: !!tripId,
   });
   
+  // Query for group members if the trip belongs to a group
+  const { data: groupMembers } = useQuery<{id: number; username: string; displayName: string}[]>({
+    queryKey: tripData?.groupId ? ["/api/groups", tripData.groupId, "members"] : ["/api/no-group-members"],
+    enabled: !!tripData?.groupId,
+  });
+  
   // Mutation for creating/updating trips
   const mutation = useMutation({
     mutationFn: async (formData: any) => {
@@ -614,6 +620,16 @@ export default function UnifiedTripPage() {
                           <p className="text-muted-foreground">No itinerary items yet</p>
                         )}
                       </div>
+                      
+                      {/* Add member check-in status section */}
+                      <div className="mt-6">
+                        <TripCheckInStatus 
+                          tripId={parseInt(tripId)} 
+                          accessLevel={tripData?._accessLevel || 'member'} 
+                          tripStatus={tripData?.status || 'planning'} 
+                          groupMembers={Array.isArray(groupMembers) ? groupMembers : []}
+                        />
+                      </div>
                     </div>
                   )}
                 </div>
@@ -635,6 +651,7 @@ export default function UnifiedTripPage() {
                       tripId={parseInt(tripId)} 
                       accessLevel={tripData._accessLevel || 'member'} 
                       tripStatus={tripData.status || 'planning'}
+                      groupMembers={Array.isArray(groupMembers) ? groupMembers : []}
                     />
                   ) : (
                     <div className="text-center py-8 text-muted-foreground">
