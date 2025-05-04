@@ -5,7 +5,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { Button } from "@/components/ui/button";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Loader2, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -91,17 +91,39 @@ export default function UnifiedTripPage() {
     const tabParam = searchParams.get('tab');
     const editParam = searchParams.get('edit');
     
+    console.log("URL Parameter parsing:", { 
+      fullLocation: location,
+      searchParamsString: location.split('?')[1] || '',
+      tabParam,
+      editParam
+    });
+    
     // Handle legacy edit=true parameter
     if (editParam === 'true') {
+      console.log("Using legacy edit=true parameter, returning 'form' tab");
       return "form";
     }
     
     // Check if the tab parameter is valid
     const validTabs = ["form", "preview", "check-in"];
-    return validTabs.includes(tabParam || '') ? (tabParam || 'form') : "form";
+    const selectedTab = validTabs.includes(tabParam || '') ? (tabParam || 'form') : "form";
+    console.log("Selected tab from URL parameters:", selectedTab);
+    return selectedTab;
   };
   
-  const [activeTab, setActiveTab] = useState(getDefaultTab());
+  // Run getDefaultTab once on component mount and store result
+  const initialTab = useMemo(() => getDefaultTab(), [location, tripId]);
+  
+  // Use the memoized initialTab value as the default state
+  const [activeTab, setActiveTab] = useState<string>(initialTab);
+  
+  // Update activeTab whenever location or tripId changes
+  useEffect(() => {
+    console.log("Location or trip ID changed, updating active tab");
+    const newTab = getDefaultTab();
+    console.log("Setting active tab to:", newTab);
+    setActiveTab(newTab);
+  }, [location, tripId]);
   
   // Update URL when tab changes
   const handleTabChange = (tab: string) => {
