@@ -294,7 +294,8 @@ export function TripCheckIn({ tripId, accessLevel = 'member', groupMembers = [],
                 {isLoadingStatuses ? (
                   <div className="text-sm text-muted-foreground">Loading statuses...</div>
                 ) : checkInStatuses && checkInStatuses.length > 0 ? (
-                  checkInStatuses.map(checkInStatus => {
+                  /* De-duplicate members by creating a map using userId as key */
+                  Array.from(new Map(checkInStatuses.map(item => [item.userId, item])).values()).map(checkInStatus => {
                     const isCurrentUser = user && checkInStatus.userId === user.id;
                     return (
                       <div 

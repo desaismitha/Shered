@@ -31,6 +31,12 @@ interface TripCheckInStatusProps {
 export function TripCheckInStatus({ tripId, accessLevel = 'member', groupMembers = [], tripStatus = 'planning' }: TripCheckInStatusProps) {
   const { user } = useAuth();
 
+  // Get trip data to check if it has a group
+  const { data: tripData } = useQuery<Trip>({
+    queryKey: [`/api/trips/${tripId}`],
+    enabled: !!tripId
+  });
+  
   // Get all check-in status for the trip
   const { data: checkInStatuses, isLoading: isLoadingStatuses } = useQuery<CheckInStatus[]>({
     queryKey: [`/api/trips/${tripId}/check-in-status`],
@@ -165,7 +171,8 @@ export function TripCheckInStatus({ tripId, accessLevel = 'member', groupMembers
                 <div className="text-sm text-muted-foreground">Loading statuses...</div>
               ) : checkInStatuses && checkInStatuses.length > 0 ? (
                 <div className="grid grid-cols-1 gap-2">
-                  {checkInStatuses.map(checkInStatus => {
+                  {/* De-duplicate members by creating a map using userId as key */}
+                  {Array.from(new Map(checkInStatuses.map(item => [item.userId, item])).values()).map(checkInStatus => {
                     const isCurrentUser = user && checkInStatus.userId === user.id;
                     return (
                       <div 
@@ -201,7 +208,9 @@ export function TripCheckInStatus({ tripId, accessLevel = 'member', groupMembers
                 </div>
               ) : (
                 <div className="text-sm text-muted-foreground p-3 bg-muted rounded-md">
-                  No check-ins recorded yet. Members need to check in for this trip.
+                  {tripData?.groupId ? 
+                    "No check-ins recorded yet. Members need to check in for this trip." :
+                    "This trip doesn't have any group members. Create a group or add this trip to an existing group to enable member check-ins."}
                 </div>
               )}
             </div>
