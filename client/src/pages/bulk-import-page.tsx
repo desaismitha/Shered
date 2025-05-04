@@ -118,14 +118,7 @@ export default function BulkImportPage() {
   };
 
   const handleDownloadTemplate = () => {
-    // In a real implementation, this would download an Excel template
-    // Here we'll just show a toast for demonstration
-    toast({
-      title: 'Template downloaded',
-      description: 'Excel template has been downloaded to your device.',
-    });
-    
-    // This would normally be a request to an endpoint that returns the template file
+    // Request the template file from the server
     window.open('/api/groups/import/template', '_blank');
   };
 

@@ -228,7 +228,7 @@ async function processMemberImports(groupId: number, members: ImportMemberData[]
               user.email,
               group.name,
               user.username, // inviterName
-              `${req.protocol}://${req.get('host')}/groups/${groupId}`, // inviteLink
+              `/groups/${groupId}`, // inviteLink
               true // isExistingUser
             );
           } catch (emailError) {
