@@ -346,6 +346,9 @@ export default function UnifiedTripPage() {
                    ? data.stops[data.stops.length - 1].endLocation 
                    : (tripData?.destination || data.endLocation || "Unknown location"),
         groupId: data.groupId,
+        isMultiStop: true,
+        isRecurring: data.isRecurring || false,
+        recurrencePattern: data.recurrencePattern || null,
         // Update itinerary items separately via API
         itineraryItems: hasValidStops ? data.stops.map((stop: any) => {
           console.log(`Processing stop in submit: ${stop.title}, startLoc: ${stop.startLocation}, endLoc: ${stop.endLocation}`);
@@ -377,8 +380,11 @@ export default function UnifiedTripPage() {
         endDate: data.endDate,
         status: data.status,
         startLocation: data.startLocation || "Unknown location",
-        destination: data.endLocation || "Unknown location",
+        destination: data.endLocation || "Unknown location", // Map endLocation from form to destination for DB
         groupId: data.groupId,
+        isMultiStop: false,
+        isRecurring: data.isRecurring || false,
+        recurrencePattern: data.recurrencePattern || null,
         // Create a single itinerary item
         itineraryItems: [{
           day: 1,
