@@ -40,6 +40,7 @@ export function TripCheckIn({ tripId, accessLevel = 'member', groupMembers = [],
   const queryClient = useQueryClient();
   const [notes, setNotes] = useState('');
   const [status, setStatus] = useState('ready');
+  const [isAlreadyCheckedIn, setIsAlreadyCheckedIn] = useState(false);
 
   // Get all check-in status for the trip
   const { data: checkInStatuses, isLoading: isLoadingStatuses } = useQuery<CheckInStatus[]>({
@@ -60,6 +61,10 @@ export function TripCheckIn({ tripId, accessLevel = 'member', groupMembers = [],
     if (myCheckIn) {
       setStatus(myCheckIn.status || 'ready');
       setNotes(myCheckIn.notes || '');
+      setIsAlreadyCheckedIn(true);
+      console.log('User already checked in with status:', myCheckIn.status);
+    } else {
+      setIsAlreadyCheckedIn(false);
     }
   }, [myCheckIn]);
 
@@ -74,6 +79,9 @@ export function TripCheckIn({ tripId, accessLevel = 'member', groupMembers = [],
       return res.json();
     },
     onSuccess: (data) => {
+      // Set the isAlreadyCheckedIn state to true
+      setIsAlreadyCheckedIn(true);
+      
       // If the response indicates all members are ready, show a special toast
       if (data.allReady && tripStatus === 'planning') {
         toast({
@@ -216,7 +224,28 @@ export function TripCheckIn({ tripId, accessLevel = 'member', groupMembers = [],
           )}
           {/* Current user's check-in form */}
           <div className="space-y-3">
-            <h3 className="text-sm font-medium">Your Status</h3>
+            <div className="flex justify-between items-center">
+              <h3 className="text-sm font-medium">Your Status</h3>
+              {isAlreadyCheckedIn && (
+                <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200" variant="outline">
+                  <CheckCircle className="w-3.5 h-3.5 mr-1" />
+                  Already Checked In
+                </Badge>
+              )}
+            </div>
+            
+            {isAlreadyCheckedIn && (
+              <Alert className="bg-blue-50 border-blue-200 mb-4">
+                <CheckCircle className="h-5 w-5 text-blue-600" />
+                <AlertTitle className="text-blue-800">You're checked in as: {getStatusBadge(status)}</AlertTitle>
+                <AlertDescription className="text-blue-700">
+                  {myCheckIn?.checkedInAt && (
+                    <span>Checked in on {format(new Date(myCheckIn.checkedInAt), 'PPP pp')}</span>
+                  )}
+                  {notes && <p className="mt-2 italic">Notes: {notes}</p>}
+                </AlertDescription>
+              </Alert>
+            )}
 
             <div className="grid gap-3">
               <div className="grid gap-2">
@@ -253,7 +282,7 @@ export function TripCheckIn({ tripId, accessLevel = 'member', groupMembers = [],
               disabled={checkInMutation.isPending}
               className="mt-2 w-full"
             >
-              {checkInMutation.isPending ? 'Updating...' : 'Update My Status'}
+              {checkInMutation.isPending ? 'Updating...' : isAlreadyCheckedIn ? 'Update My Status' : 'Check In'}
             </Button>
           </div>
 
