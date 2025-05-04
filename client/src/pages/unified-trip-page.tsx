@@ -92,7 +92,7 @@ export default function UnifiedTripPage() {
     
     // Check if the tab parameter is valid
     const validTabs = ["form", "preview", "check-in"];
-    return validTabs.includes(tabParam || '') ? tabParam : "form";
+    return validTabs.includes(tabParam || '') ? (tabParam || 'form') : "form";
   };
   
   const [activeTab, setActiveTab] = useState(getDefaultTab());
@@ -112,7 +112,7 @@ export default function UnifiedTripPage() {
   type ExtendedTrip = Trip & { _accessLevel?: 'owner' | 'member'; startLocationDisplay?: string; destinationDisplay?: string; };
 
   // Query for existing trip if editing
-  const { data: tripData, isLoading: isLoadingTrip } = useQuery<ExtendedTrip>({
+  const { data: tripData, isLoading: isLoadingTrip } = useQuery<ExtendedTrip | undefined>({
     queryKey: tripId ? ["/api/trips", parseInt(tripId)] : (["/api/trips", "no-id"] as const),
     enabled: !!tripId,
   });
@@ -190,7 +190,7 @@ export default function UnifiedTripPage() {
       status: tripData.status || "planning",
       // These fields are now part of the unified schema but might come from itinerary
       startLocation: tripData.startLocation || "",
-      endLocation: tripData.destination || "",
+      endLocation: tripData.destination || "", // Map destination from DB to endLocation in form
       // Default to single stop if we don't have itinerary items
       isMultiStop: false,
       isRecurring: false,
@@ -311,6 +311,7 @@ export default function UnifiedTripPage() {
   // Handle form submission
   const handleSubmit = (data: any) => {
     console.log("Submit form data:", data);
+    console.log("Current trip data in handleSubmit:", tripData);
     
     // Format data for the API
     if (data.isMultiStop) {
@@ -414,7 +415,7 @@ export default function UnifiedTripPage() {
         
         <div className="max-w-5xl mx-auto">
           {tripId ? (
-            <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+            <Tabs value={activeTab as string} onValueChange={handleTabChange} className="w-full">
               <TabsList className="grid w-[600px] grid-cols-3 mx-auto mb-4">
                 <TabsTrigger value="form">Edit Trip</TabsTrigger>
                 <TabsTrigger value="preview">Preview</TabsTrigger>
