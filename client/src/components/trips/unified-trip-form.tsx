@@ -202,13 +202,25 @@ export function UnifiedTripForm({
 
   // Form submission handler
   const handleSubmit = (data: FormData) => {
-    console.log('UnifiedTripForm submitting data:', data);
+    console.log('FORM COMPONENT - handleSubmit called with data:', data);
+    console.log('FORM COMPONENT - Form submission state - isLoading:', isLoading, 'isEditing:', isEditing);
+    
+    // Check for form validation errors
+    console.log('FORM COMPONENT - Form errors:', form.formState.errors);
+    
     // Validate form data before submission (particularly for multi-stop trips)
     if (data.isMultiStop && (!data.stops || data.stops.length === 0)) {
       console.error('Cannot submit multi-stop trip with no stops');
       return;
     }
-    onSubmit(data);
+    
+    try {
+      console.log('FORM COMPONENT - Calling parent onSubmit function');
+      onSubmit(data);
+      console.log('FORM COMPONENT - Parent onSubmit function called successfully');
+    } catch (err) {
+      console.error('FORM COMPONENT - Error in form submission:', err);
+    }
   };
 
   return (
@@ -849,8 +861,13 @@ export function UnifiedTripForm({
               {isEditing ? "Discard Changes" : "Cancel"}
             </Button>
             <Button 
-              type="submit" 
+              type="button" 
               disabled={isLoading}
+              onClick={() => {
+                console.log('Submit button clicked directly');
+                // Use form.handleSubmit to ensure validation
+                form.handleSubmit(handleSubmit)();
+              }}
             >
               {isLoading ? (
                 <>

@@ -331,9 +331,10 @@ export default function UnifiedTripPage() {
   
   // Handle form submission
   const handleSubmit = (data: any) => {
-    console.log("FORM SUBMISSION - handleSubmit called with data:", data);
+    console.log("PAGE COMPONENT - handleSubmit called with data:", data);
     console.log("Current trip data in handleSubmit:", tripData);
     console.log("Form submission for trip ID:", tripId);
+    console.log("Mutation state - isPending:", mutation.isPending, "isSuccess:", mutation.isSuccess, "isError:", mutation.isError);
     
     // Format data for the API
     if (data.isMultiStop) {
