@@ -89,6 +89,12 @@ export default function UnifiedTripPage() {
     
     const searchParams = new URLSearchParams(location.split('?')[1] || '');
     const tabParam = searchParams.get('tab');
+    const editParam = searchParams.get('edit');
+    
+    // Handle legacy edit=true parameter
+    if (editParam === 'true') {
+      return "form";
+    }
     
     // Check if the tab parameter is valid
     const validTabs = ["form", "preview", "check-in"];
