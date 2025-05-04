@@ -181,7 +181,8 @@ export function TripCard({ trip }: TripCardProps) {
               variant="ghost"
               size="sm"
               className="flex items-center gap-1 text-green-600 hover:text-green-700"
-              onClick={() => {
+              onClick={(e) => {
+                e.preventDefault();
                 console.log("Check-in button clicked, navigating to:", `/trips/${trip.id}?tab=check-in`);
                 navigate(`/trips/${trip.id}?tab=check-in`);
               }}
@@ -195,7 +196,8 @@ export function TripCard({ trip }: TripCardProps) {
                 variant="ghost"
                 size="sm"
                 className="flex items-center gap-1 text-neutral-500 hover:text-primary-600"
-                onClick={() => {
+                onClick={(e) => {
+                  e.preventDefault();
                   console.log("Edit button clicked, navigating to:", `/trips/${trip.id}?tab=form`);
                   navigate(`/trips/${trip.id}?tab=form`);
                 }}
@@ -209,7 +211,8 @@ export function TripCard({ trip }: TripCardProps) {
               variant="ghost"
               size="sm"
               className="flex items-center gap-1 text-primary-600 hover:text-primary-700"
-              onClick={() => {
+              onClick={(e) => {
+                e.preventDefault();
                 console.log("View details clicked, navigating to:", `/trips/${trip.id}?tab=preview`);
                 navigate(`/trips/${trip.id}?tab=preview`);
               }}

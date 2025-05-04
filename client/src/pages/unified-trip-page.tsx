@@ -83,56 +83,69 @@ export default function UnifiedTripPage() {
   const tripId = params.tripId;
   const queryClient = useQueryClient();
   
-  // Parse URL for tab parameter
-  const getDefaultTab = () => {
+  // Parse the URL to extract tab information
+  const getTabFromUrl = () => {
     if (!tripId) return "form";
     
-    const searchParams = new URLSearchParams(location.split('?')[1] || '');
-    const tabParam = searchParams.get('tab');
-    const editParam = searchParams.get('edit');
-    
-    console.log("URL Parameter parsing:", { 
-      fullLocation: location,
-      searchParamsString: location.split('?')[1] || '',
-      tabParam,
-      editParam
-    });
-    
-    // Handle legacy edit=true parameter
-    if (editParam === 'true') {
-      console.log("Using legacy edit=true parameter, returning 'form' tab");
+    try {
+      // Split the URL at the ? mark and parse parameters
+      const searchParams = new URLSearchParams(window.location.search);
+      console.log("DIRECT ACCESS - Search params from window.location.search:", searchParams.toString());
+      
+      // Get tab from URL parameters
+      const tabParam = searchParams.get('tab');
+      // Handle legacy edit parameter
+      const editParam = searchParams.get('edit');
+      
+      console.log("URL Parameters detected:", { 
+        tabParam, 
+        editParam,
+        fullLocationSearch: window.location.search,
+        windowLocationHref: window.location.href
+      });
+      
+      // Map legacy edit=true parameter to form tab
+      if (editParam === 'true') {
+        console.log("Legacy edit=true parameter detected. Using form tab.");
+        return "form";
+      }
+      
+      // Validate the tab parameter
+      const validTabs = ["form", "preview", "check-in"];
+      if (tabParam && validTabs.includes(tabParam)) {
+        console.log(`Valid tab parameter detected: ${tabParam}`);
+        return tabParam;
+      }
+      
+      console.log("No valid tab parameter found, defaulting to form");
+      return "form";
+    } catch (error) {
+      console.error("Error parsing URL parameters:", error);
       return "form";
     }
-    
-    // Check if the tab parameter is valid
-    const validTabs = ["form", "preview", "check-in"];
-    const selectedTab = validTabs.includes(tabParam || '') ? (tabParam || 'form') : "form";
-    console.log("Selected tab from URL parameters:", selectedTab);
-    return selectedTab;
   };
   
-  // Run getDefaultTab once on component mount and store result
-  const initialTab = useMemo(() => getDefaultTab(), [location, tripId]);
+  // State to track the active tab
+  const [activeTab, setActiveTab] = useState<string>(getTabFromUrl());
   
-  // Use the memoized initialTab value as the default state
-  const [activeTab, setActiveTab] = useState<string>(initialTab);
-  
-  // Update activeTab whenever location or tripId changes
+  // Update tab when URL changes
   useEffect(() => {
-    console.log("Location or trip ID changed, updating active tab");
-    const newTab = getDefaultTab();
-    console.log("Setting active tab to:", newTab);
+    console.log("URL or tripId changed, updating active tab");
+    const newTab = getTabFromUrl();
+    console.log(`Setting active tab to: ${newTab} (from URL)`); 
     setActiveTab(newTab);
-  }, [location, tripId]);
+  }, [window.location.search, tripId]);
   
-  // Update URL when tab changes
+  // Function to handle tab changes from the UI
   const handleTabChange = (tab: string) => {
+    console.log(`Tab changed to: ${tab} (from UI interaction)`);
     setActiveTab(tab);
     
-    // Update URL with the new tab parameter
+    // Update the URL to reflect the tab change
     if (tripId) {
-      const newLocation = `/trips/${tripId}?tab=${tab}`;
-      window.history.replaceState(null, '', newLocation);
+      const newUrl = `/trips/${tripId}?tab=${tab}`;
+      console.log(`Updating URL to: ${newUrl}`);
+      navigate(newUrl, { replace: true });
     }
   };
   
@@ -494,11 +507,34 @@ export default function UnifiedTripPage() {
         
         <div className="max-w-5xl mx-auto">
           {tripId ? (
-            <Tabs value={activeTab as string} onValueChange={handleTabChange} className="w-full">
+            <Tabs 
+              value={activeTab} 
+              onValueChange={handleTabChange} 
+              className="w-full"
+              defaultValue="form"
+            >
               <TabsList className="grid w-[600px] grid-cols-3 mx-auto mb-4">
-                <TabsTrigger value="form">Edit Trip</TabsTrigger>
-                <TabsTrigger value="preview">Preview</TabsTrigger>
-                <TabsTrigger value="check-in">Check-In</TabsTrigger>
+                <TabsTrigger 
+                  value="form" 
+                  data-active={activeTab === "form"}
+                  className={activeTab === "form" ? "data-[state=active]:bg-primary-500" : ""}
+                >
+                  Edit Trip
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="preview" 
+                  data-active={activeTab === "preview"}
+                  className={activeTab === "preview" ? "data-[state=active]:bg-primary-500" : ""}
+                >
+                  Preview
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="check-in" 
+                  data-active={activeTab === "check-in"}
+                  className={activeTab === "check-in" ? "data-[state=active]:bg-primary-500" : ""}
+                >
+                  Check-In
+                </TabsTrigger>
               </TabsList>
               
               <TabsContent value="form" className="mt-0">
