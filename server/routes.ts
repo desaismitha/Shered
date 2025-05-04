@@ -1443,6 +1443,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Keep track of itinerary item IDs in the request
             const requestItemIds = new Set();
             
+            console.log("[TRIP_EDIT] Tracking which itinerary items are in the request to preserve");
+            
             // For each item in the request
             for (const item of req.body.itineraryItems) {
               console.log(`[TRIP_EDIT] Processing itinerary item: ${JSON.stringify(item)}`);
@@ -1494,12 +1496,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
               }
             }
             
+            // Log the current state of requestItemIds
+            console.log(`[TRIP_EDIT] requestItemIds has ${requestItemIds.size} IDs:`, Array.from(requestItemIds));
+            
             // Delete any itinerary items that weren't included in the request
             // This handles the case where stops are removed from the form
+            console.log(`[TRIP_EDIT] Checking ${existingItems.length} existing items against request IDs`);
             for (const existingItem of existingItems) {
+              console.log(`[TRIP_EDIT] Checking existing item ${existingItem.id} - included in request? ${requestItemIds.has(existingItem.id)}`);
               if (!requestItemIds.has(existingItem.id)) {
                 console.log(`[TRIP_EDIT] Deleting itinerary item ${existingItem.id} as it was not in the updated request`);
                 await storage.deleteItineraryItem(existingItem.id);
+              } else {
+                console.log(`[TRIP_EDIT] Keeping itinerary item ${existingItem.id} as it was included in the request`);
               }
             }
             
