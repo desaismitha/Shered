@@ -1440,6 +1440,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const existingItems = await storage.getItineraryItemsByTripId(tripId);
             console.log(`[TRIP_EDIT] Found ${existingItems.length} existing itinerary items`);
             
+            // Keep track of itinerary item IDs in the request
+            const requestItemIds = new Set();
+            
             // For each item in the request
             for (const item of req.body.itineraryItems) {
               console.log(`[TRIP_EDIT] Processing itinerary item: ${JSON.stringify(item)}`);
@@ -1462,6 +1465,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
               
               // If the item has an ID, it's an existing item - update it
               if (item.id) {
+                // Add to the set of IDs in the request
+                requestItemIds.add(item.id);
+                
                 // Find the existing item
                 const existingItem = existingItems.find(existing => existing.id === item.id);
                 
@@ -1480,6 +1486,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 console.log(`[TRIP_EDIT] Creating new itinerary item`);
                 const newItem = await storage.createItineraryItem(itemData);
                 console.log(`[TRIP_EDIT] Created new item: ${newItem.id}`);
+                
+                // Add the new ID to our set
+                if (newItem && newItem.id) {
+                  requestItemIds.add(newItem.id);
+                }
+              }
+            }
+            
+            // Delete any itinerary items that weren't included in the request
+            // This handles the case where stops are removed from the form
+            for (const existingItem of existingItems) {
+              if (!requestItemIds.has(existingItem.id)) {
+                console.log(`[TRIP_EDIT] Deleting itinerary item ${existingItem.id} as it was not in the updated request`);
+                await storage.deleteItineraryItem(existingItem.id);
               }
             }
             
