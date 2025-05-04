@@ -486,11 +486,17 @@ export default function UnifiedTripPage() {
                   </div>
                 ) : (
                   <UnifiedTripForm
-                    onSubmit={handleSubmit}
+                    onSubmit={(data) => {
+                      console.log('UnifiedTripPage - onSubmit callback received data from form:', data);
+                      handleSubmit(data);
+                    }}
                     defaultValues={defaultValues}
                     isLoading={mutation.isPending}
                     isEditing={true}
-                    onCancel={() => navigate("/trips")}
+                    onCancel={() => {
+                      console.log('Cancel callback called');
+                      navigate("/trips");
+                    }}
                   />
                 )}
               </TabsContent>

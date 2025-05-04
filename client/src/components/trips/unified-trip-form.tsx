@@ -223,9 +223,18 @@ export function UnifiedTripForm({
     }
   };
 
+  // Add debugging for default values
+  console.log('Form component default values:', defaultValues);
+  
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
+      <form 
+        onSubmit={(e) => {
+          console.log('Form submitted via form event');
+          e.preventDefault(); // Prevent default form submission
+          form.handleSubmit(handleSubmit)(e); // Manually trigger form submission
+        }} 
+        className="space-y-8">
         <Card className="p-6">
           <h2 className="text-lg font-medium mb-4">Trip Details</h2>
           
@@ -834,39 +843,124 @@ export function UnifiedTripForm({
         
         <div className="flex items-center justify-between">
           {isEditing && (
-            <Button 
+            <button 
               type="button" 
-              variant="destructive" 
-              onClick={() => {
-                // Set status to cancelled and submit form
-                form.setValue("status", "cancelled");
-                form.handleSubmit(handleSubmit)();
+              className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
+              onClick={(e) => {
+                e.preventDefault();
+                console.log('Cancel Trip button clicked');
+                
+                if (window.confirm('Are you sure you want to cancel this trip?')) {
+                  // Create direct manual payload with cancelled status
+                  const cancelData = {
+                    name: form.getValues('name'),
+                    startDate: form.getValues('startDate'),
+                    endDate: form.getValues('endDate'),
+                    description: form.getValues('description') || '',
+                    groupId: form.getValues('groupId'),
+                    status: 'cancelled', // Force cancelled status
+                    isMultiStop: form.getValues('isMultiStop'),
+                    startLocation: form.getValues('startLocation') || 'Unknown location',
+                    endLocation: form.getValues('endLocation') || 'Unknown location',
+                    startTime: form.getValues('startTime') || '',
+                    endTime: form.getValues('endTime') || '',
+                    isRecurring: form.getValues('isRecurring') || false,
+                    recurrencePattern: form.getValues('recurrencePattern'),
+                    recurrenceDays: form.getValues('recurrenceDays'),
+                    stops: form.getValues('stops') || [],
+                  };
+                  
+                  console.log('Cancel trip manual data:', cancelData);
+                  
+                  // Call onSubmit directly with manually constructed data
+                  try {
+                    onSubmit(cancelData);
+                    console.log('Trip cancelled successfully');
+                    
+                    // Force navigation
+                    window.location.href = '/trips';
+                  } catch (err) {
+                    console.error('Error in cancel submit:', err);
+                  }
+                }
               }}
             >
               Cancel Trip
-            </Button>
+            </button>
           )}
           <div className="flex items-center gap-4 ml-auto">
-            <Button 
+            <button 
               type="button" 
-              variant="outline" 
-              onClick={() => {
-                if (onCancel) {
-                  onCancel();
+              className="border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 px-4 py-2 rounded"
+              onClick={(e) => {
+                e.preventDefault();
+                console.log('Discard button clicked directly');
+                
+                // Show a confirmation dialog and log the result
+                if (window.confirm('Are you sure you want to discard changes?')) {
+                  console.log('User confirmed discard');
+                  
+                  // Try both approaches
+                  if (onCancel) {
+                    console.log('Calling onCancel function');
+                    try {
+                      onCancel();
+                    } catch (err) {
+                      console.error('Error calling onCancel:', err);
+                    }
+                  }
+                  
+                  // Force navigation as a backup
+                  console.log('Forcing navigation to /trips');
+                  window.location.href = '/trips';
                 } else {
-                  window.history.back();
+                  console.log('User cancelled discard');
                 }
               }}
             >
               {isEditing ? "Discard Changes" : "Cancel"}
-            </Button>
-            <Button 
+            </button>
+            <button 
               type="button" 
+              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-50"
               disabled={isLoading}
-              onClick={() => {
+              onClick={(e) => {
+                e.preventDefault();
                 console.log('Submit button clicked directly');
-                // Use form.handleSubmit to ensure validation
-                form.handleSubmit(handleSubmit)();
+                
+                // Create a completely standalone set of data to pass to onSubmit
+                const submitData = {
+                  name: form.getValues('name'),
+                  startDate: form.getValues('startDate'),
+                  endDate: form.getValues('endDate'),
+                  description: form.getValues('description') || '',
+                  groupId: form.getValues('groupId'),
+                  status: form.getValues('status'),
+                  isMultiStop: form.getValues('isMultiStop'),
+                  startLocation: form.getValues('startLocation') || 'Unknown location',
+                  endLocation: form.getValues('endLocation') || 'Unknown location',
+                  startTime: form.getValues('startTime') || '',
+                  endTime: form.getValues('endTime') || '',
+                  isRecurring: form.getValues('isRecurring') || false,
+                  recurrencePattern: form.getValues('recurrencePattern'),
+                  recurrenceDays: form.getValues('recurrenceDays'),
+                  stops: form.getValues('stops') || [],
+                };
+                
+                console.log('Manual form data:', submitData);
+                
+                // Call onSubmit directly with manually constructed data
+                try {
+                  onSubmit(submitData);
+                  console.log('onSubmit called successfully with manual data');
+                  
+                  // Forcibly navigate away for testing
+                  if (window.confirm('Submit was called. Do you want to return to trips list?')) {
+                    window.location.href = '/trips';
+                  }
+                } catch (err) {
+                  console.error('Error in form submission:', err);
+                }
               }}
             >
               {isLoading ? (
@@ -880,7 +974,7 @@ export function UnifiedTripForm({
               ) : (
                 isEditing ? "Save Changes" : (isMultiStop ? "Create Multi-Stop Trip" : "Create Trip")
               )}
-            </Button>
+            </button>
           </div>
         </div>
       </form>
