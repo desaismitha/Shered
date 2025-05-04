@@ -344,7 +344,7 @@ export default function UnifiedTripPage() {
                       : (tripData?.startLocation || data.startLocation || "Unknown location"),
         destination: hasValidStops && data.stops[data.stops.length - 1]?.endLocation 
                    ? data.stops[data.stops.length - 1].endLocation 
-                   : (tripData?.destination || data.endLocation || "Unknown location"),
+                   : (data.endLocation || tripData?.destination || "Unknown location"),
         groupId: data.groupId,
         isMultiStop: true,
         isRecurring: data.isRecurring || false,
@@ -368,6 +368,12 @@ export default function UnifiedTripPage() {
         }) : (itineraryItems || []),
       };
       
+      // Explicitly add ID for trip updates
+      if (tripId) {
+        (tripUpdateData as any).id = parseInt(tripId);
+      }
+      
+      console.log("Final multi-stop trip update data:", JSON.stringify(tripUpdateData));
       mutation.mutate(tripUpdateData);
     } else {
       // For single-stop trips, we create:
