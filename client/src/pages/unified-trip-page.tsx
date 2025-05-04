@@ -268,6 +268,7 @@ export default function UnifiedTripPage() {
         console.log(`Using startLoc: ${startLocation}, endLoc: ${endLocation}`);
         
         return {
+          id: item.id, // IMPORTANT: Include the ID for existing items
           day: item.day,
           title: item.title || "",
           startLocation: startLocation,
@@ -353,7 +354,8 @@ export default function UnifiedTripPage() {
         itineraryItems: hasValidStops ? data.stops.map((stop: any) => {
           console.log(`Processing stop in submit: ${stop.title}, startLoc: ${stop.startLocation}, endLoc: ${stop.endLocation}`);
           
-          return {
+          // Create the base item data
+          const itemData = {
             day: stop.day,
             title: stop.title,
             description: stop.description || "",
@@ -365,6 +367,18 @@ export default function UnifiedTripPage() {
             recurrencePattern: null,
             recurrenceDays: null,
           };
+          
+          // IMPORTANT: If this stop has an id, include it so server knows it's an existing item
+          // This ensures the server doesn't create duplicate items
+          if (stop.id) {
+            console.log(`Including existing itinerary item ID: ${stop.id}`);
+            return {
+              ...itemData,
+              id: stop.id
+            };
+          }
+          
+          return itemData;
         }) : (itineraryItems || []),
       };
       
