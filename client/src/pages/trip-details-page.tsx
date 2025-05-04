@@ -465,7 +465,7 @@ export default function TripDetailsPage() {
   
   // State for editing items
   const [editingItineraryItem, setEditingItineraryItem] = useState<ItineraryItem | null>(null);
-  const defaultTab = tabParam && ['info', 'itinerary', 'expenses', 'vehicles', 'drivers'].includes(tabParam) 
+  const defaultTab = tabParam && ['info', 'itinerary', 'expenses', 'vehicles', 'drivers', 'check-in'].includes(tabParam) 
     ? tabParam 
     : 'info';
     
