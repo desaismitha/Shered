@@ -126,6 +126,7 @@ export default function UnifiedTripPage() {
   // Mutation for creating/updating trips
   const mutation = useMutation({
     mutationFn: async (formData: any) => {
+      console.log('MUTATION START - Form data received:', formData);
       if (tripId) {
         // Update existing trip
         console.log("PATCH request payload:", JSON.stringify(formData));
@@ -139,7 +140,9 @@ export default function UnifiedTripPage() {
         }
         
         try {
+          console.log(`About to send PATCH request to /api/trips/${tripId}`);
           const res = await apiRequest("PATCH", `/api/trips/${tripId}`, formData);
+          console.log('PATCH request successful, parsing response');
           const jsonResponse = await res.json();
           console.log("PATCH response:", JSON.stringify(jsonResponse));
           return jsonResponse;
@@ -328,8 +331,9 @@ export default function UnifiedTripPage() {
   
   // Handle form submission
   const handleSubmit = (data: any) => {
-    console.log("Submit form data:", data);
+    console.log("FORM SUBMISSION - handleSubmit called with data:", data);
     console.log("Current trip data in handleSubmit:", tripData);
+    console.log("Form submission for trip ID:", tripId);
     
     // Format data for the API
     if (data.isMultiStop) {
