@@ -1505,8 +1505,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   };
 
   // Handle PUT and PATCH requests using the same handler
-  app.put("/api/trips/:id", (req, res, next) => handleTripUpdate(req, res, next, "PUT"));
-  app.patch("/api/trips/:id", (req, res, next) => handleTripUpdate(req, res, next, "PATCH"));
+  app.put("/api/trips/:id", (req, res, next) => {
+    console.log("PUT /api/trips/:id - Full request body:", JSON.stringify(req.body));
+    handleTripUpdate(req, res, next, "PUT");
+  });
+  app.patch("/api/trips/:id", (req, res, next) => {
+    console.log("PATCH /api/trips/:id - Full request body:", JSON.stringify(req.body));
+    handleTripUpdate(req, res, next, "PATCH");
+  });
 
   // Direct SQL endpoint for updating dates
   app.post("/api/trips/:id/simple-update", async (req, res) => {

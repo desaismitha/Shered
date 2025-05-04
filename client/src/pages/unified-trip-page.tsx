@@ -128,8 +128,16 @@ export default function UnifiedTripPage() {
     mutationFn: async (formData: any) => {
       if (tripId) {
         // Update existing trip
-        const res = await apiRequest("PATCH", `/api/trips/${tripId}`, formData);
-        return await res.json();
+        console.log("PATCH request payload:", JSON.stringify(formData));
+        try {
+          const res = await apiRequest("PATCH", `/api/trips/${tripId}`, formData);
+          const jsonResponse = await res.json();
+          console.log("PATCH response:", JSON.stringify(jsonResponse));
+          return jsonResponse;
+        } catch (error) {
+          console.error("PATCH request failed:", error);
+          throw error;
+        }
       } else {
         // Create new trip
         const res = await apiRequest("POST", "/api/trips", formData);
@@ -362,7 +370,7 @@ export default function UnifiedTripPage() {
       // For single-stop trips, we create:
       // 1. A trip record with the basic trip info
       // 2. A single itinerary item for the start/end locations
-      const tripData = {
+      const singleTripData = {
         name: data.name,
         description: data.description,
         startDate: data.startDate,
@@ -388,7 +396,8 @@ export default function UnifiedTripPage() {
         }],
       };
       
-      mutation.mutate(tripData);
+      console.log("Single trip update data:", JSON.stringify(singleTripData));
+      mutation.mutate(singleTripData);
     }
   };
   
