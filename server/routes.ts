@@ -1400,7 +1400,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           endDate: z.instanceof(Date).optional(),
           groupId: z.number().optional(),
           createdBy: z.number().optional(),
-          createdAt: z.date().optional()
+          createdAt: z.date().optional(),
+          isMultiStop: z.boolean().optional(),
+          isRecurring: z.boolean().optional(),
+          recurrencePattern: z.string().nullable().optional(),
+          notes: z.string().nullable().optional(),
+          distanceTraveled: z.number().nullable().optional()
         });
         
         // Validate the processed data
