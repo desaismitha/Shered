@@ -228,9 +228,8 @@ async function processMemberImports(groupId: number, members: ImportMemberData[]
               user.email,
               user.username,
               group.name,
-              groupId,
-              user.id,
-              !user.emailVerified
+              groupId.toString(),
+              user.id.toString()
             );
           } catch (emailError) {
             console.error('Failed to send invitation email:', emailError);
@@ -242,9 +241,9 @@ async function processMemberImports(groupId: number, members: ImportMemberData[]
         results.errors.push(`User ${member.email} is already a member of this group`);
         results.errorCount++;
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error(`Error processing member ${member.email}:`, error);
-      results.errors.push(`Failed to import ${member.email}: ${error.message}`);
+      results.errors.push(`Failed to import ${member.email}: ${error.message || 'Unknown error'}`);
       results.errorCount++;
     }
   }

@@ -22,6 +22,7 @@ import ActiveTripsPage from "@/pages/active-trips-page";
 import ForgotPasswordPage from "@/pages/forgot-password";
 import ResetPasswordPage from "@/pages/reset-password";
 import VerifyEmailPage from "@/pages/verify-email-page";
+import BulkImportPage from "@/pages/bulk-import-page";
 import { DbResetFloatingButton } from "@/components/ui/db-reset-floating-button";
 import { Route } from "wouter";
 
@@ -39,6 +40,7 @@ function Router() {
       <ProtectedRoute path="/expenses" component={ExpensesPage} />
       <ProtectedRoute path="/messages" component={MessagesPage} />
       <ProtectedRoute path="/vehicles" component={VehiclesPage} />
+      <ProtectedRoute path="/bulk-import" component={BulkImportPage} />
       <Route path="/auth" component={AuthPage} />
       {/* Add explicit invitation route */}
       <Route path="/auth/invite" component={AuthPage} />

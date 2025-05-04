@@ -23,6 +23,7 @@ export function Sidebar() {
     { icon: Calendar, label: "Upcoming Trips", href: "/trips" },
     { icon: Navigation, label: "Active Trips", href: "/active-trips" },
     { icon: Car, label: "My Vehicles", href: "/vehicles" },
+    { icon: Users, label: "Import Members", href: "/bulk-import" },
     { icon: DollarSign, label: "Expenses", href: "/expenses" },
     { icon: MessageSquare, label: "Messages", href: "/messages" },
   ];

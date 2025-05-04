@@ -20,7 +20,7 @@ export default function BulkImportPage() {
   const [importStep, setImportStep] = useState<'upload' | 'preview' | 'complete'>('upload');
 
   // Get user's groups
-  const { data: groups, isLoading: isLoadingGroups } = useQuery({
+  const { data: groups = [], isLoading: isLoadingGroups } = useQuery<any[]>({
     queryKey: ["/api/groups"],
   });
 
