@@ -129,6 +129,15 @@ export default function UnifiedTripPage() {
       if (tripId) {
         // Update existing trip
         console.log("PATCH request payload:", JSON.stringify(formData));
+        console.log("Request includes itinerary items:", formData.itineraryItems ? formData.itineraryItems.length : 0);
+        
+        if (formData.itineraryItems && formData.itineraryItems.length > 0) {
+          // Log each itinerary item ID for debugging
+          formData.itineraryItems.forEach((item: any, idx: number) => {
+            console.log(`Item ${idx} - ID: ${item.id || 'NEW'}, day: ${item.day}, title: ${item.title}`);
+          });
+        }
+        
         try {
           const res = await apiRequest("PATCH", `/api/trips/${tripId}`, formData);
           const jsonResponse = await res.json();
@@ -356,8 +365,8 @@ export default function UnifiedTripPage() {
           
           // Create the base item data
           const itemData = {
-            day: stop.day,
-            title: stop.title,
+            day: stop.day || 1, // Ensure day is never undefined
+            title: stop.title || "",
             description: stop.description || "",
             fromLocation: stop.startLocation || tripData?.startLocation || "Unknown location", // Never allow empty locations
             toLocation: stop.endLocation || tripData?.destination || "Unknown location",     // Never allow empty locations
@@ -368,13 +377,15 @@ export default function UnifiedTripPage() {
             recurrenceDays: null,
           };
           
-          // IMPORTANT: If this stop has an id, include it so server knows it's an existing item
-          // This ensures the server doesn't create duplicate items
+          // IMPORTANT: If this stop has an id, make sure it's parsed as a number
+          // This ensures the server type-checks properly when comparing IDs
           if (stop.id) {
-            console.log(`Including existing itinerary item ID: ${stop.id}`);
+            console.log(`Including existing itinerary item ID: ${stop.id} (type: ${typeof stop.id})`);
+            const numericId = typeof stop.id === 'string' ? parseInt(stop.id) : stop.id;
+            console.log(`Converted ID type: ${typeof numericId}, value: ${numericId}`);
             return {
               ...itemData,
-              id: stop.id
+              id: numericId
             };
           }
           

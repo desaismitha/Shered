@@ -1445,9 +1445,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
             
             console.log("[TRIP_EDIT] Tracking which itinerary items are in the request to preserve");
             
+            // Dump all item information for debugging
+            console.log(`[TRIP_EDIT] req.body.itineraryItems contents:`, 
+                JSON.stringify(req.body.itineraryItems, null, 2));
+                
             // For each item in the request
             for (const item of req.body.itineraryItems) {
               console.log(`[TRIP_EDIT] Processing itinerary item: ${JSON.stringify(item)}`);
+              console.log(`[TRIP_EDIT] Item ID: ${item.id || 'none'}, Day: ${item.day}, Title: ${item.title}`);
               
               // Ensure the item has the necessary properties
               if (!item.day) {
@@ -1467,18 +1472,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
               
               // If the item has an ID, it's an existing item - update it
               if (item.id) {
-                // Add to the set of IDs in the request
-                requestItemIds.add(item.id);
+                // Add to the set of IDs in the request - ensure it's stored as a number
+                const numericId = typeof item.id === 'string' ? parseInt(item.id) : item.id;
+                console.log(`[TRIP_EDIT] Adding item ID to tracking set: ${numericId} (converted from ${item.id}, type: ${typeof item.id})`);
+                requestItemIds.add(numericId);
                 
-                // Find the existing item
-                const existingItem = existingItems.find(existing => existing.id === item.id);
+                // Find the existing item - ensure type compatibility by casting both to numbers
+                const itemId = typeof item.id === 'string' ? parseInt(item.id) : item.id;
+                console.log(`[TRIP_EDIT] Looking for existing item with ID: ${itemId} (type: ${typeof itemId})`);
+                
+                const existingItem = existingItems.find(existing => {
+                  const existingId = existing.id;
+                  console.log(`[TRIP_EDIT] Comparing with existing ID: ${existingId} (type: ${typeof existingId})`);
+                  return existingId === itemId;
+                });
                 
                 if (existingItem) {
-                  console.log(`[TRIP_EDIT] Updating existing itinerary item ${item.id}`);
-                  const updatedItem = await storage.updateItineraryItem(item.id, itemData);
+                  console.log(`[TRIP_EDIT] Updating existing itinerary item ${itemId}`);
+                  // Use the numeric ID when updating to ensure type consistency
+                  const updatedItem = await storage.updateItineraryItem(itemId, itemData);
                   console.log(`[TRIP_EDIT] Updated item: ${updatedItem ? 'success' : 'failed'}`);
                 } else {
-                  console.warn(`[TRIP_EDIT] Item with ID ${item.id} not found, creating new`);
+                  console.warn(`[TRIP_EDIT] Item with ID ${itemId} not found, creating new`);
                   const newItem = await storage.createItineraryItem(itemData);
                   console.log(`[TRIP_EDIT] Created new item: ${newItem.id}`);
                 }
@@ -1502,13 +1517,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Delete any itinerary items that weren't included in the request
             // This handles the case where stops are removed from the form
             console.log(`[TRIP_EDIT] Checking ${existingItems.length} existing items against request IDs`);
+            
+            // Convert the Set to an array for easier comparisons
+            const requestItemIdsArray = Array.from(requestItemIds).map(id => typeof id === 'string' ? parseInt(id) : id);
+            console.log('[TRIP_EDIT] requestItemIdsArray (as numbers):', requestItemIdsArray);
+            
             for (const existingItem of existingItems) {
-              console.log(`[TRIP_EDIT] Checking existing item ${existingItem.id} - included in request? ${requestItemIds.has(existingItem.id)}`);
-              if (!requestItemIds.has(existingItem.id)) {
-                console.log(`[TRIP_EDIT] Deleting itinerary item ${existingItem.id} as it was not in the updated request`);
-                await storage.deleteItineraryItem(existingItem.id);
+              const existingId = existingItem.id;
+              const isIncluded = requestItemIdsArray.includes(existingId);
+              console.log(`[TRIP_EDIT] Checking existing item ${existingId} (type: ${typeof existingId}) - included in request? ${isIncluded}`);
+              
+              if (!isIncluded) {
+                console.log(`[TRIP_EDIT] Deleting itinerary item ${existingId} as it was not in the updated request`);
+                await storage.deleteItineraryItem(existingId);
               } else {
-                console.log(`[TRIP_EDIT] Keeping itinerary item ${existingItem.id} as it was included in the request`);
+                console.log(`[TRIP_EDIT] Keeping itinerary item ${existingId} as it was included in the request`);
               }
             }
             
