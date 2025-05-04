@@ -6,10 +6,11 @@ import { Button } from "@/components/ui/button";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useState } from "react";
-import { Loader2, ArrowLeft } from "lucide-react";
+import { Loader2, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Trip, ItineraryItem } from "@shared/schema";
+import { TripCheckIn } from "@/components/trips/trip-check-in";
 
 // Helper function to safely parse JSON strings or return a default value
 function tryParseJSON(jsonString: string | null | undefined | any[], defaultValue: any = []) {
@@ -77,11 +78,35 @@ interface FormDataWithExtras {
 
 export default function UnifiedTripPage() {
   const { toast } = useToast();
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
   const params = useParams();
   const tripId = params.tripId;
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState("form");
+  
+  // Parse URL for tab parameter
+  const getDefaultTab = () => {
+    if (!tripId) return "form";
+    
+    const searchParams = new URLSearchParams(location.split('?')[1] || '');
+    const tabParam = searchParams.get('tab');
+    
+    // Check if the tab parameter is valid
+    const validTabs = ["form", "preview", "check-in"];
+    return validTabs.includes(tabParam || '') ? tabParam : "form";
+  };
+  
+  const [activeTab, setActiveTab] = useState(getDefaultTab());
+  
+  // Update URL when tab changes
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    
+    // Update URL with the new tab parameter
+    if (tripId) {
+      const newLocation = `/trips/${tripId}?tab=${tab}`;
+      window.history.replaceState(null, '', newLocation);
+    }
+  };
   
   // Query for existing trip if editing
   const { data: tripData, isLoading: isLoadingTrip } = useQuery<Trip>({
@@ -386,10 +411,11 @@ export default function UnifiedTripPage() {
         
         <div className="max-w-5xl mx-auto">
           {tripId ? (
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-[400px] grid-cols-2 mx-auto mb-4">
+            <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+              <TabsList className="grid w-[600px] grid-cols-3 mx-auto mb-4">
                 <TabsTrigger value="form">Edit Trip</TabsTrigger>
                 <TabsTrigger value="preview">Preview</TabsTrigger>
+                <TabsTrigger value="check-in">Check-In</TabsTrigger>
               </TabsList>
               
               <TabsContent value="form" className="mt-0">
@@ -462,6 +488,31 @@ export default function UnifiedTripPage() {
                           <p className="text-muted-foreground">No itinerary items yet</p>
                         )}
                       </div>
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="check-in" className="mt-0">
+                <div className="bg-muted p-6 rounded-lg">
+                  <div className="flex items-center gap-2 mb-4">
+                    <CheckCircle2 className="h-5 w-5 text-green-600" />
+                    <h2 className="text-xl font-medium">Trip Check-In</h2>
+                  </div>
+                  
+                  {isLoading ? (
+                    <div className="flex items-center justify-center py-12">
+                      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : tripData ? (
+                    <TripCheckIn 
+                      tripId={parseInt(tripId)} 
+                      accessLevel={tripData._accessLevel || 'member'} 
+                      tripStatus={tripData.status || 'planning'}
+                    />
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      Trip data not available
                     </div>
                   )}
                 </div>
