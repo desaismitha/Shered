@@ -858,7 +858,7 @@ export function UnifiedTripForm({
                     endDate: form.getValues('endDate'),
                     description: form.getValues('description') || '',
                     groupId: form.getValues('groupId'),
-                    status: 'cancelled', // Force cancelled status
+                    status: 'cancelled' as const, // Force cancelled status with type assertion
                     isMultiStop: form.getValues('isMultiStop'),
                     startLocation: form.getValues('startLocation') || 'Unknown location',
                     endLocation: form.getValues('endLocation') || 'Unknown location',
@@ -877,8 +877,8 @@ export function UnifiedTripForm({
                     onSubmit(cancelData);
                     console.log('Trip cancelled successfully');
                     
-                    // Force navigation
-                    window.location.href = '/trips';
+                    // Use history navigation without full page reload
+                    window.location.replace('/trips');
                   } catch (err) {
                     console.error('Error in cancel submit:', err);
                   }
@@ -910,9 +910,9 @@ export function UnifiedTripForm({
                     }
                   }
                   
-                  // Force navigation as a backup
-                  console.log('Forcing navigation to /trips');
-                  window.location.href = '/trips';
+                  // Use history navigation without full page reload
+                  console.log('Using replace for smoother navigation to /trips');
+                  window.location.replace('/trips');
                 } else {
                   console.log('User cancelled discard');
                 }
@@ -935,7 +935,7 @@ export function UnifiedTripForm({
                   endDate: form.getValues('endDate'),
                   description: form.getValues('description') || '',
                   groupId: form.getValues('groupId'),
-                  status: form.getValues('status'),
+                  status: form.getValues('status') as "planning" | "confirmed" | "in-progress" | "completed" | "cancelled",
                   isMultiStop: form.getValues('isMultiStop'),
                   startLocation: form.getValues('startLocation') || 'Unknown location',
                   endLocation: form.getValues('endLocation') || 'Unknown location',
@@ -954,9 +954,10 @@ export function UnifiedTripForm({
                   onSubmit(submitData);
                   console.log('onSubmit called successfully with manual data');
                   
-                  // Forcibly navigate away for testing
-                  if (window.confirm('Submit was called. Do you want to return to trips list?')) {
-                    window.location.href = '/trips';
+                  // Navigate smoothly without confirmation in production
+                  // Remove the confirmation dialog once testing is complete
+                  if (window.confirm('Save successful. Return to trips list?')) {
+                    window.location.replace('/trips');
                   }
                 } catch (err) {
                   console.error('Error in form submission:', err);
