@@ -385,8 +385,19 @@ async function checkTripAccess(
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Set up file upload middleware
+  app.use(fileUpload({
+    createParentPath: true,
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB max file size
+    abortOnLimit: true,
+    responseOnLimit: "File size limit has been reached"
+  }));
+  
   // Set up authentication routes
   setupAuth(app);
+  
+  // Set up bulk import routes
+  setupImportRoutes(app);
   
   // Database health check endpoint
   app.get("/api/health", async (req, res) => {

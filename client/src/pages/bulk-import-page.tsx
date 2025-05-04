@@ -27,12 +27,14 @@ export default function BulkImportPage() {
   // File upload mutation
   const uploadMutation = useMutation({
     mutationFn: async (formData: FormData) => {
-      const res = await apiRequest(
-        'POST',
-        '/api/groups/import/preview',
-        undefined,
-        { body: formData }
-      );
+      const res = await fetch('/api/groups/import/preview', {
+        method: 'POST',
+        body: formData
+      });
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Upload failed');
+      }
       return res.json();
     },
     onSuccess: (data) => {
