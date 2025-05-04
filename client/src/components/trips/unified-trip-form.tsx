@@ -202,6 +202,12 @@ export function UnifiedTripForm({
 
   // Form submission handler
   const handleSubmit = (data: FormData) => {
+    console.log('UnifiedTripForm submitting data:', data);
+    // Validate form data before submission (particularly for multi-stop trips)
+    if (data.isMultiStop && (!data.stops || data.stops.length === 0)) {
+      console.error('Cannot submit multi-stop trip with no stops');
+      return;
+    }
     onSubmit(data);
   };
 
