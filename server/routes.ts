@@ -1208,15 +1208,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // For editing existing trips, we'll be more relaxed with date validation:
           // 1. If the trip has already started (existing start date is in the past),
           //    we don't validate whether the new date is in the future
-          // 2. If the trip hasn't started yet, we enforce the 5 minute future rule
+          // 2. If the trip is scheduled for today, allow it
+          // 3. If the trip is for the future (not today), use a more relaxed validation
           const existingStartDate = new Date(existingTrip.startDate);
           const tripAlreadyStarted = existingStartDate <= now;
           
-          if (!tripAlreadyStarted && startDate <= validationTime) {
-            console.log("[TRIP_EDIT] Start date validation failed: date not in future");
+          // Check if the start date is today
+          const startDay = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+          const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          const isStartingToday = startDay.getTime() === today.getTime();
+          
+          if (!tripAlreadyStarted && !isStartingToday && startDate < now) {
+            console.log("[TRIP_EDIT] Start date validation failed: date is in the past");
             return res.status(400).json({
               error: "Invalid start date",
-              details: "Start date must be at least 5 minutes in the future"
+              details: "Start date cannot be in the past"
             });
           }
         }
@@ -1230,15 +1236,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
           
           // For editing the end date, we'll allow setting it to a past date only if 
-          // the trip has already started
+          // the trip has already started or if it's for today
           const existingStartDate = new Date(existingTrip.startDate);
           const tripAlreadyStarted = existingStartDate <= now;
           
-          if (!tripAlreadyStarted && endDate <= validationTime) {
-            console.log("[TRIP_EDIT] End date validation failed: date not in future");
+          // Check if the end date is today
+          const endDay = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+          const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          const isEndingToday = endDay.getTime() === today.getTime();
+          
+          // If the trip hasn't started, and the end date is not today, and it's in the past
+          if (!tripAlreadyStarted && !isEndingToday && endDate < now) {
+            console.log("[TRIP_EDIT] End date validation failed: date is in the past");
             return res.status(400).json({
               error: "Invalid end date",
-              details: "End date must be at least 5 minutes in the future"
+              details: "End date cannot be in the past"
             });
           }
         }
