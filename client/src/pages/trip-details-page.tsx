@@ -1060,6 +1060,7 @@ export default function TripDetailsPage() {
                 <TripCheckIn
                   tripId={tripId}
                   accessLevel={trip._accessLevel as 'owner' | 'member'}
+                  tripStatus={trip.status}
                   groupMembers={users?.filter(u => {
                     // Find this user in group members
                     if (!groupMembers) return false;

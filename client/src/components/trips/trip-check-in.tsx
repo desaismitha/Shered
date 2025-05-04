@@ -9,10 +9,11 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { CheckCircle, XCircle, Clock, AlertTriangle, UserCheck } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, AlertTriangle, UserCheck, AlertCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
 
 interface CheckInUser {
@@ -30,9 +31,10 @@ interface TripCheckInProps {
   tripId: number;
   accessLevel?: 'owner' | 'member';
   groupMembers?: CheckInUser[];
+  tripStatus?: string;
 }
 
-export function TripCheckIn({ tripId, accessLevel = 'member', groupMembers = [] }: TripCheckInProps) {
+export function TripCheckIn({ tripId, accessLevel = 'member', groupMembers = [], tripStatus = 'planning' }: TripCheckInProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -71,11 +73,24 @@ export function TripCheckIn({ tripId, accessLevel = 'member', groupMembers = [] 
       );
       return res.json();
     },
-    onSuccess: () => {
-      toast({
-        title: 'Check-in updated',
-        description: 'Your check-in status has been updated successfully.',
-      });
+    onSuccess: (data) => {
+      // If the response indicates all members are ready, show a special toast
+      if (data.allReady && tripStatus === 'planning') {
+        toast({
+          title: 'Trip status updated!',
+          description: 'All members are ready! Trip status changed to Confirmed.',
+          variant: 'default',
+        });
+        
+        // Invalidate the trip query to update the trip status
+        queryClient.invalidateQueries({ queryKey: ["/api/trips", tripId] });
+      } else {
+        toast({
+          title: 'Check-in updated',
+          description: 'Your check-in status has been updated successfully.',
+        });
+      }
+      
       // Invalidate both queries to refresh the data
       queryClient.invalidateQueries({ queryKey: [`/api/trips/${tripId}/check-in-status`] });
       queryClient.invalidateQueries({ queryKey: [`/api/trips/${tripId}/check-ins/user/${user?.id}`] });
@@ -148,6 +163,14 @@ export function TripCheckIn({ tripId, accessLevel = 'member', groupMembers = [] 
     checkInStatuses.length === groupMembers.length && 
     checkInStatuses.every(checkIn => checkIn.status === 'ready');
 
+  // Invalidate trip query when all members are ready to refresh trip status
+  useEffect(() => {
+    if (allMembersReady && tripStatus === 'planning') {
+      // Invalidate trip query to refresh trip status
+      queryClient.invalidateQueries({ queryKey: ["/api/trips", tripId] });
+    }
+  }, [allMembersReady, tripStatus, tripId, queryClient]);
+  
   return (
     <Card>
       <CardHeader>
@@ -171,6 +194,26 @@ export function TripCheckIn({ tripId, accessLevel = 'member', groupMembers = [] 
       </CardHeader>
       <CardContent>
         <div className="space-y-6">
+          {/* Status update notification */}
+          {allMembersReady && tripStatus === 'planning' && (
+            <Alert className="bg-green-50 border-green-200 mb-4">
+              <AlertCircle className="h-5 w-5 text-green-600" />
+              <AlertTitle className="text-green-800">Trip status will be updated</AlertTitle>
+              <AlertDescription className="text-green-700">
+                All members are ready! The trip status will be automatically updated to "Confirmed".
+              </AlertDescription>
+            </Alert>
+          )}
+          
+          {allMembersReady && tripStatus === 'confirmed' && (
+            <Alert className="bg-green-50 border-green-200 mb-4">
+              <CheckCircle className="h-5 w-5 text-green-600" />
+              <AlertTitle className="text-green-800">Trip confirmed!</AlertTitle>
+              <AlertDescription className="text-green-700">
+                This trip has been confirmed and is ready to go.
+              </AlertDescription>
+            </Alert>
+          )}
           {/* Current user's check-in form */}
           <div className="space-y-3">
             <h3 className="text-sm font-medium">Your Status</h3>
