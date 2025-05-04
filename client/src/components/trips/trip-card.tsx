@@ -1,4 +1,4 @@
-import { Calendar, Users, Edit } from "lucide-react";
+import { Calendar, Users, Edit, CheckSquare } from "lucide-react";
 import { format } from "date-fns";
 import { Trip as BaseTrip } from "@shared/schema";
 
@@ -176,6 +176,20 @@ export function TripCard({ trip }: TripCardProps) {
             )}
           </div>
           <div className="flex items-center space-x-2">
+            {/* Check-in button */}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="flex items-center gap-1 text-green-600 hover:text-green-700"
+              onClick={() => {
+                console.log("Check-in button clicked, navigating to:", `/trips/${trip.id}?tab=check-in`);
+                navigate(`/trips/${trip.id}?tab=check-in`);
+              }}
+            >
+              <CheckSquare className="h-3 w-3" />
+              <span className="text-xs">Check-in</span>
+            </Button>
+            
             {isCreator && (
               <Button
                 variant="ghost"
@@ -190,6 +204,7 @@ export function TripCard({ trip }: TripCardProps) {
                 <span className="text-xs">Edit</span>
               </Button>
             )}
+            
             <Link 
               href={`/trips/${trip.id}`}
               className="text-primary-600 hover:text-primary-700 text-sm font-medium"
