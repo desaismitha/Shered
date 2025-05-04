@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import * as React from 'react';
+import { Trip, GroupMember } from '@shared/schema';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
 import { format } from 'date-fns';
@@ -12,6 +13,7 @@ import { TripCheckIn as TripCheckInType } from '@shared/schema';
 
 interface CheckInUser {
   id: number;
+  userId: number;
   username: string;
   displayName: string;
 }
@@ -86,13 +88,35 @@ export function TripCheckInStatus({ tripId, accessLevel = 'member', groupMembers
 
   // Get user display name from ID
   const getUserDisplayName = (userId: number) => {
-    const member = groupMembers.find(member => member.id === userId);
+    const member = groupMembers.find(member => member.userId === userId);
     return member?.displayName || `User ${userId}`;
   };
 
   // If user is not authenticated, don't show component
   if (!user) return null;
 
+  // Generate a complete list of member statuses, including those who haven't checked in yet
+  const allMemberStatuses = React.useMemo(() => {
+    if (!groupMembers || groupMembers.length === 0) return [];
+    
+    // Create a map of existing check-in statuses by userId
+    const statusMap = new Map();
+    if (checkInStatuses) {
+      checkInStatuses.forEach(status => {
+        statusMap.set(status.userId, status);
+      });
+    }
+    
+    // Create a combined list with all group members
+    return groupMembers.map(member => {
+      const existingStatus = statusMap.get(member.userId);
+      return existingStatus || {
+        userId: member.userId,
+        status: 'not-checked-in'
+      };
+    });
+  }, [groupMembers, checkInStatuses]);
+  
   // Check if all members are ready
   const allMembersReady = groupMembers.length > 0 && 
     checkInStatuses && 
@@ -169,20 +193,21 @@ export function TripCheckInStatus({ tripId, accessLevel = 'member', groupMembers
             <div className="space-y-2">
               {isLoadingStatuses ? (
                 <div className="text-sm text-muted-foreground">Loading statuses...</div>
-              ) : checkInStatuses && checkInStatuses.length > 0 ? (
+              ) : groupMembers && groupMembers.length > 0 ? (
                 <div className="grid grid-cols-1 gap-2">
-                  {/* De-duplicate members by creating a map using userId as key */}
-                  {Array.from(new Map(checkInStatuses.map(item => [item.userId, item])).values()).map(checkInStatus => {
-                    const isCurrentUser = user && checkInStatus.userId === user.id;
+                  {/* Show all members with their check-in status */}
+                  {allMemberStatuses.map(status => {
+                    const isCurrentUser = user && status.userId === user.id;
                     return (
                       <div 
-                        key={checkInStatus.userId}
+                        key={status.userId}
                         className={cn(
                           "flex justify-between items-center p-3 rounded-md",
                           isCurrentUser ? "bg-muted/50" : "bg-card", 
-                          checkInStatus.status === 'ready' ? "border-l-4 border-l-green-500" : 
-                          checkInStatus.status === 'not-ready' ? "border-l-4 border-l-red-500" : 
-                          checkInStatus.status === 'delayed' ? "border-l-4 border-l-amber-500" : 
+                          status.status === 'ready' ? "border-l-4 border-l-green-500" : 
+                          status.status === 'not-ready' ? "border-l-4 border-l-red-500" : 
+                          status.status === 'delayed' ? "border-l-4 border-l-amber-500" : 
+                          status.status === 'not-checked-in' ? "border-l-4 border-l-gray-400" :
                           "border"
                         )}
                       >
@@ -191,17 +216,24 @@ export function TripCheckInStatus({ tripId, accessLevel = 'member', groupMembers
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <div className="text-sm mr-2">
-                                  {getUserDisplayName(checkInStatus.userId)}
+                                  {getUserDisplayName(status.userId)}
                                   {isCurrentUser && " (You)"}
                                 </div>
                               </TooltipTrigger>
                               <TooltipContent>
-                                <p>User ID: {checkInStatus.userId}</p>
+                                <p>User ID: {status.userId}</p>
                               </TooltipContent>
                             </Tooltip>
                           </TooltipProvider>
                         </div>
-                        {getStatusBadge(checkInStatus.status)}
+                        {status.status === 'not-checked-in' ? (
+                          <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-200" variant="outline">
+                            <AlertCircle className="w-3.5 h-3.5 mr-1" />
+                            Not Checked In
+                          </Badge>
+                        ) : (
+                          getStatusBadge(status.status)
+                        )}
                       </div>
                     );
                   })}
