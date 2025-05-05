@@ -226,6 +226,9 @@ export function OtpVerificationForm({ onVerified, onCancel, registrationId }: Ot
           We've sent a 6-digit verification code to your email address.
           Enter the code below to verify your account.
         </p>
+        <p className="text-sm text-muted-foreground font-medium">
+          Note: Verification codes are only sent to your email, not to your mobile number.
+        </p>
       </div>
 
       <Form {...form}>

@@ -111,8 +111,8 @@ export function VerificationModal({ isOpen, onOpenChange, userEmail, registratio
 
         <Tabs defaultValue="otp" className="w-full mt-4">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="otp">OTP Verification</TabsTrigger>
-            <TabsTrigger value="email">Email Verification</TabsTrigger>
+            <TabsTrigger value="otp">Email OTP Verification</TabsTrigger>
+            <TabsTrigger value="email">Email Link Verification</TabsTrigger>
           </TabsList>
 
           <TabsContent value="otp" className="mt-4">
