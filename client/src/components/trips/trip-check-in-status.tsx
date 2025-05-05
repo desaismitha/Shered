@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { CheckCircle, XCircle, Clock, AlertTriangle, UserCheck, AlertCircle } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, AlertTriangle, UserCheck, AlertCircle, MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { TripCheckIn as TripCheckInType } from '@shared/schema';
 
@@ -21,6 +21,16 @@ interface CheckInUser {
 interface CheckInStatus {
   userId: number;
   status: string;
+}
+
+interface CheckInResponse {
+  checkInStatuses: CheckInStatus[];
+  tripInfo: {
+    startLocation: string | null;
+    startLocationDisplay: string | null;
+    destination: string | null;
+    destinationDisplay: string | null;
+  };
 }
 
 interface TripCheckInStatusProps {
@@ -47,10 +57,22 @@ export function TripCheckInStatus({ tripId, accessLevel = 'member', groupMembers
   }, [tripData]);
   
   // Get all check-in status for the trip
-  const { data: checkInStatuses, isLoading: isLoadingStatuses } = useQuery<CheckInStatus[]>({
+  const { data: checkInResponse, isLoading: isLoadingStatuses } = useQuery<CheckInResponse>({
     queryKey: [`/api/trips/${tripId}/check-in-status`],
     enabled: !!tripId && (accessLevel === 'owner' || accessLevel === 'member')
   });
+  
+  // Extract check-in statuses and location info from the response
+  const checkInStatuses = checkInResponse?.checkInStatuses;
+  const locationInfo = checkInResponse?.tripInfo;
+  
+  // Log the check-in response when it's loaded
+  React.useEffect(() => {
+    if (checkInResponse) {
+      console.log('Check-in response data:', checkInResponse);
+      console.log('Location info:', locationInfo);
+    }
+  }, [checkInResponse, locationInfo]);
 
   // Get current user's check-in
   const { data: myCheckIn, isLoading: isLoadingMyCheckIn } = useQuery<TripCheckInType>({
@@ -142,6 +164,18 @@ export function TripCheckInStatus({ tripId, accessLevel = 'member', groupMembers
             <CardDescription>
               Current status of all members for this trip
             </CardDescription>
+            {locationInfo && (
+              <div className="mt-2 text-xs text-muted-foreground">
+                <div className="flex items-center gap-1 mb-1">
+                  <MapPin className="h-3 w-3" />
+                  <span className="font-medium">From:</span> {locationInfo.startLocationDisplay || 'Unknown location'}
+                </div>
+                <div className="flex items-center gap-1">
+                  <MapPin className="h-3 w-3" />
+                  <span className="font-medium">To:</span> {locationInfo.destinationDisplay || 'Unknown location'}
+                </div>
+              </div>
+            )}
           </div>
 
           {allMembersReady && (

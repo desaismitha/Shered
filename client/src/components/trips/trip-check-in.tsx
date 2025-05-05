@@ -27,6 +27,16 @@ interface CheckInStatus {
   status: string;
 }
 
+interface CheckInResponse {
+  checkInStatuses: CheckInStatus[];
+  tripInfo: {
+    startLocation: string | null;
+    startLocationDisplay: string | null;
+    destination: string | null;
+    destinationDisplay: string | null;
+  };
+}
+
 interface TripCheckInProps {
   tripId: number;
   accessLevel?: 'owner' | 'member';
@@ -43,10 +53,22 @@ export function TripCheckIn({ tripId, accessLevel = 'member', groupMembers = [],
   const [isAlreadyCheckedIn, setIsAlreadyCheckedIn] = useState(false);
 
   // Get all check-in status for the trip
-  const { data: checkInStatuses, isLoading: isLoadingStatuses } = useQuery<CheckInStatus[]>({
+  const { data: checkInResponse, isLoading: isLoadingStatuses } = useQuery<CheckInResponse>({
     queryKey: [`/api/trips/${tripId}/check-in-status`],
     enabled: !!tripId && (accessLevel === 'owner' || accessLevel === 'member')
   });
+  
+  // Extract check-in statuses and location info from the response
+  const checkInStatuses = checkInResponse?.checkInStatuses;
+  const locationInfo = checkInResponse?.tripInfo;
+  
+  // Log the check-in response when it's loaded
+  useEffect(() => {
+    if (checkInResponse) {
+      console.log('Check-in response data:', checkInResponse);
+      console.log('Location info:', locationInfo);
+    }
+  }, [checkInResponse, locationInfo]);
 
   // Get current user's check-in
   const { data: myCheckIn, isLoading: isLoadingMyCheckIn } = useQuery<TripCheckInType>({
@@ -191,6 +213,18 @@ export function TripCheckIn({ tripId, accessLevel = 'member', groupMembers = [],
             <CardDescription>
               Confirm your readiness for this trip
             </CardDescription>
+            {locationInfo && (
+              <div className="mt-2 text-xs text-muted-foreground">
+                <div className="flex items-center gap-1 mb-1">
+                  <MapPin className="h-3 w-3" />
+                  <span className="font-medium">From:</span> {locationInfo.startLocationDisplay || 'Unknown location'}
+                </div>
+                <div className="flex items-center gap-1">
+                  <MapPin className="h-3 w-3" />
+                  <span className="font-medium">To:</span> {locationInfo.destinationDisplay || 'Unknown location'}
+                </div>
+              </div>
+            )}
           </div>
 
           {allMembersReady && (
