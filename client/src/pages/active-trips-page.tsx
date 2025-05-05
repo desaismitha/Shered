@@ -1062,9 +1062,34 @@ export default function ActiveTripsPage() {
   const [isLocationUpdating, setIsLocationUpdating] = useState(false);
   const [locationUpdateError, setLocationUpdateError] = useState<string | null>(null);
   const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null);
+  const [locationPermission, setLocationPermission] = useState<PermissionState | 'unknown'>('unknown');
   
   // Map reference for Leaflet
   const mapRef = useRef<L.Map | null>(null);
+
+  // Effect to check geolocation permissions
+  useEffect(() => {
+    // Check if the browser supports the permissions API
+    if (navigator.permissions && navigator.permissions.query) {
+      navigator.permissions.query({ name: 'geolocation' })
+        .then(permissionStatus => {
+          setLocationPermission(permissionStatus.state);
+          
+          // Add listener for permission changes
+          permissionStatus.onchange = () => {
+            setLocationPermission(permissionStatus.state);
+          };
+        })
+        .catch(error => {
+          console.error('Error checking location permission:', error);
+          // Default to unknown if we can't check
+          setLocationPermission('unknown');
+        });
+    } else {
+      console.log('Permissions API not supported');
+      setLocationPermission('unknown');
+    }
+  }, []);
 
   // Effect to handle URL parameters for direct linking
   useEffect(() => {
@@ -1399,11 +1424,29 @@ export default function ActiveTripsPage() {
       return;
     }
     
+    // Check if permission is denied before attempting to get location
+    if (locationPermission === 'denied') {
+      setLocationUpdateError("Location permission is denied. Please enable location access in your browser settings.");
+      toast({
+        title: "Location permission denied",
+        description: "Please enable location access in your browser settings to track your trip.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setIsLocationUpdating(true);
     setLocationUpdateError(null);
     
+    // Set a timeout to prevent the UI from freezing if the permission dialog is ignored
+    const locationTimeout = setTimeout(() => {
+      setIsLocationUpdating(false);
+      setLocationUpdateError("Location request timed out. Please check your location permissions.");
+    }, 15000);
+    
     navigator.geolocation.getCurrentPosition(
       (position) => {
+        clearTimeout(locationTimeout);
         const { latitude, longitude } = position.coords;
         
         // Update the map center if map is available
@@ -1416,13 +1459,32 @@ export default function ActiveTripsPage() {
         setIsLocationUpdating(false);
       },
       (error) => {
+        clearTimeout(locationTimeout);
         console.error("Error getting location:", error);
-        setLocationUpdateError(`Error getting location: ${error.message}`);
         setIsLocationUpdating(false);
+        
+        // Handle different error types
+        let errorMessage = "";
+        switch (error.code) {
+          case 1: // PERMISSION_DENIED
+            setLocationPermission('denied');
+            errorMessage = "You denied the request for geolocation. Please enable location access in your browser settings.";
+            break;
+          case 2: // POSITION_UNAVAILABLE
+            errorMessage = "Location information is unavailable. Check if you're in an area with GPS coverage.";
+            break;
+          case 3: // TIMEOUT
+            errorMessage = "The request to get your location timed out. Try again or check your device settings.";
+            break;
+          default:
+            errorMessage = `Error getting location: ${error.message}`;
+        }
+        
+        setLocationUpdateError(errorMessage);
         
         toast({
           title: "Location error",
-          description: error.message,
+          description: errorMessage,
           variant: "destructive",
         });
       },
@@ -1905,7 +1967,10 @@ export default function ActiveTripsPage() {
               // Display active trips
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {activeTrips.map((trip) => (
-                  <Card key={trip.id} className="overflow-hidden h-full flex flex-col">
+                  <Card 
+                    key={trip.id} 
+                    className={`overflow-hidden h-full flex flex-col ${selectedTripId === trip.id ? 'ring-2 ring-primary-500 shadow-lg' : ''}`}
+                  >
                     <div className="h-48 bg-neutral-100 relative">
                       {trip.imageUrl ? (
                         <img 
@@ -1923,6 +1988,14 @@ export default function ActiveTripsPage() {
                           In Progress
                         </Badge>
                       </div>
+                      {selectedTripId === trip.id && (
+                        <div className="absolute top-3 left-3">
+                          <Badge className="bg-green-500 flex items-center gap-1">
+                            <ActivityIcon className="h-3 w-3" />
+                            Tracking
+                          </Badge>
+                        </div>
+                      )}
                     </div>
                     <CardHeader>
                       <CardTitle>{trip.name}</CardTitle>
