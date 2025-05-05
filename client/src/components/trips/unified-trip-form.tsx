@@ -100,7 +100,11 @@ const formSchema = z.object({
   recurrenceDays: z.array(z.string()).optional(),
   // Mobile notifications for route changes
   enableMobileNotifications: z.boolean().default(false),
-  phoneNumber: z.string().optional(),
+  phoneNumber: z.string()
+    .refine(val => !val || /^\+[1-9]\d{1,14}$/.test(val), {
+      message: "Phone number must include country code and be in E.164 format (e.g., +12345678901)"
+    })
+    .optional(),
   // For multi-stop trips
   stops: z.array(stopSchema).optional(),
 });
@@ -202,6 +206,15 @@ export function UnifiedTripForm({
         endTime: "",
       }
     ]);
+    
+    // Ensure mobile notification settings are properly set
+    if (form.getValues("enableMobileNotifications") === undefined) {
+      form.setValue("enableMobileNotifications", false);
+    }
+    // Ensure phoneNumber is set if it was undefined
+    if (form.getValues("phoneNumber") === undefined) {
+      form.setValue("phoneNumber", "");
+    }
   };
 
   // Remove a stop from multi-stop trips
@@ -418,6 +431,12 @@ export function UnifiedTripForm({
                               startTime: form.getValues("startTime") || "",
                               endTime: form.getValues("endTime") || "",
                             }]);
+                            
+                            // Make sure mobile notification settings are carried over to multi-stop data
+                            form.setValue("enableMobileNotifications", form.getValues("enableMobileNotifications") || false);
+                            if (form.getValues("phoneNumber")) {
+                              form.setValue("phoneNumber", form.getValues("phoneNumber"));
+                            }
                           }
                         }
                       }}
@@ -956,6 +975,9 @@ export function UnifiedTripForm({
                     isRecurring: form.getValues('isRecurring') || false,
                     recurrencePattern: form.getValues('recurrencePattern'),
                     recurrenceDays: form.getValues('recurrenceDays'),
+                    // Mobile notifications
+                    enableMobileNotifications: form.getValues('enableMobileNotifications') || false,
+                    phoneNumber: form.getValues('phoneNumber') || '',
                     stops: form.getValues('stops') || [],
                   };
                   
@@ -1033,6 +1055,9 @@ export function UnifiedTripForm({
                   isRecurring: form.getValues('isRecurring') || false,
                   recurrencePattern: form.getValues('recurrencePattern'),
                   recurrenceDays: form.getValues('recurrenceDays'),
+                  // Mobile notifications
+                  enableMobileNotifications: form.getValues('enableMobileNotifications') || false,
+                  phoneNumber: form.getValues('phoneNumber') || '',
                   stops: form.getValues('stops') || [],
                 };
                 
