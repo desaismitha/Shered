@@ -403,6 +403,8 @@ function TripMap({
           startLocation={startLocation}
           endLocation={destination}
           showMap={true}
+          currentLatitude={currentLatitude}
+          currentLongitude={currentLongitude}
         />
       ) : (
         <div className="flex items-center justify-center h-full bg-muted/20">

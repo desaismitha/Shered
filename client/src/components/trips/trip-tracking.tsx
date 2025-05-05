@@ -44,6 +44,72 @@ export default function TripTracking({ tripId, tripName, isActive }: TripTrackin
     typeof Notification !== 'undefined' ? Notification.permission : 'unsupported'
   );
   
+  // Show mobile notification with enhanced mobile device features
+  const showMobileNotification = useCallback((title: string, body: string) => {
+    if (enableMobileNotifications && notificationPermission === 'granted' && typeof Notification !== 'undefined') {
+      try {
+        // Create a notification
+        const notification = new Notification(title, {
+          body,
+          icon: '/favicon.ico', // Default favicon as icon
+          silent: false, // Allow system sound
+          requireInteraction: false // Auto-close after a while
+        });
+        
+        // Multiple vibration patterns for better attention on mobile
+        if ('vibrate' in navigator) {
+          // Short-Short-Long pattern that repeats twice for emphasis
+          navigator.vibrate([200, 100, 200, 100, 500, 500, 200, 100, 200]);
+          
+          // Schedule another vibration after 2 seconds for persistent alerts
+          setTimeout(() => {
+            if ('vibrate' in navigator) {
+              navigator.vibrate([200, 100, 200]);
+            }
+          }, 2000);
+        }
+        
+        // Play a sound for audio feedback (especially useful for mobile devices)
+        try {
+          // Create a simple beep sound using the Web Audio API
+          const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+          const oscillator = audioContext.createOscillator();
+          const gainNode = audioContext.createGain();
+          
+          oscillator.connect(gainNode);
+          gainNode.connect(audioContext.destination);
+          
+          // Configure the alert sound
+          oscillator.type = 'sine';
+          oscillator.frequency.value = 880; // A5 note
+          gainNode.gain.value = 0.5; // Half volume
+          
+          // Short beep
+          oscillator.start();
+          setTimeout(() => oscillator.stop(), 200);
+        } catch (audioError) {
+          console.log('Audio alert not supported or blocked');
+        }
+        
+        // Auto close after 8 seconds
+        setTimeout(() => notification.close(), 8000);
+        
+        // Handle notification click
+        notification.onclick = () => {
+          // Focus the window and close the notification
+          window.focus();
+          notification.close();
+        };
+        
+        return true;
+      } catch (error) {
+        console.error('Error showing notification:', error);
+        return false;
+      }
+    }
+    return false;
+  }, [enableMobileNotifications, notificationPermission]);
+  
   // Function to handle new location data
   const handleLocationUpdate = useCallback(async (position: GeolocationPosition) => {
     const { latitude, longitude, accuracy } = position.coords;

@@ -10,20 +10,22 @@ interface MapUpdaterProps {
   bounds: L.LatLngBounds;
   startCoords: Coordinate | null;
   endCoords: Coordinate | null;
+  currentPosition: Coordinate | null;
 }
 
-function MapUpdater({ center, bounds, startCoords, endCoords }: MapUpdaterProps) {
+function MapUpdater({ center, bounds, startCoords, endCoords, currentPosition }: MapUpdaterProps) {
   const map = useMap();
   
+  // Update the map view when coordinates change
   useEffect(() => {
-    if (startCoords && endCoords) {
+    if ((startCoords && endCoords) || currentPosition) {
       console.log('[MAP DEBUG] Updating map view to fit bounds');
       map.fitBounds(bounds);
     } else if (startCoords || endCoords) {
       console.log('[MAP DEBUG] Updating map center to', center);
       map.setView([center.lat, center.lng], 13);
     }
-  }, [map, center, bounds, startCoords, endCoords]);
+  }, [map, center, bounds, startCoords, endCoords, currentPosition]);
   
   return null;
 }
@@ -134,6 +136,15 @@ const RouteMapPreview: React.FC<RouteMapPreviewProps> = ({
   
   const endIcon = new L.Icon({
     iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
+  });
+  
+  const currentPositionIcon = new L.Icon({
+    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
     shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
     iconSize: [25, 41],
     iconAnchor: [12, 41],
@@ -424,11 +435,12 @@ const RouteMapPreview: React.FC<RouteMapPreviewProps> = ({
     };
   }, [startCoords, endCoords, mapboxToken, generateInterpolatedRoute]);
   
-  // Calculate map bounds to fit all markers
+  // Calculate map bounds to fit all markers (including current position if available)
   const getBounds = () => {
     const points: Coordinate[] = [];
     if (startCoords) points.push(startCoords);
     if (endCoords) points.push(endCoords);
+    if (currentPosition) points.push(currentPosition);
     
     if (points.length === 0) {
       // Default to Seattle area if no points
@@ -491,6 +503,7 @@ const RouteMapPreview: React.FC<RouteMapPreviewProps> = ({
                 bounds={getBounds()} 
                 startCoords={startCoords}
                 endCoords={endCoords}
+                currentPosition={currentPosition}
               />
               
               <TileLayer
@@ -518,6 +531,18 @@ const RouteMapPreview: React.FC<RouteMapPreviewProps> = ({
                 <Marker position={endCoords} icon={endIcon}>
                   <Popup>
                     End: {getDisplayName(endLocation)}
+                  </Popup>
+                </Marker>
+              )}
+              
+              {/* Show current position if available */}
+              {currentPosition && (
+                <Marker position={currentPosition} icon={currentPositionIcon}>
+                  <Popup>
+                    Current Position: {currentPosition.lat.toFixed(6)}, {currentPosition.lng.toFixed(6)}
+                    <div className="text-xs text-muted-foreground mt-1">
+                      Updated: {new Date().toLocaleTimeString()}
+                    </div>
                   </Popup>
                 </Marker>
               )}
