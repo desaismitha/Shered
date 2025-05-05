@@ -449,15 +449,24 @@ const RouteMapPreview: React.FC<RouteMapPreviewProps> = ({
         [47.7, -122.2]
       );
     } else if (points.length === 1) {
-      // Single point - create a small bounding box around it
+      // Single point - create a larger bounding box around it
       const p = points[0];
       return L.latLngBounds(
-        [p.lat - 0.01, p.lng - 0.01],
-        [p.lat + 0.01, p.lng + 0.01]
+        [p.lat - 0.02, p.lng - 0.02],
+        [p.lat + 0.02, p.lng + 0.02]
       );
     } else {
-      // Multiple points - create bounds that contain all points
-      return L.latLngBounds(points);
+      // Multiple points - create bounds that contain all points with padding
+      const bounds = L.latLngBounds(points);
+      
+      // Add padding to ensure markers are visible and not at the edge
+      try {
+        // Using built-in padding method with a 10% padding
+        return bounds.pad(0.1);
+      } catch (e) {
+        console.error('Error adding padding to bounds:', e);
+        return bounds; // Return original bounds if padding fails
+      }
     }
   };
   
