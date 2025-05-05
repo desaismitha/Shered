@@ -14,24 +14,38 @@ interface MessageListProps {
 export function MessageList({ groupId, users }: MessageListProps) {
   const { user: currentUser } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [initialScrollDone, setInitialScrollDone] = useState(false);
   
   const { data: messages, isLoading } = useQuery<Message[]>({
     queryKey: ["/api/groups", groupId, "messages"],
-    refetchInterval: 3000, // Poll for new messages every 3 seconds
+    refetchInterval: 2000, // Poll for new messages every 2 seconds for more responsiveness
     onSuccess: (data) => {
-      console.log('Messages received:', data);
+      console.log('Messages received:', data?.length || 0, 'messages');
     },
   });
   
-  // Scroll to bottom whenever messages change
+  // Initial scroll to bottom when messages first load
   useEffect(() => {
-    // Add a small delay to ensure DOM updates before scrolling
-    const timeoutId = setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-      console.log("Scrolled to bottom, messages count:", messages?.length || 0);
-    }, 100);
-    return () => clearTimeout(timeoutId);
-  }, [messages]);
+    if (messages?.length && !initialScrollDone) {
+      const timeoutId = setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
+        console.log("Initial scroll to bottom, messages count:", messages.length);
+        setInitialScrollDone(true);
+      }, 100);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [messages, initialScrollDone]);
+  
+  // Scroll to bottom when new messages arrive
+  useEffect(() => {
+    if (initialScrollDone && messages?.length) {
+      const timeoutId = setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        console.log("New message scroll, messages count:", messages.length);
+      }, 100);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [messages, initialScrollDone]);
   
   if (isLoading) {
     return (
