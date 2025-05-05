@@ -3,7 +3,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { MapPin, AlertTriangle } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { MapPin, AlertTriangle, BellRing, Bell } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { apiRequest } from '@/lib/queryClient';
 
@@ -31,6 +32,10 @@ export default function TripTracking({ tripId, tripName, isActive }: TripTrackin
   const [error, setError] = useState<string | null>(null);
   const [watchId, setWatchId] = useState<number | null>(null);
   const [routeDeviation, setRouteDeviation] = useState<{ isDeviated: boolean; distance: number } | null>(null);
+  const [enableMobileNotifications, setEnableMobileNotifications] = useState(false);
+  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission | 'unsupported'>(
+    typeof Notification !== 'undefined' ? Notification.permission : 'unsupported'
+  );
   
   // Function to handle new location data
   const handleLocationUpdate = useCallback(async (position: GeolocationPosition) => {
@@ -162,6 +167,80 @@ export default function TripTracking({ tripId, tripName, isActive }: TripTrackin
     };
   }, [isActive, isTracking, watchId, startTracking, stopTracking]);
   
+  // Request notification permission
+  const requestNotificationPermission = useCallback(async () => {
+    if (typeof Notification === 'undefined') {
+      setNotificationPermission('unsupported');
+      return false;
+    }
+    
+    if (Notification.permission === 'granted') {
+      setNotificationPermission('granted');
+      return true;
+    }
+    
+    try {
+      const permission = await Notification.requestPermission();
+      setNotificationPermission(permission);
+      return permission === 'granted';
+    } catch (error) {
+      console.error('Error requesting notification permission:', error);
+      return false;
+    }
+  }, []);
+  
+  // Show mobile notification
+  const showMobileNotification = useCallback((title: string, body: string) => {
+    if (enableMobileNotifications && notificationPermission === 'granted' && typeof Notification !== 'undefined') {
+      try {
+        // Create a notification
+        const notification = new Notification(title, {
+          body,
+          icon: '/favicon.ico' // Default favicon as icon
+        });
+        
+        // Attempt to use vibration API if available
+        if ('vibrate' in navigator) {
+          navigator.vibrate([200, 100, 200]);
+        }
+        
+        // Auto close after 5 seconds
+        setTimeout(() => notification.close(), 5000);
+        
+        return true;
+      } catch (error) {
+        console.error('Error showing notification:', error);
+        return false;
+      }
+    }
+    return false;
+  }, [enableMobileNotifications, notificationPermission, tripId]);
+  
+  // Toggle mobile notifications
+  const toggleMobileNotifications = useCallback(async () => {
+    // If enabling notifications and permission not granted yet, request it
+    if (!enableMobileNotifications && notificationPermission !== 'granted') {
+      const granted = await requestNotificationPermission();
+      if (!granted) {
+        toast({
+          title: 'Notification Permission Required',
+          description: 'Please enable notifications to receive alerts on your mobile device.',
+          variant: 'destructive'
+        });
+        return;
+      }
+    }
+    
+    setEnableMobileNotifications(prev => !prev);
+    
+    toast({
+      title: !enableMobileNotifications ? 'Mobile Notifications Enabled' : 'Mobile Notifications Disabled',
+      description: !enableMobileNotifications 
+        ? 'You will now receive notifications on your mobile device for route deviations.'
+        : 'You will no longer receive mobile notifications for route deviations.'
+    });
+  }, [enableMobileNotifications, notificationPermission, requestNotificationPermission, toast]);
+  
   // Setup WebSocket for real-time updates (deviation notifications, etc.)
   useEffect(() => {
     if (!isActive || !user) return;
@@ -174,11 +253,20 @@ export default function TripTracking({ tripId, tripName, isActive }: TripTrackin
         
         // Handle route deviation notifications
         if (data.type === 'route-deviation' && data.tripId === tripId) {
+          // Show toast notification
           toast({
             title: 'Route Deviation',
             description: data.message,
             variant: 'destructive'
           });
+          
+          // If mobile notifications are enabled, show a notification
+          if (enableMobileNotifications) {
+            showMobileNotification(
+              'Route Deviation Alert', 
+              `${data.message}. Distance from route: ${parseFloat(data.distanceFromRoute).toFixed(2)}km`
+            );
+          }
         }
       } catch (err) {
         console.error('Error parsing WebSocket message:', err);
@@ -196,7 +284,7 @@ export default function TripTracking({ tripId, tripName, isActive }: TripTrackin
       socket.removeEventListener('message', handleWebSocketMessage);
       socket.close();
     };
-  }, [isActive, tripId, user, toast]);
+  }, [isActive, tripId, user, toast, enableMobileNotifications, showMobileNotification]);
   
   return (
     <Card className="mb-6">
@@ -268,6 +356,37 @@ export default function TripTracking({ tripId, tripName, isActive }: TripTrackin
             </div>
           )}
           
+          {/* Mobile notifications toggle */}
+          <div className="flex items-center justify-between space-x-2 py-2 border-t pt-4">
+            <div className="flex items-center space-x-2">
+              {notificationPermission === 'granted' ? (
+                <BellRing className="h-4 w-4 text-green-600" />
+              ) : (
+                <Bell className="h-4 w-4 text-muted-foreground" />
+              )}
+              <div className="space-y-0.5">
+                <div className="text-sm font-medium">Mobile Notifications</div>
+                <div className="text-xs text-muted-foreground">
+                  {notificationPermission === 'granted'
+                    ? enableMobileNotifications
+                      ? 'Enabled for route deviations'
+                      : 'Permission granted but disabled'
+                    : notificationPermission === 'denied'
+                    ? 'Permission denied in browser settings'
+                    : notificationPermission === 'unsupported'
+                    ? 'Not supported on this device'
+                    : 'Permission required'}
+                </div>
+              </div>
+            </div>
+            <Switch
+              checked={enableMobileNotifications && notificationPermission === 'granted'}
+              disabled={notificationPermission === 'denied' || notificationPermission === 'unsupported'}
+              onCheckedChange={toggleMobileNotifications}
+            />
+          </div>
+          
+          {/* Tracking controls */}
           <div className="flex gap-3 pt-2">
             {!isTracking ? (
               <Button onClick={startTracking} className="flex-1">
