@@ -433,11 +433,15 @@ export function setupAuth(app: Express) {
         otpCode
       );
       
-      // SMS verification has been completely disabled as requested
+      // Also send SMS if phone number is provided
       let smsOtpSent = false;
       if (user.phoneNumber) {
-        console.log(`SMS verification is disabled. Phone number ${user.phoneNumber} provided but not sending SMS.`);
-        // SMS sending code removed per user request "no sms code"
+        smsOtpSent = await sendOTPVerificationSMS(
+          user.phoneNumber,
+          user.displayName || user.username,
+          otpCode
+        );
+        console.log(`SMS OTP ${smsOtpSent ? 'sent successfully' : 'failed to send'} to ${user.phoneNumber}`);
       }
 
       // Handle group invitation if present in the request
@@ -736,11 +740,15 @@ export function setupAuth(app: Express) {
         otpCode
       );
       
-      // SMS verification has been completely disabled as requested
+      // Send SMS if phone number is provided
       let smsOtpSent = false;
       if (user.phoneNumber) {
-        console.log(`SMS verification is disabled. Phone number ${user.phoneNumber} provided but not sending SMS.`);
-        // SMS sending code removed per user request "no sms code"
+        smsOtpSent = await sendOTPVerificationSMS(
+          user.phoneNumber,
+          user.displayName || user.username,
+          otpCode
+        );
+        console.log(`SMS OTP ${smsOtpSent ? 'sent successfully' : 'failed to send'} to ${user.phoneNumber}`);
       }
       
       if (!emailOtpSent && !smsOtpSent) {
