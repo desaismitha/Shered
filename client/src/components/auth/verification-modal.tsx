@@ -123,7 +123,7 @@ export function VerificationModal({ isOpen, onOpenChange, userEmail, userPhone, 
 
         <Tabs key="verification-tabs" defaultValue="otp" className="w-full mt-4">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="otp">Verification Code</TabsTrigger>
+            <TabsTrigger value="otp">Email Code</TabsTrigger>
             <TabsTrigger value="email">Email Link</TabsTrigger>
           </TabsList>
 

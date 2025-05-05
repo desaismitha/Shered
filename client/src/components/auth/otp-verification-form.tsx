@@ -271,14 +271,13 @@ export function OtpVerificationForm({ onVerified, onCancel, registrationId, smsS
             name="otp"
             render={({ field }) => (
               <FormItem className="mx-auto max-w-xs">
-                <FormLabel className="text-center block">
-                  {smsSent ? "Enter code from Email or SMS" : "Enter Email Verification Code"}
+                <FormLabel className="text-center block text-lg font-semibold">
+                  Enter Email Verification Code
                 </FormLabel>
-                {smsSent === false && (
-                  <div className="text-xs text-amber-600 text-center mt-1">
-                    SMS verification not available. Please check your email for the code.
-                  </div>
-                )}
+                <div className="text-sm text-primary text-center mt-1 mb-2">
+                  <Mail className="inline-block mr-1 h-4 w-4" />
+                  Check your email for a 6-digit code
+                </div>
                 <FormControl>
                   <InputOTP maxLength={6} {...field}>
                     <InputOTPGroup>

@@ -6,6 +6,7 @@ import { useLocation, Redirect, Link } from "wouter";
 import { useState, useEffect } from "react";
 import { Plane } from "lucide-react";
 import { VerificationModal } from "@/components/auth/verification-modal";
+import { useToast } from "@/hooks/use-toast";
 
 // Add debugging console log
 console.log("Auth page module loaded");
@@ -58,6 +59,7 @@ export default function AuthPage() {
   console.log("AuthPage component rendering");
   
   const { user, loginMutation, registerInitMutation, registerCompleteMutation } = useAuth();
+  const { toast } = useToast();
   console.log("useAuth hook completed", { user });
   const [, navigate] = useLocation();
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
@@ -275,6 +277,13 @@ export default function AuthPage() {
     // CRITICAL: Force modal to close immediately
     document.body.click(); // This helps force close any open modals
     setShowVerificationModal(false);
+    
+    // Show success toast
+    toast({
+      title: "Account Verified",
+      description: "Your account has been successfully verified!",
+      variant: "success",
+    });
     
     // Use a small timeout to ensure the modal is fully closed before navigation
     setTimeout(() => {

@@ -182,21 +182,15 @@ export function setupAuth(app: Express) {
         otpCode
       );
       
-      // Check if we should also send SMS
+      // SMS verification is currently disabled due to Twilio configuration issues
+      // Send verification by email only
       let smsOtpSent = false;
+      
+      console.log('SMS verification is disabled - using email verification only');
+      
+      // Log the phone number that would have been used for SMS
       if (req.body.phoneNumber) {
-        try {
-          // Also send via SMS if phone number is provided
-          smsOtpSent = await sendOTPVerificationSMS(
-            req.body.phoneNumber,
-            req.body.displayName || req.body.username,
-            otpCode
-          );
-          console.log(`SMS OTP ${smsOtpSent ? 'sent successfully' : 'failed to send'} to ${req.body.phoneNumber}`);
-        } catch (error) {
-          console.error('Error sending SMS OTP:', error);
-          smsOtpSent = false;
-        }
+        console.log(`Would have sent SMS to ${req.body.phoneNumber}, but SMS verification is disabled`);
       }
 
       res.status(200).json({
