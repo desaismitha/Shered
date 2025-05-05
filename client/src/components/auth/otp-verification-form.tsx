@@ -230,7 +230,7 @@ export function OtpVerificationForm({ onVerified, onCancel, registrationId, smsS
         <p className="text-sm text-muted-foreground">
           We've sent a 6-digit verification code to your email address.
           {smsSent && (
-            <span className="font-medium text-primary"> We've also sent the code via SMS to your phone number.</span>
+            <span className="font-medium text-primary"> We've also sent the code via SMS to your phone number. You can enter the code from either source.</span>
           )}
           {registrationId && !smsSent && (
             <span> If you provided a phone number, we may also send the code via SMS.</span>

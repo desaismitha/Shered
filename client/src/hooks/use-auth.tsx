@@ -166,7 +166,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     onSuccess: (data) => {
       toast({
         title: "Verification code sent",
-        description: `We've sent a code to ${data.email}. Enter it to complete your registration.`,
+        description: data.smsOtpSent
+          ? `We've sent a code to ${data.email} and your phone number. Enter it to complete your registration.`
+          : `We've sent a code to ${data.email}. Enter it to complete your registration.`,
       });
     },
     onError: (error) => {
