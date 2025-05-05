@@ -234,7 +234,6 @@ export function OtpVerificationForm({ onVerified, onCancel, registrationId, smsS
         <h2 className="text-2xl font-semibold">Enter Verification Code</h2>
         <p className="text-sm text-muted-foreground">
           We've sent a 6-digit verification code to your email address.
-          {smsSent && phoneNumber && "We've also sent the same code via SMS to your phone."}
           Enter the code below to verify your account.
         </p>
         
@@ -243,13 +242,6 @@ export function OtpVerificationForm({ onVerified, onCancel, registrationId, smsS
             <Mail className="h-4 w-4 text-primary" />
             <span className="text-xs">Check your email inbox for the code</span>
           </div>
-          
-          {smsSent && phoneNumber && (
-            <div className="flex items-center space-x-2">
-              <MessageSquare className="h-4 w-4 text-green-500" />
-              <span className="text-xs">Also sent via SMS to {phoneNumber}</span>
-            </div>
-          )}
         </div>
       </div>
 
@@ -264,18 +256,10 @@ export function OtpVerificationForm({ onVerified, onCancel, registrationId, smsS
                   Enter Verification Code
                 </FormLabel>
                 <div className="text-sm text-primary text-center mt-1 mb-2">
-                  {smsSent && phoneNumber ? (
-                    <>
-                      <Mail className="inline-block mr-1 h-4 w-4" />
-                      <MessageSquare className="inline-block mx-1 h-4 w-4 text-green-500" />
-                      Check your email or SMS for the 6-digit code
-                    </>
-                  ) : (
-                    <>
-                      <Mail className="inline-block mr-1 h-4 w-4" />
-                      Check your email for a 6-digit code
-                    </>
-                  )}
+                  <>
+                    <Mail className="inline-block mr-1 h-4 w-4" />
+                    Check your email for a 6-digit code
+                  </>
                 </div>
                 <FormControl>
                   <InputOTP maxLength={6} {...field}>

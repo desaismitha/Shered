@@ -189,19 +189,11 @@ export function setupAuth(app: Express) {
         otpCode
       );
       
-      // Send verification by SMS if phone number is provided
+      // Temporarily disabled SMS verification due to issues with Twilio configuration
       let smsOtpSent = false;
       
       if (req.body.phoneNumber) {
-        console.log(`Attempting to send SMS verification to ${req.body.phoneNumber}`);
-        smsOtpSent = await sendOTPVerificationSMS(
-          req.body.phoneNumber,
-          req.body.displayName || req.body.username,
-          otpCode
-        );
-        console.log(`SMS verification ${smsOtpSent ? 'successfully sent' : 'failed to send'} to ${req.body.phoneNumber}`);
-      } else {
-        console.log('No phone number provided, skipping SMS verification');
+        console.log(`SMS verification temporarily disabled, only using email verification`);
       }
 
       res.status(200).json({
@@ -433,15 +425,10 @@ export function setupAuth(app: Express) {
         otpCode
       );
       
-      // Also send SMS if phone number is provided
+      // Temporarily disabled SMS verification due to issues with Twilio configuration
       let smsOtpSent = false;
       if (user.phoneNumber) {
-        smsOtpSent = await sendOTPVerificationSMS(
-          user.phoneNumber,
-          user.displayName || user.username,
-          otpCode
-        );
-        console.log(`SMS OTP ${smsOtpSent ? 'sent successfully' : 'failed to send'} to ${user.phoneNumber}`);
+        console.log(`SMS verification temporarily disabled, only using email verification`);
       }
 
       // Handle group invitation if present in the request
@@ -740,15 +727,10 @@ export function setupAuth(app: Express) {
         otpCode
       );
       
-      // Send SMS if phone number is provided
+      // Temporarily disabled SMS verification due to issues with Twilio configuration
       let smsOtpSent = false;
       if (user.phoneNumber) {
-        smsOtpSent = await sendOTPVerificationSMS(
-          user.phoneNumber,
-          user.displayName || user.username,
-          otpCode
-        );
-        console.log(`SMS OTP ${smsOtpSent ? 'sent successfully' : 'failed to send'} to ${user.phoneNumber}`);
+        console.log(`SMS verification temporarily disabled, only using email verification`);
       }
       
       if (!emailOtpSent && !smsOtpSent) {
