@@ -32,7 +32,14 @@ export default function TripTracking({ tripId, tripName, isActive }: TripTrackin
   const [error, setError] = useState<string | null>(null);
   const [watchId, setWatchId] = useState<number | null>(null);
   const [routeDeviation, setRouteDeviation] = useState<{ isDeviated: boolean; distance: number } | null>(null);
-  const [enableMobileNotifications, setEnableMobileNotifications] = useState(false);
+  const [enableMobileNotifications, setEnableMobileNotifications] = useState(() => {
+    // Load from localStorage if available
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('enableMobileNotifications');
+      return stored === 'true';
+    }
+    return false;
+  });
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission | 'unsupported'>(
     typeof Notification !== 'undefined' ? Notification.permission : 'unsupported'
   );
@@ -189,23 +196,62 @@ export default function TripTracking({ tripId, tripName, isActive }: TripTrackin
     }
   }, []);
   
-  // Show mobile notification
+  // Show mobile notification with enhanced mobile device features
   const showMobileNotification = useCallback((title: string, body: string) => {
     if (enableMobileNotifications && notificationPermission === 'granted' && typeof Notification !== 'undefined') {
       try {
         // Create a notification
         const notification = new Notification(title, {
           body,
-          icon: '/favicon.ico' // Default favicon as icon
+          icon: '/favicon.ico', // Default favicon as icon
+          silent: false, // Allow system sound
+          requireInteraction: false // Auto-close after a while
         });
         
-        // Attempt to use vibration API if available
+        // Multiple vibration patterns for better attention on mobile
         if ('vibrate' in navigator) {
-          navigator.vibrate([200, 100, 200]);
+          // Short-Short-Long pattern that repeats twice for emphasis
+          navigator.vibrate([200, 100, 200, 100, 500, 500, 200, 100, 200]);
+          
+          // Schedule another vibration after 2 seconds for persistent alerts
+          setTimeout(() => {
+            if ('vibrate' in navigator) {
+              navigator.vibrate([200, 100, 200]);
+            }
+          }, 2000);
         }
         
-        // Auto close after 5 seconds
-        setTimeout(() => notification.close(), 5000);
+        // Play a sound for audio feedback (especially useful for mobile devices)
+        try {
+          // Create a simple beep sound using the Web Audio API
+          const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+          const oscillator = audioContext.createOscillator();
+          const gainNode = audioContext.createGain();
+          
+          oscillator.connect(gainNode);
+          gainNode.connect(audioContext.destination);
+          
+          // Configure the alert sound
+          oscillator.type = 'sine';
+          oscillator.frequency.value = 880; // A5 note
+          gainNode.gain.value = 0.5; // Half volume
+          
+          // Short beep
+          oscillator.start();
+          setTimeout(() => oscillator.stop(), 200);
+        } catch (audioError) {
+          console.log('Audio alert not supported or blocked');
+        }
+        
+        // Auto close after 8 seconds
+        setTimeout(() => notification.close(), 8000);
+        
+        // Handle notification click
+        notification.onclick = () => {
+          // Focus the window and close the notification
+          window.focus();
+          notification.close();
+        };
         
         return true;
       } catch (error) {
@@ -214,7 +260,7 @@ export default function TripTracking({ tripId, tripName, isActive }: TripTrackin
       }
     }
     return false;
-  }, [enableMobileNotifications, notificationPermission, tripId]);
+  }, [enableMobileNotifications, notificationPermission]);
   
   // Toggle mobile notifications
   const toggleMobileNotifications = useCallback(async () => {
@@ -231,7 +277,13 @@ export default function TripTracking({ tripId, tripName, isActive }: TripTrackin
       }
     }
     
-    setEnableMobileNotifications(prev => !prev);
+    const newValue = !enableMobileNotifications;
+    setEnableMobileNotifications(newValue);
+    
+    // Save preference to localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('enableMobileNotifications', String(newValue));
+    }
     
     toast({
       title: !enableMobileNotifications ? 'Mobile Notifications Enabled' : 'Mobile Notifications Disabled',
@@ -357,33 +409,53 @@ export default function TripTracking({ tripId, tripName, isActive }: TripTrackin
           )}
           
           {/* Mobile notifications toggle */}
-          <div className="flex items-center justify-between space-x-2 py-2 border-t pt-4">
-            <div className="flex items-center space-x-2">
-              {notificationPermission === 'granted' ? (
-                <BellRing className="h-4 w-4 text-green-600" />
-              ) : (
-                <Bell className="h-4 w-4 text-muted-foreground" />
-              )}
-              <div className="space-y-0.5">
-                <div className="text-sm font-medium">Mobile Notifications</div>
-                <div className="text-xs text-muted-foreground">
-                  {notificationPermission === 'granted'
-                    ? enableMobileNotifications
-                      ? 'Enabled for route deviations'
-                      : 'Permission granted but disabled'
-                    : notificationPermission === 'denied'
-                    ? 'Permission denied in browser settings'
-                    : notificationPermission === 'unsupported'
-                    ? 'Not supported on this device'
-                    : 'Permission required'}
+          <div className="space-y-3 border-t pt-4">
+            <div className="flex items-center justify-between space-x-2">
+              <div className="flex items-center space-x-2">
+                {notificationPermission === 'granted' ? (
+                  <BellRing className="h-4 w-4 text-green-600" />
+                ) : (
+                  <Bell className="h-4 w-4 text-muted-foreground" />
+                )}
+                <div className="space-y-0.5">
+                  <div className="text-sm font-medium">Mobile Notifications</div>
+                  <div className="text-xs text-muted-foreground">
+                    {notificationPermission === 'granted'
+                      ? enableMobileNotifications
+                        ? 'Enabled for route deviations'
+                        : 'Permission granted but disabled'
+                      : notificationPermission === 'denied'
+                      ? 'Permission denied in browser settings'
+                      : notificationPermission === 'unsupported'
+                      ? 'Not supported on this device'
+                      : 'Permission required'}
+                  </div>
                 </div>
               </div>
+              <Switch
+                checked={enableMobileNotifications && notificationPermission === 'granted'}
+                disabled={notificationPermission === 'denied' || notificationPermission === 'unsupported'}
+                onCheckedChange={toggleMobileNotifications}
+              />
             </div>
-            <Switch
-              checked={enableMobileNotifications && notificationPermission === 'granted'}
-              disabled={notificationPermission === 'denied' || notificationPermission === 'unsupported'}
-              onCheckedChange={toggleMobileNotifications}
-            />
+            
+            {/* Test notification button */}
+            {enableMobileNotifications && notificationPermission === 'granted' && (
+              <div className="flex justify-end">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => showMobileNotification(
+                    'Test Notification', 
+                    'This is a test notification. Your device is ready to receive route deviation alerts.'
+                  )}
+                  className="text-xs"
+                >
+                  <Bell className="h-3 w-3 mr-1" />
+                  Test Notification
+                </Button>
+              </div>
+            )}
           </div>
           
           {/* Tracking controls */}
