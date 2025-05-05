@@ -108,20 +108,27 @@ export async function sendOTPVerificationSMS(
  * @returns Formatted phone number with + prefix
  */
 export function formatPhoneNumber(phoneNumber: string): string {
-  // Remove any non-digit characters
+  console.log(`Formatting phone number: '${phoneNumber}'`);
+  
+  // Remove any non-digit characters (spaces, dashes, parentheses, etc.)
   const digits = phoneNumber.replace(/\D/g, '');
+  console.log(`After removing non-digits: '${digits}'`);
   
   // If the number already starts with a +, return it as is
   if (phoneNumber.startsWith('+')) {
+    console.log(`Number already has + prefix: '${phoneNumber}'`);
     return phoneNumber;
   }
   
   // If it's a US number (10 digits), add +1
   if (digits.length === 10) {
-    return `+1${digits}`;
+    const formatted = `+1${digits}`;
+    console.log(`Formatted 10-digit number: '${formatted}'`);
+    return formatted;
   }
   
-  // For international numbers, assume they just need a + prefix
-  // This is a simplification; in a production app, you'd want more robust handling
-  return `+${digits}`;
+  // For international numbers or numbers with country code included
+  const formatted = `+${digits}`;
+  console.log(`Formatted number: '${formatted}'`);
+  return formatted;
 }
