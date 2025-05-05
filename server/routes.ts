@@ -6,7 +6,7 @@ import { setupImportRoutes } from "./import";
 import fileUpload from "express-fileupload";
 import { db, attemptReconnect, checkDbConnection, cleanupConnections } from "./db";
 import { setupAuth, hashPassword } from "./auth";
-import { insertGroupSchema, insertTripSchema, insertItineraryItemSchema, insertExpenseSchema, insertMessageSchema, insertGroupMemberSchema, insertVehicleSchema, insertTripVehicleSchema, users as usersTable, trips } from "@shared/schema";
+import { insertGroupSchema, insertTripSchema, insertItineraryItemSchema, insertExpenseSchema, insertMessageSchema, insertGroupMemberSchema, insertVehicleSchema, insertTripVehicleSchema, users as usersTable, trips, itineraryItems } from "@shared/schema";
 import { z } from "zod";
 import { eq, or, and, asc, desc, sql, isNull, count, between } from "drizzle-orm";
 import { sendGroupInvitation, sendPasswordResetEmail } from "./email";
@@ -415,18 +415,15 @@ async function checkAndUpdateTripStatuses(): Promise<void> {
       const endDate = new Date(trip.endDate);
       
       // Get the trip's itinerary items to check exact start time
-      const tripItineraryItems = await db
-        .select()
-        .from(itineraryItems)
-        .where(eq(itineraryItems.tripId, trip.id));
+      const tripItineraryItems = await db.select().from(itineraryItems).where(eq(itineraryItems.tripId, trip.id));
         
       // Initialize shouldStart to false 
       let shouldStart = false;
       
       // Only process if we have at least one itinerary item
-      if (itineraryItems.length > 0) {
+      if (tripItineraryItems.length > 0) {
         // Sort the itinerary items by day and start time
-        const sortedItems = [...itineraryItems].sort((a, b) => {
+        const sortedItems = [...tripItineraryItems].sort((a, b) => {
           if (a.day !== b.day) return a.day - b.day;
           return (a.startTime || '').localeCompare(b.startTime || '');
         });
