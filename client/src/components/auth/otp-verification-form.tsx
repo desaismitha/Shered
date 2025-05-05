@@ -55,28 +55,36 @@ export function OtpVerificationForm({ onVerified, onCancel, registrationId, smsS
     if (userIdParam && !userId) {
       setUserId(parseInt(userIdParam, 10));
     }
-    
-    // Set the form value if initialCode is provided
-    if (initialCode) {
-      // Auto-fill the code
+  }, [userIdParam, userId]);
+  
+  // Cleanup effect when unmounting  
+  useEffect(() => {
+    return () => {
+      form.reset({ otp: "" });
+    };
+  }, [form]);
+  
+  // Auto-submit effect when initialCode is set
+  useEffect(() => {
+    if (initialCode && initialCode.length === 6) {
+      // Set the value first
       form.setValue('otp', initialCode);
       
-      // Auto-submit the form with a slight delay to let UI render
+      // Then auto-submit with delay to let the UI update
       const timer = setTimeout(() => {
-        if (initialCode.length === 6 && !isVerifying) {
+        if (!isVerifying) {
           console.log('Auto-submitting form with code:', initialCode);
-          form.handleSubmit(handleVerify)();
+          const submitFn = form.handleSubmit((values) => {
+            console.log('Auto-submit with values:', values);
+            handleVerify(values);
+          });
+          submitFn();
         }
       }, 1500);
       
       return () => clearTimeout(timer);
     }
-    
-    return () => {
-      // Reset form when component unmounts
-      form.reset({ otp: "" });
-    };
-  }, [userIdParam, userId, form, initialCode, isVerifying, handleVerify]);
+  }, [initialCode, isVerifying, form]); // Deliberately not including handleVerify to avoid circular dependency
 
   const handleVerify = useCallback(async (values: OtpFormValues) => {
     // Different paths for registration verification vs. regular account verification
