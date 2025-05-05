@@ -45,6 +45,18 @@ export function VerificationModal({ isOpen, onOpenChange, userEmail, registratio
   };
 
   const handleSkipForNow = () => {
+    // For new registration, we shouldn't allow skipping verification
+    // because the account hasn't been created yet
+    if (registrationId) {
+      toast({
+        title: "Verification required",
+        description: "You need to verify your email to complete registration.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // For existing accounts, allow skipping
     toast({
       title: "Verification skipped",
       description: "You can verify your account later from your profile.",
@@ -87,9 +99,11 @@ export function VerificationModal({ isOpen, onOpenChange, userEmail, registratio
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Verify Your Account</DialogTitle>
+          <DialogTitle>{registrationId ? "Complete Registration" : "Verify Your Account"}</DialogTitle>
           <DialogDescription>
-            Please verify your account to access all features of TravelGroupr
+            {registrationId
+              ? "Please verify your email to complete your account registration"
+              : "Please verify your account to access all features of TravelGroupr"}
           </DialogDescription>
         </DialogHeader>
 
@@ -141,14 +155,17 @@ export function VerificationModal({ isOpen, onOpenChange, userEmail, registratio
           </TabsContent>
         </Tabs>
 
-        <DialogFooter className="flex justify-between mt-6">
-          <Button
-            variant="ghost"
-            onClick={handleSkipForNow}
-          >
-            Skip for now
-          </Button>
-        </DialogFooter>
+        {/* Only show the Skip button for existing users, not for new registration */}
+        {!registrationId && (
+          <DialogFooter className="flex justify-between mt-6">
+            <Button
+              variant="ghost"
+              onClick={handleSkipForNow}
+            >
+              Skip for now
+            </Button>
+          </DialogFooter>
+        )}
       </DialogContent>
     </Dialog>
   );

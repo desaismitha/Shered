@@ -261,7 +261,7 @@ export function OtpVerificationForm({ onVerified, onCancel, registrationId }: Ot
                   Verifying...
                 </>
               ) : (
-                "Verify Account"
+                registrationId ? "Complete Registration" : "Verify Account"
               )}
             </Button>
             
