@@ -57,6 +57,8 @@ type FormSchemaType = {
   isRecurring: boolean;
   recurrencePattern?: "daily" | "weekly" | "monthly" | "custom";
   recurrenceDays?: string[];
+  enableMobileNotifications: boolean;
+  phoneNumber?: string;
   stops?: Array<{
     day: number;
     title: string;
@@ -96,6 +98,9 @@ const formSchema = z.object({
   isRecurring: z.boolean().default(false),
   recurrencePattern: z.enum(["daily", "weekly", "monthly", "custom"]).optional(),
   recurrenceDays: z.array(z.string()).optional(),
+  // Mobile notifications for route changes
+  enableMobileNotifications: z.boolean().default(false),
+  phoneNumber: z.string().optional(),
   // For multi-stop trips
   stops: z.array(stopSchema).optional(),
 });
@@ -154,6 +159,9 @@ export function UnifiedTripForm({
       isRecurring: false,
       recurrencePattern: undefined,
       recurrenceDays: [],
+      // Mobile notifications defaults
+      enableMobileNotifications: false,
+      phoneNumber: "",
       stops: [],
       ...defaultValues,
     },
