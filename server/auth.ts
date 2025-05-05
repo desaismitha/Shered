@@ -175,18 +175,31 @@ export function setupAuth(app: Express) {
         createdAt: new Date()
       };
       
-      // Send OTP email
-      const otpSent = await sendOTPVerificationCode(
+      // Send OTP via email
+      const emailOtpSent = await sendOTPVerificationCode(
         req.body.email,
         req.body.displayName || req.body.username,
         otpCode
       );
+      
+      // Check if we should also send SMS
+      let smsOtpSent = false;
+      if (req.body.phoneNumber) {
+        // Also send via SMS if phone number is provided
+        smsOtpSent = await sendOTPVerificationSMS(
+          req.body.phoneNumber,
+          req.body.displayName || req.body.username,
+          otpCode
+        );
+        console.log(`SMS OTP ${smsOtpSent ? 'sent successfully' : 'failed to send'} to ${req.body.phoneNumber}`);
+      }
 
       res.status(200).json({
-        message: "Verification code sent. Please verify your email to complete registration.",
+        message: "Verification code sent. Please verify your account to complete registration.",
         registrationId,
         email: req.body.email,
-        otpSent
+        otpSent: emailOtpSent,
+        smsOtpSent
       });
     } catch (err) {
       next(err);
@@ -401,12 +414,23 @@ export function setupAuth(app: Express) {
         verificationUrl
       );
       
-      // Send OTP email
-      const otpSent = await sendOTPVerificationCode(
+      // Send OTP via email
+      const emailOtpSent = await sendOTPVerificationCode(
         user.email,
         user.displayName || user.username,
         otpCode
       );
+      
+      // Also send SMS if phone number is provided
+      let smsOtpSent = false;
+      if (user.phoneNumber) {
+        smsOtpSent = await sendOTPVerificationSMS(
+          user.phoneNumber,
+          user.displayName || user.username,
+          otpCode
+        );
+        console.log(`SMS OTP ${smsOtpSent ? 'sent successfully' : 'failed to send'} to ${user.phoneNumber}`);
+      }
 
       // Handle group invitation if present in the request
       // Check for invitation data in either format
@@ -468,7 +492,8 @@ export function setupAuth(app: Express) {
         res.status(201).json({
           ...userWithoutSensitiveData,
           verificationEmailSent: emailSent,
-          otpEmailSent: otpSent,
+          otpEmailSent: emailOtpSent,
+          smsOtpSent,
           requiresVerification: true
         });
       });
@@ -696,14 +721,25 @@ export function setupAuth(app: Express) {
         otpTokenExpiry: otpExpiry
       });
       
-      // Send the OTP email
-      const otpSent = await sendOTPVerificationCode(
+      // Send the OTP via email
+      const emailOtpSent = await sendOTPVerificationCode(
         user.email,
         user.displayName || user.username,
         otpCode
       );
       
-      if (!otpSent) {
+      // Also send via SMS if phone number exists
+      let smsOtpSent = false;
+      if (user.phoneNumber) {
+        smsOtpSent = await sendOTPVerificationSMS(
+          user.phoneNumber,
+          user.displayName || user.username,
+          otpCode
+        );
+        console.log(`SMS OTP ${smsOtpSent ? 'sent successfully' : 'failed to send'} to ${user.phoneNumber}`);
+      }
+      
+      if (!emailOtpSent && !smsOtpSent) {
         return res.status(500).json({ message: "Failed to send OTP code" });
       }
       
