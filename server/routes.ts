@@ -414,16 +414,72 @@ async function checkAndUpdateTripStatuses(): Promise<void> {
       const startDate = new Date(trip.startDate);
       const endDate = new Date(trip.endDate);
       
-      // Only start trips whose actual scheduled start time has been reached,
-      // and current time hasn't passed the end time yet
-      const shouldStart = (
-        // Check if start time has been reached or passed
-        startDate <= now &&
-        // Make sure end time hasn't passed yet
-        endDate > now &&
-        // Check if the trip's scheduled start time is today (within 24 hours)
-        (Math.abs(now.getTime() - startDate.getTime()) <= 24 * 60 * 60 * 1000)
-      );
+      // Get the trip's itinerary items to check exact start time
+      const tripItineraryItems = await db
+        .select()
+        .from(itineraryItems)
+        .where(eq(itineraryItems.tripId, trip.id));
+        
+      // Initialize shouldStart to false 
+      let shouldStart = false;
+      
+      // Only process if we have at least one itinerary item
+      if (itineraryItems.length > 0) {
+        // Sort the itinerary items by day and start time
+        const sortedItems = [...itineraryItems].sort((a, b) => {
+          if (a.day !== b.day) return a.day - b.day;
+          return (a.startTime || '').localeCompare(b.startTime || '');
+        });
+        
+        // Get the first itinerary item's start time (earliest scheduled time)
+        const firstItem = sortedItems[0];
+        const dayStartTime = firstItem.startTime;
+        
+        if (dayStartTime) {
+          // Get the current time in hours and minutes
+          const currentHours = now.getHours();
+          const currentMinutes = now.getMinutes();
+          const currentTimeString = `${String(currentHours).padStart(2, '0')}:${String(currentMinutes).padStart(2, '0')}`;
+          
+          // Get scheduled trip time in hours and minutes
+          const [scheduledHours, scheduledMinutes] = dayStartTime.split(':').map(Number);
+          
+          // Compare if current time has reached or passed the scheduled time
+          const hasReachedStartTime = 
+            (currentHours > scheduledHours) || 
+            (currentHours === scheduledHours && currentMinutes >= scheduledMinutes);
+          
+          // Debug time comparison
+          console.log(`[AUTO-UPDATE] Trip ${trip.id} time check:`);
+          console.log(`  - Current time (HH:MM): ${currentTimeString}`);
+          console.log(`  - Scheduled time (HH:MM): ${dayStartTime}`);
+          console.log(`  - Has reached start time? ${hasReachedStartTime}`);
+          
+          // Trip should start if it's the same day as trip start date AND the time has been reached
+          shouldStart = (
+            // Check if today's date matches the trip start date (ignoring time)
+            now.toDateString() === startDate.toDateString() &&
+            // Check if the current time has reached the scheduled time
+            hasReachedStartTime &&
+            // Make sure end date hasn't passed
+            endDate > now
+          );
+        } else {
+          // If no start time is set for itinerary items, fall back to date-only comparison
+          shouldStart = (
+            startDate <= now && 
+            endDate > now && 
+            (Math.abs(now.getTime() - startDate.getTime()) <= 24 * 60 * 60 * 1000)
+          );
+        }
+      } else {
+        // No itinerary items, just use trip date
+        shouldStart = (
+          startDate <= now && 
+          endDate > now && 
+          (Math.abs(now.getTime() - startDate.getTime()) <= 24 * 60 * 60 * 1000)
+        );
+      }
       
       // Verify that if a trip had its status manually changed to in-progress earlier,
       // it should stay that way (not go back to planning)
