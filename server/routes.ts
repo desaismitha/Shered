@@ -8,7 +8,7 @@ import { db, attemptReconnect, checkDbConnection, cleanupConnections } from "./d
 import { setupAuth, hashPassword } from "./auth";
 import { insertGroupSchema, insertTripSchema, insertItineraryItemSchema, insertExpenseSchema, insertMessageSchema, insertGroupMemberSchema, insertVehicleSchema, insertTripVehicleSchema, users as usersTable, trips } from "@shared/schema";
 import { z } from "zod";
-import { eq, or, in as dbIn, and, asc, desc, sql, isNull, count, between } from "drizzle-orm";
+import { eq, or, and, asc, desc, sql, isNull, count, between } from "drizzle-orm";
 import { sendGroupInvitation, sendPasswordResetEmail } from "./email";
 import crypto from "crypto";
 import fetch from "node-fetch";

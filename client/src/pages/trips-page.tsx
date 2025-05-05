@@ -59,8 +59,9 @@ export default function TripsPage() {
       // Trip is not marked as cancelled or completed
       const isNotFinished = trip.status !== "cancelled" && trip.status !== "completed";
       
-      // A trip is "upcoming" if it is planning/confirmed and start date is in the future
-      const isUpcoming = (trip.status === "planning" || trip.status === "confirmed") && startDate > now;
+      // A trip is "upcoming" if it is planning/confirmed regardless of start date
+      // (The auto-update system will take care of changing status when start time is reached)
+      const isUpcoming = (trip.status === "planning" || trip.status === "confirmed");
       
       // A trip is "in progress" if it has that status and is between start/end times
       const isActiveNow = trip.status === "in-progress" && startDate <= now && endDate > now;
