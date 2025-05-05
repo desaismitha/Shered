@@ -604,6 +604,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Set up bulk import routes
   setupImportRoutes(app);
   
+  // Set up phone verification routes
+  setupPhoneVerificationRoutes(app);
+  
   // Database health check endpoint
   // Manual endpoint to check and update trip statuses (for testing purposes)
   // Public endpoint to test trip status updates (for testing purposes only)

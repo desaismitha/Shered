@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { OTPInput } from "@/components/ui/otp-input";
+import { OTPInput } from "../../components/ui/otp-input";
 import { Loader2 } from "lucide-react";
 
 interface PhoneVerificationModalProps {
