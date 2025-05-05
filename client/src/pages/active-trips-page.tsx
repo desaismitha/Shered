@@ -18,7 +18,8 @@ import { Link, useLocation, useParams } from "wouter";
 import { 
   PlusIcon, NavigationIcon, MapPinIcon, ArrowLeft, ArrowRight, 
   Check, Car, PlayCircle, StopCircle, X, MapPin, Info as InfoIcon,
-  Clock, Ruler, RefreshCcw, ChevronDown
+  Clock, Ruler, RefreshCcw, ChevronDown, Activity as ActivityIcon,
+  AlertTriangle, Shield
 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { Button } from "@/components/ui/button";
@@ -1580,8 +1581,40 @@ export default function ActiveTripsPage() {
               )}
             </div>
             
+            {/* Permission messages */}
+            {locationPermission === 'denied' && (
+              <Alert variant="destructive" className="mb-6">
+                <div className="flex items-start">
+                  <Shield className="h-5 w-5 mr-2 mt-0.5 text-red-600" />
+                  <div>
+                    <AlertTitle>Location Permission Denied</AlertTitle>
+                    <AlertDescription>
+                      <p className="mb-2">You've denied location access. Trip tracking requires location permission to function properly.</p>
+                      <div className="p-2 bg-red-50 rounded-md mt-1 text-sm">
+                        <p className="font-semibold mb-1">How to enable location:</p>
+                        <ul className="list-disc pl-5 space-y-1 mt-1">
+                          <li><strong>Chrome/Edge:</strong> Click the lock icon in address bar → Site Settings → Allow location</li>
+                          <li><strong>Safari:</strong> Settings → Privacy → Location Services → Enable for website</li>
+                          <li><strong>Firefox:</strong> Click the shield icon → Site permissions → Allow location</li>
+                          <li><strong>Mobile:</strong> Check your browser settings and device permissions</li>
+                        </ul>
+                      </div>
+                      <Button 
+                        onClick={() => window.location.reload()} 
+                        variant="outline" 
+                        className="mt-2" 
+                        size="sm"
+                      >
+                        <RefreshCcw className="h-3 w-3 mr-1" /> Refresh Page
+                      </Button>
+                    </AlertDescription>
+                  </div>
+                </div>
+              </Alert>
+            )}
+            
             {/* Error messages */}
-            {locationUpdateError && (
+            {locationUpdateError && locationPermission !== 'denied' && (
               <Alert variant="destructive" className="mb-6">
                 <AlertTitle>Error updating location</AlertTitle>
                 <AlertDescription>{locationUpdateError}</AlertDescription>
@@ -2037,17 +2070,33 @@ export default function ActiveTripsPage() {
                     </CardContent>
                     <CardFooter>
                       <div className="w-full">
-                        <p className="text-xs text-primary-700 mb-2 flex items-center justify-center">
-                          <InfoIcon className="h-3 w-3 mr-1" />
-                          <span>Click to see active itinerary details ("kumon")</span>
-                        </p>
+                        {selectedTripId === trip.id ? (
+                          <p className="text-xs text-green-700 mb-2 flex items-center justify-center bg-green-50 py-1 px-2 rounded-full">
+                            <ActivityIcon className="h-3 w-3 mr-1" />
+                            <span>Currently tracking this trip</span>
+                          </p>
+                        ) : (
+                          <p className="text-xs text-primary-700 mb-2 flex items-center justify-center">
+                            <InfoIcon className="h-3 w-3 mr-1" />
+                            <span>Click to see active itinerary details</span>
+                          </p>
+                        )}
                         <Button
-                          variant="outline"
+                          variant={selectedTripId === trip.id ? "default" : "outline"}
                           onClick={() => handleViewTripTracking(trip.id)}
-                          className="w-full inline-flex items-center justify-center"
+                          className={`w-full inline-flex items-center justify-center ${selectedTripId === trip.id ? "bg-green-600 hover:bg-green-700" : ""}`}
                         >
-                          <NavigationIcon className="h-4 w-4 mr-2" />
-                          View &amp; Track Trip
+                          {selectedTripId === trip.id ? (
+                            <>
+                              <ActivityIcon className="h-4 w-4 mr-2" />
+                              Continue Tracking
+                            </>
+                          ) : (
+                            <>
+                              <NavigationIcon className="h-4 w-4 mr-2" />
+                              View &amp; Track Trip
+                            </>
+                          )}
                         </Button>
                       </div>
                     </CardFooter>
