@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/form";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Mail, Phone } from "lucide-react";
+import { Loader2, Mail } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -206,9 +206,7 @@ export function OtpVerificationForm({ onVerified, onCancel, registrationId, smsS
       if (response.ok) {
         toast({
           title: "Success",
-          description: smsSent 
-            ? "A new verification code has been sent to your email and phone number"
-            : "A new verification code has been sent to your email",
+          description: "A new verification code has been sent to your email",
         });
       } else {
         const data = await response.json();
@@ -228,40 +226,23 @@ export function OtpVerificationForm({ onVerified, onCancel, registrationId, smsS
     } finally {
       setIsResending(false);
     }
-  }, [registrationId, userId, user, toast, smsSent]);
+  }, [registrationId, userId, user, toast]);
 
   return (
     <div className="space-y-6">
       <div className="space-y-2 text-center">
-        <h2 className="text-2xl font-semibold">{smsSent ? "Enter Email or SMS Code" : "Enter Verification Code"}</h2>
+        <h2 className="text-2xl font-semibold">Enter Verification Code</h2>
         <p className="text-sm text-muted-foreground">
           We've sent a 6-digit verification code to your email address.
-          {smsSent && (
-            <span className="font-medium text-primary"> We've also sent the code via SMS to your phone number. You can enter the code from either source.</span>
-          )}
-          {/* Special case for when SMS sending is attempted but fails (same number issue) */}
-          {registrationId && !smsSent && phoneNumber && (
-            <span className="text-amber-500"> We couldn't send the SMS code due to a technical limitation (same sender/receiver number). Please use the email code instead.</span>
-          )}
-          {registrationId && !smsSent && (
-            <span> If you provided a phone number, we may also send the code via SMS.</span>
-          )}
           Enter the code below to verify your account.
         </p>
         
-        {smsSent && (
-          <div className="mt-2 flex items-center justify-center space-x-4">
-            <div className="flex items-center space-x-2">
-              <Mail className="h-4 w-4 text-primary" />
-              <span className="text-xs">Email</span>
-            </div>
-            <span className="text-xs text-muted-foreground">or</span>
-            <div className="flex items-center space-x-2">
-              <Phone className="h-4 w-4 text-primary" />
-              <span className="text-xs">SMS</span>
-            </div>
+        <div className="mt-2 flex items-center justify-center">
+          <div className="flex items-center space-x-2">
+            <Mail className="h-4 w-4 text-primary" />
+            <span className="text-xs">Check your email inbox for the code</span>
           </div>
-        )}
+        </div>
       </div>
 
       <Form {...form}>
