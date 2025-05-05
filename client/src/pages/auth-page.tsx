@@ -64,7 +64,7 @@ export default function AuthPage() {
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
   const [showVerificationModal, setShowVerificationModal] = useState(false);
   const [registeredEmail, setRegisteredEmail] = useState<string>("");
-  const [registeredPhone, setRegisteredPhone] = useState<string>("");
+  // Phone number handling has been removed
   const [registrationId, setRegistrationId] = useState<string>("");
   const [smsSent, setSmsSent] = useState<boolean>(false);
 
@@ -162,7 +162,6 @@ export default function AuthPage() {
       setShowVerificationModal(false);
       setRegistrationId("");
       setRegisteredEmail("");
-      setRegisteredPhone("");
       setSmsSent(false);
     }
   }, [registerInitMutation.isSuccess, registerInitMutation.data, user, registerForm]);
@@ -305,7 +304,6 @@ export default function AuthPage() {
       // Reset verification state
       setRegistrationId('');
       setRegisteredEmail('');
-      setRegisteredPhone('');
       setSmsSent(false);
       
       // Navigate to dashboard
@@ -530,7 +528,7 @@ export default function AuthPage() {
         isOpen={showVerificationModal}
         onOpenChange={setShowVerificationModal}
         userEmail={registeredEmail}
-        userPhone={registeredPhone}
+        userPhone=""
         onVerified={handleOtpVerified}
         registrationId={registrationId}
         smsSent={smsSent}
