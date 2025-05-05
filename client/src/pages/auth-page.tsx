@@ -67,6 +67,7 @@ export default function AuthPage() {
   const [registeredEmail, setRegisteredEmail] = useState<string>("");
   const [registeredPhone, setRegisteredPhone] = useState<string>("");
   const [registrationId, setRegistrationId] = useState<string>("");
+  const [smsSent, setSmsSent] = useState<boolean>(false);
 
   // Login form
   const loginForm = useForm<LoginValues>({
@@ -142,8 +143,6 @@ export default function AuthPage() {
       registerForm.setValue("email", inviteEmail);
     }
   }, [inviteEmail, registerForm]);
-  
-  const [smsSent, setSmsSent] = useState<boolean>(false);
   
   useEffect(() => {
     // Show verification modal if registration initialization is successful
