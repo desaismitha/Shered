@@ -29,9 +29,10 @@ interface OtpVerificationFormProps {
   registrationId?: string;
   smsSent?: boolean;
   phoneNumber?: string;
+  initialCode?: string; // For auto-filling the code
 }
 
-export function OtpVerificationForm({ onVerified, onCancel, registrationId, smsSent, phoneNumber }: OtpVerificationFormProps) {
+export function OtpVerificationForm({ onVerified, onCancel, registrationId, smsSent, phoneNumber, initialCode }: OtpVerificationFormProps) {
   const { toast } = useToast();
   const { user, registerCompleteMutation } = useAuth();
   const [isVerifying, setIsVerifying] = useState(false);
@@ -45,7 +46,7 @@ export function OtpVerificationForm({ onVerified, onCancel, registrationId, smsS
   const form = useForm<OtpFormValues>({
     resolver: zodResolver(otpFormSchema),
     defaultValues: {
-      otp: "",
+      otp: initialCode || "",
     },
   });
   
@@ -55,12 +56,17 @@ export function OtpVerificationForm({ onVerified, onCancel, registrationId, smsS
       setUserId(parseInt(userIdParam, 10));
     }
     
+    // Set the form value if initialCode is provided
+    if (initialCode) {
+      form.setValue('otp', initialCode);
+    }
+    
     // Cleanup effect
     return () => {
       // Reset form when component unmounts
       form.reset({ otp: "" });
     };
-  }, [userIdParam, userId, form]);
+  }, [userIdParam, userId, form, initialCode]);
 
   const handleVerify = useCallback(async (values: OtpFormValues) => {
     // Different paths for registration verification vs. regular account verification

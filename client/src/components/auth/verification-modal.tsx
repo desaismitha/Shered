@@ -150,6 +150,7 @@ export function VerificationModal({ isOpen, onOpenChange, userEmail, userPhone, 
               registrationId={registrationId}
               smsSent={smsSent}
               phoneNumber={userPhone}
+              initialCode={verificationCode} // Pass the code for auto-filling
             />
           </TabsContent>
 
