@@ -58,15 +58,25 @@ export function OtpVerificationForm({ onVerified, onCancel, registrationId, smsS
     
     // Set the form value if initialCode is provided
     if (initialCode) {
+      // Auto-fill the code
       form.setValue('otp', initialCode);
+      
+      // Auto-submit the form with a slight delay to let UI render
+      const timer = setTimeout(() => {
+        if (initialCode.length === 6 && !isVerifying) {
+          console.log('Auto-submitting form with code:', initialCode);
+          form.handleSubmit(handleVerify)();
+        }
+      }, 1500);
+      
+      return () => clearTimeout(timer);
     }
     
-    // Cleanup effect
     return () => {
       // Reset form when component unmounts
       form.reset({ otp: "" });
     };
-  }, [userIdParam, userId, form, initialCode]);
+  }, [userIdParam, userId, form, initialCode, isVerifying, handleVerify]);
 
   const handleVerify = useCallback(async (values: OtpFormValues) => {
     // Different paths for registration verification vs. regular account verification
