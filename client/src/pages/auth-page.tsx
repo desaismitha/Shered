@@ -7,6 +7,9 @@ import { useState, useEffect } from "react";
 import { Plane } from "lucide-react";
 import { VerificationModal } from "@/components/auth/verification-modal";
 
+// Add debugging console log
+console.log("Auth page module loaded");
+
 import {
   Card,
   CardContent,
@@ -52,7 +55,10 @@ type LoginValues = z.infer<typeof loginSchema>;
 type RegisterValues = z.infer<typeof registerSchema>;
 
 export default function AuthPage() {
+  console.log("AuthPage component rendering");
+  
   const { user, loginMutation, registerInitMutation, registerCompleteMutation } = useAuth();
+  console.log("useAuth hook completed", { user });
   const [, navigate] = useLocation();
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
   const [showVerificationModal, setShowVerificationModal] = useState(false);
@@ -164,7 +170,7 @@ export default function AuthPage() {
       setRegisteredPhone("");
       setSmsSent(false);
     }
-  }, [registerInitMutation.isSuccess, registerInitMutation.data, user]);
+  }, [registerInitMutation.isSuccess, registerInitMutation.data, user, registerForm]);
   
   useEffect(() => {
     // Redirect to dashboard when registration is complete
@@ -292,7 +298,7 @@ export default function AuthPage() {
     }, 200);
   };
   
-
+  console.log("About to render AuthPage component");
   return (
     <>
       <div className="flex flex-col md:flex-row min-h-screen">
