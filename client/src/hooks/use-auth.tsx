@@ -61,6 +61,7 @@ type RegistrationInitResponse = {
   email: string;
   otpSent: boolean;
   smsOtpSent?: boolean;
+  verificationCode?: string; // Added for development mode
 };
 
 // Data required to complete registration with OTP verification
