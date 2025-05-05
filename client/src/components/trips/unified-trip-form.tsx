@@ -33,8 +33,8 @@ const stopSchema = z.object({
     .transform(val => val || "Unknown location"), // Never allow empty locations
   endLocation: z.string().min(1, "End location is required")
     .transform(val => val || "Unknown location"), // Never allow empty locations
-  startTime: z.string().optional(),
-  endTime: z.string().optional(),
+  startTime: z.string().min(1, "Start time is required"),
+  endTime: z.string().min(1, "End time is required"),
   description: z.string().optional(),
   isRecurring: z.boolean().optional(),
   recurrencePattern: z.enum(["daily", "weekly", "monthly", "custom"]).optional(),
@@ -91,8 +91,8 @@ const formSchema = z.object({
     .transform(val => val || "Unknown location"), // Never allow empty locations
   endLocation: z.string().optional()
     .transform(val => val || "Unknown location"), // Never allow empty locations
-  startTime: z.string().optional(),
-  endTime: z.string().optional(),
+  startTime: z.string().min(1, "Start time is required"),
+  endTime: z.string().min(1, "End time is required"),
   isRecurring: z.boolean().default(false),
   recurrencePattern: z.enum(["daily", "weekly", "monthly", "custom"]).optional(),
   recurrenceDays: z.array(z.string()).optional(),
