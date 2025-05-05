@@ -338,9 +338,21 @@ export function UnifiedTripForm({
   // Add debugging for default values
   console.log('Form component default values:', defaultValues);
   
+  // We need to add a special case for debugging modal appearance
+  // This will show up in the console and help diagnose issues with modal rendering
+  console.log('RENDERING PHONE VERIFICATION MODAL STATE:', { 
+    showPhoneVerification, 
+    isPhoneVerified, 
+    formDataForSubmission,
+    enableMobileNotifications: form.watch("enableMobileNotifications"),
+    phoneNumber: form.watch("phoneNumber"),
+    userData: userData
+  });
+
   return (
-    <Form {...form}>
-      <form 
+    <div className="trip-form-container">
+      <Form {...form}>
+        <form 
         onSubmit={(e) => {
           console.log('Form submitted via form event');
           e.preventDefault(); // Prevent default form submission
@@ -1190,5 +1202,16 @@ export function UnifiedTripForm({
         />
       )}
     </Form>
+    
+    {/* Phone Verification Modal outside the form */}
+    {showPhoneVerification && (
+      <PhoneVerificationModal
+        isOpen={showPhoneVerification}
+        onClose={() => setShowPhoneVerification(false)}
+        onComplete={handlePhoneVerificationComplete}
+        phoneNumber={form.getValues("phoneNumber") || ""}
+      />
+    )}
+    </div>
   );
 }

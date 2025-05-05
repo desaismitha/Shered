@@ -1,0 +1,138 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { useState } from "react";
+import { useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+import { z } from "zod";
+import { useToast } from "@/hooks/use-toast";
+import { Form } from "@/components/ui/form";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Group } from "@shared/schema";
+import { PhoneVerificationModal } from "./phone-verification-modal";
+
+type FormSchemaType = {
+  name: string;
+  enableMobileNotifications: boolean;
+  phoneNumber?: string;
+};
+
+const formSchema = z.object({
+  name: z.string().min(3, "Name must be at least 3 characters"),
+  enableMobileNotifications: z.boolean().default(false),
+  phoneNumber: z.string().optional(),
+});
+
+type FormData = z.infer<typeof formSchema>;
+
+interface UnifiedTripFormProps {
+  onSubmit: (data: FormData) => void;
+  onCancel?: () => void;
+  defaultValues?: Partial<FormData>;
+  isLoading?: boolean;
+  isEditing?: boolean;
+}
+
+export function UnifiedTripForm({ 
+  onSubmit, 
+  onCancel, 
+  defaultValues, 
+  isLoading = false,
+  isEditing = false 
+}: UnifiedTripFormProps) {
+  const { toast } = useToast();
+  const [, navigate] = useLocation();
+  
+  // Get current user data
+  const { data: userData } = useQuery<any>({
+    queryKey: ["/api/user"],
+  });
+
+  // Phone verification state
+  const [showPhoneVerification, setShowPhoneVerification] = useState(false);
+  const [formDataForSubmission, setFormDataForSubmission] = useState<FormData | null>(null);
+
+  const form = useForm<FormData>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      name: "",
+      enableMobileNotifications: false,
+      phoneNumber: "",
+      ...defaultValues,
+    },
+  });
+
+  const handleSubmit = (data: FormData) => {
+    // If mobile notifications are enabled, make sure phone verification happens first
+    if (data.enableMobileNotifications && data.phoneNumber) {
+      // Phone verification needed here
+      if (!userData?.phoneNumber) {
+        setFormDataForSubmission(data);
+        setShowPhoneVerification(true);
+        return;
+      }
+    }
+    
+    // Submit as normal if no verification needed
+    onSubmit(data);
+  };
+
+  const handlePhoneVerificationComplete = () => {
+    setShowPhoneVerification(false);
+    
+    // Refresh user data to get updated phoneNumber status
+    // This would be handled by react-query invalidation
+
+    if (formDataForSubmission) {
+      onSubmit(formDataForSubmission);
+      setFormDataForSubmission(null);
+    }
+  };
+
+  // Debug logging
+  console.log('Form component default values:', defaultValues);
+  console.log('RENDERING PHONE VERIFICATION MODAL STATE:', { 
+    showPhoneVerification, 
+    formDataForSubmission,
+    enableMobileNotifications: form.watch("enableMobileNotifications"),
+    phoneNumber: form.watch("phoneNumber"),
+    userData: userData
+  });
+
+  return (
+    <div className="trip-form-container">
+      <Form {...form}>
+        <form 
+          onSubmit={(e) => {
+            console.log('Form submitted via form event');
+            e.preventDefault(); 
+            form.handleSubmit(handleSubmit)(e);
+          }} 
+          className="space-y-8">
+          
+          <Card className="p-6">
+            <h2 className="text-lg font-medium mb-4">Sample Form</h2>
+            <div>
+              <button 
+                type="submit" 
+                className="bg-blue-500 text-white px-4 py-2 rounded"
+                disabled={isLoading}>
+                {isLoading ? "Saving..." : "Submit"}
+              </button>
+            </div>
+          </Card>
+        </form>
+      </Form>
+      
+      {/* Phone Verification Modal outside the form */}
+      {showPhoneVerification && (
+        <PhoneVerificationModal
+          isOpen={showPhoneVerification}
+          onClose={() => setShowPhoneVerification(false)}
+          onComplete={handlePhoneVerificationComplete}
+          phoneNumber={form.getValues("phoneNumber") || ""}
+        />
+      )}
+    </div>
+  );
+}
