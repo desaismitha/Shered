@@ -136,13 +136,21 @@ export default function AuthPage() {
   
   useEffect(() => {
     // Show verification modal if registration initialization is successful
-    if (registerInitMutation.isSuccess) {
+    // but only if we're not already logged in (to prevent modal showing after logout)
+    if (registerInitMutation.isSuccess && !user) {
       const data = registerInitMutation.data;
       setRegistrationId(data.registrationId);
       setRegisteredEmail(data.email);
       setShowVerificationModal(true);
     }
-  }, [registerInitMutation.isSuccess, registerInitMutation.data]);
+    
+    // If user has successfully logged in, we should also reset the verification state
+    if (user) {
+      setShowVerificationModal(false);
+      setRegistrationId("");
+      setRegisteredEmail("");
+    }
+  }, [registerInitMutation.isSuccess, registerInitMutation.data, user]);
   
   useEffect(() => {
     // Redirect to dashboard when registration is complete
@@ -189,7 +197,7 @@ export default function AuthPage() {
 
   const onRegisterSubmit = (values: RegisterValues) => {
     const { confirmPassword, ...registerData } = values;
-    setRegisteredEmail(values.email);
+    // We don't need to set registered email here, it's handled in the onSuccess callback
     
     // Add invitation data if present in URL params
     const invitationData: { token?: string; groupId?: string } = {};
@@ -221,20 +229,14 @@ export default function AuthPage() {
       onError: (error) => {
         console.log('Registration initialization error:', error);
       },
+      // The effect that monitors registerInitMutation.isSuccess will handle the state updates and show the modal
+      // This avoids redundant state updates
       onSuccess: (response) => {
-        // Store registration data and show verification modal
         console.log('Registration initialization successful', {
           registrationId: response.registrationId,
           email: response.email,
           hasInvitation: !!inviteToken
         });
-        
-        // Set registration data for verification
-        setRegistrationId(response.registrationId);
-        setRegisteredEmail(response.email);
-        
-        // Show verification modal
-        setShowVerificationModal(true);
       }
     });
   };

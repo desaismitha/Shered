@@ -258,8 +258,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     },
     onSuccess: () => {
+      // Clear user data
       queryClient.setQueryData(["/api/user"], null);
       localStorage.removeItem('userId');
+      
+      // Also reset the state of registration mutations to prevent modal from showing after logout
+      registerInitMutation.reset();
+      registerCompleteMutation.reset();
+      
       toast({
         title: "Logged out successfully",
       });
