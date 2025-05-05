@@ -4,7 +4,9 @@ import { z } from "zod";
 import { useQuery } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { ChevronDown, ChevronUp, Plus, MapPin, Clock, Trash2, ArrowRight, Repeat } from "lucide-react";
+import { ChevronDown, ChevronUp, Plus, MapPin, Clock, Trash2, ArrowRight, Repeat, Bell } from "lucide-react";
+import { PhoneVerificationModal } from "./phone-verification-modal";
+import { useToast } from "@/hooks/use-toast";
 
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -139,11 +141,17 @@ export function UnifiedTripForm({
   isLoading = false,
   isEditing = false 
 }: UnifiedTripFormProps) {
+  const { toast } = useToast();
   const [, navigate] = useLocation();
   // Query for groups
   const { data: groups } = useQuery<Group[]>({
     queryKey: ["/api/groups"],
   });
+  
+  // Phone verification state
+  const [showPhoneVerification, setShowPhoneVerification] = useState(false);
+  const [isPhoneVerified, setIsPhoneVerified] = useState(false);
+  const [formDataForSubmission, setFormDataForSubmission] = useState<FormData | null>(null);
 
   // Initialize the form
   const form = useForm<FormData>({
@@ -226,6 +234,23 @@ export function UnifiedTripForm({
   // We don't need the useEffect hook anymore as we handle
   // the initialization of stops in the Switch onCheckedChange handler
 
+  // Handler for phone verification completion
+  const handlePhoneVerificationComplete = () => {
+    setIsPhoneVerified(true);
+    setShowPhoneVerification(false);
+    
+    // If we have pending form data waiting for phone verification, submit it now
+    if (formDataForSubmission) {
+      try {
+        console.log('Submitting form data after phone verification:', formDataForSubmission);
+        onSubmit(formDataForSubmission);
+        setFormDataForSubmission(null); // Clear the pending data
+      } catch (err) {
+        console.error('Error submitting form after phone verification:', err);
+      }
+    }
+  };
+  
   // Form submission handler
   const handleSubmit = (data: FormData) => {
     console.log('FORM COMPONENT - handleSubmit called with data:', data);
@@ -238,6 +263,22 @@ export function UnifiedTripForm({
     if (data.isMultiStop && (!data.stops || data.stops.length === 0)) {
       console.error('Cannot submit multi-stop trip with no stops');
       return;
+    }
+    
+    // Check if mobile notifications are enabled but phone isn't verified
+    if (data.enableMobileNotifications && !isPhoneVerified && data.phoneNumber) {
+      // Store the form data for submission after verification
+      setFormDataForSubmission(data);
+      
+      // Show the phone verification modal
+      setShowPhoneVerification(true);
+      
+      toast({
+        title: "Phone verification required",
+        description: "Please verify your phone number to enable mobile notifications."
+      });
+      
+      return; // Don't submit the form yet
     }
     
     try {
@@ -1093,6 +1134,16 @@ export function UnifiedTripForm({
           </div>
         </div>
       </form>
+
+      {/* Phone Verification Modal */}
+      {showPhoneVerification && (
+        <PhoneVerificationModal
+          isOpen={showPhoneVerification}
+          onClose={() => setShowPhoneVerification(false)}
+          onComplete={handlePhoneVerificationComplete}
+          phoneNumber={form.getValues("phoneNumber") || ""}
+        />
+      )}
     </Form>
   );
 }
