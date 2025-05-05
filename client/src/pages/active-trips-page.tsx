@@ -1967,8 +1967,8 @@ export default function ActiveTripsPage() {
                         </div>
                       )}
                       <div className="absolute top-3 right-3">
-                        <Badge className="bg-primary-500">
-                          In Progress
+                        <Badge className={getStatusColor(trip.status)}>
+                          {trip.status ? trip.status.charAt(0).toUpperCase() + trip.status.slice(1) : 'Unknown'}
                         </Badge>
                       </div>
                       {selectedTripId === trip.id && (
