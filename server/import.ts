@@ -4,6 +4,7 @@ import { storage } from './storage';
 import { hashPassword } from './auth';
 import { sendGroupInvitation } from './email';
 import * as schema from '@shared/schema';
+import { db } from './db';
 
 // Define type for member data from Excel
 interface ImportMemberData {
@@ -234,12 +235,39 @@ async function processMemberImports(groupId: number, members: ImportMemberData[]
         // Add to group with specified role
         console.log(`Adding user ${user.id} to group ${groupId} with role ${member.role || 'member'}`);
         
-        const addResult = await storage.addUserToGroup({
-          groupId,
-          userId: user.id,
-          role: member.role || 'member'
-        });
-        console.log(`addUserToGroup result:`, addResult);
+        try {
+          const addResult = await storage.addUserToGroup({
+            groupId,
+            userId: user.id,
+            role: member.role || 'member'
+          });
+          console.log(`addUserToGroup result:`, addResult);
+          
+          // Double-check with direct SQL if needed (fallback)
+          if (!addResult) {
+            console.error(`Failed to add user ${user.id} to group ${groupId} - no result returned`);
+            results.errors.push(`Failed to add user ${member.email} to group - no confirmation`);
+            results.errorCount++;
+            continue;
+          }
+        } catch (error) {
+          const addError = error as Error;
+          console.error(`Error adding user ${user.id} to group ${groupId}:`, addError);
+          
+          // Try direct SQL insert as fallback
+          try {
+            console.log(`Attempting fallback direct insertion for user ${user.id}`);
+            const now = new Date();
+            const query = `INSERT INTO group_members (group_id, user_id, role, joined_at) VALUES ($1, $2, $3, $4) RETURNING *;`;
+            const result = await db.query.raw(query, [groupId, user.id, member.role || 'member', now]);
+            console.log(`Direct SQL insertion result:`, result);
+          } catch (sqlErr) {
+            console.error(`Fallback insertion also failed:`, sqlErr);
+            results.errors.push(`Failed to add user ${member.email} to group: ${addError.message || 'Unknown error'}`);
+            results.errorCount++;
+            continue;
+          }
+        }
         
         // Send invitation email
         const group = await storage.getGroup(groupId);
