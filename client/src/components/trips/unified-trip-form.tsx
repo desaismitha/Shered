@@ -284,8 +284,10 @@ export function UnifiedTripForm({
     console.log('PHONE VERIFICATION CHECK - enableMobileNotifications:', data.enableMobileNotifications);
     console.log('PHONE VERIFICATION CHECK - isPhoneVerified:', isPhoneVerified);
     console.log('PHONE VERIFICATION CHECK - phoneNumber:', data.phoneNumber);
+    console.log('PHONE VERIFICATION CHECK - userData?.phoneNumber:', userData?.phoneNumber);
     
-    if (data.enableMobileNotifications && !isPhoneVerified && data.phoneNumber) {
+    // If mobile notifications are enabled, we need a verified phone number
+    if (data.enableMobileNotifications && !isPhoneVerified) {
       console.log('PHONE VERIFICATION REQUIRED - Showing verification modal');
       
       // Store the form data for submission after verification
