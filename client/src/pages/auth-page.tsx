@@ -57,6 +57,7 @@ export default function AuthPage() {
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
   const [showVerificationModal, setShowVerificationModal] = useState(false);
   const [registeredEmail, setRegisteredEmail] = useState<string>("");
+  const [registeredPhone, setRegisteredPhone] = useState<string>("");
   const [registrationId, setRegistrationId] = useState<string>("");
 
   // Login form
@@ -143,6 +144,11 @@ export default function AuthPage() {
       const data = registerInitMutation.data;
       setRegistrationId(data.registrationId);
       setRegisteredEmail(data.email);
+      // Store the phone number if provided in the form
+      const phoneNumber = registerForm.getValues("phoneNumber");
+      if (phoneNumber) {
+        setRegisteredPhone(phoneNumber);
+      }
       // Check if SMS was sent
       if (data.smsOtpSent === true) {
         setSmsSent(true);
@@ -155,6 +161,7 @@ export default function AuthPage() {
       setShowVerificationModal(false);
       setRegistrationId("");
       setRegisteredEmail("");
+      setRegisteredPhone("");
       setSmsSent(false);
     }
   }, [registerInitMutation.isSuccess, registerInitMutation.data, user]);
@@ -268,6 +275,7 @@ export default function AuthPage() {
       // Reset verification state
       setRegistrationId('');
       setRegisteredEmail('');
+      setRegisteredPhone('');
       
       // Navigate to dashboard
       navigate('/');
@@ -504,6 +512,7 @@ export default function AuthPage() {
         isOpen={showVerificationModal}
         onOpenChange={setShowVerificationModal}
         userEmail={registeredEmail}
+        userPhone={registeredPhone}
         onVerified={handleOtpVerified}
         registrationId={registrationId}
         smsSent={smsSent}

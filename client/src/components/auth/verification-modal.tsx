@@ -19,13 +19,13 @@ interface VerificationModalProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   userEmail?: string;
-  phoneNumber?: string;
+  userPhone?: string;
   registrationId?: string;
   onVerified?: () => void;
   smsSent?: boolean;
 }
 
-export function VerificationModal({ isOpen, onOpenChange, userEmail, phoneNumber, registrationId, onVerified, smsSent }: VerificationModalProps) {
+export function VerificationModal({ isOpen, onOpenChange, userEmail, userPhone, registrationId, onVerified, smsSent }: VerificationModalProps) {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [isResending, setIsResending] = useState(false);
@@ -132,7 +132,7 @@ export function VerificationModal({ isOpen, onOpenChange, userEmail, phoneNumber
               onVerified={handleVerified}
               registrationId={registrationId}
               smsSent={smsSent}
-              phoneNumber={phoneNumber}
+              phoneNumber={userPhone}
             />
           </TabsContent>
 
