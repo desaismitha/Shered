@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Search } from 'lucide-react';
+import { Search, MapPin, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { useToast } from '@/hooks/use-toast';
 
 interface MapLocationPickerProps {
   value: string;
@@ -21,9 +22,11 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
   defaultLocation = [47.6062, -122.3321], // Default to Seattle (used for coordinates if needed)
   required = false
 }) => {
+  const { toast } = useToast();
   const [markerPosition, setMarkerPosition] = useState<[number, number] | null>(null);
   const [searchInput, setSearchInput] = useState('');
   const [isSearching, setIsSearching] = useState(false);
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const [suggestions, setSuggestions] = useState<Array<{place_name: string, lat: number, lon: number}>>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -266,6 +269,110 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
     }, 10);
   };
   
+  // Get user's current location
+  const getCurrentLocation = useCallback(() => {
+    // Check if geolocation is supported by the browser
+    if (!navigator.geolocation) {
+      toast({
+        title: "Geolocation not supported",
+        description: "Your browser does not support geolocation services.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setIsGettingLocation(true);
+    setShowSuggestions(false); // Hide any open suggestions
+    
+    // Get current position
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const { latitude, longitude } = position.coords;
+          setMarkerPosition([latitude, longitude]);
+          
+          // Reverse geocode to get address from coordinates
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18`,
+            {
+              headers: {
+                'User-Agent': 'TravelGroupr App'
+              }
+            }
+          );
+          
+          if (!response.ok) {
+            throw new Error('Failed to reverse geocode location');
+          }
+          
+          const data = await response.json();
+          if (data && data.display_name) {
+            // Format the display name to be more concise
+            const displayName = data.display_name.split(',').slice(0, 3).join(',');
+            setSearchInput(displayName);
+            
+            // Update with the location string including coordinates
+            const locationString = `${displayName} [${latitude.toFixed(6)}, ${longitude.toFixed(6)}]`;
+            onChange(locationString);
+            
+            toast({
+              title: "Current location detected",
+              description: "Your current location has been added."
+            });
+          } else {
+            // If reverse geocoding fails, just use coordinates as the location
+            const locationString = `Current Location [${latitude.toFixed(6)}, ${longitude.toFixed(6)}]`;
+            setSearchInput('Current Location');
+            onChange(locationString);
+            
+            toast({
+              title: "Current location detected",
+              description: "Your coordinates have been recorded, but we couldn't get an address."
+            });
+          }
+        } catch (error) {
+          console.error('Error getting location:', error);
+          toast({
+            title: "Location error",
+            description: "Could not determine your current location. Please try again or enter manually.",
+            variant: "destructive"
+          });
+        } finally {
+          setIsGettingLocation(false);
+        }
+      },
+      (error) => {
+        let message = "Unknown error getting your location.";
+        
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            message = "Location permission denied. Please enable location services to use this feature.";
+            break;
+          case error.POSITION_UNAVAILABLE:
+            message = "Your current position is unavailable.";
+            break;
+          case error.TIMEOUT:
+            message = "The request to get your location timed out.";
+            break;
+        }
+        
+        console.error('Geolocation error:', message);
+        toast({
+          title: "Location error",
+          description: message,
+          variant: "destructive"
+        });
+        
+        setIsGettingLocation(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      }
+    );
+  }, [onChange, toast]);
+
   // Close suggestions when clicking outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -334,6 +441,30 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
             </ul>
           </div>
         )}
+      </div>
+      
+      {/* Current location button */}
+      <div className="mt-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={getCurrentLocation}
+          disabled={isGettingLocation}
+          className="w-full flex items-center justify-center gap-2"
+        >
+          {isGettingLocation ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Getting your location...
+            </>
+          ) : (
+            <>
+              <MapPin className="h-4 w-4" />
+              Use my current location
+            </>
+          )}
+        </Button>
       </div>
       
       {value && (

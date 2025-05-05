@@ -7,12 +7,13 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import * as React from "react";
 import { useState, useEffect, useMemo } from "react";
-import { Loader2, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { Loader2, ArrowLeft, CheckCircle2, MapPin } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Trip, ItineraryItem } from "@shared/schema";
 import { TripCheckIn } from "@/components/trips/trip-check-in";
 import { TripCheckInStatus } from "@/components/trips/trip-check-in-status";
+import TripTracking from "@/components/trips/trip-tracking";
 
 // Helper function to safely parse JSON strings or return a default value
 function tryParseJSON(jsonString: string | null | undefined | any[], defaultValue: any = []) {
