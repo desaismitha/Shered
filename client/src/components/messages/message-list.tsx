@@ -1,10 +1,11 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Message, User } from "@shared/schema";
 import { format } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/use-auth";
 import { MessageSquare } from "lucide-react";
+import { queryClient } from "@/lib/queryClient";
 
 interface MessageListProps {
   groupId: number;
@@ -85,7 +86,7 @@ export function MessageList({ groupId, users }: MessageListProps) {
   
   console.log("Rendering messages list with", messages?.length || 0, "messages");
   return (
-    <div className="space-y-6 p-2 overflow-y-auto max-h-[calc(100vh-200px)]">
+    <div className="space-y-6 p-2 overflow-y-auto h-full">
       {Object.entries(messagesByDate).map(([dateKey, dateMessages]) => (
         <div key={dateKey}>
           <div className="text-center mb-4">
@@ -98,6 +99,7 @@ export function MessageList({ groupId, users }: MessageListProps) {
             {dateMessages.map(message => {
               const messageUser = users.find(u => u.id === message.userId);
               const isCurrentUser = message.userId === currentUser?.id;
+              const messageDate = message.createdAt ? new Date(message.createdAt) : new Date();
               
               return (
                 <div 
@@ -137,7 +139,7 @@ export function MessageList({ groupId, users }: MessageListProps) {
                       </div>
                       
                       <p className={`text-xs text-neutral-400 ${isCurrentUser ? 'text-right' : 'text-left'}`}>
-                        {format(new Date(message.createdAt), 'h:mm a')}
+                        {format(messageDate, 'h:mm a')}
                       </p>
                     </div>
                   </div>
