@@ -8,7 +8,7 @@ import { db, attemptReconnect, checkDbConnection, cleanupConnections } from "./d
 import { setupAuth, hashPassword } from "./auth";
 import { insertGroupSchema, insertTripSchema, insertItineraryItemSchema, insertExpenseSchema, insertMessageSchema, insertGroupMemberSchema, insertVehicleSchema, insertTripVehicleSchema, users as usersTable, trips } from "@shared/schema";
 import { z } from "zod";
-import { eq } from "drizzle-orm";
+import { eq, or } from "drizzle-orm";
 import { sendGroupInvitation, sendPasswordResetEmail } from "./email";
 import crypto from "crypto";
 import fetch from "node-fetch";
@@ -394,13 +394,18 @@ async function checkAndUpdateTripStatuses(): Promise<void> {
     console.log('[AUTO-UPDATE] Checking trips that should be in progress...');
     
     // Get all trips with status 'planning' or 'confirmed'
-    const tripsToCheck = await db
+    const planningTrips = await db
       .select()
       .from(trips)
-      .where(or(
-        eq(trips.status, 'planning'),
-        eq(trips.status, 'confirmed')
-      ));
+      .where(eq(trips.status, 'planning'));
+      
+    const confirmedTrips = await db
+      .select()
+      .from(trips)
+      .where(eq(trips.status, 'confirmed'));
+      
+    // Combine both result sets
+    const tripsToCheck = [...planningTrips, ...confirmedTrips];
     
     const now = new Date();
     let updatedCount = 0;
@@ -478,6 +483,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Database health check endpoint
   // Manual endpoint to check and update trip statuses (for testing purposes)
+  // Specific endpoint to update Trip 28 status (for testing purposes)
+  app.post("/api/admin/trips/28/update-status", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+
+    try {
+      // Force update Trip 28 to in-progress
+      const [updated] = await db
+        .update(trips)
+        .set({ status: 'in-progress' })
+        .where(eq(trips.id, 28))
+        .returning();
+
+      if (updated) {
+        return res.json({ 
+          success: true, 
+          message: "Trip 28 status updated to in-progress",
+          trip: updated
+        });
+      } else {
+        return res.status(404).json({
+          success: false,
+          message: "Trip 28 not found"
+        });
+      }
+    } catch (error) {
+      console.error("Error updating Trip 28 status:", error);
+      res.status(500).json({ success: false, error: "Failed to update Trip 28 status" });
+    }
+  });
+
   app.post("/api/admin/trips/update-statuses", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "Authentication required" });
