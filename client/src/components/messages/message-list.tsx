@@ -79,33 +79,35 @@ export function MessageList({ groupId, users }: MessageListProps) {
               return (
                 <div 
                   key={message.id} 
-                  className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`}
+                  className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'} mb-3`}
                 >
                   <div className={`flex items-start max-w-[80%] ${isCurrentUser ? 'flex-row-reverse' : 'flex-row'}`}>
-                    {!isCurrentUser && (
+                    {!isCurrentUser ? (
                       <div className="w-8 h-8 rounded-full bg-neutral-200 text-neutral-600 flex items-center justify-center mr-2">
                         {messageUser?.displayName?.[0] || messageUser?.username?.[0] || "U"}
                       </div>
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-primary-100 text-primary-600 flex items-center justify-center ml-2">
+                        {currentUser?.displayName?.[0] || currentUser?.username?.[0] || "U"}
+                      </div>
                     )}
                     
-                    <div className={`space-y-1 ${isCurrentUser ? 'mr-2' : 'ml-0'}`}>
-                      {!isCurrentUser && (
-                        <p className="text-xs text-neutral-500">
-                          {messageUser?.displayName || messageUser?.username || "Unknown User"}
-                        </p>
-                      )}
+                    <div className={`space-y-1 ${isCurrentUser ? 'mr-2 items-end' : 'ml-0 items-start'}`}>
+                      <p className={`text-xs font-medium ${isCurrentUser ? 'text-primary-600 text-right' : 'text-neutral-500'}`}>
+                        {isCurrentUser ? 'You' : (messageUser?.displayName || messageUser?.username || "Unknown User")}
+                      </p>
                       
                       <div 
                         className={`rounded-lg px-3 py-2 text-sm ${
                           isCurrentUser 
-                            ? 'bg-primary-600 text-white' 
-                            : 'bg-neutral-100 text-neutral-800'
+                            ? 'bg-primary-600 text-white rounded-tr-none' 
+                            : 'bg-neutral-100 text-neutral-800 rounded-tl-none'
                         }`}
                       >
                         {message.content}
                       </div>
                       
-                      <p className="text-xs text-neutral-400 text-right">
+                      <p className={`text-xs text-neutral-400 ${isCurrentUser ? 'text-right' : 'text-left'}`}>
                         {format(new Date(message.createdAt), 'h:mm a')}
                       </p>
                     </div>
