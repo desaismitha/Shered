@@ -1,49 +1,33 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { useQuery } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { ChevronDown, ChevronUp, Plus, MapPin, Clock, Trash2, ArrowRight, Repeat, Bell } from "lucide-react";
-import { PhoneVerificationModal } from "./phone-verification-modal";
+import { useQuery } from "@tanstack/react-query";
+import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
-
+import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { DatePicker } from "@/components/ui/date-picker";
-import { cn, formatTime } from "@/lib/utils";
-import { format } from "date-fns";
 import { Group } from "@shared/schema";
+import { PhoneVerificationModal } from "./phone-verification-modal";
+import {
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
-import MapLocationPicker from "@/components/maps/map-location-picker";
-import RouteMapPreview from "@/components/maps/route-map-preview";
+import { Textarea } from "@/components/ui/textarea";
+import { DatePicker } from "@/components/ui/date-picker";
+import { MapLocationPicker } from "@/components/map/map-location-picker";
+import { RouteMapPreview } from "@/components/map/route-map-preview";
+import { StopItineraryForm } from "./stop-itinerary-form";
+import { RecurrenceForm } from "./recurrence-form";
 
-// Define schema for a single stop (used in multi-stop trips)
-const stopSchema = z.object({
-  day: z.number().min(1, "Day is required"),
-  title: z.string().min(1, "Title is required"),
-  startLocation: z.string().min(1, "Start location is required")
-    .transform(val => val || "Unknown location"), // Never allow empty locations
-  endLocation: z.string().min(1, "End location is required")
-    .transform(val => val || "Unknown location"), // Never allow empty locations
-  startTime: z.string().min(1, "Start time is required"),
-  endTime: z.string().min(1, "End time is required"),
-  description: z.string().optional(),
-  isRecurring: z.boolean().optional(),
-  recurrencePattern: z.enum(["daily", "weekly", "monthly", "custom"]).optional(),
-  recurrenceDays: z.array(z.string()).optional(),
-});
-
-// Type for the form schema
 type FormSchemaType = {
   name: string;
   startDate: Date;
@@ -75,46 +59,41 @@ type FormSchemaType = {
   }>;
 };
 
-// Define the form schema
-// Base schema without validation
 const formSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  startDate: z.date({
-    required_error: "Start date is required",
-  }),
-  endDate: z.date({
-    required_error: "End date is required",
-  }),
+  name: z.string().min(3, "Name must be at least 3 characters"),
+  startDate: z.date(),
+  endDate: z.date(),
   description: z.string().optional(),
   groupId: z.number().optional(),
-  isMultiStop: z.boolean().default(false),
-  // Trip status
   status: z.enum(["planning", "confirmed", "in-progress", "completed", "cancelled"]).default("planning"),
-  // Fields for single-stop trips
-  startLocation: z.string().optional()
-    .transform(val => val || "Unknown location"), // Never allow empty locations
-  endLocation: z.string().optional()
-    .transform(val => val || "Unknown location"), // Never allow empty locations
-  startTime: z.string().min(1, "Start time is required"),
-  endTime: z.string().min(1, "End time is required"),
+  isMultiStop: z.boolean().default(false),
+  startLocation: z.string().optional(),
+  endLocation: z.string().optional(),
+  startTime: z.string().optional(),
+  endTime: z.string().optional(),
   isRecurring: z.boolean().default(false),
   recurrencePattern: z.enum(["daily", "weekly", "monthly", "custom"]).optional(),
   recurrenceDays: z.array(z.string()).optional(),
-  // Mobile notifications for route changes
   enableMobileNotifications: z.boolean().default(false),
-  phoneNumber: z.string()
-    .refine(val => !val || /^\+[1-9]\d{1,14}$/.test(val), {
-      message: "Phone number must include country code and be in E.164 format (e.g., +12345678901)"
+  phoneNumber: z.string().optional(),
+  stops: z.array(
+    z.object({
+      day: z.number(),
+      title: z.string(),
+      startLocation: z.string(),
+      endLocation: z.string(),
+      startTime: z.string().optional(),
+      endTime: z.string().optional(),
+      description: z.string().optional(),
+      isRecurring: z.boolean().optional(),
+      recurrencePattern: z.enum(["daily", "weekly", "monthly", "custom"]).optional(),
+      recurrenceDays: z.array(z.string()).optional(),
     })
-    .optional(),
-  // For multi-stop trips
-  stops: z.array(stopSchema).optional(),
+  ).optional(),
 });
 
-// Type for the form
 type FormData = z.infer<typeof formSchema>;
 
-// Props for the component
 interface UnifiedTripFormProps {
   onSubmit: (data: FormData) => void;
   onCancel?: () => void;
@@ -122,17 +101,6 @@ interface UnifiedTripFormProps {
   isLoading?: boolean;
   isEditing?: boolean;
 }
-
-// Days of the week for recurring trips
-const daysOfWeek = [
-  { id: "mon", label: "Mon" },
-  { id: "tue", label: "Tue" },
-  { id: "wed", label: "Wed" },
-  { id: "thu", label: "Thu" },
-  { id: "fri", label: "Fri" },
-  { id: "sat", label: "Sat" },
-  { id: "sun", label: "Sun" },
-];
 
 export function UnifiedTripForm({ 
   onSubmit, 
@@ -143,10 +111,6 @@ export function UnifiedTripForm({
 }: UnifiedTripFormProps) {
   const { toast } = useToast();
   const [, navigate] = useLocation();
-  // Query for groups
-  const { data: groups } = useQuery<Group[]>({
-    queryKey: ["/api/groups"],
-  });
   
   // Get current user data
   const { data: userData } = useQuery<any>({
@@ -155,194 +119,77 @@ export function UnifiedTripForm({
 
   // Phone verification state
   const [showPhoneVerification, setShowPhoneVerification] = useState(false);
-  const [isPhoneVerified, setIsPhoneVerified] = useState(false);
   const [formDataForSubmission, setFormDataForSubmission] = useState<FormData | null>(null);
-  
-  // Initialize the form
+
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
-      description: "",
       startDate: new Date(),
-      endDate: new Date(new Date().setDate(new Date().getDate() + 7)),
+      endDate: new Date(),
+      description: "",
       status: "planning",
       isMultiStop: false,
       startLocation: "",
       endLocation: "",
-      // Default start time to current time and end time to 1 hour later
-      startTime: new Date().toTimeString().slice(0, 5),
-      endTime: new Date(new Date().setHours(new Date().getHours() + 1)).toTimeString().slice(0, 5),
       isRecurring: false,
-      recurrencePattern: undefined,
-      recurrenceDays: [],
-      // Mobile notifications defaults
       enableMobileNotifications: false,
       phoneNumber: "",
       stops: [],
       ...defaultValues,
     },
   });
-
-  // Check if user already has a verified phone number
-  useEffect(() => {
-    if (userData?.phoneNumber) {
-      console.log('User already has a verified phone number:', userData.phoneNumber);
-      setIsPhoneVerified(true);
-      // Pre-populate the form with the user's verified phone number
-      form.setValue("phoneNumber", userData.phoneNumber);
-    }
-  }, [userData, form]);
-
-  // State for trip type selection
-  const isMultiStop = form.watch("isMultiStop");
-  const isRecurring = form.watch("isRecurring");
-  const recurrencePattern = form.watch("recurrencePattern");
-  const stops = form.watch("stops") || [];
-
-  // Add a stop to multi-stop trips
-  const addStop = () => {
-    const currentStops = form.getValues("stops") || [];
-    const nextDay = currentStops.length > 0 
-      ? Math.max(...currentStops.map(stop => stop.day)) + 1 
-      : 1;
-    
-    // Ensure we have a valid start location - either from previous stop or trip info
-    let startLocation = "";
-    if (currentStops.length > 0 && currentStops[currentStops.length - 1].endLocation) {
-      startLocation = currentStops[currentStops.length - 1].endLocation;
-    } else if (form.getValues("startLocation")) {
-      startLocation = form.getValues("startLocation")!;
-    } else {
-      startLocation = "Unknown location"; // Fallback
-    }
-    
-    form.setValue("stops", [
-      ...currentStops,
-      {
-        day: nextDay,
-        title: `Day ${nextDay}`,
-        startLocation: startLocation,
-        endLocation: form.getValues("endLocation") || "Unknown location",
-        description: "",
-        startTime: "",
-        endTime: "",
-      }
-    ]);
-    
-    // Ensure mobile notification settings are properly set
-    if (form.getValues("enableMobileNotifications") === undefined) {
-      form.setValue("enableMobileNotifications", false);
-    }
-    // Ensure phoneNumber is set if it was undefined
-    if (form.getValues("phoneNumber") === undefined) {
-      form.setValue("phoneNumber", "");
-    }
-  };
-
-  // Remove a stop from multi-stop trips
-  const removeStop = (index: number) => {
-    const currentStops = form.getValues("stops") || [];
-    form.setValue("stops", currentStops.filter((_, i) => i !== index));
-  };
-
-  // We don't need the useEffect hook anymore as we handle
-  // the initialization of stops in the Switch onCheckedChange handler
-
-  // Handler for phone verification completion
-  const handlePhoneVerificationComplete = () => {
-    setIsPhoneVerified(true);
-    setShowPhoneVerification(false);
-    
-    // Refresh user data to get the new phone number
-    // The user data will be automatically refreshed by the React Query cache
-    // after the phone verification completes, so we don't need to do anything explicitly
-    
-    // If we have pending form data waiting for phone verification, submit it now
-    if (formDataForSubmission) {
-      try {
-        console.log('Submitting form data after phone verification:', formDataForSubmission);
-        onSubmit(formDataForSubmission);
-        setFormDataForSubmission(null); // Clear the pending data
-        
-        // Show success toast
-        toast({
-          title: "Phone verified",
-          description: "Your phone number has been verified and the trip has been created with mobile notifications enabled."
-        });
-      } catch (err) {
-        console.error('Error submitting form after phone verification:', err);
-      }
-    }
-  };
   
-  // Form submission handler
+  // Add query for groups
+  const { data: groups } = useQuery<Group[]>({
+    queryKey: ["/api/groups"],
+  });
+  
+  // State for stop form
+  const [isMultiStop, setIsMultiStop] = useState(form.getValues("isMultiStop"));
+  
+  // Watch changes to isMultiStop
+  useEffect(() => {
+    const subscription = form.watch((value, { name }) => {
+      if (name === "isMultiStop") {
+        setIsMultiStop(!!value.isMultiStop);
+      }
+    });
+    
+    return () => subscription.unsubscribe();
+  }, [form.watch]);
+
   const handleSubmit = (data: FormData) => {
-    console.log('FORM COMPONENT - handleSubmit called with data:', data);
-    console.log('FORM COMPONENT - Form submission state - isLoading:', isLoading, 'isEditing:', isEditing);
-    
-    // Check for form validation errors
-    console.log('FORM COMPONENT - Form errors:', form.formState.errors);
-    
-    // Validate form data before submission (particularly for multi-stop trips)
-    if (data.isMultiStop && (!data.stops || data.stops.length === 0)) {
-      console.error('Cannot submit multi-stop trip with no stops');
-      return;
-    }
-    
-    // Check if mobile notifications are enabled but phone isn't verified
-    console.log('PHONE VERIFICATION CHECK - enableMobileNotifications:', data.enableMobileNotifications);
-    console.log('PHONE VERIFICATION CHECK - isPhoneVerified:', isPhoneVerified);
-    console.log('PHONE VERIFICATION CHECK - phoneNumber:', data.phoneNumber);
-    console.log('PHONE VERIFICATION CHECK - userData?.phoneNumber:', userData?.phoneNumber);
-    
-    // If mobile notifications are enabled and the user doesn't have a verified phone number
-    if (data.enableMobileNotifications === true && !userData?.phoneNumber) {
-      console.log('PHONE VERIFICATION REQUIRED - Showing verification modal');
-      
-      // Make sure we have a phone number to verify
-      if (!data.phoneNumber) {
-        toast({
-          title: "Phone number required",
-          description: "Please enter a phone number to enable mobile notifications.",
-          variant: "destructive"
-        });
+    // If mobile notifications are enabled, make sure phone verification happens first
+    if (data.enableMobileNotifications && data.phoneNumber) {
+      // Phone verification needed here
+      if (!userData?.phoneNumber) {
+        setFormDataForSubmission(data);
+        setShowPhoneVerification(true);
         return;
       }
-      
-      // Store the form data for submission after verification
-      setFormDataForSubmission(data);
-      
-      // Show the phone verification modal
-      setShowPhoneVerification(true);
-      
-      toast({
-        title: "Phone verification required",
-        description: "Please verify your phone number to enable mobile notifications."
-      });
-      
-      return; // Don't submit the form yet
-    } else {
-      console.log('PHONE VERIFICATION NOT REQUIRED - Continuing with form submission');
     }
     
-    try {
-      console.log('FORM COMPONENT - Calling parent onSubmit function');
-      onSubmit(data);
-      console.log('FORM COMPONENT - Parent onSubmit function called successfully');
-    } catch (err) {
-      console.error('FORM COMPONENT - Error in form submission:', err);
+    // Submit as normal if no verification needed
+    onSubmit(data);
+  };
+
+  const handlePhoneVerificationComplete = () => {
+    setShowPhoneVerification(false);
+    
+    // Refresh user data to get updated phoneNumber status
+    // This would be handled by react-query invalidation
+
+    if (formDataForSubmission) {
+      onSubmit(formDataForSubmission);
+      setFormDataForSubmission(null);
     }
   };
 
-  // Add debugging for default values
+  // Debug logging
   console.log('Form component default values:', defaultValues);
-  
-  // We need to add a special case for debugging modal appearance
-  // This will show up in the console and help diagnose issues with modal rendering
   console.log('RENDERING PHONE VERIFICATION MODAL STATE:', { 
     showPhoneVerification, 
-    isPhoneVerified, 
     formDataForSubmission,
     enableMobileNotifications: form.watch("enableMobileNotifications"),
     phoneNumber: form.watch("phoneNumber"),
@@ -353,269 +200,25 @@ export function UnifiedTripForm({
     <div className="trip-form-container">
       <Form {...form}>
         <form 
-        onSubmit={(e) => {
-          console.log('Form submitted via form event');
-          e.preventDefault(); // Prevent default form submission
-          form.handleSubmit(handleSubmit)(e); // Manually trigger form submission
-        }} 
-        className="space-y-8">
-        <Card className="p-6">
-          <h2 className="text-lg font-medium mb-4">Trip Details</h2>
+          onSubmit={(e) => {
+            console.log('Form submitted via form event');
+            e.preventDefault(); 
+            form.handleSubmit(handleSubmit)(e);
+          }} 
+          className="space-y-8">
           
-          <div className="grid gap-4 sm:grid-cols-2">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Trip Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Enter trip name" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+          <Card className="p-6">
+            <h2 className="text-lg font-medium mb-4">Trip Details</h2>
             
-            <FormField
-              control={form.control}
-              name="groupId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Group (Optional)</FormLabel>
-                  <Select
-                    onValueChange={(value) => {
-                      if (value === "none") {
-                        field.onChange(undefined);
-                      } else {
-                        field.onChange(parseInt(value));
-                      }
-                    }}
-                    value={field.value?.toString() || "none"}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a group" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="none">No group</SelectItem>
-                      {groups?.map((group) => (
-                        <SelectItem key={group.id} value={group.id.toString()}>
-                          {group.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormDescription>
-                    Choose a group to share this trip with
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-          
-          <div className="grid gap-4 sm:grid-cols-2 mt-4">
-            <FormField
-              control={form.control}
-              name="startDate"
-              render={({ field }) => (
-                <DatePicker field={field} label="Start Date" />
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="endDate"
-              render={({ field }) => (
-                <DatePicker field={field} label="End Date" />
-              )}
-            />
-          </div>
-          
-          <div className="grid gap-4 sm:grid-cols-2 mt-4">
-            <FormField
-              control={form.control}
-              name="status"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Trip Status</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a status" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="planning">Planning</SelectItem>
-                      <SelectItem value="confirmed">Confirmed</SelectItem>
-                      <SelectItem value="in-progress">In Progress</SelectItem>
-                      <SelectItem value="completed">Completed</SelectItem>
-                      <SelectItem value="cancelled">Cancelled</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormDescription>
-                    Current status of your trip
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-
-          <div className="mt-4">
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description (Optional)</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Enter trip description"
-                      className="min-h-[100px]"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-        </Card>
-        
-        <Card className="p-6">
-          <h2 className="text-lg font-medium mb-4">Trip Type</h2>
-          
-          <div className="flex flex-col space-y-4">
-            <FormField
-              control={form.control}
-              name="isMultiStop"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between space-x-3 space-y-0 rounded-md border p-4">
-                  <div className="space-y-1">
-                    <FormLabel className="text-base">
-                      {field.value ? "Multi-Stop Trip" : "Single Stop Trip"}
-                    </FormLabel>
-                    <FormDescription>
-                      {field.value 
-                        ? "Create a trip with multiple stops on different days" 
-                        : "Create a simple trip with one start and end location"}
-                    </FormDescription>
-                  </div>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={(checked) => {
-                        field.onChange(checked);
-                        // If switching to multi-stop, ensure we have at least one stop
-                        if (checked) {
-                          // Safely access stops array with a default empty array
-                          const stops = form.getValues("stops") || [];
-                          if (stops.length === 0) {
-                            const startLocation = form.getValues("startLocation") || "Unknown location";
-                            const endLocation = form.getValues("endLocation") || "Unknown location";
-                            
-                            form.setValue("stops", [{
-                              day: 1,
-                              title: form.getValues("name") || "Day 1",
-                              startLocation: startLocation,
-                              endLocation: endLocation,
-                              description: form.getValues("description") || "",
-                              startTime: form.getValues("startTime") || "",
-                              endTime: form.getValues("endTime") || "",
-                            }]);
-                            
-                            // Make sure mobile notification settings are carried over to multi-stop data
-                            form.setValue("enableMobileNotifications", form.getValues("enableMobileNotifications") || false);
-                            if (form.getValues("phoneNumber")) {
-                              form.setValue("phoneNumber", form.getValues("phoneNumber"));
-                            }
-                          }
-                        }
-                      }}
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-          </div>
-        </Card>
-        
-        {/* Mobile Notifications Card */}
-        <Card className="p-6">
-          <h2 className="text-lg font-medium mb-4">Mobile Notifications</h2>
-          
-          <div className="flex flex-col space-y-4">
-            <FormField
-              control={form.control}
-              name="enableMobileNotifications"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between space-x-3 space-y-0 rounded-md border p-4">
-                  <div className="space-y-1">
-                    <FormLabel className="text-base">
-                      Route Change Notifications
-                    </FormLabel>
-                    <FormDescription>
-                      Receive SMS notifications when someone deviates from the planned route
-                    </FormDescription>
-                  </div>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-            
-            {form.watch("enableMobileNotifications") && (
+            <div className="grid gap-4 sm:grid-cols-2">
               <FormField
                 control={form.control}
-                name="phoneNumber"
+                name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Phone Number</FormLabel>
+                    <FormLabel>Trip Name</FormLabel>
                     <FormControl>
-                      <Input 
-                        placeholder="Enter your phone number (e.g., +1234567890)" 
-                        {...field} 
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      Phone number must include country code (e.g., +1 for US)
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
-          </div>
-        </Card>
-        
-        {/* Single Stop Trip Form */}
-        {!isMultiStop && (
-          <Card className="p-6">
-            <h2 className="text-lg font-medium mb-4">Route</h2>
-            
-            <div className="grid gap-6 sm:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="startLocation"
-                render={({ field }) => (
-                  <FormItem className="space-y-2">
-                    <FormControl>
-                      <MapLocationPicker
-                        value={field.value}
-                        onChange={field.onChange}
-                        label="Start Location"
-                        placeholder="Enter start location"
-                      />
+                      <Input placeholder="Enter trip name" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -624,558 +227,211 @@ export function UnifiedTripForm({
               
               <FormField
                 control={form.control}
-                name="endLocation"
+                name="groupId"
                 render={({ field }) => (
-                  <FormItem className="space-y-2">
-                    <FormControl>
-                      <MapLocationPicker
-                        value={field.value}
-                        onChange={field.onChange}
-                        label="End Location"
-                        placeholder="Enter end location"
-                      />
-                    </FormControl>
+                  <FormItem>
+                    <FormLabel>Group (Optional)</FormLabel>
+                    <Select
+                      onValueChange={(value) => {
+                        if (value === "none") {
+                          field.onChange(undefined);
+                        } else {
+                          field.onChange(parseInt(value));
+                        }
+                      }}
+                      value={field.value?.toString() || "none"}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a group" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="none">No group</SelectItem>
+                        {groups?.map((group) => (
+                          <SelectItem key={group.id} value={group.id.toString()}>
+                            {group.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      Choose a group to share this trip with
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-            </div>
-            
-            {/* Route Map Preview - unified view of start and end */}
-            <div className="mt-6">
-              {/* The component will automatically populate based on the form inputs */}
-              {form.watch('startLocation') || form.watch('endLocation') ? (
-                <RouteMapPreview 
-                  startLocation={form.watch('startLocation')}
-                  endLocation={form.watch('endLocation')}
-                  showMap={true} 
-                  onToggleMap={() => {}} // We're always showing the map when locations are present
-                />
-              ) : (
-                <div className="text-muted-foreground text-sm">
-                  Enter start and end locations above to see a route preview
-                </div>
-              )}
             </div>
             
             <div className="grid gap-4 sm:grid-cols-2 mt-4">
               <FormField
                 control={form.control}
-                name="startTime"
+                name="startDate"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Start Time<span className="text-red-500">*</span></FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <Input
-                          type="time"
-                          className="pl-8"
-                          {...field}
-                          required
-                        />
-                        <Clock className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                      </div>
-                    </FormControl>
-                    {field.value && (
-                      <div className="text-xs text-muted-foreground mt-1">
-                        {formatTime(field.value)}
-                      </div>
-                    )}
-                    <FormMessage />
-                  </FormItem>
+                  <DatePicker field={field} label="Start Date" />
                 )}
               />
               
               <FormField
                 control={form.control}
-                name="endTime"
+                name="endDate"
+                render={({ field }) => (
+                  <DatePicker field={field} label="End Date" />
+                )}
+              />
+            </div>
+            
+            <div className="grid gap-4 sm:grid-cols-2 mt-4">
+              <FormField
+                control={form.control}
+                name="status"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>End Time<span className="text-red-500">*</span></FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <Input
-                          type="time"
-                          className="pl-8"
-                          {...field}
-                          required
-                        />
-                        <Clock className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                      </div>
-                    </FormControl>
-                    {field.value && (
-                      <div className="text-xs text-muted-foreground mt-1">
-                        {formatTime(field.value)}
-                      </div>
-                    )}
+                    <FormLabel>Trip Status</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a status" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="planning">Planning</SelectItem>
+                        <SelectItem value="confirmed">Confirmed</SelectItem>
+                        <SelectItem value="in-progress">In Progress</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                        <SelectItem value="cancelled">Cancelled</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      Current status of your trip
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
             </div>
-            
-            <div className="mt-6">
+
+            <div className="mt-4">
               <FormField
                 control={form.control}
-                name="isRecurring"
+                name="description"
                 render={({ field }) => (
-                  <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                  <FormItem>
+                    <FormLabel>Description (Optional)</FormLabel>
                     <FormControl>
-                      <Checkbox
+                      <Textarea
+                        placeholder="Enter trip description"
+                        className="min-h-[100px]"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </Card>
+          
+          <Card className="p-6">
+            <h2 className="text-lg font-medium mb-4">Trip Type</h2>
+            
+            <div className="flex flex-col space-y-4">
+              <FormField
+                control={form.control}
+                name="isMultiStop"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between space-x-3 space-y-0 rounded-md border p-4">
+                    <div className="space-y-1">
+                      <FormLabel className="text-base">
+                        {field.value ? "Multi-Stop Trip" : "Single Stop Trip"}
+                      </FormLabel>
+                      <FormDescription>
+                        {field.value 
+                          ? "Create a trip with multiple stops on different days" 
+                          : "Create a simple trip with one start and end location"}
+                      </FormDescription>
+                    </div>
+                    <FormControl>
+                      <Switch
                         checked={field.value}
                         onCheckedChange={field.onChange}
                       />
                     </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel>
-                        Recurring Trip
-                      </FormLabel>
-                      <FormDescription>
-                        Does this trip repeat on a schedule?
-                      </FormDescription>
-                    </div>
                   </FormItem>
                 )}
               />
             </div>
+          </Card>
+          
+          {/* Mobile Notifications Card */}
+          <Card className="p-6">
+            <h2 className="text-lg font-medium mb-4">Mobile Notifications</h2>
             
-            {isRecurring && (
-              <div className="mt-4 border rounded-md p-4 bg-muted/30">
+            <div className="flex flex-col space-y-4">
+              <FormField
+                control={form.control}
+                name="enableMobileNotifications"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between space-x-3 space-y-0 rounded-md border p-4">
+                    <div className="space-y-1">
+                      <FormLabel className="text-base">
+                        Route Change Notifications
+                      </FormLabel>
+                      <FormDescription>
+                        Receive SMS notifications when someone deviates from the planned route
+                      </FormDescription>
+                    </div>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              
+              {form.watch("enableMobileNotifications") && (
                 <FormField
                   control={form.control}
-                  name="recurrencePattern"
+                  name="phoneNumber"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Recurrence Pattern</FormLabel>
+                      <FormLabel>Phone Number</FormLabel>
                       <FormControl>
-                        <RadioGroup
-                          onValueChange={field.onChange}
-                          value={field.value}
-                          className="flex flex-col space-y-1"
-                        >
-                          <FormItem className="flex items-center space-x-3 space-y-0">
-                            <FormControl>
-                              <RadioGroupItem value="daily" />
-                            </FormControl>
-                            <FormLabel className="font-normal">
-                              Daily
-                            </FormLabel>
-                          </FormItem>
-                          <FormItem className="flex items-center space-x-3 space-y-0">
-                            <FormControl>
-                              <RadioGroupItem value="weekly" />
-                            </FormControl>
-                            <FormLabel className="font-normal">
-                              Weekly
-                            </FormLabel>
-                          </FormItem>
-                          <FormItem className="flex items-center space-x-3 space-y-0">
-                            <FormControl>
-                              <RadioGroupItem value="custom" />
-                            </FormControl>
-                            <FormLabel className="font-normal">
-                              Custom Days
-                            </FormLabel>
-                          </FormItem>
-                        </RadioGroup>
+                        <Input 
+                          placeholder="Enter your phone number (e.g., +1234567890)" 
+                          {...field} 
+                        />
                       </FormControl>
+                      <FormDescription>
+                        Phone number must include country code (e.g., +1 for US)
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-                
-                {recurrencePattern === "custom" && (
-                  <FormField
-                    control={form.control}
-                    name="recurrenceDays"
-                    render={() => (
-                      <FormItem className="mt-4">
-                        <div className="mb-2">
-                          <FormLabel>Select Days</FormLabel>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          {daysOfWeek.map((day) => (
-                            <FormField
-                              key={day.id}
-                              control={form.control}
-                              name="recurrenceDays"
-                              render={({ field }) => {
-                                return (
-                                  <FormItem
-                                    key={day.id}
-                                    className="flex flex-row items-center space-x-1"
-                                  >
-                                    <FormControl>
-                                      <Checkbox
-                                        checked={field.value?.includes(day.id)}
-                                        onCheckedChange={(checked) => {
-                                          const currentValue = field.value || [];
-                                          return checked
-                                            ? field.onChange([...currentValue, day.id])
-                                            : field.onChange(
-                                                currentValue.filter(
-                                                  (value) => value !== day.id
-                                                )
-                                              );
-                                        }}
-                                      />
-                                    </FormControl>
-                                    <FormLabel className="text-sm font-normal">
-                                      {day.label}
-                                    </FormLabel>
-                                  </FormItem>
-                                );
-                              }}
-                            />
-                          ))}
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
-              </div>
-            )}
-          </Card>
-        )}
-        
-        {/* Multi-Stop Trip Form */}
-        {isMultiStop && (
-          <Card className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-medium">Stops & Itinerary</h2>
-              <Button 
-                type="button" 
-                variant="outline" 
-                size="sm" 
-                onClick={addStop}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Stop
-              </Button>
-            </div>
-            
-            {/* List of stops */}
-            <div className="space-y-6">
-              {stops.length === 0 && (
-                <div className="text-center py-8 text-muted-foreground">
-                  <p>No stops added yet. Click "Add Stop" to begin.</p>
-                </div>
               )}
-              
-              {stops.map((stop, index) => (
-                <div
-                  key={index}
-                  className="border rounded-lg p-4 relative"
-                >
-                  <div className="absolute -top-3 left-4 bg-background px-2">
-                    <Badge variant="outline">Day {stop.day}</Badge>
-                  </div>
-                  
-                  <div className="grid gap-4 sm:grid-cols-2 mt-2">
-                    <FormField
-                      control={form.control}
-                      name={`stops.${index}.title`}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Stop Title</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Enter stop title" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <div className="flex items-end space-x-2">
-                      <div className="flex-1">
-                        <FormField
-                          control={form.control}
-                          name={`stops.${index}.day`}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Day Number</FormLabel>
-                              <FormControl>
-                                <Input 
-                                  type="number" 
-                                  min="1" 
-                                  {...field}
-                                  onChange={(e) => field.onChange(parseInt(e.target.value))}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="mb-0.5"
-                        onClick={() => removeStop(index)}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </div>
-                  </div>
-                  
-                  <div className="grid gap-6 sm:grid-cols-2 mt-4">
-                    <FormField
-                      control={form.control}
-                      name={`stops.${index}.startLocation`}
-                      render={({ field }) => (
-                        <FormItem className="space-y-2">
-                          <FormControl>
-                            <MapLocationPicker
-                              value={field.value}
-                              onChange={field.onChange}
-                              label="Start Location"
-                              placeholder="Enter or select start location on map"
-                              defaultLocation={[47.6062, -122.3321]} // Seattle default
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name={`stops.${index}.endLocation`}
-                      render={({ field }) => (
-                        <FormItem className="space-y-2">
-                          <FormControl>
-                            <MapLocationPicker
-                              value={field.value}
-                              onChange={field.onChange}
-                              label="End Location"
-                              placeholder="Enter or select end location on map"
-                              defaultLocation={[47.6062, -122.3321]} // Seattle default
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                  
-                  <div className="grid gap-4 sm:grid-cols-2 mt-4">
-                    <FormField
-                      control={form.control}
-                      name={`stops.${index}.startTime`}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Start Time<span className="text-red-500">*</span></FormLabel>
-                          <FormControl>
-                            <div className="relative">
-                              <Input
-                                type="time"
-                                className="pl-8"
-                                {...field}
-                                required
-                              />
-                              <Clock className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                            </div>
-                          </FormControl>
-                          {field.value && (
-                            <div className="text-xs text-muted-foreground mt-1">
-                              {formatTime(field.value)}
-                            </div>
-                          )}
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name={`stops.${index}.endTime`}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>End Time<span className="text-red-500">*</span></FormLabel>
-                          <FormControl>
-                            <div className="relative">
-                              <Input
-                                type="time"
-                                className="pl-8"
-                                {...field}
-                                required
-                              />
-                              <Clock className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                            </div>
-                          </FormControl>
-                          {field.value && (
-                            <div className="text-xs text-muted-foreground mt-1">
-                              {formatTime(field.value)}
-                            </div>
-                          )}
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                  
-                  <FormField
-                    control={form.control}
-                    name={`stops.${index}.description`}
-                    render={({ field }) => (
-                      <FormItem className="mt-4">
-                        <FormLabel>Description (Optional)</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            placeholder="Enter description for this stop"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              ))}
             </div>
-            
-            {stops.length > 0 && (
-              <div className="mt-6 text-sm text-muted-foreground">
-                <p className="flex items-center">
-                  <Repeat className="h-4 w-4 mr-2" />
-                  <span>Recurring options are not available for multi-stop trips</span>
-                </p>
-              </div>
-            )}
           </Card>
-        )}
-        
-        <div className="flex items-center justify-between">
-          {isEditing && (
+          
+          <div className="flex justify-end space-x-4 mt-8">
+            {onCancel && (
+              <button 
+                type="button" 
+                onClick={onCancel} 
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
+                Cancel
+              </button>
+            )}
             <button 
-              type="button" 
-              className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
-              onClick={(e) => {
-                e.preventDefault();
-                console.log('Cancel Trip button clicked');
-                
-                if (window.confirm('Are you sure you want to cancel this trip?')) {
-                  // Create direct manual payload with cancelled status
-                  const cancelData = {
-                    name: form.getValues('name'),
-                    startDate: form.getValues('startDate'),
-                    endDate: form.getValues('endDate'),
-                    description: form.getValues('description') || '',
-                    groupId: form.getValues('groupId'),
-                    status: 'cancelled' as const, // Force cancelled status with type assertion
-                    isMultiStop: form.getValues('isMultiStop'),
-                    startLocation: form.getValues('startLocation') || 'Unknown location',
-                    endLocation: form.getValues('endLocation') || 'Unknown location',
-                    startTime: form.getValues('startTime') || '',
-                    endTime: form.getValues('endTime') || '',
-                    isRecurring: form.getValues('isRecurring') || false,
-                    recurrencePattern: form.getValues('recurrencePattern'),
-                    recurrenceDays: form.getValues('recurrenceDays'),
-                    // Mobile notifications
-                    enableMobileNotifications: form.getValues('enableMobileNotifications') || false,
-                    phoneNumber: form.getValues('phoneNumber') || '',
-                    stops: form.getValues('stops') || [],
-                  };
-                  
-                  console.log('Cancel trip manual data:', cancelData);
-                  
-                  // Call onSubmit directly with manually constructed data
-                  try {
-                    onSubmit(cancelData);
-                    console.log('Trip cancelled successfully');
-                    
-                    // Use React Router for navigation
-                    navigate('/trips');
-                  } catch (err) {
-                    console.error('Error in cancel submit:', err);
-                  }
-                }
-              }}
-            >
-              Cancel Trip
-            </button>
-          )}
-          <div className="flex items-center gap-4 ml-auto">
-            <button 
-              type="button" 
-              className="border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 px-4 py-2 rounded"
-              onClick={(e) => {
-                e.preventDefault();
-                console.log('Discard button clicked directly');
-                
-                // Show a confirmation dialog and log the result
-                if (window.confirm('Are you sure you want to discard changes?')) {
-                  console.log('User confirmed discard');
-                  
-                  // Try both approaches
-                  if (onCancel) {
-                    console.log('Calling onCancel function');
-                    try {
-                      onCancel();
-                    } catch (err) {
-                      console.error('Error calling onCancel:', err);
-                    }
-                  }
-                  
-                  // Use React Router for navigation
-                  console.log('Using React Router navigation to /trips');
-                  navigate('/trips');
-                } else {
-                  console.log('User cancelled discard');
-                }
-              }}
-            >
-              {isEditing ? "Discard Changes" : "Cancel"}
-            </button>
-            <button 
-              type="button" 
-              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-50"
-              disabled={isLoading}
-              onClick={(e) => {
-                e.preventDefault();
-                console.log('Submit button clicked directly');
-                
-                // Create a completely standalone set of data to pass to onSubmit
-                const submitData = {
-                  name: form.getValues('name'),
-                  startDate: form.getValues('startDate'),
-                  endDate: form.getValues('endDate'),
-                  description: form.getValues('description') || '',
-                  groupId: form.getValues('groupId'),
-                  status: form.getValues('status') as "planning" | "confirmed" | "in-progress" | "completed" | "cancelled",
-                  isMultiStop: form.getValues('isMultiStop'),
-                  startLocation: form.getValues('startLocation') || 'Unknown location',
-                  endLocation: form.getValues('endLocation') || 'Unknown location',
-                  startTime: form.getValues('startTime') || '',
-                  endTime: form.getValues('endTime') || '',
-                  isRecurring: form.getValues('isRecurring') || false,
-                  recurrencePattern: form.getValues('recurrencePattern'),
-                  recurrenceDays: form.getValues('recurrenceDays'),
-                  // Mobile notifications
-                  enableMobileNotifications: form.getValues('enableMobileNotifications') || false,
-                  phoneNumber: form.getValues('phoneNumber') || '',
-                  stops: form.getValues('stops') || [],
-                };
-                
-                console.log('Manual form data:', submitData);
-                
-                // Call onSubmit directly with manually constructed data
-                try {
-                  onSubmit(submitData);
-                  console.log('onSubmit called successfully with manual data');
-                  
-                  // Navigate smoothly without confirmation in production
-                  // Remove the confirmation dialog once testing is complete
-                  if (window.confirm('Save successful. Return to trips list?')) {
-                    navigate('/trips');
-                  }
-                } catch (err) {
-                  console.error('Error in form submission:', err);
-                }
-              }}
-            >
+              type="submit" 
+              className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition-colors"
+              disabled={isLoading}>
               {isLoading ? (
                 <>
                   <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -1189,10 +445,10 @@ export function UnifiedTripForm({
               )}
             </button>
           </div>
-        </div>
-      </form>
-
-      {/* Phone Verification Modal */}
+        </form>
+      </Form>
+      
+      {/* Phone Verification Modal outside the form */}
       {showPhoneVerification && (
         <PhoneVerificationModal
           isOpen={showPhoneVerification}
@@ -1201,17 +457,6 @@ export function UnifiedTripForm({
           phoneNumber={form.getValues("phoneNumber") || ""}
         />
       )}
-    </Form>
-    
-    {/* Phone Verification Modal outside the form */}
-    {showPhoneVerification && (
-      <PhoneVerificationModal
-        isOpen={showPhoneVerification}
-        onClose={() => setShowPhoneVerification(false)}
-        onComplete={handlePhoneVerificationComplete}
-        phoneNumber={form.getValues("phoneNumber") || ""}
-      />
-    )}
     </div>
   );
 }
