@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -42,6 +42,13 @@ export function OtpVerificationForm({ onVerified, onCancel, registrationId, smsS
   const searchParams = new URLSearchParams(window.location.search);
   const userIdParam = searchParams.get("userId");
   
+  const form = useForm<OtpFormValues>({
+    resolver: zodResolver(otpFormSchema),
+    defaultValues: {
+      otp: "",
+    },
+  });
+  
   // Set userId from URL if available and not already set
   useEffect(() => {
     if (userIdParam && !userId) {
@@ -54,15 +61,8 @@ export function OtpVerificationForm({ onVerified, onCancel, registrationId, smsS
       form.reset({ otp: "" });
     };
   }, [userIdParam, userId, form]);
-  
-  const form = useForm<OtpFormValues>({
-    resolver: zodResolver(otpFormSchema),
-    defaultValues: {
-      otp: "",
-    },
-  });
 
-  const handleVerify = async (values: OtpFormValues) => {
+  const handleVerify = useCallback(async (values: OtpFormValues) => {
     // Different paths for registration verification vs. regular account verification
     // Registration verification uses registrationId, account verification uses userId
     if (!registrationId && !userId && !user?.id) {
@@ -172,9 +172,9 @@ export function OtpVerificationForm({ onVerified, onCancel, registrationId, smsS
     } finally {
       setIsVerifying(false);
     }
-  };
+  }, [registrationId, userId, user, toast, onVerified, registerCompleteMutation, form]);
 
-  const handleResendOtp = async () => {
+  const handleResendOtp = useCallback(async () => {
     // Different handling for new registration vs. existing account verification
     if (!registrationId && !userId && !user) {
       toast({
@@ -228,7 +228,7 @@ export function OtpVerificationForm({ onVerified, onCancel, registrationId, smsS
     } finally {
       setIsResending(false);
     }
-  };
+  }, [registrationId, userId, user, toast, smsSent]);
 
   return (
     <div className="space-y-6">
