@@ -40,7 +40,8 @@ export function VerificationModal({ isOpen, onOpenChange, userEmail, registratio
       onVerified();
     } else {
       // Otherwise navigate to dashboard (for existing users verifying their account)
-      setLocation("/dashboard");
+      // The home route is '/' which renders the DashboardPage component
+      setLocation("/");
     }
   };
 
@@ -62,7 +63,8 @@ export function VerificationModal({ isOpen, onOpenChange, userEmail, registratio
       description: "You can verify your account later from your profile.",
     });
     onOpenChange(false);
-    setLocation("/dashboard");
+    // Navigate to home page (dashboard)
+    setLocation("/");
   };
 
   const handleResendVerificationEmail = async () => {
