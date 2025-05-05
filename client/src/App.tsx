@@ -27,6 +27,7 @@ import VerifyEmailPage from "@/pages/verify-email-page";
 import BulkImportPage from "@/pages/bulk-import-page";
 import { DbResetFloatingButton } from "@/components/ui/db-reset-floating-button";
 import { Route } from "wouter";
+import TestVerificationModal from "@/components/trips/test-verification-modal";
 
 function Router() {
   return (

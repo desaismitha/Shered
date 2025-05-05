@@ -197,7 +197,21 @@ export function UnifiedTripForm({
   // Add a button to manually test the verification modal
   const debugShowVerificationModal = () => {
     console.log('Debug showing verification modal');
+    
+    // If no phone number is set in the form, use the one from user data
+    // or set a default test number
+    const currentPhoneNumber = form.getValues("phoneNumber");
+    if (!currentPhoneNumber && userData?.phoneNumber) {
+      form.setValue("phoneNumber", userData.phoneNumber);
+      console.log('Setting phone number from user data:', userData.phoneNumber);
+    } else if (!currentPhoneNumber) {
+      form.setValue("phoneNumber", "+14258353425"); // Default test number
+      console.log('Setting default test phone number: +14258353425');
+    }
+    
+    // Force the modal to show
     setShowPhoneVerification(true);
+    console.log('Phone number being used:', form.getValues("phoneNumber"));
   };
 
   // Debug logging

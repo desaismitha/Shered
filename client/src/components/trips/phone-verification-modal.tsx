@@ -128,9 +128,24 @@ export function PhoneVerificationModal({
     }
   }
 
+  // Force a re-render of the Dialog when isOpen changes
+  useEffect(() => {
+    if (isOpen) {
+      console.log("PHONE VERIFICATION MODAL IS OPEN!");
+    }
+  }, [isOpen]);
+  
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-md">
+    // Use forceMount to ensure the Dialog is always rendered
+    <Dialog 
+      open={isOpen} 
+      onOpenChange={(open) => !open && onClose()}
+      modal={true}
+    >
+      <DialogContent 
+        className="sm:max-w-md"
+        forceMount
+      >
         <DialogHeader>
           <DialogTitle>Verify your phone number</DialogTitle>
           <DialogDescription>
