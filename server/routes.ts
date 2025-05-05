@@ -85,7 +85,8 @@ async function notifyGroupAboutDeviation(
  * This is the same function as in client/src/lib/utils.ts
  */
 function cleanLocationString(location: string | null | undefined): string {
-  if (!location) return 'Unknown location';
+  // Special case: handle 'Unknown location' directly
+  if (!location || location === 'Unknown location') return 'Unknown location';
   
   // Remove any coordinates in square brackets like [47.6062, -122.3321]
   let cleaned = location.replace(/\[.*?\]/g, '');
@@ -96,8 +97,8 @@ function cleanLocationString(location: string | null | undefined): string {
   // Remove any trailing commas, whitespace, or other artifacts
   cleaned = cleaned.replace(/,\s*$/, '').trim();
   
-  // If we've removed everything, return Unknown location
-  if (!cleaned) return 'Unknown location';
+  // If we've removed everything or ended up with an empty string, return Unknown location
+  if (!cleaned || cleaned.length === 0) return 'Unknown location';
   
   return cleaned;
 }
