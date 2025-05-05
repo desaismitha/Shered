@@ -29,20 +29,29 @@ export function VerificationModal({ isOpen, onOpenChange, userEmail, registratio
   const [isResending, setIsResending] = useState(false);
 
   const handleVerified = () => {
+    console.log('Verification modal: verification completed successfully');
+    
     toast({
       title: "Verification successful",
       description: "Your account has been verified successfully.",
     });
+    
+    // Close the modal first
     onOpenChange(false);
     
-    // If we have a custom onVerified callback (for new registration process), use it
-    if (onVerified) {
-      onVerified();
-    } else {
-      // Otherwise navigate to dashboard (for existing users verifying their account)
-      // The home route is '/' which renders the DashboardPage component
-      setLocation("/");
-    }
+    // Small delay to ensure modal is closed before navigation
+    setTimeout(() => {
+      // If we have a custom onVerified callback (for new registration process), use it
+      if (onVerified) {
+        console.log('Calling custom verification callback');
+        onVerified();
+      } else {
+        // Otherwise navigate to dashboard (for existing users verifying their account)
+        // The home route is '/' which renders the DashboardPage component
+        console.log('Navigating to dashboard after verification');
+        setLocation("/");
+      }
+    }, 100);
   };
 
   const handleSkipForNow = () => {
