@@ -12,6 +12,7 @@ import DashboardPage from "@/pages/dashboard-page";
 import TripsPage from "@/pages/trips-page";
 // Using unified trip page instead of separate pages
 import UnifiedTripPage from "@/pages/unified-trip-page";
+import TripsDebugPage from "@/pages/trips-debug-page";
 import GroupsPage from "@/pages/groups-page";
 import GroupDetailsPage from "@/pages/group-details-page";
 import NewGroupPage from "@/pages/groups/new";
@@ -41,6 +42,7 @@ function Router() {
       <ProtectedRoute path="/messages" component={MessagesPage} />
       <ProtectedRoute path="/vehicles" component={VehiclesPage} />
       <ProtectedRoute path="/bulk-import" component={BulkImportPage} />
+      <ProtectedRoute path="/trips-debug" component={TripsDebugPage} />
       <Route path="/auth" component={AuthPage} />
       {/* Add explicit invitation route */}
       <Route path="/auth/invite" component={AuthPage} />
