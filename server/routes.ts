@@ -483,6 +483,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Database health check endpoint
   // Manual endpoint to check and update trip statuses (for testing purposes)
+  // Public endpoint to test trip status updates (for testing purposes only)
+  app.get("/api/test/check-trip-statuses", async (req, res) => {
+    try {
+      console.log('[TEST] Manually triggered trip status check');
+      await checkAndUpdateTripStatuses();
+      res.json({ success: true, message: "Trip status check completed" });
+    } catch (error) {
+      console.error("[TEST] Error checking trip statuses:", error);
+      res.status(500).json({ success: false, error: "Failed to check trip statuses" });
+    }
+  });
+
   // Specific endpoint to update Trip 28 status (for testing purposes)
   app.post("/api/admin/trips/28/update-status", async (req, res) => {
     if (!req.isAuthenticated()) {
