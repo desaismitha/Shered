@@ -36,7 +36,8 @@ export function VerificationModal({ isOpen, onOpenChange, userEmail, registratio
       description: "Your account has been verified successfully.",
     });
     
-    // Close the modal first
+    // CRITICAL: Force modal to close reliably
+    document.body.click(); // This helps force close any open modals
     onOpenChange(false);
     
     // Small delay to ensure modal is closed before navigation

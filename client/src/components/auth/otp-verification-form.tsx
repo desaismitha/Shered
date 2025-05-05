@@ -31,7 +31,7 @@ interface OtpVerificationFormProps {
 
 export function OtpVerificationForm({ onVerified, onCancel, registrationId }: OtpVerificationFormProps) {
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, registerCompleteMutation } = useAuth();
   const [isVerifying, setIsVerifying] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const [userId, setUserId] = useState<number | undefined>(user?.id);
@@ -71,48 +71,36 @@ export function OtpVerificationForm({ onVerified, onCancel, registrationId }: Ot
       let response;
       
       if (registrationId) {
-        // This is a new registration verification
+        // This is a new registration verification using the mutation from the auth hook
         console.log('Verifying registration with ID:', registrationId);
         try {
-          response = await apiRequest("POST", "/api/register/complete", {
+          // Use the registerCompleteMutation from the auth hook instead of direct API call
+          await registerCompleteMutation.mutateAsync({
             registrationId,
             otp: values.otp,
           });
           
-          // Process the response
-          if (response.ok) {
-            toast({
-              title: "Success",
-              description: "Your account has been verified",
-            });
-            
-            // Important: Call onVerified and exit function immediately without any further processing
-            if (onVerified) {
-              // Set verifying to false immediately
-              setIsVerifying(false);
-              // Small delay to ensure state is updated before calling callback
-              setTimeout(() => {
-                onVerified();
-              }, 100);
-              return; // Exit immediately
-            }
-          } else {
-            // Handle error response
-            const errorData = await response.json();
-            console.log('OTP verification error response:', errorData);
-            toast({
-              title: "Verification failed",
-              description: errorData.message || "Invalid verification code",
-              variant: "destructive",
-            });
-            // Clear the OTP field for retry
-            form.reset({ otp: "" });
+          console.log('Registration complete mutation successful');
+          toast({
+            title: "Success",
+            description: "Your account has been verified",
+          });
+          
+          // Important: Call onVerified and exit function immediately without any further processing
+          if (onVerified) {
+            // Set verifying to false immediately
+            setIsVerifying(false);
+            // Small delay to ensure state is updated before calling callback
+            setTimeout(() => {
+              onVerified();
+            }, 100);
+            return; // Exit immediately
           }
         } catch (err) {
           console.error("Registration verification request error:", err);
           toast({
             title: "Verification Error",
-            description: "There was a problem verifying your code. Please try again.",
+            description: err instanceof Error ? err.message : "There was a problem verifying your code. Please try again.",
             variant: "destructive",
           });
           // Clear the OTP field for retry

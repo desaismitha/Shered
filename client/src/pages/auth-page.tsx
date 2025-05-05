@@ -252,8 +252,8 @@ export default function AuthPage() {
     // here we just need to navigate to the dashboard (or handle invitation flow)
     console.log('OTP verification completed successfully, redirecting to dashboard');
     
-    // IMPORTANT: First close the modal, then reset state and redirect with a small delay
-    // to ensure the modal closes properly before changing routes
+    // CRITICAL: Force modal to close immediately
+    document.body.click(); // This helps force close any open modals
     setShowVerificationModal(false);
     
     // Use a small timeout to ensure the modal is fully closed before navigation
@@ -264,6 +264,15 @@ export default function AuthPage() {
       
       // Navigate to dashboard
       navigate('/');
+      
+      // Execute one more time with a longer delay as a failsafe
+      setTimeout(() => {
+        if (document.querySelector('[role="dialog"]')) {
+          console.log('Modal still detected, forcing close again');
+          document.body.click();
+          setShowVerificationModal(false);
+        }
+      }, 300);
     }, 200);
   };
   
