@@ -19,6 +19,7 @@ interface VerificationModalProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   userEmail?: string;
+  phoneNumber?: string;
   registrationId?: string;
   onVerified?: () => void;
   smsSent?: boolean;

@@ -42,12 +42,19 @@ export async function sendSMS(params: SmsParams): Promise<boolean> {
     
     // Format phone number to ensure it has the + prefix
     const formattedPhoneNumber = formatPhoneNumber(params.to);
+    const twilioNumber = process.env.TWILIO_PHONE_NUMBER || '';
+    
+    // Check if the numbers match - Twilio doesn't allow sending to the same number
+    if (formattedPhoneNumber === twilioNumber) {
+      console.warn(`Cannot send SMS - 'to' and 'from' numbers match: ${formattedPhoneNumber}`);
+      return false;
+    }
     
     console.log(`Attempting to send SMS to ${formattedPhoneNumber}`);
     
     await twilioClient.messages.create({
       to: formattedPhoneNumber,
-      from: process.env.TWILIO_PHONE_NUMBER || '',
+      from: twilioNumber,
       body: params.body
     });
     

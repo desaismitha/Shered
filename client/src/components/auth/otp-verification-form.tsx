@@ -28,9 +28,10 @@ interface OtpVerificationFormProps {
   onCancel?: () => void;
   registrationId?: string;
   smsSent?: boolean;
+  phoneNumber?: string;
 }
 
-export function OtpVerificationForm({ onVerified, onCancel, registrationId, smsSent }: OtpVerificationFormProps) {
+export function OtpVerificationForm({ onVerified, onCancel, registrationId, smsSent, phoneNumber }: OtpVerificationFormProps) {
   const { toast } = useToast();
   const { user, registerCompleteMutation } = useAuth();
   const [isVerifying, setIsVerifying] = useState(false);
@@ -231,6 +232,10 @@ export function OtpVerificationForm({ onVerified, onCancel, registrationId, smsS
           We've sent a 6-digit verification code to your email address.
           {smsSent && (
             <span className="font-medium text-primary"> We've also sent the code via SMS to your phone number. You can enter the code from either source.</span>
+          )}
+          {/* Special case for when SMS sending is attempted but fails (same number issue) */}
+          {registrationId && !smsSent && phoneNumber && (
+            <span className="text-amber-500"> We couldn't send the SMS code due to a technical limitation (same sender/receiver number). Please use the email code instead.</span>
           )}
           {registrationId && !smsSent && (
             <span> If you provided a phone number, we may also send the code via SMS.</span>
