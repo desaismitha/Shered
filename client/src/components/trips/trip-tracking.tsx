@@ -49,7 +49,7 @@ export default function TripTracking({ tripId, tripName, isActive }: TripTrackin
     const { latitude, longitude, accuracy } = position.coords;
     const timestamp = new Date(position.timestamp);
     
-    console.log(`New location: ${latitude}, ${longitude} (accuracy: ${accuracy}m)`);
+    console.log(`New location update received: ${latitude.toFixed(6)}, ${longitude.toFixed(6)} (accuracy: ${accuracy}m)`);
     
     // Update our state with the new location
     setLocation({
@@ -63,30 +63,58 @@ export default function TripTracking({ tripId, tripName, isActive }: TripTrackin
     setError(null);
     
     try {
+      console.log(`Sending location update to server for trip ${tripId}...`);
+      
       // Send location update to the server
       const response = await apiRequest('POST', `/api/trips/${tripId}/location`, {
         latitude,
         longitude
       });
       
+      if (!response.ok) {
+        throw new Error(`Server responded with status: ${response.status} ${response.statusText}`);
+      }
+      
       const result = await response.json();
+      
+      // Log the full server response for debugging
+      console.log('Location update server response:', JSON.stringify(result));
+      
+      // Check for received trip data in the response
+      if (result.trip) {
+        console.log('Trip data updated with new location:', result.trip);
+      }
       
       // Check if we're deviating from the route
       if (result.routeStatus && !result.routeStatus.isOnRoute) {
+        console.log(`Route deviation detected: ${result.routeStatus.distanceFromRoute.toFixed(2)}km from route`);
         setRouteDeviation({
           isDeviated: true,
           distance: result.routeStatus.distanceFromRoute
         });
+        
+        // Trigger notification if enabled
+        if (enableMobileNotifications && notificationPermission === 'granted') {
+          showMobileNotification(
+            'Route Deviation Alert', 
+            `You are ${result.routeStatus.distanceFromRoute.toFixed(2)}km away from the planned route`
+          );
+        }
       } else {
+        // If we were previously deviating but now back on route
+        if (routeDeviation) {
+          console.log('Back on route');
+          // Could add a notification for back on route if desired
+        }
         setRouteDeviation(null);
       }
       
-      console.log('Location update sent successfully:', result);
+      console.log('Location update processed successfully');
     } catch (err) {
       console.error('Error sending location update:', err);
-      setError('Failed to send location update to server');
+      setError(`Failed to send location update to server: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
-  }, [tripId]);
+  }, [tripId, enableMobileNotifications, notificationPermission, routeDeviation, showMobileNotification]);
   
   // Handle geolocation errors
   const handleLocationError = useCallback((error: GeolocationPositionError) => {

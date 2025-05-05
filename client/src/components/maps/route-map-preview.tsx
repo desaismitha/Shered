@@ -38,6 +38,8 @@ interface RouteMapPreviewProps {
   endLocation: string | null;
   showMap: boolean;
   onToggleMap?: () => void;
+  currentLatitude?: number | null;
+  currentLongitude?: number | null;
 }
 
 // City coordinates lookup table
@@ -108,10 +110,13 @@ const RouteMapPreview: React.FC<RouteMapPreviewProps> = ({
   startLocation,
   endLocation,
   showMap,
-  onToggleMap
+  onToggleMap,
+  currentLatitude,
+  currentLongitude
 }) => {
   const [startCoords, setStartCoords] = useState<Coordinate | null>(null);
   const [endCoords, setEndCoords] = useState<Coordinate | null>(null);
+  const [currentPosition, setCurrentPosition] = useState<Coordinate | null>(null);
   const [routePath, setRoutePath] = useState<Coordinate[]>([]);
   const [isLoadingRoute, setIsLoadingRoute] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -160,6 +165,20 @@ const RouteMapPreview: React.FC<RouteMapPreviewProps> = ({
     setStartCoords(parseCoordinates(startLocation));
     setEndCoords(parseCoordinates(endLocation));
   }, [startLocation, endLocation]);
+  
+  // Update current position when lat/long changes
+  useEffect(() => {
+    if (currentLatitude !== undefined && currentLatitude !== null && 
+        currentLongitude !== undefined && currentLongitude !== null) {
+      console.log('[MAP DEBUG] Setting current position:', currentLatitude, currentLongitude);
+      setCurrentPosition({
+        lat: currentLatitude,
+        lng: currentLongitude
+      });
+    } else {
+      setCurrentPosition(null);
+    }
+  }, [currentLatitude, currentLongitude]);
   
   // Generate an interpolated route with fewer points
   const generateInterpolatedRoute = useCallback((start: Coordinate, end: Coordinate) => {
