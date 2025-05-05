@@ -1044,42 +1044,7 @@ function TripMap({
             currentPosition={currentLatitude && currentLongitude ? [currentLatitude, currentLongitude] : null}
           />
           
-          {/* Map Legend */}
-          <div className="leaflet-bottom leaflet-left" style={{
-            backgroundColor: 'white',
-            padding: '10px',
-            margin: '10px',
-            borderRadius: '6px',
-            border: '1px solid #ddd',
-            boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
-            zIndex: 1000
-          }}>
-            <div className="leaflet-control" style={{
-              fontSize: '12px',
-              lineHeight: '20px'
-            }}>
-              <div style={{ fontWeight: 600, marginBottom: '5px' }}>Map Legend</div>
-              <div style={{ display: 'flex', alignItems: 'center', marginBottom: '6px' }}>
-                <div style={{ width: '20px', height: '4px', backgroundColor: '#2563eb', marginRight: '8px', borderRadius: '2px' }}></div>
-                <span>Road Route</span>
-              </div>
-              {/* Direct line reference removed */}
-              {currentLatitude && currentLongitude && (
-                <div style={{ display: 'flex', alignItems: 'center', marginBottom: '6px' }}>
-                  <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#60a5fa', border: '2px solid #2563eb', marginRight: '8px' }}></div>
-                  <span>Current Position</span>
-                </div>
-              )}
-              <div style={{ display: 'flex', alignItems: 'center', marginBottom: '6px' }}>
-                <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: 'white', border: '2px solid green', marginRight: '8px' }}></div>
-                <span>Start Location</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: 'white', border: '2px solid red', marginRight: '8px' }}></div>
-                <span>Destination</span>
-              </div>
-            </div>
-          </div>
+          {/* Map legends removed as requested */}
         </MapContainer>
       )}
     </div>
@@ -1902,24 +1867,7 @@ export default function ActiveTripsPage() {
                   />
                 </div>
               </CardContent>
-              {/* Route Guidance Legend */}
-              <div className="px-6 pb-4 border-t border-border mt-2 pt-3">
-                <h4 className="text-sm font-semibold mb-2">Route Guidance</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                  <div className="flex items-center">
-                    <div className="w-6 h-2 mr-2" style={{ backgroundColor: '#4a90e2', borderTop: '2px dashed white' }}></div>
-                    <span>Planned Route</span>
-                  </div>
-                  <div className="flex items-center">
-                    <div className="w-6 h-2 bg-[#34c759] mr-2"></div>
-                    <span>Traveled Path</span>
-                  </div>
-                  <div className="flex items-center">
-                    <div className="w-6 h-2 mr-2" style={{ backgroundColor: '#ff9500', borderTop: '2px dashed white' }}></div>
-                    <span>Remaining Route</span>
-                  </div>
-                </div>
-              </div>
+              {/* Route guidance legend removed as requested */}
             </Card>
             
             {/* Itinerary progress section (if items are selected) */}
