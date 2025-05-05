@@ -250,7 +250,8 @@ export async function sendOTPVerificationCode(
   otp: string
 ): Promise<boolean> {
   const fromEmail = process.env.SENDGRID_VERIFIED_SENDER || 'noreply@travelgroupr.com';
-  const subject = 'Your One-Time Code for TravelGroupr Registration';
+  // Include the code in the subject line for quick reference, even if the email is not opened
+  const subject = `Your TravelGroupr Verification Code: ${otp}`;
   
   const text = `
     Hi ${username},
