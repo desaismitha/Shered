@@ -48,6 +48,23 @@ export function cleanLocationString(location: string | null | undefined): string
   return cleaned;
 }
 
+// Format time string from 24-hour format to 12-hour format with AM/PM
+export function formatTime(timeString: string | null | undefined): string {
+  if (!timeString) return '';
+  
+  try {
+    // Assuming timeString is in 24-hour format (HH:MM)
+    const [hours, minutes] = timeString.split(':');
+    const hourInt = parseInt(hours);
+    const isPM = hourInt >= 12;
+    const hour12 = hourInt % 12 || 12;
+    return `${hour12}:${minutes} ${isPM ? 'PM' : 'AM'}`;
+  } catch (error) {
+    console.error('Error formatting time:', error);
+    return timeString;
+  }
+}
+
 // Function that detects if a date is our special marker date (2099-12-31)
 export function isSpecialDateMarker(dateStr: string | null | undefined): boolean {
   if (!dateStr) return false;
