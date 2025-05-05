@@ -155,7 +155,12 @@ export default function AuthPage() {
   useEffect(() => {
     // Redirect to dashboard when registration is complete
     if (registerCompleteMutation.isSuccess) {
-      navigate('/dashboard');
+      // Reset verification state
+      setShowVerificationModal(false);
+      setRegistrationId('');
+      setRegisteredEmail('');
+      // Navigate to home page (dashboard component is rendered at '/')
+      navigate('/');
     }
   }, [registerCompleteMutation.isSuccess, navigate]);
   
