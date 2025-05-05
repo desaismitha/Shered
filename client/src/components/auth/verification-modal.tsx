@@ -19,9 +19,11 @@ interface VerificationModalProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   userEmail?: string;
+  registrationId?: string;
+  onVerified?: () => void;
 }
 
-export function VerificationModal({ isOpen, onOpenChange, userEmail }: VerificationModalProps) {
+export function VerificationModal({ isOpen, onOpenChange, userEmail, registrationId, onVerified }: VerificationModalProps) {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [isResending, setIsResending] = useState(false);

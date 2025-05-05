@@ -283,6 +283,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loginMutation,
         logoutMutation,
         registerMutation,
+        registerInitMutation,
+        registerCompleteMutation,
       }}
     >
       {children}

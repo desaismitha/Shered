@@ -52,11 +52,12 @@ type LoginValues = z.infer<typeof loginSchema>;
 type RegisterValues = z.infer<typeof registerSchema>;
 
 export default function AuthPage() {
-  const { user, loginMutation, registerMutation } = useAuth();
+  const { user, loginMutation, registerInitMutation, registerCompleteMutation } = useAuth();
   const [, navigate] = useLocation();
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
   const [showVerificationModal, setShowVerificationModal] = useState(false);
   const [registeredEmail, setRegisteredEmail] = useState<string>("");
+  const [registrationId, setRegistrationId] = useState<string>("");
 
   // Login form
   const loginForm = useForm<LoginValues>({
@@ -134,11 +135,21 @@ export default function AuthPage() {
   }, [inviteEmail, registerForm]);
   
   useEffect(() => {
-    // Show verification modal if registration is successful
-    if (registerMutation.isSuccess) {
+    // Show verification modal if registration initialization is successful
+    if (registerInitMutation.isSuccess) {
+      const data = registerInitMutation.data;
+      setRegistrationId(data.registrationId);
+      setRegisteredEmail(data.email);
       setShowVerificationModal(true);
     }
-  }, [registerMutation.isSuccess]);
+  }, [registerInitMutation.isSuccess, registerInitMutation.data]);
+  
+  useEffect(() => {
+    // Redirect to dashboard when registration is complete
+    if (registerCompleteMutation.isSuccess) {
+      navigate('/dashboard');
+    }
+  }, [registerCompleteMutation.isSuccess, navigate]);
   
   // If user is already logged in, redirect to home
   if (user) {
@@ -205,18 +216,33 @@ export default function AuthPage() {
     // Log the complete data being sent to the server for debugging
     console.log("Complete registration data being sent to server:", fullRegistrationData);
     
-    // Need to pass the full data object due to type requirements
-    registerMutation.mutate(fullRegistrationData, {
+    // Use the new registration initialization mutation to start two-step verification
+    registerInitMutation.mutate(fullRegistrationData, {
       onError: (error) => {
-        console.log('Registration error in component:', error);
+        console.log('Registration initialization error:', error);
       },
-      onSuccess: () => {
-        // If this was an invitation registration and it succeeded,
-        // we could redirect to the group page after verification
-        console.log('Registration successful', { hasInvitation: !!inviteToken });
+      onSuccess: (response) => {
+        // The onEffect hook will show the verification modal
+        console.log('Registration initialization successful', {
+          registrationId: response.registrationId,
+          email: response.email,
+          hasInvitation: !!inviteToken
+        });
       }
     });
   };
+  
+  // Handler for when OTP verification is completed
+  const handleOtpVerified = () => {
+    // Call the registerComplete mutation with the registrationId and OTP
+    if (registrationId) {
+      registerCompleteMutation.mutate({
+        registrationId,
+        otp: 'verified' // OTP is handled in the verification component
+      });
+    }
+  };
+  
 
   return (
     <>
@@ -371,9 +397,9 @@ export default function AuthPage() {
                       <Button 
                         type="submit" 
                         className="w-full" 
-                        disabled={registerMutation.isPending}
+                        disabled={registerInitMutation.isPending}
                       >
-                        {registerMutation.isPending ? "Creating account..." : "Create Account"}
+                        {registerInitMutation.isPending ? "Sending verification..." : "Create Account"}
                       </Button>
                     </form>
                   </Form>
@@ -438,6 +464,8 @@ export default function AuthPage() {
         isOpen={showVerificationModal}
         onOpenChange={setShowVerificationModal}
         userEmail={registeredEmail}
+        onVerified={handleOtpVerified}
+        registrationId={registrationId}
       />
     </>
   );
