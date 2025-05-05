@@ -25,7 +25,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { formatDateRange, cleanLocationString } from "@/lib/utils";
+import { formatDateRange, cleanLocationString, formatTime } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -1702,9 +1702,9 @@ export default function ActiveTripsPage() {
                           {selectedItineraryItems[currentItineraryStep].startTime && (
                             <div>
                               <span className="text-muted-foreground">Time: </span>
-                              <span className="font-medium">{selectedItineraryItems[currentItineraryStep].startTime}</span>
+                              <span className="font-medium">{formatTime(selectedItineraryItems[currentItineraryStep].startTime)}</span>
                               {selectedItineraryItems[currentItineraryStep].endTime && (
-                                <> - {selectedItineraryItems[currentItineraryStep].endTime}</>
+                                <> - {formatTime(selectedItineraryItems[currentItineraryStep].endTime)}</>
                               )}
                             </div>
                           )}

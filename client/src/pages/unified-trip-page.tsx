@@ -8,6 +8,7 @@ import { apiRequest } from "@/lib/queryClient";
 import * as React from "react";
 import { useState, useEffect, useMemo } from "react";
 import { Loader2, ArrowLeft, CheckCircle2, MapPin } from "lucide-react";
+import { formatTime } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Trip, ItineraryItem } from "@shared/schema";
@@ -627,7 +628,7 @@ export default function UnifiedTripPage() {
                                     </div>
                                     {item.startTime && (
                                       <div className="text-xs">
-                                        {item.startTime} - {item.endTime}
+                                        {formatTime(item.startTime)} - {formatTime(item.endTime)}
                                       </div>
                                     )}
                                   </div>

@@ -51,24 +51,9 @@ export function ItineraryItem({ item, users, tripAccessLevel, onEdit, trip, onSt
   // Find the user who created this item
   const createdByUser = users.find(user => user.id === item.createdBy);
   
-  // Format time
-  const formatTime = (timeString: string | null | undefined): string | undefined => {
-    if (!timeString) return undefined;
-    
-    try {
-      // Assuming timeString is in 24-hour format (HH:MM)
-      const [hours, minutes] = timeString.split(':');
-      const hourInt = parseInt(hours);
-      const isPM = hourInt >= 12;
-      const hour12 = hourInt % 12 || 12;
-      return `${hour12}:${minutes} ${isPM ? 'PM' : 'AM'}`;
-    } catch (error) {
-      return timeString;
-    }
-  };
-
-  const startTime = formatTime(item.startTime);
-  const endTime = formatTime(item.endTime);
+  // Use the global formatTime utility
+  const startTime = item.startTime ? formatTime(item.startTime) : undefined;
+  const endTime = item.endTime ? formatTime(item.endTime) : undefined;
   
   // Helper to determine the recurrence pattern display text
   const getRecurrenceText = () => {
