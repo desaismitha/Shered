@@ -43,29 +43,14 @@ export async function sendSMS(params: SmsParams): Promise<boolean> {
     // Format phone number to ensure it has the + prefix
     const formattedPhoneNumber = formatPhoneNumber(params.to);
     
-    // Use a different Twilio phone number if the user's phone number would match
-    // For development/testing, we use a secondary phone number to avoid Twilio restrictions
-    // When USER_PHONE matches TWILIO_PHONE_NUMBER, we need an alternative sender
-    const twilioNumber = process.env.TWILIO_PHONE_NUMBER || '';
-    const alternativeNumber = "+14258353425"; // Alternative Twilio number (425) 835-3425
+    // Always use the specific alternative Twilio phone number for sending SMS
+    // This avoids any issues with phone number matching
+    // const twilioNumber = process.env.TWILIO_PHONE_NUMBER || '';
+    const senderNumber = "+14258353425"; // Using (425) 835-3425 as recommended
     
-    // Determine which sender number to use
-    let senderNumber = twilioNumber;
+    console.log(`Using Twilio number ${senderNumber} for sending SMS to ${formattedPhoneNumber}`);
     
-    // Check if the numbers match - Twilio doesn't allow sending to the same number
-    if (formattedPhoneNumber === twilioNumber) {
-      console.warn(`SMS 'to' and 'from' numbers would match: ${formattedPhoneNumber}`);
-      
-      // Use the Twilio alternative phone number if available, otherwise return false
-      if (alternativeNumber) {
-        console.log(`Using alternative Twilio number for sending SMS to ${formattedPhoneNumber}`);
-        senderNumber = alternativeNumber;
-      } else {
-        // If there's no valid alternative phone number, fallback to email only
-        console.warn(`No alternative Twilio number available. SMS verification skipped for ${formattedPhoneNumber}`);
-        return false;
-      }
-    }
+    // No longer need to check if numbers match since we're always using the alternative number
     
     console.log(`Attempting to send SMS to ${formattedPhoneNumber} from ${senderNumber}`);
     
