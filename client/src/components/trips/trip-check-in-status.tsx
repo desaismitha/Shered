@@ -39,6 +39,13 @@ export function TripCheckInStatus({ tripId, accessLevel = 'member', groupMembers
     enabled: !!tripId
   });
   
+  // Log trip data when it's loaded to help with debugging
+  React.useEffect(() => {
+    if (tripData) {
+      console.log('Trip data loaded for check-in status:', tripData);
+    }
+  }, [tripData]);
+  
   // Get all check-in status for the trip
   const { data: checkInStatuses, isLoading: isLoadingStatuses } = useQuery<CheckInStatus[]>({
     queryKey: [`/api/trips/${tripId}/check-in-status`],
