@@ -63,8 +63,10 @@ export default function TripsPage() {
       // (The auto-update system will take care of changing status when start time is reached)
       const isUpcoming = (trip.status === "planning" || trip.status === "confirmed");
       
-      // A trip is "in progress" if it has that status and is between start/end times
-      const isActiveNow = trip.status === "in-progress" && startDate <= now && endDate > now;
+      // A trip is "in progress" if it has that status regardless of start/end times
+      // We used to check: trip.status === "in-progress" && startDate <= now && endDate > now
+      // But this was causing issues with trips not showing up when they should
+      const isActiveNow = trip.status === "in-progress";
       
       // For debugging
       console.log(`Trip ${trip.id} (${trip.name}): isUpcoming=${isUpcoming}, isActiveNow=${isActiveNow}, status=${trip.status}`);
