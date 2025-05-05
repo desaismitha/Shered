@@ -31,6 +31,13 @@ export const users = pgTable("users", {
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   createdAt: true,
+}).extend({
+  // Add validation for email format
+  email: z.string().email("Please enter a valid email address"),
+  // Add validation for phone number format - US format with optional country code
+  phoneNumber: z.string().regex(/^(\+?1)?[\s-]?\(?[0-9]{3}\)?[\s-]?[0-9]{3}[\s-]?[0-9]{4}$/, "Please enter a valid phone number").optional(),
+  // Add validation for password (min 6 characters)
+  password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
 // Group schema

@@ -119,6 +119,21 @@ export function setupAuth(app: Express) {
         req.body.username = req.body.email;
       }
       
+      // Validate the request data against our schema
+      try {
+        const { insertUserSchema } = await import("../shared/schema");
+        const validatedData = insertUserSchema.parse(req.body);
+        // The data is valid, we can continue with validatedData
+        req.body = validatedData;
+      } catch (validationError) {
+        const errorDetails = validationError instanceof Error ? validationError.message : "Invalid registration data";
+        console.error("Validation error during registration:", errorDetails);
+        return res.status(400).json({ 
+          message: "Validation failed", 
+          errors: validationError instanceof Error ? validationError.message : "Invalid input"
+        });
+      }
+      
       // Check if username already exists
       const existingUser = await storage.getUserByUsername(req.body.username);
       if (existingUser) {
