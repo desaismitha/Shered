@@ -801,6 +801,11 @@ export function UnifiedTripForm({
                               <Clock className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                             </div>
                           </FormControl>
+                          {field.value && (
+                            <div className="text-xs text-muted-foreground mt-1">
+                              {formatTime(field.value)}
+                            </div>
+                          )}
                           <FormMessage />
                         </FormItem>
                       )}
@@ -823,6 +828,11 @@ export function UnifiedTripForm({
                               <Clock className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                             </div>
                           </FormControl>
+                          {field.value && (
+                            <div className="text-xs text-muted-foreground mt-1">
+                              {formatTime(field.value)}
+                            </div>
+                          )}
                           <FormMessage />
                         </FormItem>
                       )}
