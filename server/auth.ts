@@ -189,17 +189,12 @@ export function setupAuth(app: Express) {
         otpCode
       );
       
-      // Send verification by SMS if phone number is provided
+      // SMS functionality disabled as requested
       let smsOtpSent = false;
       
       if (req.body.phoneNumber) {
-        console.log(`Attempting to send SMS verification to ${req.body.phoneNumber}`);
-        smsOtpSent = await sendOTPVerificationSMS(
-          req.body.phoneNumber,
-          req.body.displayName || req.body.username,
-          otpCode
-        );
-        console.log(`SMS verification ${smsOtpSent ? 'successfully sent' : 'failed to send'} to ${req.body.phoneNumber}`);
+        console.log(`SMS verification disabled, phone number provided but not sending SMS to ${req.body.phoneNumber}`);
+        // Disabled: smsOtpSent = await sendOTPVerificationSMS(...)
       } else {
         console.log('No phone number provided, skipping SMS verification');
       }
@@ -433,15 +428,11 @@ export function setupAuth(app: Express) {
         otpCode
       );
       
-      // Also send SMS if phone number is provided
+      // SMS functionality disabled as requested
       let smsOtpSent = false;
       if (user.phoneNumber) {
-        smsOtpSent = await sendOTPVerificationSMS(
-          user.phoneNumber,
-          user.displayName || user.username,
-          otpCode
-        );
-        console.log(`SMS OTP ${smsOtpSent ? 'sent successfully' : 'failed to send'} to ${user.phoneNumber}`);
+        console.log(`SMS verification disabled, phone number provided but not sending SMS to ${user.phoneNumber}`);
+        // Disabled: smsOtpSent = await sendOTPVerificationSMS(...)
       }
 
       // Handle group invitation if present in the request
@@ -740,18 +731,14 @@ export function setupAuth(app: Express) {
         otpCode
       );
       
-      // Also send via SMS if phone number exists
+      // SMS functionality disabled as requested
       let smsOtpSent = false;
       if (user.phoneNumber) {
-        smsOtpSent = await sendOTPVerificationSMS(
-          user.phoneNumber,
-          user.displayName || user.username,
-          otpCode
-        );
-        console.log(`SMS OTP ${smsOtpSent ? 'sent successfully' : 'failed to send'} to ${user.phoneNumber}`);
+        console.log(`SMS verification disabled, phone number provided but not sending SMS to ${user.phoneNumber}`);
+        // Disabled: smsOtpSent = await sendOTPVerificationSMS(...)
       }
       
-      if (!emailOtpSent && !smsOtpSent) {
+      if (!emailOtpSent) {
         return res.status(500).json({ message: "Failed to send OTP code" });
       }
       
