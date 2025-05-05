@@ -56,6 +56,7 @@ export function setupImportRoutes(app: Express) {
     }
 
     const { groupId, members } = req.body;
+    console.log('Import request received:', { groupId, memberCount: members?.length });
     
     if (!groupId || !members || !Array.isArray(members)) {
       return res.status(400).json({ error: 'Invalid input data' });
@@ -76,8 +77,12 @@ export function setupImportRoutes(app: Express) {
         return res.status(403).json({ error: 'You must be a group admin to import members' });
       }
 
+      console.log('Starting import process for group:', { groupId, groupName: group.name, memberCount: members.length });
+      
       // Process member imports
       const importResults = await processMemberImports(groupId, members, req.user!.id);
+      
+      console.log('Import completed with results:', importResults);
       
       return res.json({
         success: true,
@@ -171,16 +176,23 @@ async function processMemberImports(groupId: number, members: ImportMemberData[]
   const results = {
     successCount: 0,
     errorCount: 0,
-    errors: [] as string[]
+    errors: [] as string[],
+    processedMembers: [] as any[] // Track processed users for debugging
   };
+  
+  console.log(`Starting to process ${members.length} members for import to group ${groupId}`);
   
   for (const member of members) {
     try {
+      console.log(`Processing member: ${member.email}`);
+      
       // Check if user already exists
       let user = await storage.getUserByEmail(member.email);
+      console.log(`User lookup result for ${member.email}:`, user ? `Found user ID ${user.id}` : 'User not found');
       
       if (!user) {
         // Create new user if they don't exist
+        console.log(`Creating new user for ${member.email}`);
         const tempPassword = generateTempPassword();
         const hashedPassword = await hashPassword(tempPassword);
         
@@ -197,6 +209,8 @@ async function processMemberImports(groupId: number, members: ImportMemberData[]
           emailVerified: false
         });
         
+        console.log(`Created user with ID ${user.id} for ${member.email}`);
+        
         // Generate verification token
         const verificationToken = generateVerificationToken();
         const expiry = new Date();
@@ -206,19 +220,26 @@ async function processMemberImports(groupId: number, members: ImportMemberData[]
           verificationToken,
           verificationTokenExpiry: expiry
         });
+        console.log(`Updated verification token for user ${user.id}`);
       }
       
       // Check if already a member of the group
+      console.log(`Checking if user ${user.id} is already member of group ${groupId}`);
       const groupMembers = await storage.getGroupMembers(groupId);
+      console.log(`Group ${groupId} has ${groupMembers.length} members:`, groupMembers.map(m => m.userId));
+      
       const isMember = groupMembers.some(m => m.userId === user!.id);
       
       if (!isMember) {
         // Add to group with specified role
-        await storage.addUserToGroup({
+        console.log(`Adding user ${user.id} to group ${groupId} with role ${member.role || 'member'}`);
+        
+        const addResult = await storage.addUserToGroup({
           groupId,
           userId: user.id,
           role: member.role || 'member'
         });
+        console.log(`addUserToGroup result:`, addResult);
         
         // Send invitation email
         const group = await storage.getGroup(groupId);
@@ -231,21 +252,50 @@ async function processMemberImports(groupId: number, members: ImportMemberData[]
               `/groups/${groupId}`, // inviteLink
               true // isExistingUser
             );
+            console.log(`Invitation email sent to ${user.email}`);
           } catch (emailError) {
             console.error('Failed to send invitation email:', emailError);
           }
         }
         
+        results.processedMembers.push({
+          email: user.email,
+          userId: user.id,
+          status: 'added'
+        });
+        
         results.successCount++;
       } else {
+        console.log(`User ${user.id} (${member.email}) is already a member of this group`);
         results.errors.push(`User ${member.email} is already a member of this group`);
         results.errorCount++;
+        
+        results.processedMembers.push({
+          email: user.email,
+          userId: user.id,
+          status: 'already_member'
+        });
       }
     } catch (error: any) {
       console.error(`Error processing member ${member.email}:`, error);
       results.errors.push(`Failed to import ${member.email}: ${error.message || 'Unknown error'}`);
       results.errorCount++;
+      
+      results.processedMembers.push({
+        email: member.email,
+        status: 'error',
+        error: error.message || 'Unknown error'
+      });
     }
+  }
+  
+  // After import, validate that members were actually added
+  console.log(`Import complete. Verifying group membership...`);
+  try {
+    const updatedGroupMembers = await storage.getGroupMembers(groupId);
+    console.log(`Group ${groupId} now has ${updatedGroupMembers.length} members:`, updatedGroupMembers.map(m => m.userId));
+  } catch (e) {
+    console.error(`Failed to verify group membership:`, e);
   }
   
   return results;
