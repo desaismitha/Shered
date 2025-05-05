@@ -226,10 +226,10 @@ export function OtpVerificationForm({ onVerified, onCancel, registrationId }: Ot
         <h2 className="text-2xl font-semibold">Enter Verification Code</h2>
         <p className="text-sm text-muted-foreground">
           We've sent a 6-digit verification code to your email address.
+          {registrationId && (
+            <span> If you provided a phone number, we've also sent the code via SMS.</span>
+          )}
           Enter the code below to verify your account.
-        </p>
-        <p className="text-sm text-muted-foreground font-medium">
-          Note: Verification codes are only sent to your email, not to your mobile number.
         </p>
       </div>
 

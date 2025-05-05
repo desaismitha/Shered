@@ -134,6 +134,8 @@ export default function AuthPage() {
     }
   }, [inviteEmail, registerForm]);
   
+  const [smsSent, setSmsSent] = useState<boolean>(false);
+  
   useEffect(() => {
     // Show verification modal if registration initialization is successful
     // but only if we're not already logged in (to prevent modal showing after logout)
@@ -141,6 +143,10 @@ export default function AuthPage() {
       const data = registerInitMutation.data;
       setRegistrationId(data.registrationId);
       setRegisteredEmail(data.email);
+      // Check if SMS was sent
+      if (data.smsOtpSent) {
+        setSmsSent(true);
+      }
       setShowVerificationModal(true);
     }
     
@@ -149,6 +155,7 @@ export default function AuthPage() {
       setShowVerificationModal(false);
       setRegistrationId("");
       setRegisteredEmail("");
+      setSmsSent(false);
     }
   }, [registerInitMutation.isSuccess, registerInitMutation.data, user]);
   
@@ -499,6 +506,7 @@ export default function AuthPage() {
         userEmail={registeredEmail}
         onVerified={handleOtpVerified}
         registrationId={registrationId}
+        smsSent={smsSent}
       />
     </>
   );
