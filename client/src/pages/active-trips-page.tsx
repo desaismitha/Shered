@@ -1420,13 +1420,19 @@ export default function ActiveTripsPage() {
   
   // Function to update current location
   const getCurrentLocation = () => {
+    console.log("[LOCATION DEBUG] Update Location button clicked");
+    
     if (!navigator.geolocation) {
+      console.error("[LOCATION DEBUG] Geolocation API not supported");
       setLocationUpdateError("Geolocation is not supported by your browser");
       return;
     }
     
+    console.log("[LOCATION DEBUG] Geolocation API available, permission status:", locationPermission);
+    
     // Check if permission is denied before attempting to get location
     if (locationPermission === 'denied') {
+      console.warn("[LOCATION DEBUG] Permission denied for geolocation");
       setLocationUpdateError("Location permission is denied. Please enable location access in your browser settings.");
       toast({
         title: "Location permission denied",
@@ -1439,26 +1445,33 @@ export default function ActiveTripsPage() {
     setIsLocationUpdating(true);
     setLocationUpdateError(null);
     
+    console.log("[LOCATION DEBUG] Requesting current position...");
+    
     // Set a timeout to prevent the UI from freezing if the permission dialog is ignored
     const locationTimeout = setTimeout(() => {
+      console.error("[LOCATION DEBUG] Location request timed out after 15 seconds");
       setIsLocationUpdating(false);
       setLocationUpdateError("Location request timed out. Please check your location permissions.");
     }, 15000);
     
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        clearTimeout(locationTimeout);
-        const { latitude, longitude } = position.coords;
-        
-        // Update the map center if map is available
-        if (mapRef.current) {
-          mapRef.current.setView([latitude, longitude], 13);
-        }
-        
-        // Send the location update to the server
-        updateLocationMutation.mutate({ latitude, longitude });
-        setIsLocationUpdating(false);
-      },
+    try {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          console.log("[LOCATION DEBUG] Successfully got position:", position.coords);
+          clearTimeout(locationTimeout);
+          const { latitude, longitude } = position.coords;
+          
+          // Update the map center if map is available
+          if (mapRef.current) {
+            mapRef.current.setView([latitude, longitude], 13);
+            console.log("[LOCATION DEBUG] Updated map view to current location");
+          }
+          
+          // Send the location update to the server
+          console.log("[LOCATION DEBUG] Sending location update to server: ", { latitude, longitude });
+          updateLocationMutation.mutate({ latitude, longitude });
+          setIsLocationUpdating(false);
+        },
       (error) => {
         clearTimeout(locationTimeout);
         console.error("Error getting location:", error);
@@ -1495,6 +1508,17 @@ export default function ActiveTripsPage() {
         maximumAge: 0
       }
     );
+    } catch (generalError) {
+      console.error("[LOCATION DEBUG] General error in getCurrentLocation:", generalError);
+      clearTimeout(locationTimeout);
+      setIsLocationUpdating(false);
+      setLocationUpdateError(`Unexpected error: ${generalError.message || 'Unknown error'}`);
+      toast({
+        title: "Location error",
+        description: `An unexpected error occurred: ${generalError.message || 'Unknown error'}`,
+        variant: "destructive",
+      });
+    }
   };
   
   // Handle view trip tracking
