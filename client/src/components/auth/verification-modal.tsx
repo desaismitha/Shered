@@ -34,7 +34,14 @@ export function VerificationModal({ isOpen, onOpenChange, userEmail, registratio
       description: "Your account has been verified successfully.",
     });
     onOpenChange(false);
-    setLocation("/dashboard");
+    
+    // If we have a custom onVerified callback (for new registration process), use it
+    if (onVerified) {
+      onVerified();
+    } else {
+      // Otherwise navigate to dashboard (for existing users verifying their account)
+      setLocation("/dashboard");
+    }
   };
 
   const handleSkipForNow = () => {
@@ -95,6 +102,7 @@ export function VerificationModal({ isOpen, onOpenChange, userEmail, registratio
           <TabsContent value="otp" className="mt-4">
             <OtpVerificationForm 
               onVerified={handleVerified}
+              registrationId={registrationId}
             />
           </TabsContent>
 

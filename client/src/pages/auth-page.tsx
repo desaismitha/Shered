@@ -222,25 +222,36 @@ export default function AuthPage() {
         console.log('Registration initialization error:', error);
       },
       onSuccess: (response) => {
-        // The onEffect hook will show the verification modal
+        // Store registration data and show verification modal
         console.log('Registration initialization successful', {
           registrationId: response.registrationId,
           email: response.email,
           hasInvitation: !!inviteToken
         });
+        
+        // Set registration data for verification
+        setRegistrationId(response.registrationId);
+        setRegisteredEmail(response.email);
+        
+        // Show verification modal
+        setShowVerificationModal(true);
       }
     });
   };
   
   // Handler for when OTP verification is completed
   const handleOtpVerified = () => {
-    // Call the registerComplete mutation with the registrationId and OTP
-    if (registrationId) {
-      registerCompleteMutation.mutate({
-        registrationId,
-        otp: 'verified' // OTP is handled in the verification component
-      });
-    }
+    // Since the OTP has already been verified in the verification component,
+    // here we just need to navigate to the dashboard (or handle invitation flow)
+    console.log('OTP verification completed successfully, redirecting to dashboard');
+    
+    // Reset verification state
+    setShowVerificationModal(false);
+    setRegistrationId('');
+    setRegisteredEmail('');
+    
+    // Navigate to dashboard
+    navigate('/');
   };
   
 

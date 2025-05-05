@@ -26,9 +26,10 @@ type OtpFormValues = z.infer<typeof otpFormSchema>;
 interface OtpVerificationFormProps {
   onVerified?: () => void;
   onCancel?: () => void;
+  registrationId?: string;
 }
 
-export function OtpVerificationForm({ onVerified, onCancel }: OtpVerificationFormProps) {
+export function OtpVerificationForm({ onVerified, onCancel, registrationId }: OtpVerificationFormProps) {
   const { toast } = useToast();
   const { user } = useAuth();
   const [isVerifying, setIsVerifying] = useState(false);
@@ -54,8 +55,9 @@ export function OtpVerificationForm({ onVerified, onCancel }: OtpVerificationFor
   });
 
   const handleVerify = async (values: OtpFormValues) => {
-    // Check if we have userId from either logged in user or URL parameter
-    if (!userId && !user?.id) {
+    // Different paths for registration verification vs. regular account verification
+    // Registration verification uses registrationId, account verification uses userId
+    if (!registrationId && !userId && !user?.id) {
       toast({
         title: "Error",
         description: "Unable to determine which account to verify",
@@ -66,10 +68,23 @@ export function OtpVerificationForm({ onVerified, onCancel }: OtpVerificationFor
 
     setIsVerifying(true);
     try {
-      const response = await apiRequest("POST", "/api/verify-otp", {
-        userId: userId || user?.id,
-        otp: values.otp,
-      });
+      let response;
+      
+      if (registrationId) {
+        // This is a new registration verification
+        console.log('Verifying registration with ID:', registrationId);
+        response = await apiRequest("POST", "/api/register/complete", {
+          registrationId,
+          otp: values.otp,
+        });
+      } else {
+        // This is a verification for an existing account
+        console.log('Verifying existing account');
+        response = await apiRequest("POST", "/api/verify-otp", {
+          userId: userId || user?.id,
+          otp: values.otp,
+        });
+      }
 
       if (response.ok) {
         toast({
@@ -101,7 +116,8 @@ export function OtpVerificationForm({ onVerified, onCancel }: OtpVerificationFor
   };
 
   const handleResendOtp = async () => {
-    if (!userId && !user) {
+    // Different handling for new registration vs. existing account verification
+    if (!registrationId && !userId && !user) {
       toast({
         title: "Error",
         description: "Unable to determine which account to send code to",
@@ -112,8 +128,21 @@ export function OtpVerificationForm({ onVerified, onCancel }: OtpVerificationFor
 
     setIsResending(true);
     try {
-      // If we have a userId from URL but not logged in, we need to make a special request
-      const response = await apiRequest("POST", "/api/request-otp", userId && !user ? { userId } : undefined);
+      let response;
+      
+      if (registrationId) {
+        // This is a new registration verification
+        console.log('Resending OTP for registration ID:', registrationId);
+        response = await apiRequest("POST", "/api/register/resend-otp", { registrationId });
+      } else if (userId && !user) {
+        // This is an existing account verification without user session
+        console.log('Resending OTP for user ID (no session):', userId);
+        response = await apiRequest("POST", "/api/request-otp", { userId });
+      } else {
+        // This is a verification for the logged-in user
+        console.log('Resending OTP for logged-in user');
+        response = await apiRequest("POST", "/api/request-otp");
+      }
 
       if (response.ok) {
         toast({
