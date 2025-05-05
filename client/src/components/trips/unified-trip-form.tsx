@@ -486,14 +486,12 @@ export function UnifiedTripForm({
       </Form>
       
       {/* Phone Verification Modal outside the form */}
-      {showPhoneVerification && (
-        <PhoneVerificationModal
-          isOpen={showPhoneVerification}
-          onClose={() => setShowPhoneVerification(false)}
-          onComplete={handlePhoneVerificationComplete}
-          phoneNumber={form.getValues("phoneNumber") || ""}
-        />
-      )}
+      <PhoneVerificationModal
+        isOpen={showPhoneVerification}
+        onClose={() => setShowPhoneVerification(false)}
+        onComplete={handlePhoneVerificationComplete}
+        phoneNumber={form.getValues("phoneNumber") || ""}
+      />
     </div>
   );
 }
