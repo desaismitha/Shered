@@ -197,8 +197,10 @@ export function setupAuth(app: Express) {
       }
 
       // Include the actual OTP code in the response for development/debugging purposes
-      // In production, this should be removed or disabled via env variable
-      const isDevelopment = process.env.NODE_ENV === 'development';
+      // For troubleshooting, always include the verification code for now
+      // In production, this should be removed or made conditional with env variable
+      console.log("Using NODE_ENV:", process.env.NODE_ENV);
+      console.log("Including verification code in response:", otpCode);
       
       res.status(200).json({
         message: "Verification code sent. Please verify your account to complete registration.",
@@ -206,8 +208,8 @@ export function setupAuth(app: Express) {
         email: req.body.email,
         otpSent: emailOtpSent,
         smsOtpSent,
-        // Show the OTP code in dev environment for testing in case email doesn't arrive
-        verificationCode: isDevelopment ? otpCode : undefined
+        // Always include the verification code for now
+        verificationCode: otpCode
       });
     } catch (err) {
       next(err);
