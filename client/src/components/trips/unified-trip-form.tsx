@@ -509,7 +509,7 @@ export function UnifiedTripForm({
                 name="endTime"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>End Time</FormLabel>
+                    <FormLabel>End Time<span className="text-red-500">*</span></FormLabel>
                     <FormControl>
                       <div className="relative">
                         <Input
@@ -779,7 +779,7 @@ export function UnifiedTripForm({
                       name={`stops.${index}.startTime`}
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Start Time</FormLabel>
+                          <FormLabel>Start Time<span className="text-red-500">*</span></FormLabel>
                           <FormControl>
                             <div className="relative">
                               <Input
@@ -801,7 +801,7 @@ export function UnifiedTripForm({
                       name={`stops.${index}.endTime`}
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>End Time</FormLabel>
+                          <FormLabel>End Time<span className="text-red-500">*</span></FormLabel>
                           <FormControl>
                             <div className="relative">
                               <Input
