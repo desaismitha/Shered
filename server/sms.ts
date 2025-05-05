@@ -43,10 +43,18 @@ export async function sendSMS(params: SmsParams): Promise<boolean> {
     // Format phone number to ensure it has the + prefix
     const formattedPhoneNumber = formatPhoneNumber(params.to);
     
-    // Always use the specific alternative Twilio phone number for sending SMS
-    // This avoids any issues with phone number matching
-    // const twilioNumber = process.env.TWILIO_PHONE_NUMBER || '';
-    const senderNumber = "+14258353425"; // Using (425) 835-3425 as recommended
+    // Get the Twilio phone number from environment variable
+    const twilioNumber = process.env.TWILIO_PHONE_NUMBER || '';
+    
+    // Ensure it's properly formatted with a + prefix
+    const senderNumber = twilioNumber.startsWith('+') ? twilioNumber : `+${twilioNumber}`;
+    
+    // If we're trying to send to the same number as our Twilio number, we should fallback to email only
+    if (formattedPhoneNumber === senderNumber) {
+      console.warn(`SMS 'to' and 'from' numbers would match: ${formattedPhoneNumber}`);
+      console.warn('Fallback to email verification only');
+      return false;
+    }
     
     console.log(`Using Twilio number ${senderNumber} for sending SMS to ${formattedPhoneNumber}`);
     
