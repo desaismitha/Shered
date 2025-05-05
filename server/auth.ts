@@ -103,9 +103,223 @@ export function setupAuth(app: Express) {
     }
   });
 
+  // Endpoint to initiate registration - just validates data and sends OTP code without creating account yet
+  app.post("/api/register/init", async (req, res, next) => {
+    try {
+      console.log("Registration initialization received with body:", JSON.stringify(req.body, null, 2));
+      
+      // Set username to email value if not explicitly provided
+      if (!req.body.username) {
+        req.body.username = req.body.email;
+      }
+      
+      // Validate the request data against our schema
+      try {
+        const { insertUserSchema } = await import("../shared/schema");
+        // Create a partial schema without requiring password, for validation only
+        const initSchema = insertUserSchema.omit({ password: true }).extend({
+          password: insertUserSchema.shape.password.optional(),
+        });
+        const validatedData = initSchema.parse(req.body);
+        // The data is valid, we can continue with validatedData
+        req.body = validatedData;
+      } catch (validationError) {
+        const errorDetails = validationError instanceof Error ? validationError.message : "Invalid registration data";
+        console.error("Validation error during registration initialization:", errorDetails);
+        return res.status(400).json({ 
+          message: "Validation failed", 
+          errors: validationError instanceof Error ? validationError.message : "Invalid input"
+        });
+      }
+      
+      // Check if username already exists
+      const existingUser = await storage.getUserByUsername(req.body.username);
+      if (existingUser) {
+        return res.status(400).json({ 
+          message: "An account with this username already exists. Please use a different username or try logging in." 
+        });
+      }
+      
+      // Check if email already exists
+      const existingEmail = await storage.getUserByEmail(req.body.email);
+      if (existingEmail) {
+        return res.status(400).json({ 
+          message: "This email is already registered. Please use a different email address or try logging in." 
+        });
+      }
+
+      // Generate OTP code for verification
+      const otpCode = generateOTP();
+      
+      // Calculate expiry for OTP (10 minutes from now)
+      const otpExpiry = new Date();
+      otpExpiry.setMinutes(otpExpiry.getMinutes() + 10);
+      
+      // Store registration info temporarily in session
+      if (!req.session.pendingRegistrations) {
+        req.session.pendingRegistrations = {};
+      }
+      
+      // Create a unique registration ID
+      const registrationId = randomBytes(16).toString('hex');
+      
+      // Hash the OTP for secure storage
+      const hashedOTP = await hashPassword(otpCode);
+      
+      // Store pending registration data
+      req.session.pendingRegistrations[registrationId] = {
+        ...req.body,
+        otpToken: hashedOTP,
+        otpExpiry: otpExpiry,
+        createdAt: new Date()
+      };
+      
+      // Send OTP email
+      const otpSent = await sendOTPVerificationCode(
+        req.body.email,
+        req.body.displayName || req.body.username,
+        otpCode
+      );
+
+      res.status(200).json({
+        message: "Verification code sent. Please verify your email to complete registration.",
+        registrationId,
+        email: req.body.email,
+        otpSent
+      });
+    } catch (err) {
+      next(err);
+    }
+  });
+  
+  // Complete registration after OTP verification
+  app.post("/api/register/complete", async (req, res, next) => {
+    try {
+      const { registrationId, otp } = req.body;
+      
+      if (!registrationId || !otp) {
+        return res.status(400).json({ message: "Registration ID and verification code are required" });
+      }
+      
+      // Retrieve pending registration data
+      if (!req.session.pendingRegistrations || !req.session.pendingRegistrations[registrationId]) {
+        return res.status(400).json({ message: "Registration session expired or invalid" });
+      }
+      
+      const pendingData = req.session.pendingRegistrations[registrationId];
+      
+      // Check if OTP is expired
+      if (new Date() > new Date(pendingData.otpExpiry)) {
+        // Clean up expired registration data
+        delete req.session.pendingRegistrations[registrationId];
+        return res.status(400).json({ message: "Verification code has expired. Please try registering again." });
+      }
+      
+      // Verify OTP
+      const isValidOTP = await comparePasswords(otp, pendingData.otpToken);
+      if (!isValidOTP) {
+        return res.status(400).json({ message: "Invalid verification code" });
+      }
+      
+      // Generate verification token with 24-hour expiry for email link verification
+      const verificationToken = generateVerificationToken();
+      const verificationExpiry = new Date();
+      verificationExpiry.setHours(verificationExpiry.getHours() + 24);
+      
+      // Create user now that OTP is verified
+      const user = await storage.createUser({
+        username: pendingData.username,
+        email: pendingData.email,
+        displayName: pendingData.displayName,
+        phoneNumber: pendingData.phoneNumber,
+        password: await hashPassword(pendingData.password),
+        emailVerified: true, // Mark as verified since they've completed OTP verification
+        verificationToken,
+        verificationTokenExpiry: verificationExpiry,
+      });
+      
+      // Clean up the pending registration
+      delete req.session.pendingRegistrations[registrationId];
+      
+      // Construct the backup verification URL (only needed for email link verification)
+      const baseUrl = process.env.BASE_URL || `http://${req.headers.host}`;
+      const verificationUrl = `${baseUrl}/verify-email?token=${verificationToken}&userId=${user.id}`;
+      
+      // Send a welcome email with the verification link as backup
+      const emailSent = await sendEmailVerification(
+        user.email,
+        user.displayName || user.username,
+        verificationUrl
+      );
+      
+      // Handle group invitation if present in the request (code remains the same)
+      const invitation = pendingData.invitation || {};
+      if ((invitation.token && invitation.groupId) || 
+          (pendingData.token && pendingData.groupId)) {
+        try {
+          const token = invitation.token || pendingData.token;
+          const groupIdStr = invitation.groupId || pendingData.groupId;
+          
+          console.log("Processing group invitation during registration with data:", { 
+            token, 
+            groupId: groupIdStr 
+          });
+          
+          const groupId = parseInt(groupIdStr);
+          if (isNaN(groupId)) {
+            console.log(`Invalid group ID format: ${groupIdStr}`);
+          } else {
+            // Verify the group exists
+            const group = await storage.getGroup(groupId);
+            
+            if (!group) {
+              console.log(`Group ${groupId} not found during invitation processing`);
+            } else {
+              // Add user to the group with member role
+              const groupMember = await storage.addUserToGroup({
+                groupId,
+                userId: user.id,
+                role: 'member'
+              });
+              
+              console.log(`User ${user.id} successfully added to group ${groupId} via invitation`);
+            }
+          }
+        } catch (inviteError) {
+          console.error("Error processing group invitation during registration:", inviteError);
+        }
+      } else {
+        console.log("No valid invitation data found in registration request");
+      }
+      
+      // Remove password and sensitive fields from response
+      const { 
+        password, 
+        verificationToken: token, 
+        otpToken,
+        ...userWithoutSensitiveData 
+      } = user;
+
+      // Log the user in automatically
+      req.login(user, (err) => {
+        if (err) return next(err);
+        
+        res.status(201).json({
+          ...userWithoutSensitiveData,
+          verificationEmailSent: emailSent,
+          registrationCompleted: true
+        });
+      });
+    } catch (err) {
+      next(err);
+    }
+  });
+  
+  // Keep old registration endpoint for backward compatibility, but with deprecation notice
   app.post("/api/register", async (req, res, next) => {
     try {
-      console.log("Registration request received with body:", JSON.stringify(req.body, null, 2));
+      console.log("[DEPRECATED] Registration request received with body:", JSON.stringify(req.body, null, 2));
+      console.log("Warning: The /api/register endpoint is deprecated. Please use /api/register/init and /api/register/complete");
       
       // Check for invitation data
       if (req.body.invitation) {

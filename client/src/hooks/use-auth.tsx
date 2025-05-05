@@ -16,6 +16,10 @@ type AuthContextType = {
   loginMutation: UseMutationResult<User, Error, LoginData>;
   logoutMutation: UseMutationResult<void, Error, void>;
   registerMutation: UseMutationResult<User, Error, RegisterData>;
+  
+  // New two-step registration process
+  registerInitMutation: UseMutationResult<RegistrationInitResponse, Error, RegisterData>;
+  registerCompleteMutation: UseMutationResult<User, Error, RegistrationCompleteData>;
 };
 
 const loginSchema = z.object({
@@ -48,6 +52,20 @@ type RegisterData = z.infer<typeof registerSchema> & {
   // Also allow these at root level
   token?: string;
   groupId?: string;
+};
+
+// Response from the registration initialization endpoint
+type RegistrationInitResponse = {
+  message: string;
+  registrationId: string;
+  email: string;
+  otpSent: boolean;
+};
+
+// Data required to complete registration with OTP verification
+type RegistrationCompleteData = {
+  registrationId: string;
+  otp: string;
 };
 
 export const AuthContext = createContext<AuthContextType | null>(null);
@@ -112,7 +130,80 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
   });
 
-  // Registration mutation
+  // Step 1: Initialize registration and send OTP
+  const registerInitMutation = useMutation<RegistrationInitResponse, Error, RegisterData>({
+    mutationFn: async (credentials) => {
+      try {
+        // Remove confirmPassword before sending to API
+        const { confirmPassword, ...userToRegister } = credentials;
+        console.log('Registration init mutation with data:', JSON.stringify(userToRegister, null, 2));
+        
+        // Enhanced debugging for invitation params
+        if (userToRegister.invitation || userToRegister.token || userToRegister.groupId) {
+          console.log("INVITATION DATA DETECTED in registration init:", {
+            nested: userToRegister.invitation,
+            rootToken: userToRegister.token,
+            rootGroupId: userToRegister.groupId
+          });
+        }
+        
+        const res = await apiRequest("POST", "/api/register/init", userToRegister);
+        return await res.json();
+      } catch (error) {
+        // Rethrow the error to be handled by onError
+        console.error("Registration init error:", error);
+        throw error;
+      }
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Verification code sent",
+        description: `We've sent a code to ${data.email}. Enter it to complete your registration.`,
+      });
+    },
+    onError: (error) => {
+      console.error("Registration init error in onError handler:", error);
+      toast({
+        title: "Registration initialization failed",
+        description: error instanceof Error ? error.message : "An unknown error occurred",
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Step 2: Complete registration with OTP verification
+  const registerCompleteMutation = useMutation<User, Error, RegistrationCompleteData>({
+    mutationFn: async (data) => {
+      try {
+        console.log('Registration completion with data:', data);
+        
+        const res = await apiRequest("POST", "/api/register/complete", data);
+        return await res.json();
+      } catch (error) {
+        // Rethrow the error to be handled by onError
+        console.error("Registration completion error:", error);
+        throw error;
+      }
+    },
+    onSuccess: (userData) => {
+      queryClient.setQueryData(["/api/user"], userData);
+      localStorage.setItem('userId', userData.id.toString());
+      toast({
+        title: "Registration completed",
+        description: `Welcome to TravelGroupr, ${userData.displayName || userData.username}!`,
+      });
+    },
+    onError: (error) => {
+      console.error("Registration completion error in onError handler:", error);
+      toast({
+        title: "Registration completion failed",
+        description: error instanceof Error ? error.message : "An unknown error occurred",
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Legacy registration mutation (keeping for backward compatibility)
   const registerMutation = useMutation<User, Error, RegisterData>({
     mutationFn: async (credentials) => {
       try {
