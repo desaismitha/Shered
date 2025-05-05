@@ -414,16 +414,12 @@ async function checkAndUpdateTripStatuses(): Promise<void> {
       const startDate = new Date(trip.startDate);
       const endDate = new Date(trip.endDate);
       
-      // Check if today is the trip start date
-      const startDay = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const isStartingToday = startDay.getTime() === today.getTime();
+      // Check if the trip start time has passed but end time is still in the future
+      // This checks exact start time instead of just the day
+      const isStartTimeReached = startDate <= now && endDate > now;
       
-      // If the trip should start now (it's within the time window), auto-set to in-progress
-      const isStartTimeNow = isStartingToday && startDate <= now && endDate > now;
-      
-      if (isStartTimeNow) {
-        console.log(`[AUTO-UPDATE] Trip ${trip.id} (${trip.name}) should be in-progress!`);
+      if (isStartTimeReached) {
+        console.log(`[AUTO-UPDATE] Trip ${trip.id} (${trip.name}) should be in-progress! Start time: ${startDate.toISOString()}, Current time: ${now.toISOString()}`);
         try {
           const [updated] = await db
             .update(trips)
@@ -438,6 +434,8 @@ async function checkAndUpdateTripStatuses(): Promise<void> {
         } catch (updateError) {
           console.error(`[AUTO-UPDATE] Error updating trip ${trip.id}:`, updateError);
         }
+      } else {
+        console.log(`[AUTO-UPDATE] Trip ${trip.id} (${trip.name}) is not ready to start. Start time: ${startDate.toISOString()}, Current time: ${now.toISOString()}`);
       }
     }
     
