@@ -86,6 +86,8 @@ export const trips = pgTable("trips", {
   lastLocationUpdate: timestamp("last_location_update"),
   // Distance traveled in kilometers
   distanceTraveled: doublePrecision("distance_traveled").default(0),
+  // Mobile notifications for route changes
+  enableMobileNotifications: boolean("enable_mobile_notifications").default(false),
   groupId: integer("group_id").references(() => groups.id, { onDelete: 'set null' }),
   createdBy: integer("created_by").notNull().references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
