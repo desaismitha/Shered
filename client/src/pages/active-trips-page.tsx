@@ -1509,13 +1509,16 @@ export default function ActiveTripsPage() {
     setSelectedTripId(null);
   };
   
-  if (error) {
-    toast({
-      title: "Error fetching active trips",
-      description: "There was a problem loading your active trips. Please try again.",
-      variant: "destructive",
-    });
-  }
+  // Show error message for failed data fetching using useEffect to avoid re-render issues
+  useEffect(() => {
+    if (error) {
+      toast({
+        title: "Error fetching active trips",
+        description: "There was a problem loading your active trips. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }, [error, toast]);
 
   return (
     <AppShell>
