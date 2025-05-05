@@ -67,6 +67,7 @@ export default function AuthPage() {
   // Phone number handling has been removed
   const [registrationId, setRegistrationId] = useState<string>("");
   const [smsSent, setSmsSent] = useState<boolean>(false);
+  const [verificationCode, setVerificationCode] = useState<string>("");
 
   // Login form
   const loginForm = useForm<LoginValues>({
@@ -153,6 +154,11 @@ export default function AuthPage() {
       // Check if SMS was sent
       if (data.smsOtpSent === true) {
         setSmsSent(true);
+      }
+      // Capture verification code if it's provided (development mode)
+      if (data.verificationCode) {
+        console.log('Verification code available in development mode');
+        setVerificationCode(data.verificationCode);
       }
       setShowVerificationModal(true);
     }
@@ -532,6 +538,7 @@ export default function AuthPage() {
         onVerified={handleOtpVerified}
         registrationId={registrationId}
         smsSent={smsSent}
+        verificationCode={verificationCode}
       />
     </>
   );

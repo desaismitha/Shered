@@ -26,7 +26,7 @@ interface VerificationModalProps {
   verificationCode?: string; // Add this for development fallback
 }
 
-export function VerificationModal({ isOpen, onOpenChange, userEmail, userPhone, registrationId, onVerified, smsSent }: VerificationModalProps) {
+export function VerificationModal({ isOpen, onOpenChange, userEmail, userPhone, registrationId, onVerified, smsSent, verificationCode }: VerificationModalProps) {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [isResending, setIsResending] = useState(false);
@@ -129,6 +129,19 @@ export function VerificationModal({ isOpen, onOpenChange, userEmail, userPhone, 
           </TabsList>
 
           <TabsContent value="otp" className="mt-4">
+            {verificationCode && (
+              <div className="mb-6 p-4 border border-amber-300 bg-amber-50 rounded-md">
+                <p className="text-sm text-amber-800 font-medium mb-2">Development Mode: Verification Code</p>
+                <div className="flex items-center justify-center">
+                  <div className="text-lg font-mono bg-white p-2 rounded border border-amber-300 tracking-wider">
+                    {verificationCode}
+                  </div>
+                </div>
+                <p className="text-xs text-amber-700 mt-2 text-center">
+                  Use this code to verify your account (email delivery may be delayed).
+                </p>
+              </div>
+            )}
             <OtpVerificationForm 
               onVerified={handleVerified}
               registrationId={registrationId}
