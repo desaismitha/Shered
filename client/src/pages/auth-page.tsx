@@ -252,13 +252,19 @@ export default function AuthPage() {
     // here we just need to navigate to the dashboard (or handle invitation flow)
     console.log('OTP verification completed successfully, redirecting to dashboard');
     
-    // Reset verification state
+    // IMPORTANT: First close the modal, then reset state and redirect with a small delay
+    // to ensure the modal closes properly before changing routes
     setShowVerificationModal(false);
-    setRegistrationId('');
-    setRegisteredEmail('');
     
-    // Navigate to dashboard
-    navigate('/');
+    // Use a small timeout to ensure the modal is fully closed before navigation
+    setTimeout(() => {
+      // Reset verification state
+      setRegistrationId('');
+      setRegisteredEmail('');
+      
+      // Navigate to dashboard
+      navigate('/');
+    }, 200);
   };
   
 
