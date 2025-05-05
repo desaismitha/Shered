@@ -17,7 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { DatePicker } from "@/components/ui/date-picker";
-import { cn } from "@/lib/utils";
+import { cn, formatTime } from "@/lib/utils";
 import { format } from "date-fns";
 import { Group } from "@shared/schema";
 import { Switch } from "@/components/ui/switch";
@@ -499,6 +499,11 @@ export function UnifiedTripForm({
                         <Clock className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                       </div>
                     </FormControl>
+                    {field.value && (
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {formatTime(field.value)}
+                      </div>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}
@@ -521,6 +526,11 @@ export function UnifiedTripForm({
                         <Clock className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                       </div>
                     </FormControl>
+                    {field.value && (
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {formatTime(field.value)}
+                      </div>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}
