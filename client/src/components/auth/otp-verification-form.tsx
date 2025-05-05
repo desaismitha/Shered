@@ -86,8 +86,11 @@ export function OtpVerificationForm({ onVerified, onCancel, registrationId }: Ot
               description: "Your account has been verified",
             });
             
+            // Important: Call onVerified and exit function to prevent further processing
             if (onVerified) {
               onVerified();
+              setIsVerifying(false);
+              return;
             }
           } else {
             // Handle error response
@@ -126,8 +129,11 @@ export function OtpVerificationForm({ onVerified, onCancel, registrationId }: Ot
               description: "Your account has been verified",
             });
             
+            // Important: Call onVerified and exit function to prevent further processing
             if (onVerified) {
               onVerified();
+              setIsVerifying(false);
+              return;
             }
           } else {
             const errorData = await response.json();
