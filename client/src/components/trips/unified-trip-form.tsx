@@ -148,6 +148,9 @@ export function UnifiedTripForm({
       isMultiStop: false,
       startLocation: "",
       endLocation: "",
+      // Default start time to current time
+      startTime: new Date().toTimeString().slice(0, 5),
+      endTime: "",
       isRecurring: false,
       recurrencePattern: undefined,
       recurrenceDays: [],
@@ -484,13 +487,14 @@ export function UnifiedTripForm({
                 name="startTime"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Start Time (Optional)</FormLabel>
+                    <FormLabel>Start Time</FormLabel>
                     <FormControl>
                       <div className="relative">
                         <Input
                           type="time"
                           className="pl-8"
                           {...field}
+                          required
                         />
                         <Clock className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                       </div>
@@ -505,13 +509,14 @@ export function UnifiedTripForm({
                 name="endTime"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>End Time (Optional)</FormLabel>
+                    <FormLabel>End Time</FormLabel>
                     <FormControl>
                       <div className="relative">
                         <Input
                           type="time"
                           className="pl-8"
                           {...field}
+                          required
                         />
                         <Clock className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                       </div>
