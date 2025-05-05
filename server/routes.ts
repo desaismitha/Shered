@@ -8,7 +8,7 @@ import { db, attemptReconnect, checkDbConnection, cleanupConnections } from "./d
 import { setupAuth, hashPassword } from "./auth";
 import { insertGroupSchema, insertTripSchema, insertItineraryItemSchema, insertExpenseSchema, insertMessageSchema, insertGroupMemberSchema, insertVehicleSchema, insertTripVehicleSchema, users as usersTable, trips } from "@shared/schema";
 import { z } from "zod";
-import { eq, or } from "drizzle-orm";
+import { eq, or, in as dbIn, and, asc, desc, sql, isNull, count, between } from "drizzle-orm";
 import { sendGroupInvitation, sendPasswordResetEmail } from "./email";
 import crypto from "crypto";
 import fetch from "node-fetch";
@@ -402,22 +402,25 @@ async function checkAndUpdateTripStatuses(): Promise<void> {
     const planningTrips = await db
       .select()
       .from(trips)
-      .where(eq(trips.status, 'planning'));
+      .where(or(
+        eq(trips.status, 'planning'),
+        eq(trips.status, 'confirmed')
+      ));
       
-    const confirmedTrips = await db
-      .select()
-      .from(trips)
-      .where(eq(trips.status, 'confirmed'));
-      
-    // Combine both result sets for trips that should start
-    const tripsToStart = [...planningTrips, ...confirmedTrips];
+    // All trips that might need to be started
+    const tripsToStart = planningTrips;
     
     for (const trip of tripsToStart) {
       const startDate = new Date(trip.startDate);
       const endDate = new Date(trip.endDate);
       
-      // Only start trips where current time is between start and end
+      // Only start trips where current time has reached or passed the start time,
+      // and hasn't reached the end time yet
       const shouldStart = startDate <= now && endDate > now;
+      
+      // Verify that if a trip had its status manually changed to in-progress earlier,
+      // it should stay that way (not go back to planning)
+      const isAlreadyInProgress = trip.status === 'in-progress';
       
       // Debug date comparisons
       console.log(`[AUTO-UPDATE] Trip ${trip.id} (${trip.name}):`);
@@ -426,7 +429,13 @@ async function checkAndUpdateTripStatuses(): Promise<void> {
       console.log(`  - Current time: ${now.toISOString()}`);
       console.log(`  - Should start? ${shouldStart}`);
       
-      if (shouldStart) {
+      // Only log the isAlreadyInProgress status if it is true
+      if (isAlreadyInProgress) {
+        console.log(`[AUTO-UPDATE] Trip ${trip.id} is already in-progress, keeping this status`);
+      }
+      
+      // Only update status if not already in progress and should start
+      if (shouldStart && !isAlreadyInProgress) {
         console.log(`[AUTO-UPDATE] Updating trip ${trip.id} (${trip.name}) to in-progress`);
         try {
           const [updated] = await db
