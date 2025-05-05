@@ -7,6 +7,7 @@ import { promisify } from "util";
 import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
 import { sendEmailVerification, sendOTPVerificationCode } from "./email";
+import { sendOTPVerificationSMS } from "./sms";
 
 declare global {
   namespace Express {
