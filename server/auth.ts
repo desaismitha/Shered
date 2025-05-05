@@ -185,13 +185,18 @@ export function setupAuth(app: Express) {
       // Check if we should also send SMS
       let smsOtpSent = false;
       if (req.body.phoneNumber) {
-        // Also send via SMS if phone number is provided
-        smsOtpSent = await sendOTPVerificationSMS(
-          req.body.phoneNumber,
-          req.body.displayName || req.body.username,
-          otpCode
-        );
-        console.log(`SMS OTP ${smsOtpSent ? 'sent successfully' : 'failed to send'} to ${req.body.phoneNumber}`);
+        try {
+          // Also send via SMS if phone number is provided
+          smsOtpSent = await sendOTPVerificationSMS(
+            req.body.phoneNumber,
+            req.body.displayName || req.body.username,
+            otpCode
+          );
+          console.log(`SMS OTP ${smsOtpSent ? 'sent successfully' : 'failed to send'} to ${req.body.phoneNumber}`);
+        } catch (error) {
+          console.error('Error sending SMS OTP:', error);
+          smsOtpSent = false;
+        }
       }
 
       res.status(200).json({
