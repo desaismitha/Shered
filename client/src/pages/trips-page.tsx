@@ -49,14 +49,26 @@ export default function TripsPage() {
   const upcomingTrips = filteredTrips?.filter(trip => {
     if (!trip.startDate) return false;
     try {
-      // Consider ALL planning and in-progress trips as upcoming, regardless of dates
-      if (trip.status === "planning" || trip.status === "in-progress") {
-        return true;
-      }
+      const now = new Date();
+      const startDate = new Date(trip.startDate);
+      const endDate = new Date(trip.endDate);
+
+      // Trip has a current status that indicates it's upcoming or in progress
+      const hasActiveStatus = trip.status === "planning" || trip.status === "confirmed" || trip.status === "in-progress";
       
-      // For other statuses, check dates
-      return new Date(trip.startDate) > new Date() 
-        && trip.status !== "cancelled" && trip.status !== "completed";
+      // Trip is not marked as cancelled or completed
+      const isNotFinished = trip.status !== "cancelled" && trip.status !== "completed";
+      
+      // A trip is "upcoming" if it is planning/confirmed and start date is in the future
+      const isUpcoming = (trip.status === "planning" || trip.status === "confirmed") && startDate > now;
+      
+      // A trip is "in progress" if it has that status and is between start/end times
+      const isActiveNow = trip.status === "in-progress" && startDate <= now && endDate > now;
+      
+      // For debugging
+      console.log(`Trip ${trip.id} (${trip.name}): isUpcoming=${isUpcoming}, isActiveNow=${isActiveNow}, status=${trip.status}`);
+      
+      return (isUpcoming || isActiveNow) && isNotFinished && hasActiveStatus;
     } catch (e) {
       console.error("Error parsing date:", trip.startDate);
       return false;
@@ -68,8 +80,21 @@ export default function TripsPage() {
   const pastTrips = filteredTrips?.filter(trip => {
     if (!trip.endDate) return false;
     try {
-      // A trip is considered "past" if it's completed or its end date is in the past
-      return trip.status === "completed" || new Date(trip.endDate) < new Date();
+      const now = new Date();
+      const endDate = new Date(trip.endDate);
+      
+      // A trip is considered "past" if it's completed (by status)
+      // OR if its end date is in the past AND it's not cancelled
+      const isCompleted = trip.status === "completed";
+      const isPastEndDate = endDate < now && trip.status !== "cancelled";
+      
+      // Also mark in-progress trips whose end date has passed as "past"
+      const isOverdueInProgress = trip.status === "in-progress" && endDate < now;
+      
+      // For debugging
+      console.log(`Trip ${trip.id} (${trip.name}): isCompleted=${isCompleted}, isPastEndDate=${isPastEndDate}, isOverdueInProgress=${isOverdueInProgress}`);
+      
+      return isCompleted || isPastEndDate || isOverdueInProgress;
     } catch (e) {
       console.error("Error parsing date:", trip.endDate);
       return false;
