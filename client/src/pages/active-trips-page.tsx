@@ -758,39 +758,10 @@ function TripMap({
     return [];
   }, [effectiveFromCoords, effectiveToCoords, mapboxLeafletPositions, mapBoxRouteReady]);
   
-  // Route information panel JSX - We're now using it outside the MapContainer
-  const routeInfoPanel = useMemo(() => {
-    return (
-      <div className="mb-2 bg-white p-3 rounded-md border border-gray-300 shadow-sm w-full">
-        <div className="text-sm font-bold mb-1">Route Information</div>
-        {isMapboxRouteLoading ? (
-          <div className="text-xs text-gray-600">Loading route information...</div>
-        ) : mapboxRouteError ? (
-          <div className="text-xs text-red-500">Error calculating route</div>
-        ) : mapboxDistance > 0 && mapboxDuration > 0 ? (
-          <div className="flex justify-between">
-            <div className="flex items-center mb-1 text-xs">
-              <Clock size={14} className="mr-1 text-blue-500" />
-              <span>Travel Time: {formatDuration(mapboxDuration)}</span>
-            </div>
-            <div className="flex items-center text-xs">
-              <Ruler size={14} className="mr-1 text-blue-500" />
-              <span>Distance: {formatDistance(mapboxDistance, true)}</span>
-            </div>
-          </div>
-        ) : (
-          <div className="text-xs text-gray-600">
-            Route information will appear when start and end locations are available
-          </div>
-        )}
-      </div>
-    );
-  }, [isMapboxRouteLoading, mapboxRouteError, mapboxDistance, mapboxDuration]);
+  // Route information panel removed as requested
   
   return (
     <div style={{ height, width }}>
-      {/* Route Information Panel - Positioned above map */}
-      {typeof window !== 'undefined' && routeInfoPanel}
       
       {typeof window !== 'undefined' && (
         <MapContainer
@@ -971,71 +942,9 @@ function TripMap({
           
           {/* We've centralized all polyline drawing in the roadRoutePositions section above */}
           
-          {/* Loading indicator for route information */}
-          {isRouteLoading && (
-            <div className="leaflet-top leaflet-left" style={{
-              backgroundColor: 'white',
-              padding: '8px',
-              margin: '10px',
-              borderRadius: '4px',
-              border: '1px solid #ccc',
-              boxShadow: '0 1px 5px rgba(0,0,0,0.2)',
-              zIndex: 1000
-            }}>
-              <div className="leaflet-control">
-                <div className="flex items-center">
-                  <div className="animate-spin mr-2 h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
-                  <span>Loading route information...</span>
-                </div>
-              </div>
-            </div>
-          )}
+          {/* Loading and error indicators for route information removed as requested */}
           
-          {/* Error display for route information */}
-          {routeError && (
-            <div className="leaflet-top leaflet-left" style={{
-              backgroundColor: 'white',
-              padding: '8px',
-              margin: '10px',
-              borderRadius: '4px',
-              border: '1px solid #f87171',
-              boxShadow: '0 1px 5px rgba(0,0,0,0.2)',
-              zIndex: 1000
-            }}>
-              <div className="leaflet-control text-red-500">
-                <div className="flex items-center">
-                  <X size={16} className="mr-1" />
-                  <span>Couldn't load route directions</span>
-                </div>
-              </div>
-            </div>
-          )}
-          
-          {/* Route Information */}
-          {!isRouteLoading && !routeError && distance > 0 && duration > 0 && (
-            <div className="leaflet-top leaflet-right" style={{
-              backgroundColor: 'white',
-              padding: '8px',
-              margin: '10px',
-              borderRadius: '4px',
-              border: '1px solid #ccc',
-              boxShadow: '0 1px 5px rgba(0,0,0,0.2)',
-              zIndex: 1000,
-              width: '180px'
-            }}>
-              <div className="leaflet-control">
-                <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>Route Information</div>
-                <div style={{ display: 'flex', alignItems: 'center', marginBottom: '4px' }}>
-                  <Clock size={14} className="mr-1" />
-                  <span>Travel Time: {formatDuration(duration)}</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center' }}>
-                  <Ruler size={14} className="mr-1" />
-                  <span>Distance: {formatDistance(distance, true)}</span>
-                </div>
-              </div>
-            </div>
-          )}
+          {/* Route Information removed as requested */}
           
           {/* Add the map controller to update bounds */}
           <MapController 
