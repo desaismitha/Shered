@@ -1357,8 +1357,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       try {
+        // Get the existing trip to check current status and dates
+        const existingTrip = await storage.getTrip(tripId);
+        if (!existingTrip) {
+          return res.status(404).json({ error: "Trip not found" });
+        }
+        
         // Create a modified copy of the input data with properly handled dates
         const processedData = { ...req.body };
+        
+        // Check if we need to auto-update status to "in-progress"
+        const now = new Date();
+        const startDate = req.body.startDate ? new Date(req.body.startDate) : new Date(existingTrip.startDate);
+        const endDate = req.body.endDate ? new Date(req.body.endDate) : new Date(existingTrip.endDate);
+        
+        // Check if today is the trip start date
+        const startDay = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const isStartingToday = startDay.getTime() === today.getTime();
+        
+        // If the trip should start now (it's within the time window), auto-set to in-progress
+        const isStartTimeNow = isStartingToday && startDate <= now && endDate > now;
+        
+        // Check if status update is needed
+        if (isStartTimeNow && 
+           (existingTrip.status === "planning" || existingTrip.status === "confirmed") &&
+           req.body.status !== "completed" && req.body.status !== "cancelled") {
+          console.log("[STATUS AUTO-UPDATE] Setting trip status to in-progress because start time is now");
+          processedData.status = "in-progress";
+        }
         
         // Handle timezone issues for dates
         if (processedData.startDate) {
