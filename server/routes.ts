@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from 'ws';
 import { storage } from "./storage";
 import { setupImportRoutes } from "./import";
+import { setupPhoneVerificationRoutes } from "./phone-verification";
 import fileUpload from "express-fileupload";
 import { db, attemptReconnect, checkDbConnection, cleanupConnections } from "./db";
 import { setupAuth, hashPassword } from "./auth";
