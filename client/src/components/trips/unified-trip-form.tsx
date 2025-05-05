@@ -266,7 +266,13 @@ export function UnifiedTripForm({
     }
     
     // Check if mobile notifications are enabled but phone isn't verified
+    console.log('PHONE VERIFICATION CHECK - enableMobileNotifications:', data.enableMobileNotifications);
+    console.log('PHONE VERIFICATION CHECK - isPhoneVerified:', isPhoneVerified);
+    console.log('PHONE VERIFICATION CHECK - phoneNumber:', data.phoneNumber);
+    
     if (data.enableMobileNotifications && !isPhoneVerified && data.phoneNumber) {
+      console.log('PHONE VERIFICATION REQUIRED - Showing verification modal');
+      
       // Store the form data for submission after verification
       setFormDataForSubmission(data);
       
@@ -279,6 +285,8 @@ export function UnifiedTripForm({
       });
       
       return; // Don't submit the form yet
+    } else {
+      console.log('PHONE VERIFICATION NOT REQUIRED - Continuing with form submission');
     }
     
     try {
