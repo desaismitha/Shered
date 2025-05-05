@@ -148,11 +148,16 @@ export function UnifiedTripForm({
     queryKey: ["/api/groups"],
   });
   
+  // Get current user data
+  const { data: userData } = useQuery<any>({
+    queryKey: ["/api/user"],
+  });
+
   // Phone verification state
   const [showPhoneVerification, setShowPhoneVerification] = useState(false);
   const [isPhoneVerified, setIsPhoneVerified] = useState(false);
   const [formDataForSubmission, setFormDataForSubmission] = useState<FormData | null>(null);
-
+  
   // Initialize the form
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -178,6 +183,16 @@ export function UnifiedTripForm({
       ...defaultValues,
     },
   });
+
+  // Check if user already has a verified phone number
+  useEffect(() => {
+    if (userData?.phoneNumber) {
+      console.log('User already has a verified phone number:', userData.phoneNumber);
+      setIsPhoneVerified(true);
+      // Pre-populate the form with the user's verified phone number
+      form.setValue("phoneNumber", userData.phoneNumber);
+    }
+  }, [userData, form]);
 
   // State for trip type selection
   const isMultiStop = form.watch("isMultiStop");
