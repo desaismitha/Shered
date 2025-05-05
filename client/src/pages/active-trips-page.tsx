@@ -1981,9 +1981,10 @@ export default function ActiveTripsPage() {
                       )}
                     </div>
                     <CardHeader>
-                      <CardTitle>{trip.name}</CardTitle>
+                      <CardTitle>{trip.name || 'Unnamed trip'}</CardTitle>
                       <CardDescription>
-                        {trip.destinationDisplay || (trip.destination ? cleanLocationString(trip.destination) : "No destination specified")}
+                        {trip.startLocationDisplay || (trip.startLocation ? cleanLocationString(trip.startLocation) : "Unknown")} → 
+                        {trip.destinationDisplay || (trip.destination ? cleanLocationString(trip.destination) : "Unknown")}
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="flex-grow">

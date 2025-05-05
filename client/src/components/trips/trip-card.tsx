@@ -107,7 +107,7 @@ export function TripCard({ trip }: TripCardProps) {
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end">
           <div className="p-4 text-white">
-            <h3 className="font-bold text-lg">{trip.destination || 'Unnamed destination'}</h3>
+            <h3 className="font-bold text-lg">{trip.name || 'Unnamed trip'}</h3>
             <div className="flex items-center mt-1">
               <Calendar className="mr-1 h-4 w-4" />
               <span className="text-sm">
