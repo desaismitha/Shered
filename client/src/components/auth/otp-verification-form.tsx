@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/form";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, Mail, Phone } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -226,7 +226,7 @@ export function OtpVerificationForm({ onVerified, onCancel, registrationId, smsS
   return (
     <div className="space-y-6">
       <div className="space-y-2 text-center">
-        <h2 className="text-2xl font-semibold">Enter Verification Code</h2>
+        <h2 className="text-2xl font-semibold">{smsSent ? "Enter Email or SMS Code" : "Enter Verification Code"}</h2>
         <p className="text-sm text-muted-foreground">
           We've sent a 6-digit verification code to your email address.
           {smsSent && (
@@ -237,6 +237,20 @@ export function OtpVerificationForm({ onVerified, onCancel, registrationId, smsS
           )}
           Enter the code below to verify your account.
         </p>
+        
+        {smsSent && (
+          <div className="mt-2 flex items-center justify-center space-x-4">
+            <div className="flex items-center space-x-2">
+              <Mail className="h-4 w-4 text-primary" />
+              <span className="text-xs">Email</span>
+            </div>
+            <span className="text-xs text-muted-foreground">or</span>
+            <div className="flex items-center space-x-2">
+              <Phone className="h-4 w-4 text-primary" />
+              <span className="text-xs">SMS</span>
+            </div>
+          </div>
+        )}
       </div>
 
       <Form {...form}>
@@ -246,7 +260,7 @@ export function OtpVerificationForm({ onVerified, onCancel, registrationId, smsS
             name="otp"
             render={({ field }) => (
               <FormItem className="mx-auto max-w-xs">
-                <FormLabel className="text-center block">Verification Code</FormLabel>
+                <FormLabel className="text-center block">{smsSent ? "Enter code from Email or SMS" : "Verification Code"}</FormLabel>
                 <FormControl>
                   <InputOTP maxLength={6} {...field}>
                     <InputOTPGroup>
