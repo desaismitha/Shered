@@ -414,9 +414,16 @@ async function checkAndUpdateTripStatuses(): Promise<void> {
       const startDate = new Date(trip.startDate);
       const endDate = new Date(trip.endDate);
       
-      // Only start trips where current time has reached or passed the start time,
-      // and hasn't reached the end time yet
-      const shouldStart = startDate <= now && endDate > now;
+      // Only start trips whose actual scheduled start time has been reached,
+      // and current time hasn't passed the end time yet
+      const shouldStart = (
+        // Check if start time has been reached or passed
+        startDate <= now &&
+        // Make sure end time hasn't passed yet
+        endDate > now &&
+        // Check if the trip's scheduled start time is today (within 24 hours)
+        (Math.abs(now.getTime() - startDate.getTime()) <= 24 * 60 * 60 * 1000)
+      );
       
       // Verify that if a trip had its status manually changed to in-progress earlier,
       // it should stay that way (not go back to planning)
