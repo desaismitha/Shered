@@ -494,8 +494,14 @@ async function checkAndUpdateTripStatuses(): Promise<void> {
         console.log(`[AUTO-UPDATE] Trip ${trip.id} is already in-progress, keeping this status`);
       }
       
+      // Exclude Trip 26 from automatic status updates (as per user requirement)
+      const isExcludedTrip = trip.id === 26;
+      if (isExcludedTrip) {
+        console.log(`[AUTO-UPDATE] Trip ${trip.id} is excluded from automatic status updates`);
+      }
+
       // Only update status if not already in progress and should start
-      if (shouldStart && !isAlreadyInProgress) {
+      if (shouldStart && !isAlreadyInProgress && !isExcludedTrip) {
         console.log(`[AUTO-UPDATE] Updating trip ${trip.id} (${trip.name}) to in-progress`);
         try {
           const [updated] = await db
@@ -523,8 +529,14 @@ async function checkAndUpdateTripStatuses(): Promise<void> {
     for (const trip of activeTrips) {
       const endDate = new Date(trip.endDate);
       
+      // Exclude Trip 26 from automatic status updates (as per user requirement)
+      const isExcludedTrip = trip.id === 26;
+      if (isExcludedTrip) {
+        console.log(`[AUTO-UPDATE] Trip ${trip.id} is excluded from automatic status updates`);
+      }
+
       // A trip should complete if its end time has passed
-      const shouldComplete = endDate <= now;
+      const shouldComplete = endDate <= now && !isExcludedTrip;
       
       // Debug date comparisons
       console.log(`[AUTO-UPDATE] Active Trip ${trip.id} (${trip.name}):`);
