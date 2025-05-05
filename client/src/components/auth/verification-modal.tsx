@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Dialog,
   DialogContent,
@@ -30,7 +30,7 @@ export function VerificationModal({ isOpen, onOpenChange, userEmail, userPhone, 
   const { toast } = useToast();
   const [isResending, setIsResending] = useState(false);
 
-  const handleVerified = () => {
+  const handleVerified = useCallback(() => {
     console.log('Verification modal: verification completed successfully');
     
     toast({
@@ -55,9 +55,9 @@ export function VerificationModal({ isOpen, onOpenChange, userEmail, userPhone, 
         setLocation("/");
       }
     }, 100);
-  };
+  }, [toast, onOpenChange, onVerified, setLocation]);
 
-  const handleSkipForNow = () => {
+  const handleSkipForNow = useCallback(() => {
     // For new registration, we shouldn't allow skipping verification
     // because the account hasn't been created yet
     if (registrationId) {
@@ -77,9 +77,9 @@ export function VerificationModal({ isOpen, onOpenChange, userEmail, userPhone, 
     onOpenChange(false);
     // Navigate to home page (dashboard)
     setLocation("/");
-  };
+  }, [registrationId, toast, onOpenChange, setLocation]);
 
-  const handleResendVerificationEmail = async () => {
+  const handleResendVerificationEmail = useCallback(async () => {
     setIsResending(true);
     try {
       const response = await apiRequest("POST", "/api/resend-verification");
@@ -107,7 +107,7 @@ export function VerificationModal({ isOpen, onOpenChange, userEmail, userPhone, 
     } finally {
       setIsResending(false);
     }
-  };
+  }, [toast, setIsResending]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>

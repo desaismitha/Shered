@@ -47,7 +47,13 @@ export function OtpVerificationForm({ onVerified, onCancel, registrationId, smsS
     if (userIdParam && !userId) {
       setUserId(parseInt(userIdParam, 10));
     }
-  }, [userIdParam, userId]);
+    
+    // Cleanup effect
+    return () => {
+      // Reset form when component unmounts
+      form.reset({ otp: "" });
+    };
+  }, [userIdParam, userId, form]);
   
   const form = useForm<OtpFormValues>({
     resolver: zodResolver(otpFormSchema),
