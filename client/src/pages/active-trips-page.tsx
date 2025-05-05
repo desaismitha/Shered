@@ -219,38 +219,77 @@ function MapController({
     );
   }
 
+  // Use a ref to store the previous props to avoid unnecessary map updates
+  const prevPropsRef = useRef<{
+    fromLat?: number;
+    fromLng?: number;
+    toLat?: number;
+    toLng?: number;
+    currentLat?: number;
+    currentLng?: number;
+  }>({});
+
+  // Use effect with dependency comparison to avoid unnecessary map updates
   useEffect(() => {
     if (!map) return;
     
     try {
-      // Collect all valid coordinates
-      const bounds: [number, number][] = [];
+      // Get current values for comparison
+      const fromLat = effectiveFromCoords?.lat;
+      const fromLng = effectiveFromCoords?.lng;
+      const toLat = effectiveToCoords?.lat;
+      const toLng = effectiveToCoords?.lng;
+      const currentLat = currentPosition?.[0];
+      const currentLng = currentPosition?.[1];
       
-      // Add start/end coordinates with validation
-      if (effectiveFromCoords && isValidCoordinate(effectiveFromCoords.lat, effectiveFromCoords.lng)) {
-        bounds.push([effectiveFromCoords.lat, effectiveFromCoords.lng]);
-      }
+      // Check if coordinates have actually changed to avoid unnecessary updates
+      const prevProps = prevPropsRef.current;
+      const hasChanged = 
+        fromLat !== prevProps.fromLat ||
+        fromLng !== prevProps.fromLng ||
+        toLat !== prevProps.toLat ||
+        toLng !== prevProps.toLng ||
+        currentLat !== prevProps.currentLat ||
+        currentLng !== prevProps.currentLng;
       
-      if (effectiveToCoords && isValidCoordinate(effectiveToCoords.lat, effectiveToCoords.lng)) {
-        bounds.push([effectiveToCoords.lat, effectiveToCoords.lng]);
-      }
-      
-      // Add current position with validation
-      if (currentPosition && isValidCoordinate(currentPosition[0], currentPosition[1])) {
-        bounds.push(currentPosition);
-      }
-      
-      // If we have at least 2 points, fit the map to those bounds
-      if (bounds.length >= 2) {
-        map.fitBounds(bounds as L.LatLngBoundsExpression, {
-          padding: [70, 70],
-          maxZoom: 13,
-          animate: true,
-          duration: 0.5
-        });
-      } else if (bounds.length === 1) {
-        // If we only have one point, center on it with a closer zoom
-        map.setView(bounds[0], 12, { animate: true });
+      // Only update if coordinates have changed
+      if (hasChanged) {
+        // Save current values for next comparison
+        prevPropsRef.current = {
+          fromLat, fromLng, toLat, toLng, currentLat, currentLng
+        };
+        
+        // Collect all valid coordinates
+        const bounds: [number, number][] = [];
+        
+        // Add start/end coordinates with validation
+        if (effectiveFromCoords && isValidCoordinate(effectiveFromCoords.lat, effectiveFromCoords.lng)) {
+          bounds.push([effectiveFromCoords.lat, effectiveFromCoords.lng]);
+        }
+        
+        if (effectiveToCoords && isValidCoordinate(effectiveToCoords.lat, effectiveToCoords.lng)) {
+          bounds.push([effectiveToCoords.lat, effectiveToCoords.lng]);
+        }
+        
+        // Add current position with validation
+        if (currentPosition && isValidCoordinate(currentPosition[0], currentPosition[1])) {
+          bounds.push(currentPosition);
+        }
+        
+        console.log("[MAP CONTROLLER] Updating map with", bounds.length, "points");
+        
+        // If we have at least 2 points, fit the map to those bounds
+        if (bounds.length >= 2) {
+          map.fitBounds(bounds as L.LatLngBoundsExpression, {
+            padding: [70, 70],
+            maxZoom: 13,
+            animate: true,
+            duration: 0.5
+          });
+        } else if (bounds.length === 1) {
+          // If we only have one point, center on it with a closer zoom
+          map.setView(bounds[0], 13, { animate: true });
+        }
       }
     } catch (error) {
       console.error("Error updating map bounds:", error);
@@ -758,6 +797,10 @@ function TripMap({
           center={centerCoordinates as [number, number]}
           zoom={10}
           style={{ height: '100%', width: '100%' }}
+          zoomControl={true}
+          scrollWheelZoom={true}
+          doubleClickZoom={true}
+          attributionControl={true}
           ref={(map) => {
             if (map && mapRef) {
               mapRef.current = map;
