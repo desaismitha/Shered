@@ -148,6 +148,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         
         const res = await apiRequest("POST", "/api/register/init", userToRegister);
+        
+        // Handle non-200 responses properly
+        if (!res.ok) {
+          const errorData = await res.json();
+          throw new Error(errorData.message || "Registration failed");
+        }
+        
         return await res.json();
       } catch (error) {
         // Rethrow the error to be handled by onError
@@ -164,8 +171,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     onError: (error) => {
       console.error("Registration init error in onError handler:", error);
       toast({
-        title: "Registration initialization failed",
-        description: error instanceof Error ? error.message : "An unknown error occurred",
+        title: "Registration failed",
+        description: error instanceof Error ? error.message : "An account with this email may already exist",
         variant: "destructive",
       });
     },
@@ -178,6 +185,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.log('Registration completion with data:', data);
         
         const res = await apiRequest("POST", "/api/register/complete", data);
+        
+        // Check if the response was successful
+        if (!res.ok) {
+          // Parse the error message from the response
+          const errorData = await res.json();
+          throw new Error(errorData.message || "Verification failed");
+        }
+        
         return await res.json();
       } catch (error) {
         // Rethrow the error to be handled by onError
@@ -196,8 +211,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     onError: (error) => {
       console.error("Registration completion error in onError handler:", error);
       toast({
-        title: "Registration completion failed",
-        description: error instanceof Error ? error.message : "An unknown error occurred",
+        title: "Verification failed",
+        description: error instanceof Error ? error.message : "Invalid verification code",
         variant: "destructive",
       });
     },

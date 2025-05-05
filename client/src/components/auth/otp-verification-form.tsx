@@ -73,43 +73,92 @@ export function OtpVerificationForm({ onVerified, onCancel, registrationId }: Ot
       if (registrationId) {
         // This is a new registration verification
         console.log('Verifying registration with ID:', registrationId);
-        response = await apiRequest("POST", "/api/register/complete", {
-          registrationId,
-          otp: values.otp,
-        });
+        try {
+          response = await apiRequest("POST", "/api/register/complete", {
+            registrationId,
+            otp: values.otp,
+          });
+          
+          // Process the response
+          if (response.ok) {
+            toast({
+              title: "Success",
+              description: "Your account has been verified",
+            });
+            
+            if (onVerified) {
+              onVerified();
+            }
+          } else {
+            // Handle error response
+            const errorData = await response.json();
+            console.log('OTP verification error response:', errorData);
+            toast({
+              title: "Verification failed",
+              description: errorData.message || "Invalid verification code",
+              variant: "destructive",
+            });
+            // Clear the OTP field for retry
+            form.reset({ otp: "" });
+          }
+        } catch (err) {
+          console.error("Registration verification request error:", err);
+          toast({
+            title: "Verification Error",
+            description: "There was a problem verifying your code. Please try again.",
+            variant: "destructive",
+          });
+          // Clear the OTP field for retry
+          form.reset({ otp: "" });
+        }
       } else {
         // This is a verification for an existing account
         console.log('Verifying existing account');
-        response = await apiRequest("POST", "/api/verify-otp", {
-          userId: userId || user?.id,
-          otp: values.otp,
-        });
-      }
-
-      if (response.ok) {
-        toast({
-          title: "Success",
-          description: "Your account has been verified",
-        });
-        
-        if (onVerified) {
-          onVerified();
+        try {
+          response = await apiRequest("POST", "/api/verify-otp", {
+            userId: userId || user?.id,
+            otp: values.otp,
+          });
+          
+          if (response.ok) {
+            toast({
+              title: "Success",
+              description: "Your account has been verified",
+            });
+            
+            if (onVerified) {
+              onVerified();
+            }
+          } else {
+            const errorData = await response.json();
+            toast({
+              title: "Verification failed",
+              description: errorData.message || "Invalid verification code",
+              variant: "destructive",
+            });
+            // Clear the OTP field for retry
+            form.reset({ otp: "" });
+          }
+        } catch (err) {
+          console.error("Account verification request error:", err);
+          toast({
+            title: "Verification Error",
+            description: "There was a problem verifying your code. Please try again.",
+            variant: "destructive",
+          });
+          // Clear the OTP field for retry
+          form.reset({ otp: "" });
         }
-      } else {
-        const data = await response.json();
-        toast({
-          title: "Verification failed",
-          description: data.message || "Invalid verification code",
-          variant: "destructive",
-        });
       }
     } catch (error) {
-      console.error("OTP verification error:", error);
+      console.error("OTP verification outer error:", error);
       toast({
         title: "Error",
         description: "An unexpected error occurred during verification",
         variant: "destructive",
       });
+      // Clear the OTP field for retry
+      form.reset({ otp: "" });
     } finally {
       setIsVerifying(false);
     }
