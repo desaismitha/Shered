@@ -1367,8 +1367,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get base trip data
       const trips = await storage.getTripsByUserId(req.user.id);
       
-      // Print all trip IDs for debugging
-      console.log("ALL TRIPS FROM DB:", trips.map(t => t.id));
+      // Print all trip IDs and statuses for debugging
+      console.log("ALL TRIPS FROM DB:", trips.map(t => ({ id: t.id, status: t.status })));
+      console.log("IN-PROGRESS TRIPS:", trips.filter(t => t.status === 'in-progress').map(t => t.id));
       
       // Enhance each trip with access level information and clean location data
       const tripsWithAccessLevels = trips.map(trip => {
@@ -1402,8 +1403,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get base trip data
       const trips = await storage.getTripsByUserId(req.user.id);
       
+      // Debug logs for trip statuses
+      console.log("ALL TRIPS FROM ACTIVE API:", trips.map(t => ({ id: t.id, status: t.status })));
+      
       // Filter to only in-progress trips
       const activeTrips = trips.filter(trip => trip.status === 'in-progress');
+      console.log("FILTERED ACTIVE TRIPS:", activeTrips.map(t => ({ id: t.id, status: t.status })));
       
       // Enhance each trip with access level information and clean location data
       const activeTripsWithAccessLevels = activeTrips.map(trip => {
