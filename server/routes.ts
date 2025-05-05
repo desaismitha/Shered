@@ -1075,10 +1075,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("[DATE CHECK PASSED] All date validations passed");
       
       // Process the dates into a standard format
+      // Check if we need to auto-update status to "in-progress"
+      // If start date is today and current time is within the trip time range, set as in-progress
+      let tripStatus = req.body.status;
+      const isStartTimeNow = isStartingToday && startDate <= now && endDate > now;
+      
+      if (isStartTimeNow && tripStatus === "planning" || tripStatus === "confirmed") {
+        console.log("[STATUS AUTO-UPDATE] Setting trip status to in-progress because start time is now");
+        tripStatus = "in-progress";
+      }
+
       const tripData = {
         ...req.body,
         startDate: startDate,  // Use the parsed Date object
         endDate: endDate,      // Use the parsed Date object
+        status: tripStatus,    // Use the potentially updated status
         createdBy: req.user.id
       };
       
@@ -1632,8 +1643,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
         name: req.body.name,
         startLocation: req.body.startLocation,
         destination: req.body.destination,
-        status: req.body.status
       };
+      
+      // Get the existing trip to check if we need to auto-update status
+      const existingTrip = await storage.getTrip(tripId);
+      if (!existingTrip) {
+        return res.status(404).json({ error: "Trip not found" });
+      }
+      
+      // Auto-update status logic - if the trip is scheduled to start now
+      const now = new Date();
+      const startDate = new Date(existingTrip.startDate);
+      const endDate = new Date(existingTrip.endDate);
+      
+      // Check if today is the trip start date
+      const startDay = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const isStartingToday = startDay.getTime() === today.getTime();
+      
+      // If the trip should start now (it's within the time window), auto-set to in-progress
+      const isStartTimeNow = isStartingToday && startDate <= now && endDate > now;
+      
+      // Check if status update is needed
+      if (isStartTimeNow && 
+         (existingTrip.status === "planning" || existingTrip.status === "confirmed") &&
+         req.body.status !== "completed" && req.body.status !== "cancelled") {
+        console.log("[STATUS AUTO-UPDATE] Setting trip status to in-progress because start time is now");
+        updateData.status = "in-progress";
+      } else {
+        // Use provided status or keep existing
+        updateData.status = req.body.status || existingTrip.status;
+      }
       
       // Special date handling - manually convert to Date objects with timezone fixes
       if (req.body.startDate !== undefined) {

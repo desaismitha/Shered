@@ -779,13 +779,14 @@ export function UnifiedTripForm({
                       name={`stops.${index}.startTime`}
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Start Time (Optional)</FormLabel>
+                          <FormLabel>Start Time</FormLabel>
                           <FormControl>
                             <div className="relative">
                               <Input
                                 type="time"
                                 className="pl-8"
                                 {...field}
+                                required
                               />
                               <Clock className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                             </div>
@@ -800,13 +801,14 @@ export function UnifiedTripForm({
                       name={`stops.${index}.endTime`}
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>End Time (Optional)</FormLabel>
+                          <FormLabel>End Time</FormLabel>
                           <FormControl>
                             <div className="relative">
                               <Input
                                 type="time"
                                 className="pl-8"
                                 {...field}
+                                required
                               />
                               <Clock className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                             </div>
