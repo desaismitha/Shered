@@ -15,6 +15,13 @@ declare global {
   }
 }
 
+// Extend the session interface to include our pendingRegistrations
+declare module 'express-session' {
+  interface SessionData {
+    pendingRegistrations?: Record<string, any>;
+  }
+}
+
 const scryptAsync = promisify(scrypt);
 
 export async function hashPassword(password: string) {

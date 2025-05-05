@@ -252,9 +252,21 @@ export default function AuthPage() {
     console.log("Complete registration data being sent to server:", fullRegistrationData);
     
     // Use the new registration initialization mutation to start two-step verification
+    console.log('About to call registerInitMutation with data:', fullRegistrationData);
     registerInitMutation.mutate(fullRegistrationData, {
       onError: (error) => {
         console.log('Registration initialization error:', error);
+        console.error('Registration error details:', { 
+          message: error.message, 
+          stack: error.stack,
+          name: error.name,
+          cause: error.cause
+        });
+        toast({
+          title: "Registration Error",
+          description: error.message || "An unexpected error occurred during registration",
+          variant: "destructive"
+        });
       },
       // The effect that monitors registerInitMutation.isSuccess will handle the state updates and show the modal
       // This avoids redundant state updates
@@ -263,6 +275,10 @@ export default function AuthPage() {
           registrationId: response.registrationId,
           email: response.email,
           hasInvitation: !!inviteToken
+        });
+        toast({
+          title: "Registration Started",
+          description: "Please check your email for a verification code",
         });
       }
     });
@@ -282,7 +298,7 @@ export default function AuthPage() {
     toast({
       title: "Account Verified",
       description: "Your account has been successfully verified!",
-      variant: "success",
+      variant: "default",
     });
     
     // Use a small timeout to ensure the modal is fully closed before navigation
