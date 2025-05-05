@@ -25,7 +25,12 @@ export function MessageList({ groupId, users }: MessageListProps) {
   
   // Scroll to bottom whenever messages change
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    // Add a small delay to ensure DOM updates before scrolling
+    const timeoutId = setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      console.log("Scrolled to bottom, messages count:", messages?.length || 0);
+    }, 100);
+    return () => clearTimeout(timeoutId);
   }, [messages]);
   
   if (isLoading) {
@@ -64,8 +69,9 @@ export function MessageList({ groupId, users }: MessageListProps) {
     messagesByDate[dateKey].push(message);
   });
   
+  console.log("Rendering messages list with", messages?.length || 0, "messages");
   return (
-    <div className="space-y-6 p-2">
+    <div className="space-y-6 p-2 overflow-y-auto max-h-[calc(100vh-200px)]">
       {Object.entries(messagesByDate).map(([dateKey, dateMessages]) => (
         <div key={dateKey}>
           <div className="text-center mb-4">

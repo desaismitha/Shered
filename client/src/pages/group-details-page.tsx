@@ -810,11 +810,13 @@ export default function GroupDetailsPage() {
                     <CardTitle>Group Messages</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="h-[400px] flex flex-col">
-                      <div className="flex-1 overflow-y-auto mb-4">
+                    <div className="h-[500px] flex flex-col">
+                      <div className="flex-1 overflow-y-auto mb-4 border border-slate-200 rounded-md p-3">
                         <MessageList groupId={groupId} users={users || []} />
                       </div>
-                      <MessageForm groupId={groupId} />
+                      <div className="mt-2">
+                        <MessageForm groupId={groupId} />
+                      </div>
                     </div>
                   </CardContent>
                 </Card>

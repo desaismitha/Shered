@@ -2461,20 +2461,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Messages
   app.post("/api/groups/:id/messages", async (req, res, next) => {
     try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
+      console.log("Message POST request received for group:", req.params.id, "with data:", req.body);
+      
+      if (!req.isAuthenticated()) {
+        console.log("User not authenticated for message post");
+        return res.sendStatus(401);
+      }
       
       const groupId = parseInt(req.params.id);
       const group = await storage.getGroup(groupId);
       
       if (!group) {
+        console.log("Group not found for message post:", groupId);
         return res.status(404).json({ message: "Group not found" });
       }
       
       // Check if user is a member of the group
       const members = await storage.getGroupMembers(groupId);
       const isMember = members.some(member => member.userId === req.user.id);
+      console.log("Is member check for message post:", { userId: req.user.id, isMember, members });
       
       if (!isMember) {
+        console.log("User is not a member of the group:", req.user.id, groupId);
         return res.status(403).json({ message: "Not a member of this group" });
       }
       
@@ -2484,21 +2492,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId: req.user.id
       });
       
+      console.log("Creating message with data:", validatedData);
       const message = await storage.createMessage(validatedData);
+      console.log("Message created successfully:", message);
       res.status(201).json(message);
     } catch (err) {
+      console.error("Error posting message:", err);
       next(err);
     }
   });
 
   app.get("/api/groups/:id/messages", async (req, res, next) => {
     try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
+      console.log("GET messages request received for group:", req.params.id);
+      
+      if (!req.isAuthenticated()) {
+        console.log("User not authenticated for message retrieval");
+        return res.sendStatus(401);
+      }
       
       const groupId = parseInt(req.params.id);
       const group = await storage.getGroup(groupId);
       
       if (!group) {
+        console.log("Group not found for message retrieval:", groupId);
         return res.status(404).json({ message: "Group not found" });
       }
       
@@ -2506,12 +2523,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         const members = await storage.getGroupMembers(groupId);
         const isMember = members.some(member => member.userId === req.user.id);
+        console.log("Is member check for message retrieval:", { userId: req.user.id, isMember, members });
         
         if (!isMember) {
+          console.log("User is not a member of the group:", req.user.id, groupId);
           return res.status(403).json({ message: "Not a member of this group" });
         }
         
+        console.log("Retrieving messages for group:", groupId);
         const messages = await storage.getMessagesByGroupId(groupId);
+        console.log(`Retrieved ${messages.length} messages for group ${groupId}`);
         res.json(messages);
       } catch (err) {
         const groupErr = err as Error;
