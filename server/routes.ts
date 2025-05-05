@@ -3215,6 +3215,156 @@ export async function registerRoutes(app: Express): Promise<Server> {
       next(error);
     }
   });
+  
+  // Update trip location (for tracking during in-progress trips)
+  app.post('/api/trips/:tripId/location', async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+      
+      const tripId = parseInt(req.params.tripId);
+      if (isNaN(tripId)) {
+        return res.status(400).json({ error: 'Invalid trip ID' });
+      }
+      
+      // Verify user has access to this trip
+      const accessLevel = await checkTripAccess(req, tripId, res, next, "[LOCATION_UPDATE] ");
+      if (!accessLevel) return; // Response already sent by checkTripAccess
+      
+      // Validate required coordinates
+      const { latitude, longitude } = req.body;
+      if (typeof latitude !== 'number' || typeof longitude !== 'number') {
+        return res.status(400).json({ error: 'Valid latitude and longitude are required' });
+      }
+      
+      // Get the trip to check if it's in progress
+      const trip = await storage.getTrip(tripId);
+      if (!trip) {
+        return res.status(404).json({ error: 'Trip not found' });
+      }
+      
+      // Only allow location updates for in-progress trips
+      if (trip.status !== 'in-progress') {
+        return res.status(400).json({
+          error: 'Location updates are only allowed for in-progress trips',
+          currentStatus: trip.status
+        });
+      }
+      
+      // Log location update for debugging
+      console.log(`Location update via API for trip ${tripId}: ${latitude}, ${longitude}`);
+      
+      // Update the trip's current location
+      const lastLocationUpdate = new Date();
+      await storage.updateTrip(tripId, { 
+        currentLatitude: latitude, 
+        currentLongitude: longitude,
+        lastLocationUpdate
+      });
+      
+      // Calculate distance traveled if there are previous coordinates
+      let distanceUpdate = null;
+      if (trip.currentLatitude !== null && trip.currentLongitude !== null) {
+        const distanceMoved = calculateDistance(
+          trip.currentLatitude,
+          trip.currentLongitude,
+          latitude,
+          longitude
+        );
+        
+        // Only update if meaningful movement (more than 10 meters)
+        if (distanceMoved > 0.01) {
+          const newTotalDistance = (trip.distanceTraveled || 0) + distanceMoved;
+          await storage.updateTrip(tripId, {
+            distanceTraveled: newTotalDistance
+          });
+          distanceUpdate = {
+            segmentDistance: distanceMoved,
+            totalDistance: newTotalDistance
+          };
+        }
+      }
+      
+      // Check if location is on route and notify about deviation if needed
+      let routeStatus = null;
+      if (trip.startLocation && trip.destination) {
+        // Parse coordinates from locations
+        const startCoords = parseCoordinates(trip.startLocation);
+        const endCoords = parseCoordinates(trip.destination);
+        
+        if (startCoords && endCoords) {
+          // Check if current location is on the route
+          routeStatus = isLocationOnRoute(
+            latitude,
+            longitude,
+            startCoords.lat,
+            startCoords.lng,
+            endCoords.lat,
+            endCoords.lng
+          );
+          
+          // If we've deviated from the route, notify group members
+          if (!routeStatus.isOnRoute && trip.groupId) {
+            const driver = req.user;
+            await notifyGroupAboutDeviation(
+              trip.groupId,
+              tripId,
+              trip.name,
+              driver.displayName || driver.username || "Unknown user",
+              routeStatus.distanceFromRoute,
+              latitude,
+              longitude
+            );
+          }
+        }
+      }
+      
+      // Broadcast update via WebSocket to group members if needed
+      let broadcastStatus = { sent: false, recipients: 0 };
+      if (trip.groupId) {
+        const userId = req.user!.id;
+        const groupMembers = await storage.getGroupMembers(trip.groupId);
+        const memberIds = groupMembers.map(member => member.userId);
+        
+        // Create the update notification
+        const locationUpdate = {
+          type: 'trip_location_update',
+          tripId,
+          tripName: trip.name,
+          latitude,
+          longitude,
+          updatedBy: userId,
+          timestamp: lastLocationUpdate.toISOString()
+        };
+        
+        // Send to all connected group members except the updater
+        let sentCount = 0;
+        for (const memberId of memberIds) {
+          if (memberId !== userId) { // Don't send back to the updater
+            const connection = userConnections.get(memberId);
+            if (connection && connection.readyState === WebSocket.OPEN) {
+              connection.send(JSON.stringify(locationUpdate));
+              sentCount++;
+            }
+          }
+        }
+        
+        broadcastStatus = { sent: sentCount > 0, recipients: sentCount };
+      }
+      
+      // Return success response with details
+      res.json({
+        success: true,
+        tripId,
+        location: { latitude, longitude },
+        lastLocationUpdate,
+        distance: distanceUpdate,
+        routeStatus,
+        broadcast: broadcastStatus
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
 
   const httpServer = createServer(app);
   
@@ -3249,12 +3399,129 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     
     // Handle incoming messages
-    ws.on('message', (message) => {
+    ws.on('message', async (message) => {
       try {
         const data = JSON.parse(message.toString());
         console.log('Received WebSocket message:', data);
         
-        // Handle different message types if needed
+        // Handle different message types
+        if (data.type === 'location_update' && userId > 0) {
+          const { tripId, latitude, longitude } = data;
+          
+          if (!tripId || !latitude || !longitude) {
+            console.error('Invalid location update - missing required fields');
+            return;
+          }
+          
+          // Update trip location in the database
+          try {
+            // Get the trip to check if it's in progress and get route info
+            const trip = await storage.getTrip(tripId);
+            
+            if (!trip) {
+              console.error(`Trip ${tripId} not found for location update`);
+              return;
+            }
+            
+            // Only process location updates for in-progress trips
+            if (trip.status !== 'in-progress') {
+              console.log(`Trip ${tripId} is not in progress, ignoring location update`);
+              return;
+            }
+            
+            // Log current location coordinates for debugging
+            console.log(`Location update for trip ${tripId}: ${latitude}, ${longitude}`);
+            
+            // Update the trip's current location
+            await storage.updateTrip(tripId, { 
+              currentLatitude: latitude, 
+              currentLongitude: longitude,
+              lastLocationUpdate: new Date()
+            });
+            
+            // Calculate distance traveled if we have previous coordinates
+            if (trip.currentLatitude !== null && trip.currentLongitude !== null) {
+              const distanceMoved = calculateDistance(
+                trip.currentLatitude, 
+                trip.currentLongitude,
+                latitude,
+                longitude
+              );
+              
+              // Only update if meaningful movement (more than 10 meters)
+              if (distanceMoved > 0.01) {
+                await storage.updateTrip(tripId, {
+                  distanceTraveled: (trip.distanceTraveled || 0) + distanceMoved
+                });
+              }
+            }
+            
+            // Check if we have route information to detect deviation
+            if (trip.startLocation && trip.destination) {
+              // Parse coordinates from locations
+              const startCoords = parseCoordinates(trip.startLocation);
+              const endCoords = parseCoordinates(trip.destination);
+              
+              if (startCoords && endCoords) {
+                // Check if current location is on the route
+                const routeStatus = isLocationOnRoute(
+                  latitude,
+                  longitude,
+                  startCoords.lat,
+                  startCoords.lng,
+                  endCoords.lat,
+                  endCoords.lng
+                );
+                
+                // If we've deviated from the route, notify group members
+                if (!routeStatus.isOnRoute && trip.groupId) {
+                  // Get the driver info (assumes the updater is the driver)
+                  const driver = await storage.getUser(userId);
+                  if (driver) {
+                    await notifyGroupAboutDeviation(
+                      trip.groupId,
+                      tripId,
+                      trip.name,
+                      driver.displayName || driver.username || "Unknown user",
+                      routeStatus.distanceFromRoute,
+                      latitude,
+                      longitude
+                    );
+                  }
+                }
+              }
+            }
+            
+            // Broadcast location update to all group members if it's a group trip
+            if (trip.groupId) {
+              const groupMembers = await storage.getGroupMembers(trip.groupId);
+              const memberIds = groupMembers.map(member => member.userId);
+              
+              // Create the update notification
+              const locationUpdate = {
+                type: 'trip_location_update',
+                tripId,
+                tripName: trip.name,
+                latitude,
+                longitude,
+                updatedBy: userId,
+                timestamp: new Date().toISOString()
+              };
+              
+              // Send to all connected group members except the updater
+              for (const memberId of memberIds) {
+                if (memberId !== userId) { // Don't send back to the updater
+                  const connection = userConnections.get(memberId);
+                  if (connection && connection.readyState === WebSocket.OPEN) {
+                    connection.send(JSON.stringify(locationUpdate));
+                  }
+                }
+              }
+            }
+          } catch (error) {
+            console.error('Error processing location update:', error);
+          }
+        }
       } catch (error) {
         console.error('Invalid WebSocket message format:', error);
       }
