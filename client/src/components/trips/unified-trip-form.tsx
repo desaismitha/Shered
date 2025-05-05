@@ -254,12 +254,22 @@ export function UnifiedTripForm({
     setIsPhoneVerified(true);
     setShowPhoneVerification(false);
     
+    // Refresh user data to get the new phone number
+    // The user data will be automatically refreshed by the React Query cache
+    // after the phone verification completes, so we don't need to do anything explicitly
+    
     // If we have pending form data waiting for phone verification, submit it now
     if (formDataForSubmission) {
       try {
         console.log('Submitting form data after phone verification:', formDataForSubmission);
         onSubmit(formDataForSubmission);
         setFormDataForSubmission(null); // Clear the pending data
+        
+        // Show success toast
+        toast({
+          title: "Phone verified",
+          description: "Your phone number has been verified and the trip has been created with mobile notifications enabled."
+        });
       } catch (err) {
         console.error('Error submitting form after phone verification:', err);
       }
@@ -286,9 +296,19 @@ export function UnifiedTripForm({
     console.log('PHONE VERIFICATION CHECK - phoneNumber:', data.phoneNumber);
     console.log('PHONE VERIFICATION CHECK - userData?.phoneNumber:', userData?.phoneNumber);
     
-    // If mobile notifications are enabled, we need a verified phone number
-    if (data.enableMobileNotifications && !isPhoneVerified) {
+    // If mobile notifications are enabled and the user doesn't have a verified phone number
+    if (data.enableMobileNotifications === true && !userData?.phoneNumber) {
       console.log('PHONE VERIFICATION REQUIRED - Showing verification modal');
+      
+      // Make sure we have a phone number to verify
+      if (!data.phoneNumber) {
+        toast({
+          title: "Phone number required",
+          description: "Please enter a phone number to enable mobile notifications.",
+          variant: "destructive"
+        });
+        return;
+      }
       
       // Store the form data for submission after verification
       setFormDataForSubmission(data);
