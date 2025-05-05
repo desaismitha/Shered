@@ -148,9 +148,9 @@ export function UnifiedTripForm({
       isMultiStop: false,
       startLocation: "",
       endLocation: "",
-      // Default start time to current time
+      // Default start time to current time and end time to 1 hour later
       startTime: new Date().toTimeString().slice(0, 5),
-      endTime: "",
+      endTime: new Date(new Date().setHours(new Date().getHours() + 1)).toTimeString().slice(0, 5),
       isRecurring: false,
       recurrencePattern: undefined,
       recurrenceDays: [],
@@ -487,7 +487,7 @@ export function UnifiedTripForm({
                 name="startTime"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Start Time</FormLabel>
+                    <FormLabel>Start Time<span className="text-red-500">*</span></FormLabel>
                     <FormControl>
                       <div className="relative">
                         <Input
