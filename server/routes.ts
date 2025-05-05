@@ -391,8 +391,13 @@ async function checkTripAccess(
  */
 async function checkAndUpdateTripStatuses(): Promise<void> {
   try {
-    console.log('[AUTO-UPDATE] Checking trips that should be in progress...');
+    console.log('[AUTO-UPDATE] Checking trips for status updates...');
     
+    const now = new Date();
+    let startedCount = 0;
+    let completedCount = 0;
+    
+    // PART 1: Check for trips that should start (planning/confirmed → in-progress)
     // Get all trips with status 'planning' or 'confirmed'
     const planningTrips = await db
       .select()
@@ -404,22 +409,25 @@ async function checkAndUpdateTripStatuses(): Promise<void> {
       .from(trips)
       .where(eq(trips.status, 'confirmed'));
       
-    // Combine both result sets
-    const tripsToCheck = [...planningTrips, ...confirmedTrips];
+    // Combine both result sets for trips that should start
+    const tripsToStart = [...planningTrips, ...confirmedTrips];
     
-    const now = new Date();
-    let updatedCount = 0;
-    
-    for (const trip of tripsToCheck) {
+    for (const trip of tripsToStart) {
       const startDate = new Date(trip.startDate);
       const endDate = new Date(trip.endDate);
       
-      // Check if the trip start time has passed but end time is still in the future
-      // This checks exact start time instead of just the day
-      const isStartTimeReached = startDate <= now && endDate > now;
+      // Only start trips where current time is between start and end
+      const shouldStart = startDate <= now && endDate > now;
       
-      if (isStartTimeReached) {
-        console.log(`[AUTO-UPDATE] Trip ${trip.id} (${trip.name}) should be in-progress! Start time: ${startDate.toISOString()}, Current time: ${now.toISOString()}`);
+      // Debug date comparisons
+      console.log(`[AUTO-UPDATE] Trip ${trip.id} (${trip.name}):`);
+      console.log(`  - Start time: ${startDate.toISOString()}`);
+      console.log(`  - End time: ${endDate.toISOString()}`);
+      console.log(`  - Current time: ${now.toISOString()}`);
+      console.log(`  - Should start? ${shouldStart}`);
+      
+      if (shouldStart) {
+        console.log(`[AUTO-UPDATE] Updating trip ${trip.id} (${trip.name}) to in-progress`);
         try {
           const [updated] = await db
             .update(trips)
@@ -429,19 +437,54 @@ async function checkAndUpdateTripStatuses(): Promise<void> {
           
           if (updated) {
             console.log(`[AUTO-UPDATE] Successfully updated trip ${trip.id} status to in-progress`);
-            updatedCount++;
+            startedCount++;
           }
         } catch (updateError) {
           console.error(`[AUTO-UPDATE] Error updating trip ${trip.id}:`, updateError);
         }
-      } else {
-        console.log(`[AUTO-UPDATE] Trip ${trip.id} (${trip.name}) is not ready to start. Start time: ${startDate.toISOString()}, Current time: ${now.toISOString()}`);
       }
     }
     
-    console.log(`[AUTO-UPDATE] Completed checking trips. Updated ${updatedCount} trips to in-progress.`);
+    // PART 2: Check for trips that should complete (in-progress → completed)
+    const activeTrips = await db
+      .select()
+      .from(trips)
+      .where(eq(trips.status, 'in-progress'));
+    
+    for (const trip of activeTrips) {
+      const endDate = new Date(trip.endDate);
+      
+      // A trip should complete if its end time has passed
+      const shouldComplete = endDate <= now;
+      
+      // Debug date comparisons
+      console.log(`[AUTO-UPDATE] Active Trip ${trip.id} (${trip.name}):`);
+      console.log(`  - End time: ${endDate.toISOString()}`);
+      console.log(`  - Current time: ${now.toISOString()}`);
+      console.log(`  - Should complete? ${shouldComplete}`);
+      
+      if (shouldComplete) {
+        console.log(`[AUTO-UPDATE] Completing trip ${trip.id} (${trip.name}) as its end time has passed`);
+        try {
+          const [updated] = await db
+            .update(trips)
+            .set({ status: 'completed' })
+            .where(eq(trips.id, trip.id))
+            .returning();
+          
+          if (updated) {
+            console.log(`[AUTO-UPDATE] Successfully marked trip ${trip.id} as completed`);
+            completedCount++;
+          }
+        } catch (updateError) {
+          console.error(`[AUTO-UPDATE] Error completing trip ${trip.id}:`, updateError);
+        }
+      }
+    }
+    
+    console.log(`[AUTO-UPDATE] Completed checking trips. Started ${startedCount} trips, completed ${completedCount} trips.`);
   } catch (error) {
-    console.error('[AUTO-UPDATE] Error checking for trips that should be in-progress:', error);
+    console.error('[AUTO-UPDATE] Error checking for trip status updates:', error);
   }
 }
 
