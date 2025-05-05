@@ -84,11 +84,17 @@ export function MessageList({ groupId, users }: MessageListProps) {
                   <div className={`flex items-start max-w-[80%] ${isCurrentUser ? 'flex-row-reverse' : 'flex-row'}`}>
                     {!isCurrentUser ? (
                       <div className="w-8 h-8 rounded-full bg-neutral-200 text-neutral-600 flex items-center justify-center mr-2">
-                        {messageUser?.displayName?.charAt(0).toUpperCase() || messageUser?.username?.charAt(0).toUpperCase() || "U"}
+                        <span className="text-base font-semibold">
+                          {(messageUser?.displayName && messageUser.displayName.length > 0) ? messageUser.displayName[0].toUpperCase() :
+                           (messageUser?.username && messageUser.username.length > 0) ? messageUser.username[0].toUpperCase() : "U"}
+                        </span>
                       </div>
                     ) : (
                       <div className="w-8 h-8 rounded-full bg-primary-100 text-primary-600 flex items-center justify-center ml-2">
-                        {currentUser?.displayName?.charAt(0).toUpperCase() || currentUser?.username?.charAt(0).toUpperCase() || "Y"}
+                        <span className="text-base font-semibold">
+                          {(currentUser?.displayName && currentUser.displayName.length > 0) ? currentUser.displayName[0].toUpperCase() :
+                           (currentUser?.username && currentUser.username.length > 0) ? currentUser.username[0].toUpperCase() : "Y"}
+                        </span>
                       </div>
                     )}
                     
