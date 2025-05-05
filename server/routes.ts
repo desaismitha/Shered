@@ -385,7 +385,83 @@ async function checkTripAccess(
   return null;
 }
 
+/**
+ * Checks all trips that should be in progress and updates their status
+ * This is called periodically to ensure trip statuses are accurate
+ */
+async function checkAndUpdateTripStatuses(): Promise<void> {
+  try {
+    console.log('[AUTO-UPDATE] Checking trips that should be in progress...');
+    
+    // Get all trips with status 'planning' or 'confirmed'
+    const tripsToCheck = await db
+      .select()
+      .from(trips)
+      .where(or(
+        eq(trips.status, 'planning'),
+        eq(trips.status, 'confirmed')
+      ));
+    
+    const now = new Date();
+    let updatedCount = 0;
+    
+    for (const trip of tripsToCheck) {
+      const startDate = new Date(trip.startDate);
+      const endDate = new Date(trip.endDate);
+      
+      // Check if today is the trip start date
+      const startDay = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const isStartingToday = startDay.getTime() === today.getTime();
+      
+      // If the trip should start now (it's within the time window), auto-set to in-progress
+      const isStartTimeNow = isStartingToday && startDate <= now && endDate > now;
+      
+      if (isStartTimeNow) {
+        console.log(`[AUTO-UPDATE] Trip ${trip.id} (${trip.name}) should be in-progress!`);
+        try {
+          const [updated] = await db
+            .update(trips)
+            .set({ status: 'in-progress' })
+            .where(eq(trips.id, trip.id))
+            .returning();
+          
+          if (updated) {
+            console.log(`[AUTO-UPDATE] Successfully updated trip ${trip.id} status to in-progress`);
+            updatedCount++;
+          }
+        } catch (updateError) {
+          console.error(`[AUTO-UPDATE] Error updating trip ${trip.id}:`, updateError);
+        }
+      }
+    }
+    
+    console.log(`[AUTO-UPDATE] Completed checking trips. Updated ${updatedCount} trips to in-progress.`);
+  } catch (error) {
+    console.error('[AUTO-UPDATE] Error checking for trips that should be in-progress:', error);
+  }
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Set up periodic check of trip statuses every 5 minutes
+  setInterval(async () => {
+    try {
+      console.log('[SCHEDULER] Running scheduled trip status check');
+      await checkAndUpdateTripStatuses();
+    } catch (error) {
+      console.error('[SCHEDULER] Error in scheduled trip status check:', error);
+    }
+  }, 5 * 60 * 1000); // 5 minutes
+  
+  // Run an initial check when the server starts
+  setTimeout(async () => {
+    try {
+      console.log('[STARTUP] Running initial trip status check');
+      await checkAndUpdateTripStatuses();
+    } catch (error) {
+      console.error('[STARTUP] Error in initial trip status check:', error);
+    }
+  }, 10000); // 10 seconds after server start
   // Set up file upload middleware
   app.use(fileUpload({
     createParentPath: true,
@@ -401,6 +477,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   setupImportRoutes(app);
   
   // Database health check endpoint
+  // Manual endpoint to check and update trip statuses (for testing purposes)
+  app.post("/api/admin/trips/update-statuses", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+
+    try {
+      await checkAndUpdateTripStatuses();
+      res.json({ success: true, message: "Trip status check triggered successfully" });
+    } catch (error) {
+      console.error("Error checking trip statuses:", error);
+      res.status(500).json({ success: false, error: "Failed to check trip statuses" });
+    }
+  });
+
   app.get("/api/health", async (req, res) => {
     try {
       const dbConnected = await checkDbConnection();
