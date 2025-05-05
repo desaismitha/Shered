@@ -114,7 +114,7 @@ export default function UnifiedTripPage() {
       }
       
       // Validate the tab parameter
-      const validTabs = ["form", "preview", "check-in"];
+      const validTabs = ["form", "preview", "check-in", "tracking"];
       if (tabParam && validTabs.includes(tabParam)) {
         console.log(`Valid tab parameter detected: ${tabParam}`);
         return tabParam;
@@ -531,7 +531,7 @@ export default function UnifiedTripPage() {
               className="w-full"
               defaultValue="form"
             >
-              <TabsList className="grid w-[600px] grid-cols-3 mx-auto mb-4">
+              <TabsList className="grid w-[800px] grid-cols-4 mx-auto mb-4">
                 <TabsTrigger 
                   value="form" 
                   data-active={activeTab === "form"}
@@ -552,6 +552,17 @@ export default function UnifiedTripPage() {
                   className={activeTab === "check-in" ? "data-[state=active]:bg-primary-500" : ""}
                 >
                   Check-In
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="tracking" 
+                  data-active={activeTab === "tracking"}
+                  className={activeTab === "tracking" ? "data-[state=active]:bg-primary-500" : ""}
+                  disabled={tripData?.status !== "in-progress"}
+                >
+                  <div className="flex items-center gap-1">
+                    <MapPin className="h-4 w-4" />
+                    Track Location
+                  </div>
                 </TabsTrigger>
               </TabsList>
               
@@ -678,6 +689,115 @@ export default function UnifiedTripPage() {
                           displayName: member.displayName
                         }))}
                       />
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      Trip data not available
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="tracking" className="mt-0">
+                <div className="bg-muted p-6 rounded-lg">
+                  <div className="flex items-center gap-2 mb-4">
+                    <MapPin className="h-5 w-5 text-blue-600" />
+                    <h2 className="text-xl font-medium">Trip Location Tracking</h2>
+                  </div>
+                  
+                  {isLoading ? (
+                    <div className="flex items-center justify-center py-12">
+                      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : tripData ? (
+                    <div className="space-y-6">
+                      {tripData.status === "in-progress" ? (
+                        <div className="grid md:grid-cols-2 gap-6">
+                          <div>
+                            {/* Location tracking component */}
+                            <TripTracking
+                              tripId={parseInt(tripId)}
+                              tripName={tripData.name}
+                              isActive={activeTab === "tracking"}
+                            />
+                            
+                            {/* Trip details card */}
+                            <div className="bg-card p-4 rounded-lg border mt-4">
+                              <h3 className="font-medium mb-2">Trip Details</h3>
+                              <div className="grid grid-cols-2 gap-2 text-sm">
+                                <div>
+                                  <p className="text-muted-foreground">From:</p>
+                                  <p className="font-medium">{tripData.startLocationDisplay || tripData.startLocation}</p>
+                                </div>
+                                <div>
+                                  <p className="text-muted-foreground">To:</p>
+                                  <p className="font-medium">{tripData.destinationDisplay || tripData.destination}</p>
+                                </div>
+                                <div className="col-span-2 mt-2">
+                                  <p className="text-muted-foreground">Status:</p>
+                                  <div className="flex items-center gap-1">
+                                    <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                                    <p className="font-medium">In Progress</p>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div>
+                            {/* Map view (future enhancement) */}
+                            <div className="border rounded-lg p-4 h-[400px] bg-card flex flex-col items-center justify-center">
+                              <p className="text-center text-muted-foreground">
+                                Map view will be available in a future update.
+                              </p>
+                              <p className="text-sm text-center text-muted-foreground mt-2">
+                                Your current location is being tracked and shared with group members.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-center py-12 bg-card rounded-lg border">
+                          <MapPin className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                          <h3 className="text-lg font-medium">Trip Tracking Not Available</h3>
+                          <p className="text-muted-foreground mt-2">
+                            Location tracking is only available for trips with status "in-progress".
+                          </p>
+                          <p className="text-muted-foreground mt-1">
+                            Current trip status: <span className="font-medium">{tripData.status}</span>
+                          </p>
+                          {tripData.status === "planning" && tripData._accessLevel === "owner" && (
+                            <div className="mt-4">
+                              <Button
+                                onClick={async () => {
+                                  try {
+                                    // Update trip status to in-progress
+                                    await apiRequest("PATCH", `/api/trips/${tripId}`, {
+                                      status: "in-progress"
+                                    });
+                                    
+                                    // Refetch trip data
+                                    queryClient.invalidateQueries({ queryKey: ["/api/trips", parseInt(tripId)] });
+                                    
+                                    toast({
+                                      title: "Trip started",
+                                      description: "Trip status changed to 'in progress'. Location tracking is now available."
+                                    });
+                                  } catch (error) {
+                                    toast({
+                                      title: "Error",
+                                      description: "Failed to update trip status.",
+                                      variant: "destructive"
+                                    });
+                                  }
+                                }}
+                              >
+                                Start Trip Now
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div className="text-center py-8 text-muted-foreground">
