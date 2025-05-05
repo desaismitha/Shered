@@ -27,19 +27,34 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
     }
     
     console.log(`Attempting to send email to ${params.to} with subject "${params.subject}"`);
+    console.log(`Using sender: ${params.from || process.env.SENDGRID_VERIFIED_SENDER || 'unknown'}`);
     
-    await mailService.send({
+    const emailPayload = {
       to: params.to,
       from: (params.from || process.env.SENDGRID_VERIFIED_SENDER || '') as string,
       subject: params.subject,
       text: (params.text || '') as string,
       html: (params.html || '') as string,
+    };
+    
+    console.log('Email payload (partial):', { 
+      to: emailPayload.to,
+      from: emailPayload.from,
+      subject: emailPayload.subject,
+      textLength: emailPayload.text?.length || 0,
+      htmlLength: emailPayload.html?.length || 0
     });
+    
+    await mailService.send(emailPayload);
     
     console.log(`Email successfully sent to ${params.to}`);
     return true;
   } catch (error) {
     console.error('SendGrid email error:', error);
+    if (error instanceof Error) {
+      console.error('Error details:', error.message);
+      console.error('Error stack:', error.stack);
+    }
     return false;
   }
 }

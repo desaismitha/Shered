@@ -23,6 +23,7 @@ interface VerificationModalProps {
   registrationId?: string;
   onVerified?: () => void;
   smsSent?: boolean;
+  verificationCode?: string; // Add this for development fallback
 }
 
 export function VerificationModal({ isOpen, onOpenChange, userEmail, userPhone, registrationId, onVerified, smsSent }: VerificationModalProps) {

@@ -196,12 +196,18 @@ export function setupAuth(app: Express) {
         console.log(`SMS verification temporarily disabled, only using email verification`);
       }
 
+      // Include the actual OTP code in the response for development/debugging purposes
+      // In production, this should be removed or disabled via env variable
+      const isDevelopment = process.env.NODE_ENV === 'development';
+      
       res.status(200).json({
         message: "Verification code sent. Please verify your account to complete registration.",
         registrationId,
         email: req.body.email,
         otpSent: emailOtpSent,
-        smsOtpSent
+        smsOtpSent,
+        // Show the OTP code in dev environment for testing in case email doesn't arrive
+        verificationCode: isDevelopment ? otpCode : undefined
       });
     } catch (err) {
       next(err);
