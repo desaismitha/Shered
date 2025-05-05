@@ -44,7 +44,6 @@ const loginSchema = z.object({
 const registerSchema = z.object({
   displayName: z.string().min(2, "Display name must be at least 2 characters"),
   email: z.string().email("Please enter a valid email address"),
-  phoneNumber: z.string().optional(),
   password: z.string().min(6, "Password must be at least 6 characters"),
   confirmPassword: z.string(),
 }).refine(data => data.password === data.confirmPassword, {
@@ -131,7 +130,6 @@ export default function AuthPage() {
     defaultValues: {
       displayName: "",
       email: inviteEmail || "",
-      phoneNumber: "",
       password: "",
       confirmPassword: "",
     }
@@ -151,11 +149,7 @@ export default function AuthPage() {
       const data = registerInitMutation.data;
       setRegistrationId(data.registrationId);
       setRegisteredEmail(data.email);
-      // Store the phone number if provided in the form
-      const phoneNumber = registerForm.getValues("phoneNumber");
-      if (phoneNumber) {
-        setRegisteredPhone(phoneNumber);
-      }
+      // No longer collecting phone numbers
       // Check if SMS was sent
       if (data.smsOtpSent === true) {
         setSmsSent(true);
@@ -437,19 +431,6 @@ export default function AuthPage() {
                         )}
                       />
                       
-                      <FormField
-                        control={registerForm.control}
-                        name="phoneNumber"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Phone Number</FormLabel>
-                            <FormControl>
-                              <Input type="tel" placeholder="Phone Number" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
                       
                       <FormField
                         control={registerForm.control}
