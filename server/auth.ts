@@ -7,7 +7,7 @@ import { promisify } from "util";
 import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
 import { sendEmailVerification, sendOTPVerificationCode } from "./email";
-import { sendOTPVerificationSMS } from "./sms";
+import { sendOTPVerificationSMS, formatPhoneNumber } from "./sms";
 
 declare global {
   namespace Express {
@@ -189,15 +189,19 @@ export function setupAuth(app: Express) {
         otpCode
       );
       
-      // SMS verification is currently disabled due to Twilio configuration issues
-      // Send verification by email only
+      // Send verification by SMS if phone number is provided
       let smsOtpSent = false;
       
-      console.log('SMS verification is disabled - using email verification only');
-      
-      // Log the phone number that would have been used for SMS
       if (req.body.phoneNumber) {
-        console.log(`Would have sent SMS to ${req.body.phoneNumber}, but SMS verification is disabled`);
+        console.log(`Attempting to send SMS verification to ${req.body.phoneNumber}`);
+        smsOtpSent = await sendOTPVerificationSMS(
+          req.body.phoneNumber,
+          req.body.displayName || req.body.username,
+          otpCode
+        );
+        console.log(`SMS verification ${smsOtpSent ? 'successfully sent' : 'failed to send'} to ${req.body.phoneNumber}`);
+      } else {
+        console.log('No phone number provided, skipping SMS verification');
       }
 
       res.status(200).json({
