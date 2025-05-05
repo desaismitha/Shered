@@ -178,19 +178,21 @@ export async function sendEmailVerification(
   verificationLink: string
 ): Promise<boolean> {
   const fromEmail = process.env.SENDGRID_VERIFIED_SENDER || 'noreply@travelgroupr.com';
-  const subject = 'Verify Your Email for TravelGroupr';
+  const subject = 'Welcome to TravelGroupr!';
   
   const text = `
     Hi ${username},
     
-    Thank you for signing up with TravelGroupr!
+    Thank you for signing up with TravelGroupr! Your account has been successfully created.
     
-    To verify your email address, please click the link below:
+    Your account is already active since you verified it with the one-time code during registration.
+    
+    As a backup option, you can also verify your email address by clicking the link below:
     ${verificationLink}
     
-    This link will expire in 24 hours.
+    This backup verification link will expire in 24 hours.
     
-    If you didn't create an account, you can safely ignore this email.
+    If you didn't create an account, please ignore this email.
     
     Best regards,
     The TravelGroupr Team
@@ -200,13 +202,19 @@ export async function sendEmailVerification(
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
       <h2>Welcome to TravelGroupr!</h2>
       <p>Hi <strong>${username}</strong>,</p>
-      <p>Thank you for signing up with TravelGroupr. To complete your registration, please verify your email address.</p>
-      <div style="text-align: center; margin: 30px 0;">
+      <p>Thank you for signing up with TravelGroupr. Your account has been successfully created!</p>
+      
+      <p style="background-color: #d1e7dd; padding: 10px; border-radius: 4px; border-left: 4px solid #198754;">
+        <strong>Your account is already active</strong> since you verified it with the one-time code during registration.
+      </p>
+      
+      <p>As a backup option, you can also verify your email address by clicking the button below:</p>
+      <div style="text-align: center; margin: 20px 0;">
         <a href="${verificationLink}" style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold;">
-          Verify Email Address
+          Verify Email Address (Backup Option)
         </a>
       </div>
-      <p>This link will expire in 24 hours.</p>
+      <p>This backup verification link will expire in 24 hours.</p>
       <p>If you didn't create an account, you can safely ignore this email.</p>
       <p>Best regards,<br>The TravelGroupr Team</p>
     </div>
@@ -227,14 +235,17 @@ export async function sendOTPVerificationCode(
   otp: string
 ): Promise<boolean> {
   const fromEmail = process.env.SENDGRID_VERIFIED_SENDER || 'noreply@travelgroupr.com';
-  const subject = 'Your Verification Code for TravelGroupr';
+  const subject = 'Your One-Time Code for TravelGroupr Registration';
   
   const text = `
     Hi ${username},
     
-    Your verification code for TravelGroupr is: ${otp}
+    Your one-time registration code for TravelGroupr is: ${otp}
     
+    Please enter this code in the verification form that appeared when you registered.
     This code will expire in 10 minutes.
+    
+    IMPORTANT: This verification code is different from the verification link you will receive in a separate welcome email.
     
     If you didn't request this code, please ignore this email.
     
@@ -244,15 +255,19 @@ export async function sendOTPVerificationCode(
   
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <h2>Your TravelGroupr Verification Code</h2>
+      <h2>Your TravelGroupr Registration Code</h2>
       <p>Hi <strong>${username}</strong>,</p>
-      <p>Your verification code for TravelGroupr is:</p>
+      <p>Please use the following code to complete your registration:</p>
       <div style="text-align: center; margin: 30px 0;">
         <div style="font-size: 24px; letter-spacing: 5px; font-weight: bold; background-color: #f5f5f5; padding: 15px; border-radius: 4px;">
           ${otp}
         </div>
       </div>
+      <p><strong>Please enter this code in the verification form</strong> that appeared when you registered.</p>
       <p>This code will expire in 10 minutes.</p>
+      <p style="background-color: #fff3cd; padding: 10px; border-radius: 4px; border-left: 4px solid #ffc107;">
+        <strong>Important:</strong> This verification code is different from the verification link you will receive in a separate welcome email.
+      </p>
       <p>If you didn't request this code, please ignore this email.</p>
       <p>Best regards,<br>The TravelGroupr Team</p>
     </div>

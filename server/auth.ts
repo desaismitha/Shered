@@ -241,8 +241,9 @@ export function setupAuth(app: Express) {
         return res.status(400).json({ message: "Invalid verification code" });
       }
       
-      // Generate verification token with 24-hour expiry for email link verification
-      const verificationToken = generateVerificationToken();
+      // Generate a SEPARATE verification token (different from OTP) for email link verification
+      // This ensures the email link and OTP are different
+      const verificationToken = generateVerificationToken(); // This generates a 64-character hex string
       const verificationExpiry = new Date();
       verificationExpiry.setHours(verificationExpiry.getHours() + 24);
       
@@ -266,6 +267,7 @@ export function setupAuth(app: Express) {
       const verificationUrl = `${baseUrl}/verify-email?token=${verificationToken}&userId=${user.id}`;
       
       // Send a welcome email with the verification link as backup
+      // This email is separate from the OTP email and contains a different verification token
       const emailSent = await sendEmailVerification(
         user.email,
         user.displayName || user.username,
