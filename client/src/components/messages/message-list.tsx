@@ -22,6 +22,10 @@ export function MessageList({ groupId, users }: MessageListProps) {
     refetchInterval: 2000, // Poll for new messages every 2 seconds for more responsiveness
     onSuccess: (data) => {
       console.log('Messages received:', data?.length || 0, 'messages');
+      // Check that message content is being received properly
+      if (data && data.length > 0) {
+        console.log('First message content:', data[0].content);
+      }
     },
   });
   
@@ -106,16 +110,16 @@ export function MessageList({ groupId, users }: MessageListProps) {
                   key={message.id} 
                   className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'} mb-3`}
                 >
-                  <div className={`flex items-start max-w-[80%] ${isCurrentUser ? 'flex-row-reverse' : 'flex-row'}`}>
+                  <div className={`flex items-start max-w-[80%] gap-2 ${isCurrentUser ? 'flex-row-reverse' : 'flex-row'}`}>
                     {!isCurrentUser ? (
-                      <div className="w-8 h-8 rounded-full bg-neutral-200 text-neutral-600 flex items-center justify-center mr-2">
+                      <div className="w-8 h-8 rounded-full bg-neutral-200 text-neutral-600 flex items-center justify-center">
                         <span className="text-base font-semibold">
                           {(messageUser?.displayName && messageUser.displayName.length > 0) ? messageUser.displayName[0].toUpperCase() :
                            (messageUser?.username && messageUser.username.length > 0) ? messageUser.username[0].toUpperCase() : "U"}
                         </span>
                       </div>
                     ) : (
-                      <div className="w-8 h-8 rounded-full bg-primary-100 text-primary-600 flex items-center justify-center ml-2">
+                      <div className="w-8 h-8 rounded-full bg-primary-100 text-primary-600 flex items-center justify-center">
                         <span className="text-base font-semibold">
                           {(currentUser?.displayName && currentUser.displayName.length > 0) ? currentUser.displayName[0].toUpperCase() :
                            (currentUser?.username && currentUser.username.length > 0) ? currentUser.username[0].toUpperCase() : "Y"}
@@ -123,13 +127,13 @@ export function MessageList({ groupId, users }: MessageListProps) {
                       </div>
                     )}
                     
-                    <div className={`space-y-1 ${isCurrentUser ? 'mr-2 items-end' : 'ml-0 items-start'}`}>
+                    <div className={`space-y-1 flex flex-col ${isCurrentUser ? 'mr-2 items-end' : 'ml-0 items-start'}`}>
                       <p className={`text-xs font-medium ${isCurrentUser ? 'text-primary-600 text-right' : 'text-neutral-500'}`}>
                         {isCurrentUser ? 'You' : (messageUser?.displayName || messageUser?.username || "Unknown User")}
                       </p>
                       
                       <div 
-                        className={`rounded-lg px-3 py-2 text-sm ${
+                        className={`rounded-lg px-3 py-2 text-sm min-w-[60px] max-w-full break-words whitespace-pre-wrap ${
                           isCurrentUser 
                             ? 'bg-primary-600 text-white rounded-tr-none' 
                             : 'bg-neutral-100 text-neutral-800 rounded-tl-none'
