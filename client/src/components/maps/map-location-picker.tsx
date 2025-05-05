@@ -271,8 +271,11 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
   
   // Get user's current location
   const getCurrentLocation = useCallback(() => {
+    console.log('Getting current location...');
+    
     // Check if geolocation is supported by the browser
     if (!navigator.geolocation) {
+      console.error('Geolocation API not supported in this browser');
       toast({
         title: "Geolocation not supported",
         description: "Your browser does not support geolocation services.",
@@ -281,96 +284,165 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
       return;
     }
     
+    // Show loading state
     setIsGettingLocation(true);
     setShowSuggestions(false); // Hide any open suggestions
     
-    // Get current position
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        try {
-          const { latitude, longitude } = position.coords;
-          setMarkerPosition([latitude, longitude]);
+    // Create a timeout to handle cases where the browser might hang
+    const locationTimeout = setTimeout(() => {
+      console.warn('Geolocation request taking too long, may have stalled');
+      setIsGettingLocation(false);
+      toast({
+        title: "Location request timeout",
+        description: "The location request is taking longer than expected. Please try again or enter location manually.",
+        variant: "destructive"
+      });
+    }, 15000); // 15 seconds timeout as a safety measure
+    
+    try {
+      // Get current position
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          // Clear the safety timeout
+          clearTimeout(locationTimeout);
           
-          // Reverse geocode to get address from coordinates
-          const response = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18`,
-            {
-              headers: {
-                'User-Agent': 'TravelGroupr App'
+          try {
+            console.log('Got position:', position.coords.latitude, position.coords.longitude);
+            const { latitude, longitude, accuracy } = position.coords;
+            
+            // Log accuracy for debugging
+            console.log(`Location accuracy: ${accuracy} meters`);
+            
+            // Update the marker position immediately
+            setMarkerPosition([latitude, longitude]);
+            
+            try {
+              // Reverse geocode to get address from coordinates
+              console.log('Attempting reverse geocoding...');
+              const response = await fetch(
+                `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18`,
+                {
+                  headers: {
+                    'User-Agent': 'TravelGroupr App'
+                  }
+                }
+              );
+              
+              if (!response.ok) {
+                throw new Error(`Failed to reverse geocode location: ${response.status} ${response.statusText}`);
               }
+              
+              const data = await response.json();
+              console.log('Reverse geocode result:', data);
+              
+              if (data && data.display_name) {
+                // Format the display name to be more concise
+                const displayName = data.display_name.split(',').slice(0, 3).join(',');
+                setSearchInput(displayName);
+                
+                // Update with the location string including coordinates
+                const locationString = `${displayName} [${latitude.toFixed(6)}, ${longitude.toFixed(6)}]`;
+                onChange(locationString);
+                
+                toast({
+                  title: "Current location detected",
+                  description: "Your current location has been added."
+                });
+              } else {
+                // If reverse geocoding fails, just use coordinates as the location
+                console.warn('Reverse geocoding returned no display_name, using fallback');
+                const locationString = `Current Location [${latitude.toFixed(6)}, ${longitude.toFixed(6)}]`;
+                setSearchInput('Current Location');
+                onChange(locationString);
+                
+                toast({
+                  title: "Current location detected",
+                  description: "Your coordinates have been recorded, but we couldn't get an address."
+                });
+              }
+            } catch (geocodeError) {
+              // Handle reverse geocoding error but still keep the coordinates
+              console.error('Error during reverse geocoding:', geocodeError);
+              
+              // Fall back to just coordinates
+              const locationString = `Current Location [${latitude.toFixed(6)}, ${longitude.toFixed(6)}]`;
+              setSearchInput('Current Location');
+              onChange(locationString);
+              
+              toast({
+                title: "Location partially detected",
+                description: "We got your coordinates but couldn't find an address."
+              });
             }
-          );
+          } catch (error) {
+            console.error('Error processing location data:', error);
+            toast({
+              title: "Location processing error",
+              description: "Could not process your location data. Please try again or enter manually.",
+              variant: "destructive"
+            });
+          } finally {
+            setIsGettingLocation(false);
+          }
+        },
+        (error) => {
+          // Clear the safety timeout
+          clearTimeout(locationTimeout);
           
-          if (!response.ok) {
-            throw new Error('Failed to reverse geocode location');
+          // Handle specific geolocation errors
+          let title = "Location error";
+          let message = "Unknown error getting your location.";
+          let instruction = "Please try again or enter location manually.";
+          
+          switch (error.code) {
+            case error.PERMISSION_DENIED:
+              title = "Location permission denied";
+              message = "You need to allow location access to use this feature.";
+              instruction = "Please check your browser/device settings and try again.";
+              // Log more details about the environment for debugging
+              console.error('Location permission denied. Browser:', navigator.userAgent);
+              break;
+            case error.POSITION_UNAVAILABLE:
+              title = "Location unavailable";
+              message = "Your current position could not be determined.";
+              instruction = "Please check if location services are enabled on your device.";
+              console.error('Position unavailable error details:', error.message);
+              break;
+            case error.TIMEOUT:
+              title = "Location request timeout";
+              message = "The request to get your location timed out.";
+              instruction = "Please check your internet connection and try again.";
+              console.error('Location timeout. Error details:', error.message);
+              break;
+            default:
+              console.error('Unknown geolocation error:', error);
           }
           
-          const data = await response.json();
-          if (data && data.display_name) {
-            // Format the display name to be more concise
-            const displayName = data.display_name.split(',').slice(0, 3).join(',');
-            setSearchInput(displayName);
-            
-            // Update with the location string including coordinates
-            const locationString = `${displayName} [${latitude.toFixed(6)}, ${longitude.toFixed(6)}]`;
-            onChange(locationString);
-            
-            toast({
-              title: "Current location detected",
-              description: "Your current location has been added."
-            });
-          } else {
-            // If reverse geocoding fails, just use coordinates as the location
-            const locationString = `Current Location [${latitude.toFixed(6)}, ${longitude.toFixed(6)}]`;
-            setSearchInput('Current Location');
-            onChange(locationString);
-            
-            toast({
-              title: "Current location detected",
-              description: "Your coordinates have been recorded, but we couldn't get an address."
-            });
-          }
-        } catch (error) {
-          console.error('Error getting location:', error);
           toast({
-            title: "Location error",
-            description: "Could not determine your current location. Please try again or enter manually.",
+            title: title,
+            description: `${message} ${instruction}`,
             variant: "destructive"
           });
-        } finally {
+          
           setIsGettingLocation(false);
+        },
+        {
+          enableHighAccuracy: true, // Get the best possible result
+          timeout: 12000,          // 12 seconds timeout (increased from 10)
+          maximumAge: 0            // Don't use cached position
         }
-      },
-      (error) => {
-        let message = "Unknown error getting your location.";
-        
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            message = "Location permission denied. Please enable location services to use this feature.";
-            break;
-          case error.POSITION_UNAVAILABLE:
-            message = "Your current position is unavailable.";
-            break;
-          case error.TIMEOUT:
-            message = "The request to get your location timed out.";
-            break;
-        }
-        
-        console.error('Geolocation error:', message);
-        toast({
-          title: "Location error",
-          description: message,
-          variant: "destructive"
-        });
-        
-        setIsGettingLocation(false);
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0
-      }
-    );
+      );
+    } catch (criticalError) {
+      // Handle unexpected critical errors in the geolocation API itself
+      clearTimeout(locationTimeout);
+      console.error('Critical error in geolocation system:', criticalError);
+      toast({
+        title: "Location system error",
+        description: "A critical error occurred in the location system. Please try entering your location manually.",
+        variant: "destructive"
+      });
+      setIsGettingLocation(false);
+    }
   }, [onChange, toast]);
 
   // Close suggestions when clicking outside
