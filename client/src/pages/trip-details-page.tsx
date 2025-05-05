@@ -6,7 +6,7 @@ import { useParams, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { format, addDays } from "date-fns";
-import { isSpecialDateMarker, formatDateRange, cn, normalizeDate } from "@/lib/utils";
+import { isSpecialDateMarker, formatDateRange, cn, normalizeDate, formatTime } from "@/lib/utils";
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMapEvents, CircleMarker, useMap } from "react-leaflet";
 import 'leaflet/dist/leaflet.css';
 import * as L from 'leaflet';
