@@ -144,7 +144,7 @@ export default function AuthPage() {
       setRegistrationId(data.registrationId);
       setRegisteredEmail(data.email);
       // Check if SMS was sent
-      if (data.smsOtpSent) {
+      if (data.smsOtpSent === true) {
         setSmsSent(true);
       }
       setShowVerificationModal(true);

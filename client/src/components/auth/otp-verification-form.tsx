@@ -27,9 +27,10 @@ interface OtpVerificationFormProps {
   onVerified?: () => void;
   onCancel?: () => void;
   registrationId?: string;
+  smsSent?: boolean;
 }
 
-export function OtpVerificationForm({ onVerified, onCancel, registrationId }: OtpVerificationFormProps) {
+export function OtpVerificationForm({ onVerified, onCancel, registrationId, smsSent }: OtpVerificationFormProps) {
   const { toast } = useToast();
   const { user, registerCompleteMutation } = useAuth();
   const [isVerifying, setIsVerifying] = useState(false);
@@ -198,7 +199,9 @@ export function OtpVerificationForm({ onVerified, onCancel, registrationId }: Ot
       if (response.ok) {
         toast({
           title: "Success",
-          description: "A new verification code has been sent to your email",
+          description: smsSent 
+            ? "A new verification code has been sent to your email and phone number"
+            : "A new verification code has been sent to your email",
         });
       } else {
         const data = await response.json();
@@ -226,8 +229,11 @@ export function OtpVerificationForm({ onVerified, onCancel, registrationId }: Ot
         <h2 className="text-2xl font-semibold">Enter Verification Code</h2>
         <p className="text-sm text-muted-foreground">
           We've sent a 6-digit verification code to your email address.
-          {registrationId && (
-            <span> If you provided a phone number, we've also sent the code via SMS.</span>
+          {smsSent && (
+            <span className="font-medium text-primary"> We've also sent the code via SMS to your phone number.</span>
+          )}
+          {registrationId && !smsSent && (
+            <span> If you provided a phone number, we may also send the code via SMS.</span>
           )}
           Enter the code below to verify your account.
         </p>

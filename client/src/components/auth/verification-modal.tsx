@@ -21,9 +21,10 @@ interface VerificationModalProps {
   userEmail?: string;
   registrationId?: string;
   onVerified?: () => void;
+  smsSent?: boolean;
 }
 
-export function VerificationModal({ isOpen, onOpenChange, userEmail, registrationId, onVerified }: VerificationModalProps) {
+export function VerificationModal({ isOpen, onOpenChange, userEmail, registrationId, onVerified, smsSent }: VerificationModalProps) {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [isResending, setIsResending] = useState(false);
@@ -121,14 +122,15 @@ export function VerificationModal({ isOpen, onOpenChange, userEmail, registratio
 
         <Tabs defaultValue="otp" className="w-full mt-4">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="otp">Email OTP Verification</TabsTrigger>
-            <TabsTrigger value="email">Email Link Verification</TabsTrigger>
+            <TabsTrigger value="otp">Verification Code</TabsTrigger>
+            <TabsTrigger value="email">Email Link</TabsTrigger>
           </TabsList>
 
           <TabsContent value="otp" className="mt-4">
             <OtpVerificationForm 
               onVerified={handleVerified}
               registrationId={registrationId}
+              smsSent={smsSent}
             />
           </TabsContent>
 

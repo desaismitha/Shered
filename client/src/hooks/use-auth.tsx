@@ -60,6 +60,7 @@ type RegistrationInitResponse = {
   registrationId: string;
   email: string;
   otpSent: boolean;
+  smsOtpSent?: boolean;
 };
 
 // Data required to complete registration with OTP verification
