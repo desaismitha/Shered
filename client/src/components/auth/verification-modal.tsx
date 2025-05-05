@@ -121,7 +121,7 @@ export function VerificationModal({ isOpen, onOpenChange, userEmail, userPhone, 
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs defaultValue="otp" className="w-full mt-4">
+        <Tabs key="verification-tabs" defaultValue="otp" className="w-full mt-4">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="otp">Verification Code</TabsTrigger>
             <TabsTrigger value="email">Email Link</TabsTrigger>

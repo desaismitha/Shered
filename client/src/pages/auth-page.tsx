@@ -276,6 +276,7 @@ export default function AuthPage() {
       setRegistrationId('');
       setRegisteredEmail('');
       setRegisteredPhone('');
+      setSmsSent(false);
       
       // Navigate to dashboard
       navigate('/');
