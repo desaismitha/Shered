@@ -22,7 +22,7 @@ export function PhoneVerificationModal({
   const [verificationCode, setVerificationCode] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [displayCode, setDisplayCode] = useState("");
-  const [showCodeHelp, setShowCodeHelp] = useState(false);
+  const [showCodeHelp, setShowCodeHelp] = useState(true);
   
   useEffect(() => {
     if (isOpen && phoneNumber) {
@@ -34,7 +34,7 @@ export function PhoneVerificationModal({
       setVerificationCode("");
       setIsSubmitting(false);
       setDisplayCode("");
-      setShowCodeHelp(false);
+      // Always keep showCodeHelp true for testing
     };
   }, [isOpen, phoneNumber]);
 
@@ -177,10 +177,10 @@ export function PhoneVerificationModal({
           {showCodeHelp && (
             <div className="mt-4 text-center">
               <p className="text-sm text-gray-500 mb-2">
-                Having trouble receiving the code? Use this test code:
+                <span className="font-semibold">Verification Code (Testing Only):</span>
               </p>
               {displayCode ? (
-                <div className="font-mono text-sm bg-gray-100 p-2 rounded">
+                <div className="font-mono text-lg font-bold bg-gray-100 p-3 rounded text-center">
                   {displayCode}
                 </div>
               ) : (
@@ -188,6 +188,9 @@ export function PhoneVerificationModal({
                   No test code available. Please try again.
                 </div>
               )}
+              <p className="text-xs text-gray-500 mt-2 italic">
+                In production, this code would be sent via SMS to your phone. Since we're using Twilio's outgoing-only service for testing, the code is displayed here instead.
+              </p>
             </div>
           )}
           

@@ -50,33 +50,38 @@ export default function TestVerificationModal() {
         <Button 
           onClick={handleOpenModal}
           size="lg"
-          className="bg-red-600 hover:bg-red-700 font-bold shadow-lg">
-          TEST PHONE VERIFICATION
+          className="bg-red-600 hover:bg-red-700 text-white font-bold shadow-lg px-6 py-8 rounded-xl animate-pulse">
+          <span className="text-lg">TEST PHONE VERIFICATION</span>
+          <span className="block text-xs mt-1">(Twilio outgoing-only setup)</span>
         </Button>
       </div>
 
       {/* Configuration panel in bottom right */}
       <div className="fixed bottom-4 right-4 bg-white border border-gray-200 rounded-lg shadow-lg p-4 z-50">
-        <h3 className="text-md font-semibold mb-3">Phone Verification Test</h3>
+        <h3 className="text-md font-semibold mb-3">Phone Verification Settings</h3>
         
         <div className="flex flex-col space-y-3">
-          <input
-            type="text"
-            value={phoneNumber}
-            onChange={(e) => setPhoneNumber(e.target.value)}
-            placeholder="Enter phone number (with +)"
-            className="px-3 py-2 border border-gray-300 rounded-md"
-          />
+          <div>
+            <label className="text-sm text-gray-600 mb-1 block">Test phone number:</label>
+            <input
+              type="text"
+              value={phoneNumber}
+              onChange={(e) => setPhoneNumber(e.target.value)}
+              placeholder="Enter phone number (with +)"
+              className="px-3 py-2 border border-gray-300 rounded-md w-full"
+            />
+            <p className="text-xs text-gray-500 mt-1 italic">Using Twilio's outgoing-only SMS service</p>
+          </div>
           
           <Button 
             onClick={handleOpenModal}
             size="sm"
-            className="bg-blue-600">
+            className="bg-blue-600 hover:bg-blue-700 text-white">
             Open Verification Modal
           </Button>
 
           {testResult && (
-            <div className="text-sm text-green-600 mt-2">
+            <div className="text-sm bg-green-50 border border-green-200 text-green-700 p-3 rounded-md mt-2">
               {testResult}
             </div>
           )}
