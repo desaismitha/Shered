@@ -1040,8 +1040,23 @@ export default function ActiveTripsPage() {
   // Query to fetch active trips
   const { data: activeTrips, isLoading, error, refetch: refetchActiveTrips } = useQuery<Trip[]>({
     queryKey: ["/api/trips/active"],
-    enabled: !!user,
+    enabled: !!user
   });
+  
+  // Log trip data when available using useEffect instead
+  useEffect(() => {
+    if (activeTrips) {
+      console.log("Active trips loaded:", activeTrips);
+      // Log all in-progress trips
+      const inProgressTrips = activeTrips.filter(trip => trip.status === 'in-progress');
+      console.log("In-progress trips:", inProgressTrips);
+      // Check specifically for trips 26 and 28
+      const trip26 = activeTrips.find(trip => trip.id === 26);
+      const trip28 = activeTrips.find(trip => trip.id === 28);
+      console.log("Trip #26:", trip26);
+      console.log("Trip #28:", trip28);
+    }
+  }, [activeTrips]);
   
   // Get selected trip if a tripId is selected
   const { data: selectedTrip, isLoading: isLoadingSelectedTrip } = useQuery<Trip>({
