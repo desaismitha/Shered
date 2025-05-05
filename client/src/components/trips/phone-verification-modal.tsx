@@ -188,9 +188,10 @@ export function PhoneVerificationModal({
                   No test code available. Please try again.
                 </div>
               )}
-              <p className="text-xs text-gray-500 mt-2 italic">
-                In production, this code would be sent via SMS to your phone. Since we're using Twilio's outgoing-only service for testing, the code is displayed here instead.
-              </p>
+              <div className="text-xs text-gray-500 mt-2 italic p-2 bg-amber-50 border border-amber-200 rounded-md">
+                <p className="mb-1"><strong>Note:</strong> In production, this code would be sent via SMS to your phone.</p>
+                <p>We're using Twilio's outgoing-only SMS service. The sender number must include the <code className="bg-gray-100 px-1 rounded">+1</code> country code prefix (e.g., <code className="bg-gray-100 px-1 rounded">+18473854583</code>).</p>
+              </div>
             </div>
           )}
           

@@ -52,7 +52,7 @@ export default function TestVerificationModal() {
           size="lg"
           className="bg-red-600 hover:bg-red-700 text-white font-bold shadow-lg px-6 py-8 rounded-xl animate-pulse">
           <span className="text-lg">TEST PHONE VERIFICATION</span>
-          <span className="block text-xs mt-1">(Twilio outgoing-only setup)</span>
+          <span className="block text-xs mt-1">(Using E.164 format with +1 prefix)</span>
         </Button>
       </div>
 
@@ -70,7 +70,7 @@ export default function TestVerificationModal() {
               placeholder="Enter phone number (with +)"
               className="px-3 py-2 border border-gray-300 rounded-md w-full"
             />
-            <p className="text-xs text-gray-500 mt-1 italic">Using Twilio's outgoing-only SMS service</p>
+            <p className="text-xs text-gray-500 mt-1 italic">Format must include country code (e.g., <code className="bg-gray-100 px-1 rounded">+14258353425</code>)</p>
           </div>
           
           <Button 

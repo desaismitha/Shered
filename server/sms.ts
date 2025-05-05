@@ -44,12 +44,15 @@ export async function sendSMS(params: SmsParams): Promise<boolean> {
     const formattedPhoneNumber = formatPhoneNumber(params.to);
     
     // Use the Twilio phone number from environment variables (outgoing only)
-    const senderNumber = process.env.TWILIO_PHONE_NUMBER;
+    let senderNumber = process.env.TWILIO_PHONE_NUMBER;
     
     if (!senderNumber) {
       console.error('TWILIO_PHONE_NUMBER environment variable is not set');
       return false;
     }
+    
+    // Make sure the sender number is properly formatted with +1 prefix
+    senderNumber = formatPhoneNumber(senderNumber);
     
     // Log what we're using
     console.log(`Using Twilio number ${senderNumber} for sending SMS (outgoing only)`);
