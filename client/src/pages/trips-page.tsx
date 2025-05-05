@@ -32,7 +32,10 @@ export default function TripsPage() {
     const matchesSearch = 
       searchQuery === "" || 
       trip.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (trip.destination && trip.destination.toLowerCase().includes(searchQuery.toLowerCase()));
+      (trip.destination && trip.destination.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (trip.startLocation && trip.startLocation.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (trip.destinationDisplay && trip.destinationDisplay.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (trip.startLocationDisplay && trip.startLocationDisplay.toLowerCase().includes(searchQuery.toLowerCase()));
     
     const matchesStatus = statusFilter === "all" || trip.status === statusFilter;
     
@@ -115,7 +118,7 @@ export default function TripsPage() {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-neutral-400" />
             <Input
-              placeholder="Search trips by name or destination"
+              placeholder="Search trips by title or location"
               className="pl-10"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
