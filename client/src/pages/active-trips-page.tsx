@@ -1723,7 +1723,9 @@ export default function ActiveTripsPage() {
                     <div className="bg-background border rounded-lg p-4">
                       <h3 className="text-sm font-medium text-muted-foreground mb-1">Distance Traveled</h3>
                       <p className="text-lg font-medium">
-                        {selectedTrip.distanceTraveled ? `${selectedTrip.distanceTraveled.toFixed(2)} km` : 'Not started'}
+                        {selectedTrip.distanceTraveled && selectedTrip.distanceTraveled > 0 
+                          ? `${selectedTrip.distanceTraveled.toFixed(2)} km` 
+                          : '0.00 km'}
                       </p>
                     </div>
                     
@@ -2151,12 +2153,12 @@ export default function ActiveTripsPage() {
                             {trip.lastLocationUpdate ? new Date(trip.lastLocationUpdate).toLocaleString() : "Not updated yet"}
                           </p>
                         )}
-                        {trip.distanceTraveled && trip.distanceTraveled > 0 && (
-                          <p className="flex items-center mt-2">
-                            <span className="font-medium mr-2">Distance:</span>
-                            {trip.distanceTraveled.toFixed(1)} km
-                          </p>
-                        )}
+                        <p className="flex items-center mt-2">
+                          <span className="font-medium mr-2">Distance:</span>
+                          {trip.distanceTraveled && trip.distanceTraveled > 0 
+                            ? `${trip.distanceTraveled.toFixed(1)} km` 
+                            : '0.0 km'}
+                        </p>
                       </div>
                     </CardContent>
                     <CardFooter>
