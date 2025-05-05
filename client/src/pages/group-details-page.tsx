@@ -739,6 +739,7 @@ export default function GroupDetailsPage() {
               <TabsList>
                 <TabsTrigger value="trips">Trips</TabsTrigger>
                 <TabsTrigger value="messages">Messages</TabsTrigger>
+                <TabsTrigger value="members">Members</TabsTrigger>
               </TabsList>
               
               {/* Trips tab */}
@@ -818,71 +819,99 @@ export default function GroupDetailsPage() {
                   </CardContent>
                 </Card>
               </TabsContent>
+              
+              {/* Members tab */}
+              <TabsContent value="members">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between">
+                    <CardTitle>Group Members</CardTitle>
+                    {isAdmin && (
+                      <Button 
+                        size="sm"
+                        onClick={() => setIsAddMemberOpen(true)}
+                      >
+                        <PlusIcon className="h-4 w-4 mr-2" />
+                        Add Member
+                      </Button>
+                    )}
+                  </CardHeader>
+                  <CardContent>
+                    {isLoadingGroupMembers ? (
+                      <div className="space-y-4">
+                        {[...Array(3)].map((_, i) => (
+                          <div key={i} className="flex items-center">
+                            <Skeleton className="h-10 w-10 rounded-full mr-3" />
+                            <div>
+                              <Skeleton className="h-4 w-24 mb-1" />
+                              <Skeleton className="h-3 w-16" />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : groupMembers?.[0] && users ? (
+                      <div className="space-y-4">
+                        {/* Show all group members from API data */}
+                        {groupMembers.map(member => {
+                          const memberUser = users.find(u => u.id === member.userId);
+                          return (
+                            <div key={member.id} className="flex items-center justify-between">
+                              <div className="flex items-center">
+                                <div className="w-10 h-10 rounded-full bg-neutral-200 text-neutral-600 flex items-center justify-center mr-3">
+                                  {memberUser?.displayName?.[0] || memberUser?.username?.[0] || "U"}
+                                </div>
+                                <div>
+                                  <p className="font-medium text-neutral-800">
+                                    {memberUser?.displayName || memberUser?.username || 'Unknown User'}
+                                  </p>
+                                  <p className="text-xs text-neutral-500">
+                                    {member.role === 'admin' ? 'Admin' : 'Member'}
+                                  </p>
+                                </div>
+                              </div>
+                              <Badge variant="default" className="capitalize">
+                                {member.role}
+                              </Badge>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="text-center py-6">
+                        <Users className="h-8 w-8 text-neutral-300 mx-auto mb-2" />
+                        <p className="text-neutral-500">No members found</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
             </Tabs>
           </div>
           
-          {/* Right column - Group members */}
+          {/* Right column - Group info */}
           <div>
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>Group Members</CardTitle>
-                {isAdmin && (
-                  <Button 
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setIsAddMemberOpen(true)}
-                  >
-                    <PlusIcon className="h-4 w-4 mr-2" />
-                    Add
-                  </Button>
-                )}
+              <CardHeader>
+                <CardTitle>Group Information</CardTitle>
               </CardHeader>
               <CardContent>
-                {isLoadingGroupMembers ? (
-                  <div className="space-y-4">
-                    {[...Array(3)].map((_, i) => (
-                      <div key={i} className="flex items-center">
-                        <Skeleton className="h-10 w-10 rounded-full mr-3" />
-                        <div>
-                          <Skeleton className="h-4 w-24 mb-1" />
-                          <Skeleton className="h-3 w-16" />
-                        </div>
-                      </div>
-                    ))}
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-sm font-medium text-neutral-500 mb-1">Created</h3>
+                    <p className="text-neutral-800">{group.createdAt ? format(new Date(group.createdAt), 'PPP') : 'Unknown'}</p>
                   </div>
-                ) : groupMembers?.[0] && users ? (
-                  <div className="space-y-4">
-                    {/* Show all group members from API data */}
-                    {groupMembers.map(member => {
-                      const memberUser = users.find(u => u.id === member.userId);
-                      return (
-                        <div key={member.id} className="flex items-center justify-between">
-                          <div className="flex items-center">
-                            <div className="w-10 h-10 rounded-full bg-neutral-200 text-neutral-600 flex items-center justify-center mr-3">
-                              {memberUser?.displayName?.[0] || memberUser?.username?.[0] || "U"}
-                            </div>
-                            <div>
-                              <p className="font-medium text-neutral-800">
-                                {memberUser?.displayName || memberUser?.username || 'Unknown User'}
-                              </p>
-                              <p className="text-xs text-neutral-500">
-                                {member.role === 'admin' ? 'Admin' : 'Member'}
-                              </p>
-                            </div>
-                          </div>
-                          <Badge variant="default" className="capitalize">
-                            {member.role}
-                          </Badge>
-                        </div>
-                      );
-                    })}
+                  <div>
+                    <h3 className="text-sm font-medium text-neutral-500 mb-1">Creator</h3>
+                    <p className="text-neutral-800">
+                      {users?.find(u => u.id === group.createdBy)?.displayName || 
+                       users?.find(u => u.id === group.createdBy)?.username || 
+                       'Unknown'}
+                    </p>
                   </div>
-                ) : (
-                  <div className="text-center py-6">
-                    <Users className="h-8 w-8 text-neutral-300 mx-auto mb-2" />
-                    <p className="text-neutral-500">No members found</p>
+                  <div>
+                    <h3 className="text-sm font-medium text-neutral-500 mb-1">Members</h3>
+                    <p className="text-neutral-800">{groupMembers?.length || 0} members</p>
                   </div>
-                )}
+                </div>
               </CardContent>
             </Card>
           </div>
