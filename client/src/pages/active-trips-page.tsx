@@ -1063,7 +1063,8 @@ export default function ActiveTripsPage() {
   const [isLocationUpdating, setIsLocationUpdating] = useState(false);
   const [locationUpdateError, setLocationUpdateError] = useState<string | null>(null);
   const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null);
-  const [locationPermission, setLocationPermission] = useState<PermissionState | 'unknown'>('unknown');
+  // Define location permission with string type to include 'unknown' and 'denied'
+  const [locationPermission, setLocationPermission] = useState<'granted' | 'prompt' | 'denied' | 'unknown'>('unknown');
   
   // Map reference for Leaflet
   const mapRef = useRef<L.Map | null>(null);
@@ -1257,26 +1258,37 @@ export default function ActiveTripsPage() {
   
   const updateLocationMutation = useMutation({
     mutationFn: async (coords: { latitude: number; longitude: number }) => {
-      if (!selectedTripId) throw new Error("No trip selected");
+      if (!selectedTripId) {
+        console.error("[LOCATION DEBUG] No trip selected when trying to update location");
+        throw new Error("No trip selected");
+      }
       
-      console.log("Updating location with coordinates:", coords);
+      console.log("[LOCATION DEBUG] Updating location with coordinates:", coords);
+      console.log("[LOCATION DEBUG] Selected trip ID:", selectedTripId);
       
       // Validate coordinates
       if (typeof coords.latitude !== 'number' || typeof coords.longitude !== 'number') {
+        console.error("[LOCATION DEBUG] Invalid coordinates:", coords);
         throw new Error("Invalid coordinates: latitude and longitude must be numbers");
       }
       
       try {
+        console.log(`[LOCATION DEBUG] Making API request to /api/trips/${selectedTripId}/update-location`);
         const res = await apiRequest("POST", `/api/trips/${selectedTripId}/update-location`, coords);
+        
+        console.log("[LOCATION DEBUG] API response status:", res.status);
         
         if (!res.ok) {
           const errorData = await res.json();
+          console.error("[LOCATION DEBUG] API error response:", errorData);
           throw new Error(errorData.error || `Server error: ${res.status}`);
         }
         
-        return await res.json();
+        const responseData = await res.json();
+        console.log("[LOCATION DEBUG] API success response:", responseData);
+        return responseData;
       } catch (error) {
-        console.error("Location update error:", error);
+        console.error("[LOCATION DEBUG] Location update error:", error);
         throw error;
       }
     },
@@ -1446,6 +1458,8 @@ export default function ActiveTripsPage() {
     setLocationUpdateError(null);
     
     console.log("[LOCATION DEBUG] Requesting current position...");
+    console.log("[LOCATION DEBUG] Browser info:", navigator.userAgent);
+    console.log("[LOCATION DEBUG] Using high accuracy settings");
     
     // Set a timeout to prevent the UI from freezing if the permission dialog is ignored
     const locationTimeout = setTimeout(() => {
@@ -1508,14 +1522,20 @@ export default function ActiveTripsPage() {
         maximumAge: 0
       }
     );
-    } catch (generalError) {
-      console.error("[LOCATION DEBUG] General error in getCurrentLocation:", generalError);
+    } catch (error) {
+      console.error("[LOCATION DEBUG] General error in getCurrentLocation:", error);
       clearTimeout(locationTimeout);
       setIsLocationUpdating(false);
-      setLocationUpdateError(`Unexpected error: ${generalError.message || 'Unknown error'}`);
+      
+      // Handle the error message safely regardless of error type
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : 'Unknown error';
+        
+      setLocationUpdateError(`Unexpected error: ${errorMessage}`);
       toast({
         title: "Location error",
-        description: `An unexpected error occurred: ${generalError.message || 'Unknown error'}`,
+        description: `An unexpected error occurred: ${errorMessage}`,
         variant: "destructive",
       });
     }
@@ -1641,7 +1661,8 @@ export default function ActiveTripsPage() {
             )}
             
             {/* Error messages */}
-            {locationUpdateError && locationPermission !== 'denied' && (
+            {/* Show error message only if we have an error and permission isn't denied */}
+            {locationUpdateError && (locationPermission === 'granted' || locationPermission === 'prompt' || locationPermission === 'unknown') && (
               <Alert variant="destructive" className="mb-6">
                 <AlertTitle>Error updating location</AlertTitle>
                 <AlertDescription>{locationUpdateError}</AlertDescription>
