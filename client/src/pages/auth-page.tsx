@@ -270,14 +270,20 @@ export default function AuthPage() {
       // The effect that monitors registerInitMutation.isSuccess will handle the state updates and show the modal
       // This avoids redundant state updates
       onSuccess: (response) => {
+        const smsVerified = response.smsOtpSent === true;
+        // Update state directly here
+        setSmsSent(smsVerified);
         console.log('Registration initialization successful', {
           registrationId: response.registrationId,
           email: response.email,
+          smsVerified: smsVerified,
           hasInvitation: !!inviteToken
         });
         toast({
           title: "Registration Started",
-          description: "Please check your email for a verification code",
+          description: smsVerified
+            ? "Please check your email or SMS for a verification code"
+            : "Please check your email for a verification code",
         });
       }
     });
