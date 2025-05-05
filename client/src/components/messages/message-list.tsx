@@ -84,11 +84,11 @@ export function MessageList({ groupId, users }: MessageListProps) {
                   <div className={`flex items-start max-w-[80%] ${isCurrentUser ? 'flex-row-reverse' : 'flex-row'}`}>
                     {!isCurrentUser ? (
                       <div className="w-8 h-8 rounded-full bg-neutral-200 text-neutral-600 flex items-center justify-center mr-2">
-                        {messageUser?.displayName?.[0] || messageUser?.username?.[0] || "U"}
+                        {messageUser?.displayName?.charAt(0).toUpperCase() || messageUser?.username?.charAt(0).toUpperCase() || "U"}
                       </div>
                     ) : (
                       <div className="w-8 h-8 rounded-full bg-primary-100 text-primary-600 flex items-center justify-center ml-2">
-                        {currentUser?.displayName?.[0] || currentUser?.username?.[0] || "U"}
+                        {currentUser?.displayName?.charAt(0).toUpperCase() || currentUser?.username?.charAt(0).toUpperCase() || "Y"}
                       </div>
                     )}
                     
