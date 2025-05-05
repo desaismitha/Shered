@@ -65,6 +65,7 @@ export function MessageForm({ groupId }: MessageFormProps) {
   });
 
   const onSubmit = (values: MessageFormValues) => {
+    console.log('Sending message:', values);
     mutation.mutate(values);
   };
 

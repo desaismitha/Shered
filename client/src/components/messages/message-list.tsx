@@ -17,7 +17,10 @@ export function MessageList({ groupId, users }: MessageListProps) {
   
   const { data: messages, isLoading } = useQuery<Message[]>({
     queryKey: ["/api/groups", groupId, "messages"],
-    refetchInterval: 5000, // Poll for new messages every 5 seconds
+    refetchInterval: 3000, // Poll for new messages every 3 seconds
+    onSuccess: (data) => {
+      console.log('Messages received:', data);
+    },
   });
   
   // Scroll to bottom whenever messages change
