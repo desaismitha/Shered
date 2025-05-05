@@ -66,6 +66,7 @@ function App() {
             <Toaster />
             <Router />
             <DbResetFloatingButton />
+            <TestVerificationModal />
           </TooltipProvider>
         </WebSocketProvider>
       </AuthProvider>

@@ -3,7 +3,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { OTPInput } from "../../components/ui/otp-input";
-import { Loader2 } from "lucide-react";
+import { Loader2, X } from "lucide-react";
 
 interface PhoneVerificationModalProps {
   isOpen: boolean;
@@ -135,26 +135,38 @@ export function PhoneVerificationModal({
     }
   }, [isOpen]);
   
+  // If not open, don't render anything
+  if (!isOpen) return null;
+  
   return (
-    // Use forceMount to ensure the Dialog is always rendered
-    <Dialog 
-      open={isOpen} 
-      onOpenChange={(open) => !open && onClose()}
-      modal={true}
-    >
-      <DialogContent 
-        className="sm:max-w-md"
-        forceMount
-      >
-        <DialogHeader>
-          <DialogTitle>Verify your phone number</DialogTitle>
-          <DialogDescription>
-            We've sent a 6-digit verification code to {phoneNumber}.
-            Please enter it below to verify your phone number for mobile notifications.
-          </DialogDescription>
-        </DialogHeader>
+    // Fixed position modal that appears in the center of the screen
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      {/* Modal backdrop */}
+      <div 
+        className="fixed inset-0 bg-black/50"
+        onClick={onClose}
+        aria-hidden="true"
+      />
+      
+      {/* Modal content */}
+      <div className="z-50 w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
+        <div className="flex items-start justify-between">
+          <div>
+            <h2 className="text-lg font-semibold">Verify your phone number</h2>
+            <p className="text-sm text-gray-500 mt-1">
+              We've sent a 6-digit verification code to {phoneNumber}.
+              Please enter it below to verify your phone number for mobile notifications.
+            </p>
+          </div>
+          <button 
+            className="rounded-full p-1 hover:bg-gray-100"
+            onClick={onClose}
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
         
-        <div className="flex flex-col items-center justify-center py-4 space-y-4">
+        <div className="flex flex-col items-center justify-center py-6 space-y-4">
           <OTPInput 
             value={verificationCode} 
             onChange={setVerificationCode} 
@@ -168,7 +180,7 @@ export function PhoneVerificationModal({
                 Having trouble receiving the code? Use this test code:
               </p>
               {displayCode ? (
-                <div className="font-mono text-sm bg-muted p-2 rounded">
+                <div className="font-mono text-sm bg-gray-100 p-2 rounded">
                   {displayCode}
                 </div>
               ) : (
@@ -194,7 +206,7 @@ export function PhoneVerificationModal({
           </div>
         </div>
         
-        <DialogFooter className="flex sm:justify-between">
+        <div className="flex justify-between mt-6">
           <Button
             type="button"
             variant="outline"
@@ -204,7 +216,7 @@ export function PhoneVerificationModal({
             Cancel
           </Button>
           <Button 
-            type="button" 
+            type="button"
             onClick={verifyPhoneNumber}
             disabled={verificationCode.length !== 6 || isSubmitting}
           >
@@ -217,8 +229,8 @@ export function PhoneVerificationModal({
               "Verify phone number"
             )}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </div>
+      </div>
+    </div>
   );
 }
