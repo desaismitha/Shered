@@ -429,6 +429,58 @@ export function UnifiedTripForm({
           </div>
         </Card>
         
+        {/* Mobile Notifications Card */}
+        <Card className="p-6">
+          <h2 className="text-lg font-medium mb-4">Mobile Notifications</h2>
+          
+          <div className="flex flex-col space-y-4">
+            <FormField
+              control={form.control}
+              name="enableMobileNotifications"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between space-x-3 space-y-0 rounded-md border p-4">
+                  <div className="space-y-1">
+                    <FormLabel className="text-base">
+                      Route Change Notifications
+                    </FormLabel>
+                    <FormDescription>
+                      Receive SMS notifications when someone deviates from the planned route
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+            
+            {form.watch("enableMobileNotifications") && (
+              <FormField
+                control={form.control}
+                name="phoneNumber"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Phone Number</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="Enter your phone number (e.g., +1234567890)" 
+                        {...field} 
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Phone number must include country code (e.g., +1 for US)
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+          </div>
+        </Card>
+        
         {/* Single Stop Trip Form */}
         {!isMultiStop && (
           <Card className="p-6">
