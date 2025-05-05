@@ -130,15 +130,18 @@ export function VerificationModal({ isOpen, onOpenChange, userEmail, userPhone, 
 
           <TabsContent value="otp" className="mt-4">
             {verificationCode && (
-              <div className="mb-6 p-4 border border-amber-300 bg-amber-50 rounded-md">
-                <p className="text-sm text-amber-800 font-medium mb-2">Development Mode: Verification Code</p>
+              <div className="mb-6 p-4 border border-blue-100 bg-blue-50 rounded-md">
+                <div className="flex items-center justify-center gap-2 mb-3">
+                  <Mail className="h-5 w-5 text-blue-600" />
+                  <p className="text-sm text-blue-800 font-medium">Verification Code</p>
+                </div>
                 <div className="flex items-center justify-center">
-                  <div className="text-lg font-mono bg-white p-2 rounded border border-amber-300 tracking-wider">
+                  <div className="text-xl font-mono bg-white p-3 rounded-md border border-blue-200 tracking-widest shadow-sm">
                     {verificationCode}
                   </div>
                 </div>
-                <p className="text-xs text-amber-700 mt-2 text-center">
-                  Use this code to verify your account (email delivery may be delayed).
+                <p className="text-xs text-blue-700 mt-3 text-center">
+                  Enter this code below to verify your account.
                 </p>
               </div>
             )}
