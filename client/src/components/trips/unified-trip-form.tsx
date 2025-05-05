@@ -160,30 +160,44 @@ export function UnifiedTripForm({
   }, [form.watch]);
 
   const handleSubmit = (data: FormData) => {
-    // If mobile notifications are enabled, make sure phone verification happens first
+    console.log('Form submitted with data:', data);
+    console.log('Current user data:', userData);
+    
+    // If mobile notifications are enabled, check for phone verification
     if (data.enableMobileNotifications && data.phoneNumber) {
-      // Phone verification needed here
-      if (!userData?.phoneNumber) {
-        setFormDataForSubmission(data);
-        setShowPhoneVerification(true);
-        return;
-      }
+      console.log('Mobile notifications enabled with phone number:', data.phoneNumber);
+      
+      // Always show verification modal if enabling notifications
+      // This is a temporary fix to force the modal to show
+      setFormDataForSubmission(data);
+      setShowPhoneVerification(true);
+      console.log('Setting showPhoneVerification to TRUE');
+      return;
     }
     
     // Submit as normal if no verification needed
+    console.log('No verification needed, submitting form');
     onSubmit(data);
   };
 
   const handlePhoneVerificationComplete = () => {
+    console.log('Phone verification completed');
     setShowPhoneVerification(false);
     
     // Refresh user data to get updated phoneNumber status
     // This would be handled by react-query invalidation
 
     if (formDataForSubmission) {
+      console.log('Submitting form data after verification completed:', formDataForSubmission);
       onSubmit(formDataForSubmission);
       setFormDataForSubmission(null);
     }
+  };
+  
+  // Add a button to manually test the verification modal
+  const debugShowVerificationModal = () => {
+    console.log('Debug showing verification modal');
+    setShowPhoneVerification(true);
   };
 
   // Debug logging
@@ -419,31 +433,40 @@ export function UnifiedTripForm({
             </div>
           </Card>
           
-          <div className="flex justify-end space-x-4 mt-8">
-            {onCancel && (
-              <button 
-                type="button" 
-                onClick={onCancel} 
-                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
-                Cancel
-              </button>
-            )}
+          <div className="flex justify-between items-center space-x-4 mt-8">
             <button 
-              type="submit" 
-              className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition-colors"
-              disabled={isLoading}>
-              {isLoading ? (
-                <>
-                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Saving...
-                </>
-              ) : (
-                isEditing ? "Save Changes" : (isMultiStop ? "Create Multi-Stop Trip" : "Create Trip")
-              )}
+              type="button" 
+              onClick={debugShowVerificationModal} 
+              className="px-4 py-2 border border-red-300 rounded-md text-red-700 hover:bg-red-50">
+              Test Phone Verification Modal
             </button>
+            
+            <div className="flex space-x-4">
+              {onCancel && (
+                <button 
+                  type="button" 
+                  onClick={onCancel} 
+                  className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
+                  Cancel
+                </button>
+              )}
+              <button 
+                type="submit" 
+                className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition-colors"
+                disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Saving...
+                  </>
+                ) : (
+                  isEditing ? "Save Changes" : (isMultiStop ? "Create Multi-Stop Trip" : "Create Trip")
+                )}
+              </button>
+            </div>
           </div>
         </form>
       </Form>
