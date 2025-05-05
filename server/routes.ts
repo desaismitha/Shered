@@ -3276,8 +3276,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const accessLevel = await checkTripAccess(req, tripId, res, next, "[CHECKIN_STATUS] ");
       if (!accessLevel) return; // Response already sent by checkTripAccess
 
+      // Get trip data to add location information
+      const trip = await storage.getTrip(tripId);
+      if (!trip) {
+        return res.status(404).json({ error: 'Trip not found' });
+      }
+      
+      // Clean location data from trip
+      const enhancedTrip = cleanTripLocationData(trip);
+      
+      // Get check-in statuses
       const checkInStatus = await storage.getAllTripCheckInStatus(tripId);
-      res.json(checkInStatus);
+      
+      // Add trip location info to the response
+      const response = {
+        checkInStatuses: checkInStatus,
+        tripInfo: {
+          startLocation: enhancedTrip.startLocation,
+          startLocationDisplay: enhancedTrip.startLocationDisplay,
+          destination: enhancedTrip.destination,
+          destinationDisplay: enhancedTrip.destinationDisplay
+        }
+      };
+      
+      res.json(response);
     } catch (error) {
       next(error);
     }
