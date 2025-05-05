@@ -43,11 +43,11 @@ export async function sendSMS(params: SmsParams): Promise<boolean> {
     // Format phone number to ensure it has the + prefix
     const formattedPhoneNumber = formatPhoneNumber(params.to);
     
-    // Use the Twilio phone number from environment variables
-    const senderNumber = process.env.TWILIO_PHONE_NUMBER || "+18473854583";
+    // Use the proper E.164 formatted Twilio phone number
+    const senderNumber = "+18473854583"; // Must have + prefix for Twilio
     
-    // Log what we're using after cleanup
-    console.log(`Formatted Twilio number: ${senderNumber} (from ${process.env.TWILIO_PHONE_NUMBER})`);
+    // Log what we're using, always using the hardcoded E.164 number
+    console.log(`Using Twilio number ${senderNumber} in E.164 format for sending SMS`);
     
     // If we're trying to send to the same number as our Twilio number, we should fallback to email only
     if (formattedPhoneNumber === senderNumber) {
