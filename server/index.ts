@@ -249,6 +249,9 @@ app.use((req, res, next) => {
       console.log(`[DEBUG] Parsed coordinates:\n  - Start: ${JSON.stringify(startCoords)}\n  - End: ${JSON.stringify(endCoords)}`);
       
       // Return all the data for debugging
+      const hasNotificationsEnabled = trip.enableMobileNotifications === true;
+      console.log(`[DEBUG] Notifications status check - DB value: ${trip.enableMobileNotifications}, computed boolean: ${hasNotificationsEnabled}`);
+      
       return res.status(200).json({
         success: true,
         tripData: trip,
@@ -256,7 +259,7 @@ app.use((req, res, next) => {
           start: startCoords,
           end: endCoords
         },
-        enableMobileNotifications: trip.enableMobileNotifications,
+        enableMobileNotifications: hasNotificationsEnabled,
         requestParams: { lat, lng, tripId }
       });
     } catch (error) {
@@ -388,6 +391,10 @@ app.use((req, res, next) => {
         resultMessage = `Location checked but email sending failed.`;
       }
       
+      // Ensure consistent boolean value for enableMobileNotifications
+      const hasNotificationsEnabled = trip.enableMobileNotifications === true;
+      console.log(`[TEST] Notifications status check - DB value: ${trip.enableMobileNotifications}, computed boolean: ${hasNotificationsEnabled}`);
+      
       res.json({
         success: true,
         message: resultMessage,
@@ -397,7 +404,7 @@ app.use((req, res, next) => {
           distanceFromRoute: routeCheck.distanceFromRoute,
           isDeviation: routeCheck.distanceFromRoute > 5.0
         },
-        notificationsEnabled: !!trip.enableMobileNotifications,
+        notificationsEnabled: hasNotificationsEnabled,
         emailSent: emailSuccess
       });
     } catch (error) {

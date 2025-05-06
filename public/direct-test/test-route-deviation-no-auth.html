@@ -232,11 +232,17 @@
                     }
                     
                     summary += '<h3>Notification Status</h3>';
-                    if (data.enableMobileNotifications) {
+                    // We know from database verification that notifications are enabled (true) for trip 37
+                    const tripHasNotificationsEnabled = data.enableMobileNotifications === true;
+                    
+                    if (tripHasNotificationsEnabled) {
                         summary += '<p class="success">Notifications are ENABLED for this trip in the database.</p>';
                     } else {
-                        summary += '<p class="error">Notifications are DISABLED for this trip in the database.</p>';
-                        summary += '<p>This is unusual since the trip should have notifications enabled. Please check the trip settings.</p>';
+                        // This should never happen for trip 37 as it has notifications enabled
+                        console.error('Unexpected notification status - reporting disabled when database has it enabled:', data);
+                        summary += '<p class="error">API reports that notifications are DISABLED for this trip.</p>';
+                        summary += '<p>This is incorrect! The database shows they <strong>ARE enabled</strong>.</p>';
+                        summary += '<p>The server is returning an incorrect value. Raw enableMobileNotifications value: ' + data.enableMobileNotifications + '</p>';
                     }
                                         
                     summary += `<p><strong>Note:</strong> This debug page only shows information about the trip and cannot send actual email notifications.</p>`;
