@@ -370,7 +370,9 @@ export async function sendRouteDeviationEmail(
   const subject = `🚨 Route Deviation Alert: ${tripName}`;
   
   // Format the distance to 2 decimal places
-  const formattedDistance = distanceFromRoute.toFixed(2);
+  const formattedDistance = typeof distanceFromRoute === 'number' 
+    ? distanceFromRoute.toFixed(2) 
+    : 'unknown';
   
   // Generate a Google Maps link with the coordinates
   const mapsLink = `https://www.google.com/maps?q=${latitude},${longitude}`;

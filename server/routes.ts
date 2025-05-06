@@ -863,7 +863,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             );
             
             if (routeCheck) {
-              distanceFromRoute = routeCheck.distance;
+              distanceFromRoute = routeCheck.distanceFromRoute;
               console.log(`[TEST] Calculated actual distance from route: ${distanceFromRoute.toFixed(2)}km`);
             }
           }
@@ -996,7 +996,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           if (routeCheck) {
             isDeviation = !routeCheck.isOnRoute;
-            deviationDistance = routeCheck.distance;
+            deviationDistance = routeCheck.distanceFromRoute;
             
             console.log(`[LOCATION_UPDATE] Route check result:`, 
               { isDeviation, distance: deviationDistance.toFixed(2) + 'km' });
