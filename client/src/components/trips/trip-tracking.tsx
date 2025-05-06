@@ -4,7 +4,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { MapPin, AlertTriangle, BellRing, Bell } from 'lucide-react';
+import { MapPin, AlertTriangle, BellRing, Bell, Navigation, CheckCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { apiRequest } from '@/lib/queryClient';
 
@@ -290,7 +290,94 @@ export default function TripTracking({ tripId, tripName, isActive }: TripTrackin
     }
   }, []);
   
-  // Function declaration moved to top of file to avoid duplication
+  // Check for route deviation with current location without continuous tracking
+  const checkCurrentLocation = useCallback(() => {
+    if (!navigator.geolocation) {
+      setError('Geolocation is not supported by your browser');
+      return;
+    }
+    
+    const options = {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 0
+    };
+    
+    toast({
+      title: 'Checking Current Location',
+      description: 'Getting your current position to check for route deviation...'
+    });
+    
+    // Get current position once
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude, accuracy } = position.coords;
+        const timestamp = new Date(position.timestamp);
+        
+        console.log(`One-time location check: ${latitude.toFixed(6)}, ${longitude.toFixed(6)} (accuracy: ${accuracy}m)`);
+        
+        // Update state with current location
+        setLocation({
+          latitude,
+          longitude,
+          accuracy,
+          timestamp
+        });
+        
+        try {
+          // Check deviation using the test endpoint
+          const response = await fetch(`/api/test/route-deviation?lat=${latitude}&lng=${longitude}&tripId=${tripId}`);
+          
+          if (!response.ok) {
+            throw new Error(`Server responded with status: ${response.status} ${response.statusText}`);
+          }
+          
+          const result = await response.json();
+          
+          if (result.success) {
+            const { routeCheck } = result;
+            console.log('Route check results:', routeCheck);
+            
+            if (routeCheck.isDeviation) {
+              setRouteDeviation({
+                isDeviated: true,
+                distance: routeCheck.distanceFromRoute
+              });
+              
+              toast({
+                title: 'Route Deviation Detected',
+                description: `You are ${routeCheck.distanceFromRoute.toFixed(2)}km away from the planned route.`,
+                variant: 'destructive'
+              });
+            } else {
+              setRouteDeviation(null);
+              
+              toast({
+                title: 'On Route',
+                description: `You are on the planned route. Distance: ${routeCheck.distanceFromRoute.toFixed(2)}km.`,
+                variant: 'default'
+              });
+            }
+          } else {
+            throw new Error(result.error || 'Unknown error checking route');
+          }
+        } catch (err) {
+          console.error('Error checking for route deviation:', err);
+          setError(`Failed to check route deviation: ${err instanceof Error ? err.message : 'Unknown error'}`);
+          
+          toast({
+            title: 'Route Check Failed',
+            description: err instanceof Error ? err.message : 'Unknown error checking route',
+            variant: 'destructive'
+          });
+        }
+      },
+      (error) => {
+        handleLocationError(error);
+      },
+      options
+    );
+  }, [tripId, handleLocationError, toast]);
   
   // Toggle mobile notifications
   const toggleMobileNotifications = useCallback(async () => {
@@ -489,16 +576,29 @@ export default function TripTracking({ tripId, tripName, isActive }: TripTrackin
           </div>
           
           {/* Tracking controls */}
-          <div className="flex gap-3 pt-2">
-            {!isTracking ? (
-              <Button onClick={startTracking} className="flex-1">
-                Start Tracking
-              </Button>
-            ) : (
-              <Button onClick={stopTracking} variant="secondary" className="flex-1">
-                Pause Tracking
-              </Button>
-            )}
+          <div className="flex flex-col gap-3 pt-2">
+            {/* Quick Route Check button */}
+            <Button 
+              onClick={checkCurrentLocation} 
+              variant="outline" 
+              className="flex items-center justify-center"
+            >
+              <Navigation className="h-4 w-4 mr-2" />
+              Check Current Location
+            </Button>
+            
+            {/* Continuous tracking controls */}
+            <div className="flex gap-3">
+              {!isTracking ? (
+                <Button onClick={startTracking} className="flex-1">
+                  Start Tracking
+                </Button>
+              ) : (
+                <Button onClick={stopTracking} variant="secondary" className="flex-1">
+                  Pause Tracking
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </CardContent>
