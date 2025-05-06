@@ -209,6 +209,10 @@ app.use((req, res, next) => {
       const startCoords = parseCoordinates(trip.startLocation);
       const endCoords = parseCoordinates(trip.destination);
       
+      // Log coordinate extraction for debugging
+      console.log(`[TEST] Trip ${tripId} locations: \n  - Start: ${trip.startLocation}\n  - End: ${trip.destination}`);
+      console.log(`[TEST] Extracted coordinates: \n  - Start: ${startCoords ? `${startCoords.lat}, ${startCoords.lng}` : 'null'}\n  - End: ${endCoords ? `${endCoords.lat}, ${endCoords.lng}` : 'null'}`);
+      
       if (!startCoords || !endCoords) {
         return res.status(400).json({
           error: "Invalid trip locations",
@@ -272,9 +276,24 @@ app.use((req, res, next) => {
       });
     } catch (error) {
       console.error("Error in test route deviation endpoint:", error);
-      res.status(500).json({
-        error: "Server error",
-        details: error instanceof Error ? error.message : String(error)
+      
+      // Provide more detailed error information based on the type of error
+      let errorDetails = error instanceof Error ? error.message : String(error);
+      let statusCode = 500;
+      let errorType = "Server error";
+      
+      // Check for specific error types
+      if (errorDetails.includes("database") || errorDetails.includes("sql") || errorDetails.includes("connection")) {
+        errorType = "Database error";
+        statusCode = 503;
+      } else if (errorDetails.includes("access") || errorDetails.includes("permission") || errorDetails.includes("unauthorized")) {
+        errorType = "Access error";
+        statusCode = 403;
+      }
+      
+      res.status(statusCode).json({
+        error: errorType,
+        details: errorDetails
       });
     }
   });
