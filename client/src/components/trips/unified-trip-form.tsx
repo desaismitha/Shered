@@ -23,10 +23,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { DatePicker } from "@/components/ui/date-picker";
-import { MapLocationPicker } from "@/components/map/map-location-picker";
-import { RouteMapPreview } from "@/components/map/route-map-preview";
-import { StopItineraryForm } from "./stop-itinerary-form";
-import { RecurrenceForm } from "./recurrence-form";
+import MapLocationPicker from "@/components/maps/map-location-picker";
+import RouteMapPreview from "@/components/maps/route-map-preview";
+// These forms are not needed for email notifications
+// import { StopItineraryForm } from "./stop-itinerary-form";
+// import { RecurrenceForm } from "./recurrence-form";
 
 type FormSchemaType = {
   name: string;
@@ -343,6 +344,70 @@ export function UnifiedTripForm({
               />
             </div>
           </Card>
+          
+          {/* Location Information Card */}
+          {!isMultiStop && (
+            <Card className="p-6">
+              <h2 className="text-lg font-medium mb-4">Location Information</h2>
+              
+              <div className="grid gap-6 sm:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="startLocation"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Start Location</FormLabel>
+                      <FormControl>
+                        <MapLocationPicker 
+                          label=""
+                          value={field.value || ""} 
+                          onChange={field.onChange}
+                          placeholder="Enter start location"
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Where the trip begins
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="endLocation"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Destination</FormLabel>
+                      <FormControl>
+                        <MapLocationPicker 
+                          value={field.value || ""} 
+                          onChange={field.onChange}
+                          placeholder="Enter destination"
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Where the trip ends
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
+              {form.watch("startLocation") && form.watch("endLocation") && (
+                <div className="mt-6">
+                  <h3 className="text-sm font-medium mb-2">Route Preview</h3>
+                  <div className="h-[300px] border rounded-md overflow-hidden">
+                    <RouteMapPreview 
+                      startLocation={form.watch("startLocation") || ""} 
+                      endLocation={form.watch("endLocation") || ""}
+                    />
+                  </div>
+                </div>
+              )}
+            </Card>
+          )}
           
           {/* Route Deviation Notifications Card */}
           <Card className="p-6">
