@@ -2647,9 +2647,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
             tripId
           };
           
-          // Send notification to all group members if trip belongs to a group
-          if (trip.groupId) {
-            try {
+          // Always send notification to trip creator - whether in a group or not
+          try {
+            // Get the trip creator's user information
+            const creator = await storage.getUser(trip.createdBy);
+            
+            if (creator && creator.email) {
+              console.log(`[TRIP_UPDATE_LOCATION] Sending deviation email to trip creator: ${creator.email}`);
+              
+              // Send notification to the trip creator
+              const success = await sendRouteDeviationEmail(
+                creator.email,
+                creator.displayName || creator.username,
+                trip.name,
+                req.user.username, // Username of the person who deviated
+                routeStatus.distanceFromRoute,
+                latitude,
+                longitude
+              );
+              
+              if (success) {
+                console.log(`[TRIP_UPDATE_LOCATION] Successfully sent deviation email to trip creator`);
+              } else {
+                console.error(`[TRIP_UPDATE_LOCATION] Failed to send deviation email to trip creator`);
+              }
+            }
+            
+            // Also notify all group members if trip belongs to a group
+            if (trip.groupId) {
+              console.log(`[TRIP_UPDATE_LOCATION] Trip belongs to group ${trip.groupId}, notifying group members`);
+              
               // Send notification to all group members
               notifyGroupAboutDeviation(
                 trip.groupId,
@@ -2660,10 +2687,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 latitude,
                 longitude
               );
-            } catch (error) {
-              console.error('[TRIP_UPDATE_LOCATION] Error notifying group members:', error);
-              // Don't fail the request if notification fails
             }
+          } catch (error) {
+            console.error('[TRIP_UPDATE_LOCATION] Error sending deviation notifications:', error);
+            // Don't fail the request if notification fails
           }
         } else {
           console.log(`[TRIP_UPDATE_LOCATION] Traveler is on route (${routeStatus.distanceFromRoute.toFixed(2)}km from route)`);
@@ -3695,18 +3722,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
             endCoords.lng
           );
           
-          // If we've deviated from the route, notify group members
-          if (!routeStatus.isOnRoute && trip.groupId) {
+          // If we've deviated from the route, send notifications
+          if (!routeStatus.isOnRoute) {
             const driver = req.user;
-            await notifyGroupAboutDeviation(
-              trip.groupId,
-              tripId,
-              trip.name,
-              driver.displayName || driver.username || "Unknown user",
-              routeStatus.distanceFromRoute,
-              latitude,
-              longitude
-            );
+            
+            // Always notify the trip creator
+            const creator = await storage.getUser(trip.createdBy);
+            if (creator && creator.email) {
+              console.log(`[LOCATION_UPDATE] Sending deviation email to trip creator: ${creator.email}`);
+              
+              // Send notification to the trip creator
+              const success = await sendRouteDeviationEmail(
+                creator.email,
+                creator.displayName || creator.username,
+                trip.name,
+                driver.displayName || driver.username || "Unknown user",
+                routeStatus.distanceFromRoute,
+                latitude,
+                longitude
+              );
+              
+              if (success) {
+                console.log(`[LOCATION_UPDATE] Successfully sent deviation email to trip creator`);
+              } else {
+                console.error(`[LOCATION_UPDATE] Failed to send deviation email to trip creator`);
+              }
+            }
+            
+            // Also notify all group members if the trip belongs to a group
+            if (trip.groupId) {
+              await notifyGroupAboutDeviation(
+                trip.groupId,
+                tripId,
+                trip.name,
+                driver.displayName || driver.username || "Unknown user",
+                routeStatus.distanceFromRoute,
+                latitude,
+                longitude
+              );
+            }
           }
         }
       }
@@ -3866,20 +3920,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   endCoords.lng
                 );
                 
-                // If we've deviated from the route, notify group members
-                if (!routeStatus.isOnRoute && trip.groupId) {
+                // If we've deviated from the route, send notifications
+                if (!routeStatus.isOnRoute) {
                   // Get the driver info (assumes the updater is the driver)
                   const driver = await storage.getUser(userId);
                   if (driver) {
-                    await notifyGroupAboutDeviation(
-                      trip.groupId,
-                      tripId,
-                      trip.name,
-                      driver.displayName || driver.username || "Unknown user",
-                      routeStatus.distanceFromRoute,
-                      latitude,
-                      longitude
-                    );
+                    // Always notify the trip creator
+                    const creator = await storage.getUser(trip.createdBy);
+                    
+                    if (creator && creator.email) {
+                      console.log(`[WS_UPDATE_LOCATION] Sending deviation email to trip creator: ${creator.email}`);
+                      
+                      // Send notification email to the trip creator
+                      const success = await sendRouteDeviationEmail(
+                        creator.email,
+                        creator.displayName || creator.username,
+                        trip.name,
+                        driver.displayName || driver.username || "Unknown user",
+                        routeStatus.distanceFromRoute,
+                        latitude,
+                        longitude
+                      );
+                      
+                      if (success) {
+                        console.log(`[WS_UPDATE_LOCATION] Successfully sent deviation email to trip creator`);
+                      } else {
+                        console.error(`[WS_UPDATE_LOCATION] Failed to send deviation email to trip creator`);
+                      }
+                    }
+                    
+                    // Also notify all group members if the trip belongs to a group
+                    if (trip.groupId) {
+                      await notifyGroupAboutDeviation(
+                        trip.groupId,
+                        tripId,
+                        trip.name,
+                        driver.displayName || driver.username || "Unknown user",
+                        routeStatus.distanceFromRoute,
+                        latitude,
+                        longitude
+                      );
+                    }
                   }
                 }
               }
