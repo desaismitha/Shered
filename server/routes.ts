@@ -1,6 +1,9 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from 'ws';
+
+// Track which users are connected and their group memberships
+const connectedUserGroups: { userId: number; groupId: number }[] = [];
 import { storage } from "./storage";
 import { setupImportRoutes } from "./import";
 import { setupPhoneVerificationRoutes } from "./phone-verification";
@@ -1043,9 +1046,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Send broadcast to connected WebSocket clients
       if (trip.groupId) {
         // Broadcast to all users in the group
-        wss.clients.forEach(client => {
+        wss.clients.forEach((client: WebSocket & { userId?: number }) => {
           if (client.readyState === WebSocket.OPEN && client.userId) {
-            const userIsInGroup = connectedUserGroups.some(ug => 
+            // Check group membership from our tracked connections
+            const userIsInGroup = Array.isArray(connectedUserGroups) && connectedUserGroups.some((ug: any) => 
               ug.groupId === trip.groupId && ug.userId === client.userId
             );
             
@@ -1056,7 +1060,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       } else {
         // Just send to the trip creator
-        wss.clients.forEach(client => {
+        wss.clients.forEach((client: WebSocket & { userId?: number }) => {
           if (client.readyState === WebSocket.OPEN && client.userId === trip.createdBy) {
             client.send(JSON.stringify(updateMessage));
           }
@@ -1739,7 +1743,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Get active trips (in-progress) for the current user
+  // Get active trips (planning or in-progress) for the current user
   app.get("/api/trips/active", async (req, res, next) => {
     try {
       if (!req.isAuthenticated()) return res.sendStatus(401);
@@ -1750,8 +1754,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Debug logs for trip statuses
       console.log("ALL TRIPS FROM ACTIVE API:", trips.map(t => ({ id: t.id, status: t.status })));
       
-      // Filter to only in-progress trips
-      const activeTrips = trips.filter(trip => trip.status === 'in-progress');
+      // Filter to include both planning and in-progress trips
+      const activeTrips = trips.filter(trip => 
+        trip.status === 'in-progress' || trip.status === 'planning'
+      );
       console.log("FILTERED ACTIVE TRIPS:", activeTrips.map(t => ({ id: t.id, status: t.status })));
       
       // Enhance each trip with access level information and clean location data
