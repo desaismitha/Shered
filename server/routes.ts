@@ -1355,9 +1355,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { isEligibleDriver } = req.body;
       
       // Update just the eligibility status
-      const result = await db.update(usersTable)
+      const result = await db.update(users)
         .set({ isEligibleDriver: !!isEligibleDriver })
-        .where(eq(usersTable.id, userId))
+        .where(eq(users.id, userId))
         .returning();
       
       if (!result || result.length === 0) {
