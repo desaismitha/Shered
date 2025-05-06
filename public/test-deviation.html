@@ -12,7 +12,7 @@
       padding: 20px;
       line-height: 1.6;
     }
-    h1 {
+    h1, h2 {
       color: #4F46E5;
     }
     button {
@@ -44,6 +44,13 @@
     .error {
       background-color: #f8d7da;
       border-left: 4px solid #dc3545;
+      padding: 15px;
+      margin: 15px 0;
+      border-radius: 4px;
+    }
+    .warning {
+      background-color: #fff3cd;
+      border-left: 4px solid #ffc107;
       padding: 15px;
       margin: 15px 0;
       border-radius: 4px;
@@ -90,12 +97,56 @@
     .preset-button:hover {
       background-color: #5a6268;
     }
+    .nav-links {
+      margin-bottom: 20px;
+      padding: 10px;
+      background-color: #f8f9fa;
+      border-radius: 4px;
+    }
+    .nav-links a {
+      margin-right: 15px;
+      color: #4F46E5;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    .nav-links a:hover {
+      text-decoration: underline;
+    }
+    #activeTrips {
+      margin-bottom: 20px;
+    }
+    .trip-card {
+      background-color: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-radius: 4px;
+      padding: 10px;
+      margin-bottom: 10px;
+      cursor: pointer;
+    }
+    .trip-card:hover {
+      background-color: #e9ecef;
+    }
+    .trip-card.selected {
+      border: 2px solid #4F46E5;
+      background-color: #eef1ff;
+    }
   </style>
 </head>
 <body>
+  <div class="nav-links">
+    <a href="test-deviation.html">Route Deviation Test</a>
+    <a href="create-test-trip.html">Create Test Trip</a>
+  </div>
+
   <h1>Route Deviation Test</h1>
   
   <p>This page will help you test the route deviation notification system with simulated locations.</p>
+  
+  <div id="activeTrips">
+    <h2>Active Trips</h2>
+    <p>Click on a trip to select it for testing:</p>
+    <div id="tripsList">Loading active trips...</div>
+  </div>
   
   <div id="spoofForm">
     <h2>Spoof Location</h2>
@@ -113,7 +164,7 @@
     
     <div class="form-group">
       <label for="tripId">Trip ID:</label>
-      <input type="number" id="tripId" value="37">
+      <input type="number" id="tripId" value="">
     </div>
     
     <button id="updateLocationButton">Update Location</button>
@@ -141,6 +192,71 @@
   <div id="result"></div>
   
   <script>
+    // Load active trips on page load
+    window.addEventListener('DOMContentLoaded', async function() {
+      await loadActiveTrips();
+    });
+
+    async function loadActiveTrips() {
+      const tripsListElement = document.getElementById('tripsList');
+      
+      try {
+        const response = await fetch('/api/trips/active');
+        const trips = await response.json();
+        
+        if (!trips || trips.length === 0) {
+          tripsListElement.innerHTML = `
+            <div class="warning">
+              <h3>No Active Trips Found</h3>
+              <p>There are no active trips available for testing. You need an active trip to test route deviations.</p>
+              <p><a href="create-test-trip.html">Create a new test trip</a> to continue.</p>
+            </div>
+          `;
+          return;
+        }
+        
+        // Display the trips
+        let tripsHtml = '';
+        trips.forEach(trip => {
+          tripsHtml += `
+            <div class="trip-card" data-id="${trip.id}" data-name="${trip.name}" data-start="${trip.startLocation}" data-end="${trip.destination}">
+              <h3>${trip.name} (ID: ${trip.id})</h3>
+              <p><strong>Status:</strong> ${trip.status}</p>
+              <p><strong>From:</strong> ${trip.startLocationDisplay || trip.startLocation}</p>
+              <p><strong>To:</strong> ${trip.destinationDisplay || trip.destination}</p>
+            </div>
+          `;
+        });
+        
+        tripsListElement.innerHTML = tripsHtml;
+        
+        // Add click event listeners to trip cards
+        document.querySelectorAll('.trip-card').forEach(card => {
+          card.addEventListener('click', function() {
+            // Remove 'selected' class from all cards
+            document.querySelectorAll('.trip-card').forEach(c => c.classList.remove('selected'));
+            // Add 'selected' class to the clicked card
+            this.classList.add('selected');
+            // Set the trip ID in the form
+            document.getElementById('tripId').value = this.getAttribute('data-id');
+          });
+        });
+        
+        // Select the first trip by default
+        if (trips.length > 0) {
+          document.querySelector('.trip-card').classList.add('selected');
+          document.getElementById('tripId').value = trips[0].id;
+        }
+      } catch (error) {
+        tripsListElement.innerHTML = `
+          <div class="error">
+            <h3>Error Loading Trips</h3>
+            <p>${error.message}</p>
+          </div>
+        `;
+      }
+    }
+    
     // Set preset locations
     document.querySelectorAll('.preset-button').forEach(button => {
       button.addEventListener('click', function() {
@@ -189,10 +305,19 @@
             <div class="success">
               <h3>Location Updated!</h3>
               <p>Location was successfully updated for trip #${tripId}</p>
+              ${data.locationDetails && data.locationDetails.isDeviation ? 
+                `<p class="warning"><strong>Deviation detected!</strong> Distance from route: ${data.locationDetails.deviationDistance.toFixed(2)}km</p>` : 
+                ''
+              }
             </div>
             <h4>Response Details:</h4>
             <pre>${JSON.stringify(data, null, 2)}</pre>
           `;
+          
+          // If we detected a significant deviation, reload the trips list to update status
+          if (data.locationDetails && data.locationDetails.isDeviation) {
+            setTimeout(() => loadActiveTrips(), 1000);
+          }
         } else {
           resultElement.innerHTML = `
             <div class="error">
@@ -223,6 +348,16 @@
         const latitude = parseFloat(document.getElementById('latitude').value);
         const longitude = parseFloat(document.getElementById('longitude').value);
         const tripId = parseInt(document.getElementById('tripId').value);
+        
+        if (isNaN(tripId)) {
+          resultElement.innerHTML = `
+            <div class="error">
+              <h3>Invalid Trip ID</h3>
+              <p>Please select an active trip first.</p>
+            </div>
+          `;
+          return;
+        }
         
         const response = await fetch(`/api/test/route-deviation?lat=${latitude}&lng=${longitude}&tripId=${tripId}`);
         const data = await response.json();

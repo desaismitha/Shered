@@ -1040,7 +1040,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       };
       
-      broadcastToGroup(trip.groupId, updateMessage);
+      // Send broadcast to connected WebSocket clients
+      if (trip.groupId) {
+        // Broadcast to all users in the group
+        wss.clients.forEach(client => {
+          if (client.readyState === WebSocket.OPEN && client.userId) {
+            const userIsInGroup = connectedUserGroups.some(ug => 
+              ug.groupId === trip.groupId && ug.userId === client.userId
+            );
+            
+            if (userIsInGroup) {
+              client.send(JSON.stringify(updateMessage));
+            }
+          }
+        });
+      } else {
+        // Just send to the trip creator
+        wss.clients.forEach(client => {
+          if (client.readyState === WebSocket.OPEN && client.userId === trip.createdBy) {
+            client.send(JSON.stringify(updateMessage));
+          }
+        });
+      }
       
       // Return the updated trip data
       res.json({

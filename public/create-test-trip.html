@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Test Trip</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    h1, h2 {
+      color: #4F46E5;
+    }
+    button {
+      background-color: #4F46E5;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+      margin: 20px 0;
+    }
+    button:hover {
+      background-color: #4338CA;
+    }
+    pre {
+      background-color: #f5f5f5;
+      padding: 15px;
+      border-radius: 4px;
+      overflow-x: auto;
+    }
+    .success {
+      background-color: #d1e7dd;
+      border-left: 4px solid #198754;
+      padding: 15px;
+      margin: 15px 0;
+      border-radius: 4px;
+    }
+    .error {
+      background-color: #f8d7da;
+      border-left: 4px solid #dc3545;
+      padding: 15px;
+      margin: 15px 0;
+      border-radius: 4px;
+    }
+    #result {
+      margin-top: 20px;
+    }
+    .nav-links {
+      margin-bottom: 20px;
+      padding: 10px;
+      background-color: #f8f9fa;
+      border-radius: 4px;
+    }
+    .nav-links a {
+      margin-right: 15px;
+      color: #4F46E5;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    .nav-links a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="nav-links">
+    <a href="test-deviation.html">Route Deviation Test</a>
+    <a href="create-test-trip.html">Create Test Trip</a>
+  </div>
+
+  <h1>Create Test Trip</h1>
+  
+  <p>This page will create a new test trip for route deviation testing:</p>
+  
+  <div id="createTripForm">
+    <h2>Trip Details</h2>
+    <p>The following will create a very simple trip with pre-defined start and end locations suitable for testing route deviations.</p>
+    
+    <button id="createTripButton">Create New Test Trip</button>
+  </div>
+  
+  <div id="result"></div>
+  
+  <script>
+    document.getElementById('createTripButton').addEventListener('click', async function() {
+      const resultElement = document.getElementById('result');
+      resultElement.innerHTML = '<p>Creating test trip...</p>';
+      
+      try {
+        // Call the API to create a new trip
+        const response = await fetch('/api/trips', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            name: 'Route deviation test',
+            description: 'A test trip for route deviation notifications',
+            startLocation: '20613, Northeast 38th Street, Timberline [47.643210, -122.062622]',
+            destination: 'Elizabeth Blackwell Elementary School, 3225, 205th Place Northeast [47.639104, -122.066813]',
+            startDate: new Date(Date.now() + 5 * 60000).toISOString(), // 5 minutes from now
+            endDate: new Date(Date.now() + 60 * 60000).toISOString(), // 1 hour from now
+            enableMobileNotifications: false
+          })
+        });
+        
+        const data = await response.json();
+        
+        // Display results
+        if (response.ok) {
+          resultElement.innerHTML = `
+            <div class="success">
+              <h3>Trip Created Successfully!</h3>
+              <p>New trip ID: ${data.id}</p>
+              <p>The trip will automatically start in 5 minutes.</p>
+            </div>
+            <div>
+              <p><strong>Remember this trip ID for testing route deviations.</strong></p>
+              <a href="test-deviation.html" class="button">Go to Route Deviation Test</a>
+            </div>
+            <h4>Trip Details:</h4>
+            <pre>${JSON.stringify(data, null, 2)}</pre>
+          `;
+        } else {
+          resultElement.innerHTML = `
+            <div class="error">
+              <h3>Failed to Create Trip</h3>
+              <p>${data.error || 'Unknown error'}</p>
+            </div>
+            <h4>Response Details:</h4>
+            <pre>${JSON.stringify(data, null, 2)}</pre>
+          `;
+        }
+      } catch (error) {
+        resultElement.innerHTML = `
+          <div class="error">
+            <h3>Error Creating Trip</h3>
+            <p>${error.message}</p>
+          </div>
+        `;
+      }
+    });
+  </script>
+</body>
+</html>
