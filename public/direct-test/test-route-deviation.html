@@ -291,12 +291,17 @@
                 if (data.success) {
                     let summary = '<p class="success">Test completed successfully!</p>';
                     summary += `<p>Location: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}</p>`;
-                    summary += `<p>Distance from route: ${data.routeCheck.distanceFromRoute.toFixed(2)} km</p>`;
                     
-                    if (data.routeCheck.isOnRoute) {
-                        summary += '<p class="success">Location is <strong>ON</strong> the route (within 5km tolerance).</p>';
+                    if (data.routeCheck && typeof data.routeCheck.distanceFromRoute === 'number') {
+                        summary += `<p>Distance from route: ${data.routeCheck.distanceFromRoute.toFixed(2)} km</p>`;
+                        
+                        if (data.routeCheck.isOnRoute) {
+                            summary += '<p class="success">Location is <strong>ON</strong> the route (within 5km tolerance).</p>';
+                        } else {
+                            summary += '<p class="error">Location is <strong>OFF</strong> the route (exceeds 5km tolerance).</p>';
+                        }
                     } else {
-                        summary += '<p class="error">Location is <strong>OFF</strong> the route (exceeds 5km tolerance).</p>';
+                        summary += '<p class="error">Could not determine distance from route. Route check data missing.</p>';
                     }
                     
                     // Show notification status
