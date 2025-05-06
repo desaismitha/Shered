@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TravelGroupr Direct Access Test Pages</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        h1 {
+            color: #3b82f6;
+        }
+        .card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        pre {
+            background-color: #f1f5f9;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        .info {
+            background-color: #e0f2fe;
+            border-left: 4px solid #3b82f6;
+            padding: 10px 15px;
+            margin: 15px 0;
+        }
+        .warning {
+            background-color: #fff7ed;
+            border-left: 4px solid #f97316;
+            padding: 10px 15px;
+            margin: 15px 0;
+        }
+        a {
+            color: #3b82f6;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .btn {
+            display: inline-block;
+            background-color: #3b82f6;
+            color: white;
+            text-decoration: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        .btn:hover {
+            background-color: #2563eb;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>TravelGroupr Direct Access Test Pages</h1>
+    <div class="info">
+        <p><strong>Important:</strong> These pages are served directly without going through React's router, allowing you to access test tools even when logged in.</p>
+    </div>
+
+    <div class="card">
+        <h2>Available Test Tools</h2>
+        <p>Click on the links below to access the test tools directly:</p>
+        
+        <a href="/direct-test/create-test-trip.html" class="btn">Create Test Trip</a>
+        <a href="/direct-test/test-route-deviation.html" class="btn">Test Route Deviation</a>
+        <a href="/direct-test/test-deviation.html" class="btn">Legacy Deviation Test</a>
+        
+        <div class="warning">
+            <p><strong>Note:</strong> Do not use relative links (like <code>./test-page.html</code>) when linking between test pages. Always use absolute paths starting with <code>/direct-test/</code>.</p>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Why This Is Needed</h2>
+        <p>The standard React application uses client-side routing which intercepts URL changes. This means that when you try to navigate to a URL like <code>/test/page.html</code>, the React router catches it and tries to find a matching route in the React application.</p>
+        <p>The <code>/direct-test/</code> URLs bypass this behavior by being handled directly by the Express server before React's router can intercept them.</p>
+    </div>
+
+    <div class="card">
+        <h2>Return to Main Application</h2>
+        <p><a href="/">Back to TravelGroupr Application</a></p>
+    </div>
+</body>
+</html>
