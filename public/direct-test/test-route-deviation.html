@@ -351,8 +351,11 @@
                     
                     summary += `<p>Raw response data:</p><pre>${JSON.stringify(data, null, 2)}</pre>`;
                     
-                    // Show notification status
-                    if (data.notificationsEnabled) {
+                    // Show notification status - always check the raw value in the response data
+                    // We know from the database that notifications ARE enabled (true) for trip 37
+                    const tripHasNotificationsEnabled = data.notificationsEnabled === true;
+                    
+                    if (tripHasNotificationsEnabled) {
                         summary += '<p class="success">Notifications are enabled for this trip.</p>';
                         
                         if (data.emailSent) {
@@ -364,9 +367,12 @@
                             summary += '<p>Go to the trip page first, then try the test again.</p>';
                         }
                     } else {
-                        summary += '<p class="error">Notifications are disabled for this trip.</p>';
-                        summary += '<p>This is unusual since the database shows they should be enabled.</p>';
-                        summary += '<p>Try navigating to the trip details page and confirming notifications are enabled.</p>';
+                        // This case should never happen for trip 37 as it has notifications enabled
+                        // We've added a console log to help debug if this path is ever reached
+                        console.error('Unexpected notification status - reporting disabled when database has it enabled:', data);
+                        summary += '<p class="error">API reports that notifications are disabled for this trip.</p>';
+                        summary += '<p>This is incorrect! The database shows they <strong>ARE enabled</strong>.</p>';
+                        summary += '<p>The server is returning an incorrect value. Raw notificationsEnabled value: ' + data.notificationsEnabled + '</p>';
                     }
                     
                     resultSummaryDiv.innerHTML = summary;
