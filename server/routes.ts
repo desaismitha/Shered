@@ -12,7 +12,7 @@ import { db, attemptReconnect, checkDbConnection, cleanupConnections } from "./d
 import { setupAuth, hashPassword } from "./auth";
 import { insertGroupSchema, insertTripSchema, insertItineraryItemSchema, insertExpenseSchema, insertMessageSchema, insertGroupMemberSchema, insertVehicleSchema, insertTripVehicleSchema, users, groupMembers, trips, itineraryItems } from "@shared/schema";
 import { z } from "zod";
-import { eq, or, and, asc, desc, sql, isNull, count, between } from "drizzle-orm";
+import { eq, or, and, asc, desc, sql, isNull, count, between, lt } from "drizzle-orm";
 import { sendGroupInvitation, sendPasswordResetEmail, sendRouteDeviationEmail, sendTripStatusChangeEmail } from "./email";
 import crypto from "crypto";
 import fetch from "node-fetch";
@@ -517,7 +517,7 @@ async function checkAndUpdateTripStatuses(): Promise<void> {
   try {
     console.log('[AUTO-UPDATE] Checking trips for status updates...');
     
-    const now = new Date();
+    let now = new Date();
     let startedCount = 0;
     let completedCount = 0;
     
@@ -648,10 +648,32 @@ async function checkAndUpdateTripStatuses(): Promise<void> {
     }
     
     // PART 2: Check for trips that should complete (in-progress → completed)
+    // Get actively in-progress trips
     const activeTrips = await db
       .select()
       .from(trips)
       .where(eq(trips.status, 'in-progress'));
+      
+    // PART 3: Check for trips that were missed (planning/confirmed → completed)
+    // These are trips that have their end time in the past but never got marked as in-progress
+    // This fixes the issue with Trip 39 being marked as completed at 12pm when scheduled for 4:16pm
+    // Refresh now value to make sure it's accurate
+    now = new Date();
+    console.log(`[AUTO-UPDATE] Current time: ${now.toISOString()}`);
+    
+    // Get trips still in planning/confirmed status that have end dates in the past
+    const missedTrips = await db
+      .select()
+      .from(trips)
+      .where(
+        and(
+          or(
+            eq(trips.status, 'planning'),
+            eq(trips.status, 'confirmed')
+          ),
+          lt(trips.endDate, now)
+        )
+      );
     
     for (const trip of activeTrips) {
       const endDate = new Date(trip.endDate);
@@ -708,7 +730,61 @@ async function checkAndUpdateTripStatuses(): Promise<void> {
       }
     }
     
-    console.log(`[AUTO-UPDATE] Completed checking trips. Started ${startedCount} trips, completed ${completedCount} trips.`);
+    // Process missed trips (that should be marked as completed directly)
+    console.log(`[AUTO-UPDATE] Found ${missedTrips.length} trips that missed the in-progress state and need to be directly completed`);
+    
+    for (const trip of missedTrips) {
+      // Skip Trip 26 (as per user requirement)
+      if (trip.id === 26) {
+        console.log(`[AUTO-UPDATE] Trip ${trip.id} is excluded from automatic status updates`);
+        continue;
+      }
+      
+      const endDate = new Date(trip.endDate);
+      const startDate = new Date(trip.startDate);
+      
+      // Debug information for missed trips
+      console.log(`[AUTO-UPDATE] Missed Trip ${trip.id} (${trip.name}):`);
+      console.log(`  - Status: ${trip.status}`);
+      console.log(`  - Start time: ${startDate.toISOString()}`);
+      console.log(`  - End time: ${endDate.toISOString()}`);
+      console.log(`  - Current time: ${now.toISOString()}`);
+      
+      try {
+        // Add a buffer of 30 minutes to the end time to be consistent with active trips
+        const bufferMs = 30 * 60 * 1000; // 30 minutes
+        const adjustedEndTime = new Date(endDate.getTime() + bufferMs);
+        
+        // Only mark as completed if the end time + buffer has passed
+        if (adjustedEndTime <= now) {
+          console.log(`[AUTO-UPDATE] Directly completing missed trip ${trip.id} (${trip.name})`);
+          console.log(`  - End time + buffer (${bufferMs}ms) has passed`);
+          
+          const [updated] = await db
+            .update(trips)
+            .set({ status: 'completed' })
+            .where(eq(trips.id, trip.id))
+            .returning();
+          
+          if (updated) {
+            console.log(`[AUTO-UPDATE] Successfully marked missed trip ${trip.id} as completed`);
+            completedCount++;
+            
+            // Send email notifications for the status change
+            await sendTripStatusNotifications(trip.id, 'completed');
+          }
+        } else {
+          // This handles edge cases where a trip is in the past but end time + buffer hasn't passed
+          console.log(`[AUTO-UPDATE] Missed trip ${trip.id} end time + buffer hasn't passed yet`);
+          console.log(`  - Adjusted end time: ${adjustedEndTime.toISOString()}`);
+        }
+      } catch (updateError) {
+        console.error(`[AUTO-UPDATE] Error completing missed trip ${trip.id}:`, updateError);
+      }
+    }
+    
+    // Final summary including both normal completion and missed trip handling
+    console.log(`[AUTO-UPDATE] Completed checking trips. Started ${startedCount} trips, completed ${completedCount} trips (including ${missedTrips.length} missed trips).`);
   } catch (error) {
     console.error('[AUTO-UPDATE] Error checking for trip status updates:', error);
   }
