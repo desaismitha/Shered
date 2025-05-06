@@ -3,6 +3,110 @@ import path from "path";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { checkDbConnection, attemptReconnect } from "./db";
+import { storage } from "./storage";
+import { sendRouteDeviationEmail } from "./email";
+
+// Helper functions for route deviation checks
+function parseCoordinates(locationStr: string | null | undefined): { lat: number, lng: number } | null {
+  if (!locationStr) return null;
+  
+  // Try the new format with square brackets [lat, lng]
+  let coordsRegex = /\[(-?\d+\.?\d*),\s*(-?\d+\.?\d*)\]/;
+  let match = locationStr.match(coordsRegex);
+  
+  // If not found, try the old format with parentheses (lat, lng)
+  if (!match) {
+    coordsRegex = /\((-?\d+\.?\d*),\s*(-?\d+\.?\d*)\)/;
+    match = locationStr.match(coordsRegex);
+  }
+  
+  if (match && match.length === 3) {
+    const lat = parseFloat(match[1]);
+    const lng = parseFloat(match[2]);
+    
+    if (!isNaN(lat) && !isNaN(lng)) {
+      return { lat, lng };
+    }
+  }
+  
+  return null;
+}
+
+function calculateDistance(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number
+): number {
+  const R = 6371; // Earth radius in kilometers
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  
+  // Haversine formula
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  const distance = R * c; // Distance in kilometers
+  
+  return distance;
+}
+
+function isLocationOnRoute(
+  pointLat: number,
+  pointLon: number,
+  startLat: number,
+  startLon: number,
+  endLat: number,
+  endLon: number,
+  toleranceKm: number = 5.0 // Default 5km tolerance
+): { isOnRoute: boolean; distanceFromRoute: number } {
+  // Check for trivial case where route points are the same
+  if (startLat === endLat && startLon === endLon) {
+    const distanceToStart = calculateDistance(pointLat, pointLon, startLat, startLon);
+    return {
+      isOnRoute: distanceToStart <= toleranceKm,
+      distanceFromRoute: distanceToStart
+    };
+  }
+  
+  // Algorithm to find closest point on the line to our point
+  // First, convert lat/lng to a simple 2D coordinate system for calculation
+  const x = pointLat;
+  const y = pointLon;
+  const x1 = startLat;
+  const y1 = startLon;
+  const x2 = endLat;
+  const y2 = endLon;
+
+  // Calculate the line segment length squared
+  const lenSq = (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1);
+  
+  // Calculate projection of point onto line
+  let t = ((x - x1) * (x2 - x1) + (y - y1) * (y2 - y1)) / lenSq;
+  
+  // Clamp t to line segment
+  t = Math.max(0, Math.min(1, t));
+  
+  // Calculate projection coordinates
+  const projX = x1 + t * (x2 - x1);
+  const projY = y1 + t * (y2 - y1);
+  
+  // Calculate actual distance using haversine formula
+  const distanceFromRoute = calculateDistance(
+    pointLat,
+    pointLon,
+    projX,
+    projY
+  );
+  
+  return {
+    isOnRoute: distanceFromRoute <= toleranceKm,
+    distanceFromRoute
+  };
+}
 
 const app = express();
 app.use(express.json());
@@ -64,6 +168,95 @@ app.use((req, res, next) => {
         status: "error", 
         database: "error", 
         message: err.message || "Unknown error" 
+      });
+    }
+  });
+
+  // Test endpoint for route deviation notifications
+  app.get("/api/test/route-deviation", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({
+          error: "Not authenticated",
+          details: "You must be logged in to use this endpoint"
+        });
+      }
+      
+      // Get parameters
+      const lat = parseFloat(req.query.lat as string);
+      const lng = parseFloat(req.query.lng as string);
+      const tripId = parseInt(req.query.tripId as string);
+      
+      if (isNaN(lat) || isNaN(lng) || isNaN(tripId)) {
+        return res.status(400).json({
+          error: "Invalid parameters",
+          details: "Please provide valid lat, lng, and tripId values"
+        });
+      }
+      
+      // Get the trip
+      const trip = await storage.getTrip(tripId);
+      if (!trip) {
+        return res.status(404).json({
+          error: "Trip not found",
+          details: `Trip with ID ${tripId} does not exist`
+        });
+      }
+      
+      // Extract coordinates from the trip start and end locations
+      const startCoords = parseCoordinates(trip.startLocation);
+      const endCoords = parseCoordinates(trip.destination);
+      
+      if (!startCoords || !endCoords) {
+        return res.status(400).json({
+          error: "Invalid trip locations",
+          details: "The trip does not have valid coordinates in its start or end locations"
+        });
+      }
+      
+      // Check if the location is on the route
+      const routeCheck = isLocationOnRoute(
+        lat, lng,
+        startCoords.lat, startCoords.lng,
+        endCoords.lat, endCoords.lng,
+        5.0 // 5km tolerance
+      );
+      
+      // Get the user's display name
+      const username = req.user?.displayName || req.user?.username || 'Unknown user';
+      
+      // Test sending a notification email for route deviation
+      let emailSuccess = false;
+      if (req.user?.email) {
+        emailSuccess = await sendRouteDeviationEmail(
+          req.user.email,
+          username,
+          trip.name || 'Test trip',
+          username, // Same user deviating for the test
+          routeCheck.distanceFromRoute,
+          lat,
+          lng
+        );
+      }
+      
+      res.json({
+        success: true,
+        message: emailSuccess 
+          ? `Test deviation notification sent to ${req.user?.email}` 
+          : "Location checked but no email was sent",
+        location: { latitude: lat, longitude: lng },
+        routeCheck: {
+          isOnRoute: routeCheck.isOnRoute,
+          distanceFromRoute: routeCheck.distanceFromRoute,
+          isDeviation: routeCheck.distanceFromRoute > 5.0
+        },
+        emailSent: emailSuccess
+      });
+    } catch (error) {
+      console.error("Error in test route deviation endpoint:", error);
+      res.status(500).json({
+        error: "Server error",
+        details: error instanceof Error ? error.message : String(error)
       });
     }
   });

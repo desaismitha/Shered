@@ -1,151 +1,220 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Create Test Trip</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      max-width: 800px;
-      margin: 0 auto;
-      padding: 20px;
-      line-height: 1.6;
-    }
-    h1, h2 {
-      color: #4F46E5;
-    }
-    button {
-      background-color: #4F46E5;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 4px;
-      cursor: pointer;
-      font-weight: bold;
-      margin: 20px 0;
-    }
-    button:hover {
-      background-color: #4338CA;
-    }
-    pre {
-      background-color: #f5f5f5;
-      padding: 15px;
-      border-radius: 4px;
-      overflow-x: auto;
-    }
-    .success {
-      background-color: #d1e7dd;
-      border-left: 4px solid #198754;
-      padding: 15px;
-      margin: 15px 0;
-      border-radius: 4px;
-    }
-    .error {
-      background-color: #f8d7da;
-      border-left: 4px solid #dc3545;
-      padding: 15px;
-      margin: 15px 0;
-      border-radius: 4px;
-    }
-    #result {
-      margin-top: 20px;
-    }
-    .nav-links {
-      margin-bottom: 20px;
-      padding: 10px;
-      background-color: #f8f9fa;
-      border-radius: 4px;
-    }
-    .nav-links a {
-      margin-right: 15px;
-      color: #4F46E5;
-      text-decoration: none;
-      font-weight: bold;
-    }
-    .nav-links a:hover {
-      text-decoration: underline;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Test Trip</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            color: #3b82f6;
+        }
+        .card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #2563eb;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        .success {
+            color: green;
+        }
+        .error {
+            color: red;
+        }
+        .presets {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .preset-button {
+            background-color: #4b5563;
+            padding: 5px 10px;
+            font-size: 0.9em;
+        }
+    </style>
 </head>
 <body>
-  <div class="nav-links">
-    <a href="test-deviation.html">Route Deviation Test</a>
-    <a href="create-test-trip.html">Create Test Trip</a>
-  </div>
-
-  <h1>Create Test Trip</h1>
-  
-  <p>This page will create a new test trip for route deviation testing:</p>
-  
-  <div id="createTripForm">
-    <h2>Trip Details</h2>
-    <p>The following will create a very simple trip with pre-defined start and end locations suitable for testing route deviations.</p>
+    <h1>Create Test Trip</h1>
+    <p>This tool creates a test trip with "planning" status for testing route deviation functionality.</p>
     
-    <button id="createTripButton">Create New Test Trip</button>
-  </div>
-  
-  <div id="result"></div>
-  
-  <script>
-    document.getElementById('createTripButton').addEventListener('click', async function() {
-      const resultElement = document.getElementById('result');
-      resultElement.innerHTML = '<p>Creating test trip...</p>';
-      
-      try {
-        // Call the API to create a new trip
-        const response = await fetch('/api/trips', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            name: 'Route deviation test',
-            description: 'A test trip for route deviation notifications',
-            startLocation: '20613, Northeast 38th Street, Timberline [47.643210, -122.062622]',
-            destination: 'Elizabeth Blackwell Elementary School, 3225, 205th Place Northeast [47.639104, -122.066813]',
-            startDate: new Date(Date.now() + 5 * 60000).toISOString(), // 5 minutes from now
-            endDate: new Date(Date.now() + 60 * 60000).toISOString(), // 1 hour from now
-            enableMobileNotifications: false
-          })
-        });
+    <div class="card">
+        <h2>Create New Test Trip</h2>
+        <div>
+            <label for="tripName">Trip Name:</label>
+            <input type="text" id="tripName" value="Test Route Deviation">
+        </div>
         
-        const data = await response.json();
+        <div>
+            <label for="startLocation">Start Location:</label>
+            <input type="text" id="startLocation" value="20613, Northeast 38th Street, Timberline [47.643210, -122.062622]">
+        </div>
         
-        // Display results
-        if (response.ok) {
-          resultElement.innerHTML = `
-            <div class="success">
-              <h3>Trip Created Successfully!</h3>
-              <p>New trip ID: ${data.id}</p>
-              <p>The trip will automatically start in 5 minutes.</p>
-            </div>
-            <div>
-              <p><strong>Remember this trip ID for testing route deviations.</strong></p>
-              <a href="test-deviation.html" class="button">Go to Route Deviation Test</a>
-            </div>
-            <h4>Trip Details:</h4>
-            <pre>${JSON.stringify(data, null, 2)}</pre>
-          `;
-        } else {
-          resultElement.innerHTML = `
-            <div class="error">
-              <h3>Failed to Create Trip</h3>
-              <p>${data.error || 'Unknown error'}</p>
-            </div>
-            <h4>Response Details:</h4>
-            <pre>${JSON.stringify(data, null, 2)}</pre>
-          `;
+        <div>
+            <label for="destination">Destination:</label>
+            <input type="text" id="destination" value="Elizabeth Blackwell Elementary School, 3225, 205th Place Northeast [47.639104, -122.066813]">
+        </div>
+        
+        <div>
+            <label for="description">Description:</label>
+            <textarea id="description">Test trip for route deviation</textarea>
+        </div>
+        
+        <div>
+            <label for="startDate">Start Date/Time:</label>
+            <input type="datetime-local" id="startDate">
+        </div>
+        
+        <div>
+            <label for="endDate">End Date/Time:</label>
+            <input type="datetime-local" id="endDate">
+        </div>
+        
+        <div>
+            <button id="createTrip">Create Test Trip</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Response</h2>
+        <div id="resultSummary"></div>
+        <pre id="response">Response will appear here</pre>
+    </div>
+
+    <script>
+        // DOM elements
+        const tripNameInput = document.getElementById('tripName');
+        const startLocationInput = document.getElementById('startLocation');
+        const destinationInput = document.getElementById('destination');
+        const descriptionInput = document.getElementById('description');
+        const startDateInput = document.getElementById('startDate');
+        const endDateInput = document.getElementById('endDate');
+        const createTripBtn = document.getElementById('createTrip');
+        const responseDiv = document.getElementById('response');
+        const resultSummaryDiv = document.getElementById('resultSummary');
+
+        // Set default start and end dates to now + 15 minutes and now + 1 hour
+        function setDefaultDates() {
+            const now = new Date();
+            
+            // Format for datetime-local inputs requires YYYY-MM-DDThh:mm
+            const startDate = new Date(now.getTime() + 15 * 60000); // now + 15 mins
+            const endDate = new Date(now.getTime() + 60 * 60000);   // now + 1 hour
+            
+            startDateInput.value = formatDateForInput(startDate);
+            endDateInput.value = formatDateForInput(endDate);
         }
-      } catch (error) {
-        resultElement.innerHTML = `
-          <div class="error">
-            <h3>Error Creating Trip</h3>
-            <p>${error.message}</p>
-          </div>
-        `;
-      }
-    });
-  </script>
+        
+        function formatDateForInput(date) {
+            // Format: YYYY-MM-DDThh:mm
+            return `${date.getFullYear()}-${padZero(date.getMonth()+1)}-${padZero(date.getDate())}T${padZero(date.getHours())}:${padZero(date.getMinutes())}`;
+        }
+        
+        function padZero(num) {
+            return num.toString().padStart(2, '0');
+        }
+        
+        // Initialize default dates
+        setDefaultDates();
+        
+        // Event listeners
+        createTripBtn.addEventListener('click', createTrip);
+
+        async function createTrip() {
+            const tripName = tripNameInput.value.trim();
+            const startLocation = startLocationInput.value.trim();
+            const destination = destinationInput.value.trim();
+            const description = descriptionInput.value.trim();
+            const startDate = startDateInput.value;
+            const endDate = endDateInput.value;
+            
+            if (!tripName || !startLocation || !destination || !startDate || !endDate) {
+                resultSummaryDiv.innerHTML = '<p class="error">Please fill out all required fields.</p>';
+                return;
+            }
+            
+            try {
+                createTripBtn.disabled = true;
+                createTripBtn.textContent = 'Creating...';
+                responseDiv.textContent = 'Sending request...';
+                
+                const tripData = {
+                    name: tripName,
+                    startLocation: startLocation,
+                    destination: destination,
+                    description: description,
+                    startDate: new Date(startDate).toISOString(),
+                    endDate: new Date(endDate).toISOString(),
+                    status: 'planning',
+                    enableMobileNotifications: true,
+                };
+                
+                console.log('Creating trip with data:', tripData);
+                
+                const response = await fetch('/api/trips', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(tripData)
+                });
+                
+                const data = await response.json();
+                responseDiv.textContent = JSON.stringify(data, null, 2);
+                
+                if (response.ok) {
+                    resultSummaryDiv.innerHTML = `
+                        <p class="success">Trip created successfully with ID: ${data.id}</p>
+                        <p>You can now use this trip for testing route deviations.</p>
+                        <p><a href="/test/test-route-deviation.html" target="_blank">Go to Route Deviation Test Tool</a></p>
+                    `;
+                } else {
+                    resultSummaryDiv.innerHTML = `<p class="error">Error: ${data.message || data.error || 'Unknown error'}</p>`;
+                }
+            } catch (error) {
+                console.error('Error creating trip:', error);
+                responseDiv.textContent = `Error: ${error.message}`;
+                resultSummaryDiv.innerHTML = `<p class="error">Error: ${error.message}</p>`;
+            } finally {
+                createTripBtn.disabled = false;
+                createTripBtn.textContent = 'Create Test Trip';
+            }
+        }
+    </script>
 </body>
 </html>
