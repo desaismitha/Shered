@@ -381,6 +381,7 @@ export function UnifiedTripForm({
                       <FormLabel>Destination</FormLabel>
                       <FormControl>
                         <MapLocationPicker 
+                          label=""
                           value={field.value || ""} 
                           onChange={field.onChange}
                           placeholder="Enter destination"
@@ -402,6 +403,7 @@ export function UnifiedTripForm({
                     <RouteMapPreview 
                       startLocation={form.watch("startLocation") || ""} 
                       endLocation={form.watch("endLocation") || ""}
+                      showMap={true}
                     />
                   </div>
                 </div>
