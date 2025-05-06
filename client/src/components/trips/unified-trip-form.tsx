@@ -9,7 +9,7 @@ import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Group } from "@shared/schema";
-import { PhoneVerificationModal } from "./phone-verification-modal";
+// No phone verification needed for email notifications
 import {
   FormControl,
   FormDescription,
@@ -117,9 +117,7 @@ export function UnifiedTripForm({
     queryKey: ["/api/user"],
   });
 
-  // Phone verification state
-  const [showPhoneVerification, setShowPhoneVerification] = useState(false);
-  const [formDataForSubmission, setFormDataForSubmission] = useState<FormData | null>(null);
+  // No phone verification state needed for email notifications
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -168,47 +166,10 @@ export function UnifiedTripForm({
     onSubmit(data);
   };
 
-  const handlePhoneVerificationComplete = () => {
-    console.log('Phone verification completed');
-    setShowPhoneVerification(false);
-    
-    // Refresh user data to get updated phoneNumber status
-    // This would be handled by react-query invalidation
-
-    if (formDataForSubmission) {
-      console.log('Submitting form data after verification completed:', formDataForSubmission);
-      onSubmit(formDataForSubmission);
-      setFormDataForSubmission(null);
-    }
-  };
-  
-  // Add a button to manually test the verification modal
-  const debugShowVerificationModal = () => {
-    console.log('Debug showing verification modal');
-    
-    // If no phone number is set in the form, use the one from user data
-    // or set a default test number
-    const currentPhoneNumber = form.getValues("phoneNumber");
-    if (!currentPhoneNumber && userData?.phoneNumber) {
-      form.setValue("phoneNumber", userData.phoneNumber);
-      console.log('Setting phone number from user data:', userData.phoneNumber);
-    } else if (!currentPhoneNumber) {
-      form.setValue("phoneNumber", "+14258353425"); // Default test number
-      console.log('Setting default test phone number: +14258353425');
-    }
-    
-    // Force the modal to show
-    setShowPhoneVerification(true);
-    console.log('Phone number being used:', form.getValues("phoneNumber"));
-  };
-
-  // Debug logging
+  // Debug logging (simplified without phone verification)
   console.log('Form component default values:', defaultValues);
-  console.log('RENDERING PHONE VERIFICATION MODAL STATE:', { 
-    showPhoneVerification, 
-    formDataForSubmission,
+  console.log('FORM STATE:', { 
     enableMobileNotifications: form.watch("enableMobileNotifications"),
-    phoneNumber: form.watch("phoneNumber"),
     userData: userData
   });
 
@@ -453,13 +414,7 @@ export function UnifiedTripForm({
         </form>
       </Form>
       
-      {/* Phone Verification Modal outside the form */}
-      <PhoneVerificationModal
-        isOpen={showPhoneVerification}
-        onClose={() => setShowPhoneVerification(false)}
-        onComplete={handlePhoneVerificationComplete}
-        phoneNumber={form.getValues("phoneNumber") || ""}
-      />
+      {/* No phone verification modal needed for email notifications */}
     </div>
   );
 }
