@@ -221,12 +221,21 @@ app.use((req, res, next) => {
       }
       
       // Check if the location is on the route
+      console.log(`[TEST] Running route check with parameters:\n` +
+                 `  - Test point: (${lat}, ${lng})\n` +
+                 `  - Start point: (${startCoords.lat}, ${startCoords.lng})\n` +
+                 `  - End point: (${endCoords.lat}, ${endCoords.lng})\n` +
+                 `  - Tolerance: 5.0 km`);
+                 
       const routeCheck = isLocationOnRoute(
         lat, lng,
         startCoords.lat, startCoords.lng,
         endCoords.lat, endCoords.lng,
         5.0 // 5km tolerance
       );
+      
+      console.log(`[TEST] Route check result: ${JSON.stringify(routeCheck)}`);
+      console.log(`[TEST] Notifications enabled: ${trip.enableMobileNotifications ? 'YES' : 'NO'}`);
       
       // Get the user's display name
       const username = req.user?.displayName || req.user?.username || 'Unknown user';
