@@ -447,14 +447,7 @@ export function UnifiedTripForm({
             </div>
           </Card>
           
-          <div className="flex justify-between items-center space-x-4 mt-8">
-            <button 
-              type="button" 
-              onClick={debugShowVerificationModal} 
-              className="px-4 py-2 border border-red-300 rounded-md text-red-700 hover:bg-red-50">
-              Test Phone Verification Modal
-            </button>
-            
+          <div className="flex justify-end items-center space-x-4 mt-8">
             <div className="flex space-x-4">
               {onCancel && (
                 <button 
