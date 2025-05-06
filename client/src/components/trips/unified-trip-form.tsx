@@ -132,7 +132,7 @@ export function UnifiedTripForm({
       startLocation: "",
       endLocation: "",
       isRecurring: false,
-      enableMobileNotifications: false,
+      enableMobileNotifications: true, // Always enable notifications for testing route deviation
       phoneNumber: "",
       stops: [],
       ...defaultValues,
