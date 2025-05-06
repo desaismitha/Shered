@@ -29,15 +29,22 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
     console.log(`Attempting to send email to ${params.to} with subject "${params.subject}"`);
     console.log(`Using sender: ${params.from || process.env.SENDGRID_VERIFIED_SENDER || 'unknown'}`);
     
+    // Ensure we have a valid from address - this is required by SendGrid
+    const fromEmail = params.from || process.env.SENDGRID_VERIFIED_SENDER;
+    if (!fromEmail) {
+      console.error('No from email provided and SENDGRID_VERIFIED_SENDER not set');
+      return false;
+    }
+    
     const emailPayload = {
       to: params.to,
-      from: (params.from || process.env.SENDGRID_VERIFIED_SENDER || '') as string,
+      from: fromEmail,
       subject: params.subject,
-      text: (params.text || '') as string,
-      html: (params.html || '') as string,
+      text: params.text || 'No text content provided',
+      html: params.html || '<p>No HTML content provided</p>',
     };
     
-    console.log('Email payload (partial):', { 
+    console.log('Email payload:', { 
       to: emailPayload.to,
       from: emailPayload.from,
       subject: emailPayload.subject,
@@ -45,12 +52,29 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
       htmlLength: emailPayload.html?.length || 0
     });
     
-    await mailService.send(emailPayload);
+    // Check if any payload fields are missing
+    if (!emailPayload.to || !emailPayload.from || !emailPayload.subject) {
+      console.error('Missing required email fields:', { 
+        hasTo: !!emailPayload.to, 
+        hasFrom: !!emailPayload.from, 
+        hasSubject: !!emailPayload.subject 
+      });
+      return false;
+    }
     
-    console.log(`Email successfully sent to ${params.to}`);
-    return true;
+    try {
+      await mailService.send(emailPayload);
+      console.log(`Email successfully sent to ${params.to}`);
+      return true;
+    } catch (sendError) {
+      console.error('SendGrid send() error:', sendError);
+      if (sendError instanceof Error) {
+        console.error('Send error details:', sendError.message);
+      }
+      return false;
+    }
   } catch (error) {
-    console.error('SendGrid email error:', error);
+    console.error('SendGrid email preparation error:', error);
     if (error instanceof Error) {
       console.error('Error details:', error.message);
       console.error('Error stack:', error.stack);
