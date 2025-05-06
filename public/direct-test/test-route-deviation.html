@@ -299,10 +299,18 @@
                         summary += '<p class="error">Location is <strong>OFF</strong> the route (exceeds 5km tolerance).</p>';
                     }
                     
-                    if (data.emailSent) {
-                        summary += '<p class="success">Deviation notification email was sent successfully.</p>';
+                    // Show notification status
+                    if (data.notificationsEnabled) {
+                        summary += '<p class="success">Notifications are enabled for this trip.</p>';
+                        
+                        if (data.emailSent) {
+                            summary += '<p class="success">Deviation notification email was sent successfully.</p>';
+                        } else {
+                            summary += '<p class="error">Email was not sent despite notifications being enabled. Check server logs.</p>';
+                        }
                     } else {
-                        summary += '<p>No notification email was sent.</p>';
+                        summary += '<p class="error">Notifications are disabled for this trip.</p>';
+                        summary += '<p>Enable notifications in trip settings to receive deviation alerts.</p>';
                     }
                     
                     resultSummaryDiv.innerHTML = summary;
