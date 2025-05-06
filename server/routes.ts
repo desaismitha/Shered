@@ -422,6 +422,103 @@ async function checkTripAccess(
 }
 
 /**
+ * Sends email notifications to trip members when a trip status changes
+ * @param tripId ID of the trip
+ * @param newStatus New status of the trip
+ */
+async function sendTripStatusNotifications(tripId: number, newStatus: string): Promise<void> {
+  try {
+    console.log(`[STATUS_NOTIFICATIONS] Sending trip status notifications for Trip ${tripId}, new status: ${newStatus}`);
+    
+    // Get the trip details
+    const [trip] = await db.select().from(trips).where(eq(trips.id, tripId));
+    if (!trip) {
+      console.error(`[STATUS_NOTIFICATIONS] Trip ${tripId} not found`);
+      return;
+    }
+    
+    // Only send notifications for status transitions to 'in-progress' or 'completed'
+    if (newStatus !== 'in-progress' && newStatus !== 'completed') {
+      console.log(`[STATUS_NOTIFICATIONS] Not sending notifications for '${newStatus}' status`);
+      return;
+    }
+    
+    // Create a list of users to notify
+    let usersToNotify: { id: number; email: string; username: string; displayName: string }[] = [];
+    
+    // Import users from schema
+    const { users } = await import("@shared/schema");
+    
+    // Always notify the trip creator
+    const [tripCreator] = await db.select().from(users).where(eq(users.id, trip.createdBy));
+    if (tripCreator) {
+      usersToNotify.push(tripCreator);
+    }
+    
+    // If the trip has a group, notify all group members
+    if (trip.groupId) {
+      // Import users and groupMembers from schema
+      const { users, groupMembers: groupMembersTable } = await import("@shared/schema");
+      
+      const groupUsers = await db.select({
+        id: users.id,
+        email: users.email,
+        username: users.username,
+        displayName: users.displayName,
+      })
+      .from(groupMembersTable)
+      .innerJoin(users, eq(groupMembersTable.userId, users.id))
+      .where(eq(groupMembersTable.groupId, trip.groupId));
+      
+      // Add unique group members (skip duplicates if the creator is also in the group)
+      for (const member of groupUsers) {
+        if (!usersToNotify.some(u => u.id === member.id)) {
+          usersToNotify.push(member);
+        }
+      }
+    }
+    
+    // If no users to notify, log and return
+    if (usersToNotify.length === 0) {
+      console.log(`[STATUS_NOTIFICATIONS] No users to notify for Trip ${tripId}`);
+      return;
+    }
+    
+    // Send emails to each user
+    const emailPromises = usersToNotify.map(user => {
+      const { email, displayName } = user;
+      const username = displayName || user.username;
+      
+      // Import the email sending function
+      const { sendTripStatusChangeEmail } = require('./email');
+      
+      // Send the email with trip details
+      return sendTripStatusChangeEmail(
+        email,
+        username,
+        trip.name,
+        newStatus,
+        trip.startLocation,
+        trip.destination,
+        trip.startDate,
+        trip.endDate
+      );
+    });
+    
+    // Wait for all emails to be sent
+    const results = await Promise.allSettled(emailPromises);
+    
+    // Log the results
+    const successful = results.filter(r => r.status === 'fulfilled').length;
+    const failed = results.filter(r => r.status === 'rejected').length;
+    
+    console.log(`[STATUS_NOTIFICATIONS] Email notifications sent: ${successful} successful, ${failed} failed`);
+  } catch (error) {
+    console.error(`[STATUS_NOTIFICATIONS] Error sending trip status notifications:`, error);
+  }
+}
+
+/**
  * Checks all trips that should be in progress and updates their status
  * This is called periodically to ensure trip statuses are accurate
  */
@@ -549,6 +646,9 @@ async function checkAndUpdateTripStatuses(): Promise<void> {
           if (updated) {
             console.log(`[AUTO-UPDATE] Successfully updated trip ${trip.id} status to in-progress`);
             startedCount++;
+            
+            // Send email notifications for the status change
+            await sendTripStatusNotifications(trip.id, 'in-progress');
           }
         } catch (updateError) {
           console.error(`[AUTO-UPDATE] Error updating trip ${trip.id}:`, updateError);
@@ -607,6 +707,9 @@ async function checkAndUpdateTripStatuses(): Promise<void> {
           if (updated) {
             console.log(`[AUTO-UPDATE] Successfully marked trip ${trip.id} as completed`);
             completedCount++;
+            
+            // Send email notifications for the status change
+            await sendTripStatusNotifications(trip.id, 'completed');
           }
         } catch (updateError) {
           console.error(`[AUTO-UPDATE] Error completing trip ${trip.id}:`, updateError);

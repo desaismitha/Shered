@@ -430,3 +430,158 @@ export async function sendRouteDeviationEmail(
     html
   });
 }
+
+/**
+ * Send a trip status change notification via email
+ * @param email Recipient's email address
+ * @param username Recipient's username/display name
+ * @param tripName Name of the trip
+ * @param newStatus New status of the trip ('planning', 'confirmed', 'in-progress', or 'completed')
+ * @param startLocation Trip start location (optional)
+ * @param destination Trip destination (optional)
+ * @param startDate Trip start date (optional)
+ * @param endDate Trip end date (optional)
+ * @returns Promise<boolean> indicating success or failure
+ */
+export async function sendTripStatusChangeEmail(
+  email: string,
+  username: string,
+  tripName: string,
+  newStatus: string,
+  startLocation?: string,
+  destination?: string,
+  startDate?: Date,
+  endDate?: Date
+): Promise<boolean> {
+  console.log(`[STATUS_EMAIL] Preparing trip status change email to ${email} for trip ${tripName}, new status: ${newStatus}`);
+  
+  const fromEmail = process.env.SENDGRID_VERIFIED_SENDER || 'noreply@travelgroupr.com';
+  
+  // Format the status for display
+  const statusDisplay = newStatus === 'in-progress' ? 'In Progress' : 
+                        newStatus.charAt(0).toUpperCase() + newStatus.slice(1);
+  
+  // Set a different subject line and icon based on the new status
+  let subject = '';
+  let icon = '';
+  let statusColor = '';
+  let statusMessage = '';
+  
+  switch(newStatus) {
+    case 'in-progress':
+      subject = `🚗 Your Trip "${tripName}" Has Started`;
+      icon = '🚗';
+      statusColor = '#4F46E5'; // Blue for in-progress
+      statusMessage = 'Your trip has started! Safe travels!';
+      break;
+    case 'completed':
+      subject = `✅ Your Trip "${tripName}" Has Been Completed`;
+      icon = '✅';
+      statusColor = '#16a34a'; // Green for completed
+      statusMessage = 'Your trip has been marked as completed. We hope you had a great journey!';
+      break;
+    case 'confirmed':
+      subject = `👍 Your Trip "${tripName}" Has Been Confirmed`;
+      icon = '👍';
+      statusColor = '#2563eb'; // Blue for confirmed
+      statusMessage = 'All members have checked in and your trip is confirmed!';
+      break;
+    case 'planning':
+    default:
+      subject = `📋 Trip Status Update: "${tripName}"`;
+      icon = '📋';
+      statusColor = '#6b7280'; // Gray for planning or default
+      statusMessage = 'Your trip status has been updated to Planning stage.';
+  }
+  
+  // Format dates if available
+  const formattedStartDate = startDate ? new Date(startDate).toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  }) : 'Not specified';
+  
+  const formattedEndDate = endDate ? new Date(endDate).toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  }) : 'Not specified';
+  
+  const text = `
+    Hi ${username},
+    
+    Your trip "${tripName}" has been updated to status: ${statusDisplay}.
+    
+    ${statusMessage}
+    
+    Trip Details:
+    Start Location: ${startLocation || 'Not specified'}
+    Destination: ${destination || 'Not specified'}
+    Start Date: ${formattedStartDate}
+    End Date: ${formattedEndDate}
+    
+    Visit the app to view more details about your trip.
+    
+    Best regards,
+    The TravelGroupr Team
+  `;
+  
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: #333;">${icon} Trip Status Update</h2>
+      <p>Hi <strong>${username}</strong>,</p>
+      
+      <div style="background-color: #f9fafb; border-left: 4px solid ${statusColor}; padding: 15px; margin: 20px 0; border-radius: 4px;">
+        <p style="margin: 0; font-size: 16px;">
+          Your trip <strong>"${tripName}"</strong> has been updated to status: <strong style="color: ${statusColor}">${statusDisplay}</strong>
+        </p>
+      </div>
+      
+      <p>${statusMessage}</p>
+      
+      <div style="background-color: #f8fafc; padding: 15px; border-radius: 8px; margin: 20px 0;">
+        <h3 style="margin-top: 0; color: #333;">Trip Details</h3>
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="padding: 8px 0; border-bottom: 1px solid #e2e8f0; width: 40%;"><strong>Start Location:</strong></td>
+            <td style="padding: 8px 0; border-bottom: 1px solid #e2e8f0;">${startLocation || 'Not specified'}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; border-bottom: 1px solid #e2e8f0;"><strong>Destination:</strong></td>
+            <td style="padding: 8px 0; border-bottom: 1px solid #e2e8f0;">${destination || 'Not specified'}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; border-bottom: 1px solid #e2e8f0;"><strong>Start Date:</strong></td>
+            <td style="padding: 8px 0; border-bottom: 1px solid #e2e8f0;">${formattedStartDate}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0;"><strong>End Date:</strong></td>
+            <td style="padding: 8px 0;">${formattedEndDate}</td>
+          </tr>
+        </table>
+      </div>
+      
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="#" style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold;">
+          View Trip Details
+        </a>
+      </div>
+      
+      <p>Best regards,<br>The TravelGroupr Team</p>
+    </div>
+  `;
+  
+  return sendEmail({
+    to: email,
+    from: fromEmail,
+    subject,
+    text,
+    html
+  });
+}
