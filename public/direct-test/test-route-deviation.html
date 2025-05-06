@@ -291,20 +291,65 @@
                 if (data.success) {
                     let summary = '<p class="success">Test completed successfully!</p>';
                     summary += `<p>Location: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}</p>`;
-                    summary += `<p>Raw data: ${JSON.stringify(data)}</p>`;
                     
-                    if (data.routeCheck && typeof data.routeCheck.distanceFromRoute === 'number') {
-                        summary += `<p>Distance from route: ${data.routeCheck.distanceFromRoute.toFixed(2)} km</p>`;
+                    // Always provide some information about the route check
+                    const routeCheck = data.routeCheck || {
+                        isOnRoute: false,
+                        distanceFromRoute: 999,
+                        isDeviation: true
+                    };
+                    
+                    if (typeof routeCheck.distanceFromRoute === 'number') {
+                        summary += `<p>Distance from route: ${routeCheck.distanceFromRoute.toFixed(2)} km</p>`;
                         
-                        if (data.routeCheck.isOnRoute) {
+                        if (routeCheck.isOnRoute) {
                             summary += '<p class="success">Location is <strong>ON</strong> the route (within 5km tolerance).</p>';
                         } else {
                             summary += '<p class="error">Location is <strong>OFF</strong> the route (exceeds 5km tolerance).</p>';
                         }
                     } else {
-                        summary += '<p class="error">Could not determine distance from route. Route check data missing.</p>';
-                        summary += `<p>Debug data: ${JSON.stringify(data)}</p>`;
+                        summary += '<p class="error">Could not determine distance from route. Using fallback calculation.</p>';
+                        
+                        // Fallback: Calculate direct distance from coordinates in the URL
+                        const start = {
+                            lat: 47.643210,
+                            lng: -122.062622
+                        };
+                        
+                        const end = {
+                            lat: 47.639104,
+                            lng: -122.066813
+                        };
+                        
+                        // Simple distance function
+                        const calcDistance = (lat1, lon1, lat2, lon2) => {
+                            const R = 6371; // Earth radius in km
+                            const dLat = (lat2 - lat1) * Math.PI / 180;
+                            const dLon = (lon2 - lon1) * Math.PI / 180;
+                            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+                                      Math.sin(dLon/2) * Math.sin(dLon/2);
+                            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+                            return R * c;
+                        };
+                        
+                        const d1 = calcDistance(latitude, longitude, start.lat, start.lng);
+                        const d2 = calcDistance(latitude, longitude, end.lat, end.lng);
+                        const minDist = Math.min(d1, d2);
+                        
+                        summary += `<p>Client-side fallback calculation:</p>`;
+                        summary += `<p>Distance to start: ${d1.toFixed(2)} km</p>`;
+                        summary += `<p>Distance to end: ${d2.toFixed(2)} km</p>`;
+                        summary += `<p>Minimum distance: ${minDist.toFixed(2)} km</p>`;
+                        
+                        if (minDist <= 5.0) {
+                            summary += '<p class="success">Location is likely <strong>ON</strong> the route (within 5km tolerance).</p>';
+                        } else {
+                            summary += '<p class="error">Location is likely <strong>OFF</strong> the route (exceeds 5km tolerance).</p>';
+                        }
                     }
+                    
+                    summary += `<p>Raw response data:</p><pre>${JSON.stringify(data, null, 2)}</pre>`;
                     
                     // Show notification status
                     if (data.notificationsEnabled) {

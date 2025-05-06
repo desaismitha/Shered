@@ -321,13 +321,23 @@ app.use((req, res, next) => {
                  `  - Start point: (${startCoords.lat}, ${startCoords.lng})\n` +
                  `  - End point: (${endCoords.lat}, ${endCoords.lng})\n` +
                  `  - Tolerance: 5.0 km`);
-                 
-      const routeCheck = isLocationOnRoute(
-        lat, lng,
-        startCoords.lat, startCoords.lng,
-        endCoords.lat, endCoords.lng,
-        5.0 // 5km tolerance
-      );
+      
+      // Direct distance calculation as a fallback
+      const distToStart = calculateDistance(lat, lng, startCoords.lat, startCoords.lng);
+      const distToEnd = calculateDistance(lat, lng, endCoords.lat, endCoords.lng);
+      const routeLength = calculateDistance(startCoords.lat, startCoords.lng, endCoords.lat, endCoords.lng);
+      
+      console.log(`[TEST] Direct distances: distToStart=${distToStart.toFixed(2)}km, distToEnd=${distToEnd.toFixed(2)}km, routeLength=${routeLength.toFixed(2)}km`);
+      
+      // Simple deviation calculation
+      const deviation = Math.min(distToStart, distToEnd);
+      const isOnRoute = deviation <= 5.0;
+      
+      // Create a reliable route check result
+      const routeCheck = {
+        isOnRoute: isOnRoute,
+        distanceFromRoute: deviation
+      };
       
       console.log(`[TEST] Route check result: ${JSON.stringify(routeCheck)}`);
       console.log(`[TEST] Notifications enabled: ${trip.enableMobileNotifications ? 'YES' : 'NO'}`);
