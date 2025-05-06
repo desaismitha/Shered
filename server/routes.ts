@@ -794,6 +794,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       if (!req.isAuthenticated()) return res.sendStatus(401);
       
+      console.log('===== ROUTE DEVIATION TEST TRIGGERED =====');
+      console.log(`User authenticated: ${req.user.username}`);
+      
       // Get the active trip
       const tripId = 37; // Hardcoded for testing
       
@@ -809,16 +812,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const trip = await storage.getTrip(tripId);
       
       if (!trip) {
+        console.error(`[TEST] Trip ${tripId} not found`);
         return res.status(404).json({ error: "Trip not found" });
       }
+      
+      console.log(`[TEST] Found trip: ${trip.name} (ID: ${trip.id})`);
       
       // Get trip creator
       const creator = await storage.getUser(trip.createdBy);
       
-      if (creator && creator.email) {
-        console.log(`[TEST] Sending test email to trip creator: ${creator.email}`);
-        
-        // Send test email to trip creator
+      if (!creator) {
+        console.error(`[TEST] Creator (ID: ${trip.createdBy}) not found`);
+        return res.status(404).json({ error: "Trip creator not found" });
+      }
+      
+      if (!creator.email) {
+        console.error(`[TEST] Creator ${creator.username} has no email address`);
+        return res.status(404).json({ error: "Trip creator email not found" });
+      }
+      
+      console.log(`[TEST] Found creator: ${creator.username} (Email: ${creator.email})`);
+      console.log(`[TEST] Sending test email to trip creator: ${creator.email}`);
+      
+      // Display information about SendGrid configuration
+      console.log(`[TEST] SendGrid API key configured: ${!!process.env.SENDGRID_API_KEY}`);
+      console.log(`[TEST] SendGrid verified sender: ${process.env.SENDGRID_VERIFIED_SENDER || 'not set'}`);
+      
+      // Send test email to trip creator
+      try {
         const success = await sendRouteDeviationEmail(
           creator.email,
           creator.displayName || creator.username,
@@ -849,14 +870,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
             error: "Failed to send test email"
           });
         }
-      } else {
-        return res.status(404).json({ error: "Trip creator email not found" });
+      } catch (emailError) {
+        console.error(`[TEST] Exception during email sending:`, emailError);
+        return res.status(500).json({
+          success: false,
+          error: "Exception during email sending",
+          details: emailError instanceof Error ? emailError.message : String(emailError)
+        });
       }
     } catch (error) {
       console.error("Error in test route deviation:", error);
       return res.status(500).json({
         success: false,
-        error: "Internal server error"
+        error: "Internal server error",
+        details: error instanceof Error ? error.message : String(error)
       });
     }
   });

@@ -8,8 +8,13 @@ if (!process.env.SENDGRID_VERIFIED_SENDER) {
   console.warn("SENDGRID_VERIFIED_SENDER environment variable is not set. Email functionality will use a default sender, which may cause errors.");
 }
 
-const mailService = new MailService();
-mailService.setApiKey(process.env.SENDGRID_API_KEY || '');
+// Create a function to always get a fresh instance of the mail service
+// This ensures we always have an up-to-date client with the latest API key
+function getMailService(): MailService {
+  const mailService = new MailService();
+  mailService.setApiKey(process.env.SENDGRID_API_KEY || '');
+  return mailService;
+}
 
 export interface EmailParams {
   to: string;
@@ -63,21 +68,38 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
     }
     
     try {
+      // Get a fresh mail service instance for each email send
+      const mailService = getMailService();
+      
+      // Send the email with detailed logging
+      console.log(`[SENDGRID] About to send email to ${params.to}`);
+      console.log(`[SENDGRID] Send request initiated...`);
+      
       await mailService.send(emailPayload);
-      console.log(`Email successfully sent to ${params.to}`);
+      
+      console.log(`[SENDGRID] Email successfully sent to ${params.to}`);
       return true;
     } catch (sendError) {
-      console.error('SendGrid send() error:', sendError);
+      console.error('[SENDGRID] Send() error:', sendError);
       if (sendError instanceof Error) {
-        console.error('Send error details:', sendError.message);
+        console.error('[SENDGRID] Send error details:', sendError.message);
+        console.error('[SENDGRID] Send error name:', sendError.name);
+        console.error('[SENDGRID] Send error stack:', sendError.stack);
       }
+      
+      // Extract error response if available
+      // @ts-ignore - access SendGrid specific properties
+      if (sendError?.response?.body) {
+        console.error('[SENDGRID] API Response:', JSON.stringify(sendError.response.body, null, 2));
+      }
+      
       return false;
     }
   } catch (error) {
-    console.error('SendGrid email preparation error:', error);
+    console.error('[SENDGRID] Email preparation error:', error);
     if (error instanceof Error) {
-      console.error('Error details:', error.message);
-      console.error('Error stack:', error.stack);
+      console.error('[SENDGRID] Error details:', error.message);
+      console.error('[SENDGRID] Error stack:', error.stack);
     }
     return false;
   }
@@ -342,6 +364,8 @@ export async function sendRouteDeviationEmail(
   latitude: number,
   longitude: number
 ): Promise<boolean> {
+  console.log(`[DEVIATION_EMAIL] Preparing route deviation email to ${email} for trip ${tripName}`);
+  
   const fromEmail = process.env.SENDGRID_VERIFIED_SENDER || 'noreply@travelgroupr.com';
   const subject = `🚨 Route Deviation Alert: ${tripName}`;
   
@@ -350,6 +374,9 @@ export async function sendRouteDeviationEmail(
   
   // Generate a Google Maps link with the coordinates
   const mapsLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
+  
+  console.log(`[DEVIATION_EMAIL] Maps link: ${mapsLink}`);
+  console.log(`[DEVIATION_EMAIL] Using sender: ${fromEmail}`);
   
   const text = `
     Hi ${username},
