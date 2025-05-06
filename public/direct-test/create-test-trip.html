@@ -124,6 +124,17 @@
         <label for="endTime">End Time:</label>
         <input type="time" id="endTime" value="11:00" required>
         
+        <div style="margin-top: 15px; padding: 15px; background-color: #f0f9ff; border: 1px solid #bae6fd; border-radius: 4px;">
+            <h3 style="margin-top: 0; color: #0369a1;">⚠️ Time Zone Note</h3>
+            <p>Due to timezone handling, trips scheduled to end at specific times might be auto-completed slightly earlier than expected.</p>
+            <p>To prevent this:</p>
+            <ul>
+                <li>The system will automatically add a 30-minute buffer to your end time</li>
+                <li>This ensures your trip stays active for its full intended duration</li>
+                <li>Your original end time will still be displayed in the interface</li>
+            </ul>
+        </div>
+        
         <label for="notifications">
             <input type="checkbox" id="notifications" checked>
             Enable Route Deviation Notifications

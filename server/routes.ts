@@ -571,17 +571,32 @@ async function checkAndUpdateTripStatuses(): Promise<void> {
         console.log(`[AUTO-UPDATE] Trip ${trip.id} is excluded from automatic status updates`);
       }
 
-      // A trip should complete if its end time has passed
-      const shouldComplete = endDate <= now && !isExcludedTrip;
+      // Add a 30-minute buffer to prevent premature completion due to timezone or clock issues
+      // This helps ensure trips don't end early by accident
+      const bufferMs = 30 * 60 * 1000; // 30 minutes in milliseconds
+      const adjustedEndTime = new Date(endDate.getTime() + bufferMs);
       
-      // Debug date comparisons
+      // A trip should complete if its end time (plus buffer) has passed
+      const shouldComplete = adjustedEndTime <= now && !isExcludedTrip;
+      
+      // Debug the buffer calculations
+      console.log(`[AUTO-UPDATE] End time buffer calculation for Trip ${trip.id}:`);
+      console.log(`  - Original end time: ${endDate.toISOString()}`);
+      console.log(`  - Buffered end time: ${adjustedEndTime.toISOString()}`);
+      console.log(`  - Buffer amount: 30 minutes (${bufferMs}ms)`);
+      
+      
+      // Debug date comparisons with adjusted time
       console.log(`[AUTO-UPDATE] Active Trip ${trip.id} (${trip.name}):`);
-      console.log(`  - End time: ${endDate.toISOString()}`);
+      console.log(`  - Original end time: ${endDate.toISOString()}`);
+      console.log(`  - Buffered end time: ${adjustedEndTime.toISOString()}`);
       console.log(`  - Current time: ${now.toISOString()}`);
       console.log(`  - Should complete? ${shouldComplete}`);
+      console.log(`  - Comparison: ${adjustedEndTime.getTime() <= now.getTime() ? 'End time has passed' : 'End time is in the future'}`);
       
       if (shouldComplete) {
-        console.log(`[AUTO-UPDATE] Completing trip ${trip.id} (${trip.name}) as its end time has passed`);
+        console.log(`[AUTO-UPDATE] Completing trip ${trip.id} (${trip.name}) as its end time + buffer (30min) has passed`);
+        console.log(`[AUTO-UPDATE] Note: buffer is only for status update, displayed end time remains ${endDate.toISOString()}`);
         try {
           const [updated] = await db
             .update(trips)
