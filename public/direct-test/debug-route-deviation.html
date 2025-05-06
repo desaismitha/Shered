@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Route Deviation | TravelGroupr</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        h1, h2 {
+            color: #2563eb;
+        }
+        label {
+            display: block;
+            margin-top: 15px;
+            font-weight: bold;
+        }
+        input, button, select {
+            padding: 8px;
+            margin-top: 5px;
+            width: 100%;
+            max-width: 300px;
+        }
+        button {
+            background-color: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 15px;
+        }
+        button:hover {
+            background-color: #1d4ed8;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+        }
+        .response {
+            white-space: pre-wrap;
+            font-family: monospace;
+            background-color: #f1f1f1;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        .success {
+            color: #16a34a;
+        }
+        .error {
+            color: #dc2626;
+        }
+        .loading {
+            text-align: center;
+            margin: 20px;
+            display: none;
+        }
+        .loader {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #2563eb;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .coordinates {
+            margin-top: 10px;
+            font-size: 0.9em;
+            color: #777;
+        }
+        #jsonView {
+            overflow: auto;
+            max-height: 400px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Route Deviation Debug Tool</h1>
+    <p>Use this tool to test and debug the route deviation detection.</p>
+    
+    <div>
+        <label for="tripId">Trip ID:</label>
+        <input type="number" id="tripId" value="37">
+    </div>
+    
+    <div>
+        <h2>Location Options</h2>
+        <div>
+            <label for="locationType">Location Type:</label>
+            <select id="locationType">
+                <option value="custom">Custom Coordinates</option>
+                <option value="start">Trip Start Location</option>
+                <option value="end">Trip End Location</option>
+                <option value="deviation">Simulated Deviation (7km away)</option>
+            </select>
+        </div>
+        
+        <div>
+            <label for="latitude">Latitude:</label>
+            <input type="text" id="latitude" value="47.643210">
+        </div>
+        
+        <div>
+            <label for="longitude">Longitude:</label>
+            <input type="text" id="longitude" value="-122.062622">
+        </div>
+    </div>
+    
+    <button id="getDebugBtn">Get Debug Information</button>
+    
+    <div class="loading" id="loadingDiv">
+        <div class="loader"></div>
+        <p>Processing request...</p>
+    </div>
+    
+    <div class="result" id="resultDiv" style="display: none;">
+        <h2>Results</h2>
+        <div id="resultSummary"></div>
+        
+        <h3>JSON Response:</h3>
+        <div id="jsonView" class="response"></div>
+    </div>
+    
+    <script>
+        // Get DOM elements
+        const tripIdInput = document.getElementById('tripId');
+        const latitudeInput = document.getElementById('latitude');
+        const longitudeInput = document.getElementById('longitude');
+        const locationTypeSelect = document.getElementById('locationType');
+        const getDebugBtn = document.getElementById('getDebugBtn');
+        const loadingDiv = document.getElementById('loadingDiv');
+        const resultDiv = document.getElementById('resultDiv');
+        const resultSummaryDiv = document.getElementById('resultSummary');
+        const jsonViewDiv = document.getElementById('jsonView');
+        
+        // Add event listeners
+        locationTypeSelect.addEventListener('change', handleLocationTypeChange);
+        getDebugBtn.addEventListener('click', getDebugInfo);
+        
+        // Handle location type changes
+        function handleLocationTypeChange() {
+            const locationType = locationTypeSelect.value;
+            
+            // Fetch trip data to get coordinates if needed
+            if (locationType !== 'custom') {
+                getDebugInfo(true);
+            }
+        }
+        
+        // Get debug information
+        async function getDebugInfo(onlyUpdateCoords = false) {
+            try {
+                if (!onlyUpdateCoords) {
+                    getDebugBtn.disabled = true;
+                    loadingDiv.style.display = 'block';
+                    resultDiv.style.display = 'none';
+                }
+                
+                const tripId = tripIdInput.value;
+                let latitude = parseFloat(latitudeInput.value);
+                let longitude = parseFloat(longitudeInput.value);
+                
+                // Get the debug information
+                const url = `/api/debug/route-deviation?tripId=${tripId}&lat=${latitude}&lng=${longitude}`;
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                // If we're only updating coordinates based on trip data, do that and exit
+                if (onlyUpdateCoords && data.success) {
+                    const locationType = locationTypeSelect.value;
+                    
+                    if (locationType === 'start' && data.parsedCoordinates.start) {
+                        latitudeInput.value = data.parsedCoordinates.start.lat;
+                        longitudeInput.value = data.parsedCoordinates.start.lng;
+                    } else if (locationType === 'end' && data.parsedCoordinates.end) {
+                        latitudeInput.value = data.parsedCoordinates.end.lat;
+                        longitudeInput.value = data.parsedCoordinates.end.lng;
+                    } else if (locationType === 'deviation' && data.parsedCoordinates.start) {
+                        // Set coordinates about 7km away from start
+                        latitudeInput.value = (data.parsedCoordinates.start.lat + 0.06).toFixed(6);
+                        longitudeInput.value = data.parsedCoordinates.start.lng;
+                    }
+                    return;
+                }
+                
+                // Display the raw JSON response
+                jsonViewDiv.textContent = JSON.stringify(data, null, 2);
+                
+                // Create a summary
+                let summary = '';
+                
+                if (data.success) {
+                    summary += '<h3>Trip Information</h3>';
+                    summary += `<p>Trip ID: ${data.tripData.id}</p>`;
+                    summary += `<p>Name: ${data.tripData.name}</p>`;
+                    summary += `<p>Notifications enabled: ${data.enableMobileNotifications ? 'Yes' : 'No'}</p>`;
+                    
+                    summary += '<h3>Coordinate Parsing</h3>';
+                    summary += `<p>Start location: ${data.tripData.startLocation}</p>`;
+                    summary += `<p>Destination: ${data.tripData.destination}</p>`;
+                    
+                    if (data.parsedCoordinates.start) {
+                        summary += `<p class="success">Start coordinates parsed successfully: [${data.parsedCoordinates.start.lat}, ${data.parsedCoordinates.start.lng}]</p>`;
+                    } else {
+                        summary += `<p class="error">Failed to parse start coordinates</p>`;
+                    }
+                    
+                    if (data.parsedCoordinates.end) {
+                        summary += `<p class="success">End coordinates parsed successfully: [${data.parsedCoordinates.end.lat}, ${data.parsedCoordinates.end.lng}]</p>`;
+                    } else {
+                        summary += `<p class="error">Failed to parse end coordinates</p>`;
+                    }
+                    
+                    summary += '<h3>Test Location</h3>';
+                    summary += `<p>Testing with coordinates: [${data.requestParams.lat}, ${data.requestParams.lng}]</p>`;
+                } else {
+                    summary += `<p class="error">Error: ${data.error}</p>`;
+                    if (data.stack) {
+                        summary += `<p>Stack trace: ${data.stack}</p>`;
+                    }
+                }
+                
+                resultSummaryDiv.innerHTML = summary;
+                resultDiv.style.display = 'block';
+            } catch (error) {
+                console.error('Error getting debug information:', error);
+                jsonViewDiv.textContent = `Error: ${error.message}`;
+                resultSummaryDiv.innerHTML = `<p class="error">Error: ${error.message}</p>`;
+                resultDiv.style.display = 'block';
+            } finally {
+                if (!onlyUpdateCoords) {
+                    getDebugBtn.disabled = false;
+                    loadingDiv.style.display = 'none';
+                }
+            }
+        }
+    </script>
+</body>
+</html>

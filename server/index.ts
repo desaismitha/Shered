@@ -63,49 +63,91 @@ function isLocationOnRoute(
   endLon: number,
   toleranceKm: number = 5.0 // Default 5km tolerance
 ): { isOnRoute: boolean; distanceFromRoute: number } {
-  // Check for trivial case where route points are the same
-  if (startLat === endLat && startLon === endLon) {
-    const distanceToStart = calculateDistance(pointLat, pointLon, startLat, startLon);
+  try {
+    console.log(`[ROUTE-CHECK] Computing distance for point (${pointLat}, ${pointLon}) to route from (${startLat}, ${startLon}) to (${endLat}, ${endLon})`);
+    
+    // Input validation - if any coordinate is NaN, use a simpler distance check
+    if (isNaN(pointLat) || isNaN(pointLon) || 
+        isNaN(startLat) || isNaN(startLon) || 
+        isNaN(endLat) || isNaN(endLon)) {
+      console.log(`[ROUTE-CHECK] Invalid coordinates detected, using simple distance check`);
+      
+      // Use distance to start point as fallback
+      const distToStart = isNaN(startLat) || isNaN(startLon) ? 999 : 
+                          calculateDistance(pointLat, pointLon, startLat, startLon);
+      return {
+        isOnRoute: distToStart <= toleranceKm,
+        distanceFromRoute: distToStart
+      };
+    }
+    
+    // Check for trivial case where route points are the same
+    if (startLat === endLat && startLon === endLon) {
+      const distanceToStart = calculateDistance(pointLat, pointLon, startLat, startLon);
+      console.log(`[ROUTE-CHECK] Start and end points are the same. Distance: ${distanceToStart} km`);
+      return {
+        isOnRoute: distanceToStart <= toleranceKm,
+        distanceFromRoute: distanceToStart
+      };
+    }
+    
+    // Algorithm to find closest point on the line to our point
+    // First, convert lat/lng to a simple 2D coordinate system for calculation
+    const x = pointLat;
+    const y = pointLon;
+    const x1 = startLat;
+    const y1 = startLon;
+    const x2 = endLat;
+    const y2 = endLon;
+
+    // Calculate the line segment length squared
+    const lenSq = (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1);
+    
+    // Extra check for very small line segments
+    if (lenSq < 0.000001) { // Practically zero length
+      const distanceToStart = calculateDistance(pointLat, pointLon, startLat, startLon);
+      console.log(`[ROUTE-CHECK] Route segment is too short. Using distance to start: ${distanceToStart} km`);
+      return {
+        isOnRoute: distanceToStart <= toleranceKm,
+        distanceFromRoute: distanceToStart
+      };
+    }
+    
+    // Calculate projection of point onto line
+    let t = ((x - x1) * (x2 - x1) + (y - y1) * (y2 - y1)) / lenSq;
+    console.log(`[ROUTE-CHECK] Projection parameter t: ${t}`);
+    
+    // Clamp t to line segment
+    t = Math.max(0, Math.min(1, t));
+    console.log(`[ROUTE-CHECK] Clamped projection parameter t: ${t}`);
+    
+    // Calculate projection coordinates
+    const projX = x1 + t * (x2 - x1);
+    const projY = y1 + t * (y2 - y1);
+    console.log(`[ROUTE-CHECK] Projection point: (${projX}, ${projY})`);
+    
+    // Calculate actual distance using haversine formula
+    const distanceFromRoute = calculateDistance(
+      pointLat,
+      pointLon,
+      projX,
+      projY
+    );
+    
+    console.log(`[ROUTE-CHECK] Distance from route: ${distanceFromRoute} km, Tolerance: ${toleranceKm} km`);
+    
     return {
-      isOnRoute: distanceToStart <= toleranceKm,
-      distanceFromRoute: distanceToStart
+      isOnRoute: distanceFromRoute <= toleranceKm,
+      distanceFromRoute
+    };
+  } catch (error) {
+    console.error(`[ROUTE-CHECK] Error calculating route distance:`, error);
+    // Return a safe default
+    return {
+      isOnRoute: false,
+      distanceFromRoute: 999 // A large value to indicate we couldn't calculate
     };
   }
-  
-  // Algorithm to find closest point on the line to our point
-  // First, convert lat/lng to a simple 2D coordinate system for calculation
-  const x = pointLat;
-  const y = pointLon;
-  const x1 = startLat;
-  const y1 = startLon;
-  const x2 = endLat;
-  const y2 = endLon;
-
-  // Calculate the line segment length squared
-  const lenSq = (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1);
-  
-  // Calculate projection of point onto line
-  let t = ((x - x1) * (x2 - x1) + (y - y1) * (y2 - y1)) / lenSq;
-  
-  // Clamp t to line segment
-  t = Math.max(0, Math.min(1, t));
-  
-  // Calculate projection coordinates
-  const projX = x1 + t * (x2 - x1);
-  const projY = y1 + t * (y2 - y1);
-  
-  // Calculate actual distance using haversine formula
-  const distanceFromRoute = calculateDistance(
-    pointLat,
-    pointLon,
-    projX,
-    projY
-  );
-  
-  return {
-    isOnRoute: distanceFromRoute <= toleranceKm,
-    distanceFromRoute
-  };
 }
 
 const app = express();
@@ -174,6 +216,59 @@ app.use((req, res, next) => {
     }
   });
 
+  // Special debug endpoint for route deviation testing
+  app.get("/api/debug/route-deviation", async (req, res) => {
+    try {
+      // Allow this endpoint to be accessed without authentication for debugging
+      
+      // Get parameters with defaults for easier debugging
+      const lat = parseFloat(req.query.lat as string || "47.643");
+      const lng = parseFloat(req.query.lng as string || "-122.063");
+      const tripId = parseInt(req.query.tripId as string || "37");
+      
+      console.log(`[DEBUG] Received parameters: lat=${lat}, lng=${lng}, tripId=${tripId}`);
+      
+      // Get the trip
+      const trip = await storage.getTrip(tripId);
+      console.log(`[DEBUG] Retrieved trip:`, trip);
+      
+      if (!trip) {
+        return res.status(200).json({
+          success: false,
+          error: "Trip not found",
+          tripId: tripId, 
+          requestedParameters: { lat, lng }
+        });
+      }
+      
+      // Extract coordinates from the trip start and end locations
+      const startCoords = parseCoordinates(trip.startLocation);
+      const endCoords = parseCoordinates(trip.destination);
+      
+      console.log(`[DEBUG] Trip locations:\n  - Start: ${trip.startLocation}\n  - End: ${trip.destination}`);
+      console.log(`[DEBUG] Parsed coordinates:\n  - Start: ${JSON.stringify(startCoords)}\n  - End: ${JSON.stringify(endCoords)}`);
+      
+      // Return all the data for debugging
+      return res.status(200).json({
+        success: true,
+        tripData: trip,
+        parsedCoordinates: {
+          start: startCoords,
+          end: endCoords
+        },
+        enableMobileNotifications: trip.enableMobileNotifications,
+        requestParams: { lat, lng, tripId }
+      });
+    } catch (error) {
+      console.error("[DEBUG] Error in debug endpoint:", error);
+      return res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined
+      });
+    }
+  });
+  
   // Test endpoint for route deviation notifications
   app.get("/api/test/route-deviation", async (req, res) => {
     try {
