@@ -797,16 +797,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('===== ROUTE DEVIATION TEST TRIGGERED =====');
       console.log(`User authenticated: ${req.user.username}`);
       
-      // Get the active trip
-      const tripId = 37; // Hardcoded for testing
+      // Get the active trip - using request parameter or default to 37
+      const tripId = parseInt(req.query.tripId as string) || 37;
       
-      // Far-off coordinates (about 5km away from the route)
+      // Use provided coordinates or defaults
       const testLocation = {
-        latitude: 47.683210,
-        longitude: -122.102622
+        latitude: parseFloat(req.query.lat as string) || 47.683210,
+        longitude: parseFloat(req.query.lng as string) || -122.102622
       };
       
       console.log(`[TEST] Simulating route deviation for trip ${tripId}...`);
+      console.log(`[TEST] Using coordinates: ${testLocation.latitude}, ${testLocation.longitude}`);
       
       // Get the trip
       const trip = await storage.getTrip(tripId);
@@ -838,6 +839,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`[TEST] SendGrid API key configured: ${!!process.env.SENDGRID_API_KEY}`);
       console.log(`[TEST] SendGrid verified sender: ${process.env.SENDGRID_VERIFIED_SENDER || 'not set'}`);
       
+      // Calculate a realistic distance from route
+      let distanceFromRoute = 5.2; // Default value
+      
+      if (trip.startLocation && trip.destination) {
+        // Try to calculate a more accurate deviation distance
+        try {
+          const fromCoords = parseCoordinates(trip.startLocation);
+          const toCoords = parseCoordinates(trip.destination);
+          
+          if (fromCoords && toCoords) {
+            const routeCheck = isLocationOnRoute(
+              testLocation.latitude,
+              testLocation.longitude,
+              fromCoords.lat,
+              fromCoords.lng,
+              toCoords.lat,
+              toCoords.lng,
+              10 // Large tolerance to ensure we get a distance calculation
+            );
+            
+            if (routeCheck) {
+              distanceFromRoute = routeCheck.distance;
+              console.log(`[TEST] Calculated actual distance from route: ${distanceFromRoute.toFixed(2)}km`);
+            }
+          }
+        } catch (calcError) {
+          console.error('[TEST] Error calculating deviation distance:', calcError);
+          // Continue with default distance
+        }
+      }
+      
       // Send test email to trip creator
       try {
         const success = await sendRouteDeviationEmail(
@@ -845,7 +877,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           creator.displayName || creator.username,
           trip.name,
           req.user.username,
-          5.2, // Distance from route in km (simulated)
+          distanceFromRoute,
           testLocation.latitude,
           testLocation.longitude
         );
@@ -858,7 +890,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             details: {
               tripName: trip.name,
               deviationDetails: {
-                distanceFromRoute: 5.2,
+                distanceFromRoute,
                 location: testLocation
               }
             }
@@ -883,6 +915,150 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({
         success: false,
         error: "Internal server error",
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  // Endpoint to manually update trip location (for testing)
+  app.post("/api/trips/:id/location", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+      
+      const tripId = parseInt(req.params.id);
+      const { latitude, longitude } = req.body;
+      
+      if (isNaN(tripId) || isNaN(latitude) || isNaN(longitude)) {
+        return res.status(400).json({ error: "Invalid trip ID or coordinates" });
+      }
+      
+      console.log(`[LOCATION_UPDATE] User ${req.user.username} is updating trip ${tripId} location to ${latitude}, ${longitude}`);
+      
+      // Check if user has access to this trip
+      const accessLevel = await checkTripAccess(req, res, () => {}, tripId);
+      if (!accessLevel) {
+        return; // Response already sent by checkTripAccess
+      }
+      
+      // Get current trip data
+      const trip = await storage.getTrip(tripId);
+      if (!trip) {
+        return res.status(404).json({ error: "Trip not found" });
+      }
+      
+      // Calculate distance traveled since last update (if there was one)
+      let distanceIncrement = 0;
+      if (trip.currentLatitude !== null && trip.currentLongitude !== null) {
+        distanceIncrement = calculateDistance(
+          trip.currentLatitude,
+          trip.currentLongitude,
+          latitude,
+          longitude
+        );
+      }
+      
+      // Calculate cumulative distance traveled
+      const distanceTraveled = (trip.distanceTraveled || 0) + distanceIncrement;
+      
+      // Update the trip with the new location
+      const updatedTrip = await storage.updateTrip(tripId, {
+        currentLatitude: latitude,
+        currentLongitude: longitude,
+        lastLocationUpdate: new Date(),
+        distanceTraveled
+      });
+      
+      if (!updatedTrip) {
+        return res.status(500).json({ error: "Failed to update trip location" });
+      }
+      
+      // Extract route coordinates for deviation detection
+      let isDeviation = false;
+      let deviationDistance = 0;
+      
+      if (trip.startLocation && trip.destination) {
+        const fromCoords = parseCoordinates(trip.startLocation);
+        const toCoords = parseCoordinates(trip.destination);
+        
+        if (fromCoords && toCoords) {
+          const routeCheck = isLocationOnRoute(
+            latitude,
+            longitude,
+            fromCoords.lat,
+            fromCoords.lng,
+            toCoords.lat,
+            toCoords.lng,
+            0.1 // 100m tolerance threshold
+          );
+          
+          if (routeCheck) {
+            isDeviation = !routeCheck.isOnRoute;
+            deviationDistance = routeCheck.distance;
+            
+            console.log(`[LOCATION_UPDATE] Route check result:`, 
+              { isDeviation, distance: deviationDistance.toFixed(2) + 'km' });
+              
+            // If this is a significant deviation, notify
+            if (isDeviation && deviationDistance > 0.2) { // 200m threshold
+              console.log(`[LOCATION_UPDATE] Significant deviation detected (${deviationDistance.toFixed(2)}km)`);
+              
+              // Get trip creator
+              const creator = await storage.getUser(trip.createdBy);
+              
+              if (creator && creator.email) {
+                // Send deviation notification
+                sendRouteDeviationEmail(
+                  creator.email,
+                  creator.displayName || creator.username,
+                  trip.name,
+                  req.user.username,
+                  deviationDistance,
+                  latitude,
+                  longitude
+                ).then(success => {
+                  console.log(`[LOCATION_UPDATE] Deviation email ${success ? 'sent' : 'failed'}`);
+                }).catch(err => {
+                  console.error('[LOCATION_UPDATE] Error sending deviation email:', err);
+                });
+              }
+            }
+          }
+        }
+      }
+      
+      // Broadcast the location update to all connected clients
+      const updateMessage = {
+        type: 'tripLocationUpdate',
+        tripId,
+        data: {
+          latitude,
+          longitude,
+          timestamp: new Date().toISOString(),
+          distanceTraveled,
+          isDeviation,
+          deviationDistance: isDeviation ? deviationDistance : 0
+        }
+      };
+      
+      broadcastToGroup(trip.groupId, updateMessage);
+      
+      // Return the updated trip data
+      res.json({
+        success: true,
+        trip: updatedTrip,
+        locationDetails: {
+          latitude,
+          longitude,
+          distanceIncrement,
+          distanceTraveled,
+          isDeviation,
+          deviationDistance: isDeviation ? deviationDistance : 0
+        }
+      });
+    } catch (error) {
+      console.error("Error updating trip location:", error);
+      res.status(500).json({
+        error: "Failed to update trip location",
         details: error instanceof Error ? error.message : String(error)
       });
     }

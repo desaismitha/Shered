@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Route Deviation Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    h1 {
+      color: #4F46E5;
+    }
+    button {
+      background-color: #4F46E5;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+      margin: 20px 0;
+    }
+    button:hover {
+      background-color: #4338CA;
+    }
+    pre {
+      background-color: #f5f5f5;
+      padding: 15px;
+      border-radius: 4px;
+      overflow-x: auto;
+    }
+    .success {
+      background-color: #d1e7dd;
+      border-left: 4px solid #198754;
+      padding: 15px;
+      margin: 15px 0;
+      border-radius: 4px;
+    }
+    .error {
+      background-color: #f8d7da;
+      border-left: 4px solid #dc3545;
+      padding: 15px;
+      margin: 15px 0;
+      border-radius: 4px;
+    }
+    #result {
+      margin-top: 20px;
+    }
+    #spoofForm {
+      background-color: #f8f9fa;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 30px;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    input {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ced4da;
+      border-radius: 4px;
+    }
+    .location-presets {
+      margin-top: 20px;
+      padding: 10px;
+      background-color: #e9ecef;
+      border-radius: 4px;
+    }
+    .preset-button {
+      background-color: #6c757d;
+      color: white;
+      border: none;
+      padding: 5px 10px;
+      border-radius: 4px;
+      margin-right: 10px;
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+    .preset-button:hover {
+      background-color: #5a6268;
+    }
+  </style>
+</head>
+<body>
+  <h1>Route Deviation Test</h1>
+  
+  <p>This page will help you test the route deviation notification system with simulated locations.</p>
+  
+  <div id="spoofForm">
+    <h2>Spoof Location</h2>
+    <p>Enter coordinates far from the planned route to trigger a deviation notification.</p>
+    
+    <div class="form-group">
+      <label for="latitude">Latitude:</label>
+      <input type="number" id="latitude" step="0.000001" value="47.683210">
+    </div>
+    
+    <div class="form-group">
+      <label for="longitude">Longitude:</label>
+      <input type="number" id="longitude" step="0.000001" value="-122.102622">
+    </div>
+    
+    <div class="form-group">
+      <label for="tripId">Trip ID:</label>
+      <input type="number" id="tripId" value="37">
+    </div>
+    
+    <button id="updateLocationButton">Update Location</button>
+    
+    <div class="location-presets">
+      <h3>Location Presets:</h3>
+      <button class="preset-button" data-lat="47.683210" data-lng="-122.102622">Far Location (~5km away)</button>
+      <button class="preset-button" data-lat="47.648210" data-lng="-122.075622">Medium Deviation (~1km away)</button>
+      <button class="preset-button" data-lat="47.641210" data-lng="-122.064622">Slight Deviation (~300m away)</button>
+      <button class="preset-button" data-lat="47.641504" data-lng="-122.064813">On Route</button>
+    </div>
+  </div>
+  
+  <h2>Send Test Email Notification</h2>
+  <p>This will simulate a route deviation notification using the coordinates above:</p>
+  <ol>
+    <li>The system will simulate a route deviation for the specified trip</li>
+    <li>It will check if your account has an email address set up</li>
+    <li>It will send a notification email to your email address</li>
+    <li>The results will be displayed below</li>
+  </ol>
+  
+  <button id="testEmailButton">Send Test Email</button>
+  
+  <div id="result"></div>
+  
+  <script>
+    // Set preset locations
+    document.querySelectorAll('.preset-button').forEach(button => {
+      button.addEventListener('click', function() {
+        document.getElementById('latitude').value = this.getAttribute('data-lat');
+        document.getElementById('longitude').value = this.getAttribute('data-lng');
+      });
+    });
+
+    // Update location in the database
+    document.getElementById('updateLocationButton').addEventListener('click', async function() {
+      const resultElement = document.getElementById('result');
+      resultElement.innerHTML = '<p>Updating location...</p>';
+      
+      const latitude = parseFloat(document.getElementById('latitude').value);
+      const longitude = parseFloat(document.getElementById('longitude').value);
+      const tripId = parseInt(document.getElementById('tripId').value);
+      
+      if (isNaN(latitude) || isNaN(longitude) || isNaN(tripId)) {
+        resultElement.innerHTML = `
+          <div class="error">
+            <h3>Invalid Input</h3>
+            <p>Please enter valid numbers for latitude, longitude, and trip ID.</p>
+          </div>
+        `;
+        return;
+      }
+      
+      try {
+        // Call our API endpoint to update the location
+        const response = await fetch('/api/trips/' + tripId + '/location', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            latitude,
+            longitude
+          })
+        });
+        
+        const data = await response.json();
+        
+        // Display results
+        if (response.ok) {
+          resultElement.innerHTML = `
+            <div class="success">
+              <h3>Location Updated!</h3>
+              <p>Location was successfully updated for trip #${tripId}</p>
+            </div>
+            <h4>Response Details:</h4>
+            <pre>${JSON.stringify(data, null, 2)}</pre>
+          `;
+        } else {
+          resultElement.innerHTML = `
+            <div class="error">
+              <h3>Update Failed</h3>
+              <p>${data.error || 'Unknown error'}</p>
+            </div>
+            <h4>Response Details:</h4>
+            <pre>${JSON.stringify(data, null, 2)}</pre>
+          `;
+        }
+      } catch (error) {
+        resultElement.innerHTML = `
+          <div class="error">
+            <h3>Error Updating Location</h3>
+            <p>${error.message}</p>
+          </div>
+        `;
+      }
+    });
+
+    // Send test email
+    document.getElementById('testEmailButton').addEventListener('click', async function() {
+      const resultElement = document.getElementById('result');
+      resultElement.innerHTML = '<p>Sending test email...</p>';
+      
+      try {
+        // Call our test API endpoint with the current coordinates
+        const latitude = parseFloat(document.getElementById('latitude').value);
+        const longitude = parseFloat(document.getElementById('longitude').value);
+        const tripId = parseInt(document.getElementById('tripId').value);
+        
+        const response = await fetch(`/api/test/route-deviation?lat=${latitude}&lng=${longitude}&tripId=${tripId}`);
+        const data = await response.json();
+        
+        // Display results
+        if (response.ok) {
+          resultElement.innerHTML = `
+            <div class="success">
+              <h3>Test Email Sent!</h3>
+              <p>${data.message}</p>
+            </div>
+            <h4>Response Details:</h4>
+            <pre>${JSON.stringify(data, null, 2)}</pre>
+          `;
+        } else {
+          resultElement.innerHTML = `
+            <div class="error">
+              <h3>Test Failed</h3>
+              <p>${data.error}</p>
+              ${data.details ? `<p>${data.details}</p>` : ''}
+            </div>
+            <h4>Response Details:</h4>
+            <pre>${JSON.stringify(data, null, 2)}</pre>
+          `;
+        }
+      } catch (error) {
+        resultElement.innerHTML = `
+          <div class="error">
+            <h3>Error Running Test</h3>
+            <p>${error.message}</p>
+          </div>
+        `;
+      }
+    });
+  </script>
+</body>
+</html>

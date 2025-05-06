@@ -1,4 +1,5 @@
 import express, { type Request, Response, NextFunction } from "express";
+import path from "path";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { checkDbConnection, attemptReconnect } from "./db";
@@ -6,6 +7,9 @@ import { checkDbConnection, attemptReconnect } from "./db";
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Serve static files from the public directory
+app.use('/test', express.static(path.join(process.cwd(), 'public')));
 
 app.use((req, res, next) => {
   // Log all request paths and queries for debugging
