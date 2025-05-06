@@ -10,7 +10,7 @@ import { setupAuth, hashPassword } from "./auth";
 import { insertGroupSchema, insertTripSchema, insertItineraryItemSchema, insertExpenseSchema, insertMessageSchema, insertGroupMemberSchema, insertVehicleSchema, insertTripVehicleSchema, users as usersTable, trips, itineraryItems } from "@shared/schema";
 import { z } from "zod";
 import { eq, or, and, asc, desc, sql, isNull, count, between } from "drizzle-orm";
-import { sendGroupInvitation, sendPasswordResetEmail } from "./email";
+import { sendGroupInvitation, sendPasswordResetEmail, sendRouteDeviationEmail } from "./email";
 import crypto from "crypto";
 import fetch from "node-fetch";
 
@@ -65,17 +65,49 @@ async function notifyGroupAboutDeviation(
     const memberIds = groupMembers.map(member => member.userId);
     console.log(`Sending deviation notification to ${memberIds.length} group members`);
     
-    // Send to all connected group members
-    let sentCount = 0;
+    // Send to all connected group members via WebSocket (for real-time UI updates)
+    let wsCount = 0;
     for (const userId of memberIds) {
       const connection = userConnections.get(userId);
       if (connection && connection.readyState === WebSocket.OPEN) {
         connection.send(JSON.stringify(notification));
-        sentCount++;
+        wsCount++;
       }
     }
     
-    console.log(`Successfully sent deviation notifications to ${sentCount} connected group members`);
+    console.log(`Sent WebSocket notifications to ${wsCount} connected group members`);
+    
+    // Also send email notifications to ALL group members
+    let emailCount = 0;
+    for (const member of groupMembers) {
+      try {
+        // Get the user's details to have their email address
+        const user = await storage.getUser(member.userId);
+        if (user && user.email) {
+          // Send the email notification
+          const success = await sendRouteDeviationEmail(
+            user.email,
+            user.displayName || user.username,
+            tripName,
+            username,
+            distanceFromRoute,
+            latitude,
+            longitude
+          );
+          
+          if (success) {
+            emailCount++;
+            console.log(`Email notification sent to ${user.email}`);
+          } else {
+            console.error(`Failed to send email notification to ${user.email}`);
+          }
+        }
+      } catch (emailError) {
+        console.error(`Error sending email to group member ${member.userId}:`, emailError);
+      }
+    }
+    
+    console.log(`Successfully sent email notifications to ${emailCount} group members`);
   } catch (error) {
     console.error('Error sending group deviation notifications:', error);
   }

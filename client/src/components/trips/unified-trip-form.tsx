@@ -163,20 +163,8 @@ export function UnifiedTripForm({
     console.log('Form submitted with data:', data);
     console.log('Current user data:', userData);
     
-    // If mobile notifications are enabled, check for phone verification
-    if (data.enableMobileNotifications && data.phoneNumber) {
-      console.log('Mobile notifications enabled with phone number:', data.phoneNumber);
-      
-      // Always show verification modal if enabling notifications
-      // This is a temporary fix to force the modal to show
-      setFormDataForSubmission(data);
-      setShowPhoneVerification(true);
-      console.log('Setting showPhoneVerification to TRUE');
-      return;
-    }
-    
-    // Submit as normal if no verification needed
-    console.log('No verification needed, submitting form');
+    // Submit form directly - no phone verification needed for email notifications
+    console.log('Submitting form with email notifications setting:', data.enableMobileNotifications);
     onSubmit(data);
   };
 
@@ -395,9 +383,9 @@ export function UnifiedTripForm({
             </div>
           </Card>
           
-          {/* Mobile Notifications Card */}
+          {/* Route Deviation Notifications Card */}
           <Card className="p-6">
-            <h2 className="text-lg font-medium mb-4">Mobile Notifications</h2>
+            <h2 className="text-lg font-medium mb-4">Route Deviation Notifications</h2>
             
             <div className="flex flex-col space-y-4">
               <FormField
@@ -410,7 +398,7 @@ export function UnifiedTripForm({
                         Route Change Notifications
                       </FormLabel>
                       <FormDescription>
-                        Receive SMS notifications when someone deviates from the planned route
+                        Receive email notifications when someone deviates from the planned route
                       </FormDescription>
                     </div>
                     <FormControl>
@@ -424,25 +412,12 @@ export function UnifiedTripForm({
               />
               
               {form.watch("enableMobileNotifications") && (
-                <FormField
-                  control={form.control}
-                  name="phoneNumber"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Phone Number</FormLabel>
-                      <FormControl>
-                        <Input 
-                          placeholder="Enter your phone number (e.g., +1234567890)" 
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Phone number must include country code (e.g., +1 for US)
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <div className="px-4 py-3 rounded-md bg-blue-50 border border-blue-200">
+                  <p className="text-sm text-blue-700">
+                    Email notifications will be sent to all members of the group when someone deviates from the planned route. 
+                    Make sure group members have verified their email addresses to receive these notifications.
+                  </p>
+                </div>
               )}
             </div>
           </Card>

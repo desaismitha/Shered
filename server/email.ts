@@ -297,3 +297,83 @@ export async function sendOTPVerificationCode(
     html
   });
 }
+
+/**
+ * Send a route deviation notification via email
+ * @param email Recipient's email address
+ * @param username Recipient's username/display name
+ * @param tripName Name of the trip
+ * @param deviatedUserName Name of the person who deviated from the route
+ * @param distanceFromRoute Distance from planned route in kilometers
+ * @param latitude Current latitude
+ * @param longitude Current longitude
+ * @returns Promise<boolean> indicating success or failure
+ */
+export async function sendRouteDeviationEmail(
+  email: string,
+  username: string,
+  tripName: string,
+  deviatedUserName: string,
+  distanceFromRoute: number,
+  latitude: number,
+  longitude: number
+): Promise<boolean> {
+  const fromEmail = process.env.SENDGRID_VERIFIED_SENDER || 'noreply@travelgroupr.com';
+  const subject = `🚨 Route Deviation Alert: ${tripName}`;
+  
+  // Format the distance to 2 decimal places
+  const formattedDistance = distanceFromRoute.toFixed(2);
+  
+  // Generate a Google Maps link with the coordinates
+  const mapsLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
+  
+  const text = `
+    Hi ${username},
+    
+    This is an important alert regarding your trip "${tripName}".
+    
+    ${deviatedUserName} has deviated from the planned route by ${formattedDistance}km.
+    
+    Current location: ${latitude}, ${longitude}
+    View on Google Maps: ${mapsLink}
+    
+    You're receiving this notification because you're a member of this trip's group.
+    
+    Best regards,
+    The TravelGroupr Team
+  `;
+  
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: #dc3545;">⚠️ Route Deviation Alert</h2>
+      <p>Hi <strong>${username}</strong>,</p>
+      <p>This is an important alert regarding your trip <strong>"${tripName}"</strong>.</p>
+      
+      <div style="background-color: #f8d7da; border-left: 4px solid #dc3545; padding: 15px; margin: 20px 0; border-radius: 4px;">
+        <p style="margin: 0; font-size: 16px;">
+          <strong>${deviatedUserName}</strong> has deviated from the planned route by <strong>${formattedDistance}km</strong>.
+        </p>
+      </div>
+      
+      <p><strong>Current location:</strong> ${latitude}, ${longitude}</p>
+      
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="${mapsLink}" style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold;">
+          View on Google Maps
+        </a>
+      </div>
+      
+      <p>You're receiving this notification because you're a member of this trip's group.</p>
+      
+      <p>Best regards,<br>The TravelGroupr Team</p>
+    </div>
+  `;
+  
+  return sendEmail({
+    to: email,
+    from: fromEmail,
+    subject,
+    text,
+    html
+  });
+}
