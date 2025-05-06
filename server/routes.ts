@@ -788,6 +788,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
       available: !!token
     });
   });
+  
+  // Test endpoint for route deviation notifications - REMOVE IN PRODUCTION
+  app.get("/api/test/route-deviation", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+      
+      // Get the active trip
+      const tripId = 37; // Hardcoded for testing
+      
+      // Far-off coordinates (about 5km away from the route)
+      const testLocation = {
+        latitude: 47.683210,
+        longitude: -122.102622
+      };
+      
+      console.log(`[TEST] Simulating route deviation for trip ${tripId}...`);
+      
+      // Get the trip
+      const trip = await storage.getTrip(tripId);
+      
+      if (!trip) {
+        return res.status(404).json({ error: "Trip not found" });
+      }
+      
+      // Get trip creator
+      const creator = await storage.getUser(trip.createdBy);
+      
+      if (creator && creator.email) {
+        console.log(`[TEST] Sending test email to trip creator: ${creator.email}`);
+        
+        // Send test email to trip creator
+        const success = await sendRouteDeviationEmail(
+          creator.email,
+          creator.displayName || creator.username,
+          trip.name,
+          req.user.username,
+          5.2, // Distance from route in km (simulated)
+          testLocation.latitude,
+          testLocation.longitude
+        );
+        
+        if (success) {
+          console.log(`[TEST] Successfully sent test deviation email to ${creator.email}`);
+          return res.json({
+            success: true,
+            message: `Test email sent to ${creator.email}`,
+            details: {
+              tripName: trip.name,
+              deviationDetails: {
+                distanceFromRoute: 5.2,
+                location: testLocation
+              }
+            }
+          });
+        } else {
+          console.error(`[TEST] Failed to send test deviation email to ${creator.email}`);
+          return res.status(500).json({
+            success: false,
+            error: "Failed to send test email"
+          });
+        }
+      } else {
+        return res.status(404).json({ error: "Trip creator email not found" });
+      }
+    } catch (error) {
+      console.error("Error in test route deviation:", error);
+      return res.status(500).json({
+        success: false,
+        error: "Internal server error"
+      });
+    }
+  });
 
   // Mapbox directions API proxy to avoid CORS issues
   app.get("/api/mapbox/directions", async (req, res) => {

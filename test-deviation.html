@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Route Deviation Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .card {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    h1, h2 {
+      color: #333;
+    }
+    .button {
+      background-color: #4F46E5;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    .button:hover {
+      background-color: #4338CA;
+    }
+    #results {
+      background-color: #f9f9f9;
+      border-left: 4px solid #4F46E5;
+      padding: 15px;
+      margin-top: 20px;
+      white-space: pre-wrap;
+      font-family: monospace;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Test Route Deviation Notifications</h1>
+    <p>This page will simulate a route deviation for the active trip by sending coordinates that are far from the planned route.</p>
+    <p>The system should detect the deviation and send an email notification to the trip creator.</p>
+    
+    <h2>Test Details:</h2>
+    <ul>
+      <li><strong>Trip ID:</strong> 37</li>
+      <li><strong>Test coordinates:</strong> Latitude 47.683210, Longitude -122.102622</li>
+      <li><strong>Expected result:</strong> Route deviation detected, email notification sent</li>
+    </ul>
+    
+    <button id="runTest" class="button">Run Deviation Test</button>
+    
+    <div id="results">Results will appear here after running the test...</div>
+  </div>
+
+  <script>
+    document.getElementById('runTest').addEventListener('click', async () => {
+      const resultsDiv = document.getElementById('results');
+      resultsDiv.textContent = 'Running test...';
+
+      const tripId = 37;  // The active trip we saw in the logs
+
+      // These coordinates are intentionally far from the route between
+      // the start location (47.643210, -122.062622) and 
+      // the destination (47.639104, -122.066813)
+      // This location is about 5km away from the route
+      const testLocation = {
+        latitude: 47.683210,  // Significantly north of the route
+        longitude: -122.102622 // Significantly east of the route
+      };
+
+      try {
+        resultsDiv.textContent += '\nSimulating route deviation for trip ID: ' + tripId;
+        resultsDiv.textContent += '\nUsing test coordinates: ' + JSON.stringify(testLocation);
+        
+        const response = await fetch(`/api/trips/${tripId}/update-location`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(testLocation)
+        });
+        
+        const result = await response.json();
+        resultsDiv.textContent += '\n\nResponse from server: ' + JSON.stringify(result, null, 2);
+        
+        if (result.routeStatus && !result.routeStatus.isOnRoute) {
+          resultsDiv.textContent += '\n\n🚨 DEVIATION DETECTED!';
+          resultsDiv.textContent += `\nDistance from route: ${result.routeStatus.distanceFromRoute.toFixed(2)}km`;
+          resultsDiv.textContent += '\n\n✉️ Email notification should have been sent to the trip creator';
+        } else {
+          resultsDiv.textContent += '\n\nNo deviation detected or unexpected response';
+        }
+      } catch (error) {
+        resultsDiv.textContent += '\n\nError simulating deviation: ' + error.message;
+      }
+    });
+  </script>
+</body>
+</html>
