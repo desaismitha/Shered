@@ -10,10 +10,10 @@ import { setupPhoneVerificationRoutes } from "./phone-verification";
 import fileUpload from "express-fileupload";
 import { db, attemptReconnect, checkDbConnection, cleanupConnections } from "./db";
 import { setupAuth, hashPassword } from "./auth";
-import { insertGroupSchema, insertTripSchema, insertItineraryItemSchema, insertExpenseSchema, insertMessageSchema, insertGroupMemberSchema, insertVehicleSchema, insertTripVehicleSchema, users as usersTable, trips, itineraryItems } from "@shared/schema";
+import { insertGroupSchema, insertTripSchema, insertItineraryItemSchema, insertExpenseSchema, insertMessageSchema, insertGroupMemberSchema, insertVehicleSchema, insertTripVehicleSchema, users, groupMembers, trips, itineraryItems } from "@shared/schema";
 import { z } from "zod";
 import { eq, or, and, asc, desc, sql, isNull, count, between } from "drizzle-orm";
-import { sendGroupInvitation, sendPasswordResetEmail, sendRouteDeviationEmail } from "./email";
+import { sendGroupInvitation, sendPasswordResetEmail, sendRouteDeviationEmail, sendTripStatusChangeEmail } from "./email";
 import crypto from "crypto";
 import fetch from "node-fetch";
 
@@ -446,10 +446,7 @@ async function sendTripStatusNotifications(tripId: number, newStatus: string): P
     // Create a list of users to notify
     let usersToNotify: { id: number; email: string; username: string; displayName: string }[] = [];
     
-    // Import users from schema
-    const { users } = await import("@shared/schema");
-    
-    // Always notify the trip creator
+    // Get the trip creator using the imported schema
     const [tripCreator] = await db.select().from(users).where(eq(users.id, trip.createdBy));
     if (tripCreator) {
       usersToNotify.push(tripCreator);
@@ -457,18 +454,15 @@ async function sendTripStatusNotifications(tripId: number, newStatus: string): P
     
     // If the trip has a group, notify all group members
     if (trip.groupId) {
-      // Import users and groupMembers from schema
-      const { users, groupMembers: groupMembersTable } = await import("@shared/schema");
-      
       const groupUsers = await db.select({
         id: users.id,
         email: users.email,
         username: users.username,
         displayName: users.displayName,
       })
-      .from(groupMembersTable)
-      .innerJoin(users, eq(groupMembersTable.userId, users.id))
-      .where(eq(groupMembersTable.groupId, trip.groupId));
+      .from(groupMembers)
+      .innerJoin(users, eq(groupMembers.userId, users.id))
+      .where(eq(groupMembers.groupId, trip.groupId));
       
       // Add unique group members (skip duplicates if the creator is also in the group)
       for (const member of groupUsers) {
@@ -488,9 +482,6 @@ async function sendTripStatusNotifications(tripId: number, newStatus: string): P
     const emailPromises = usersToNotify.map(user => {
       const { email, displayName } = user;
       const username = displayName || user.username;
-      
-      // Import the email sending function
-      const { sendTripStatusChangeEmail } = require('./email');
       
       // Send the email with trip details
       return sendTripStatusChangeEmail(
