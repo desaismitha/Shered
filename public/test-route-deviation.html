@@ -80,7 +80,11 @@
 </head>
 <body>
     <h1>Route Deviation Test Tool</h1>
-    <p>This tool allows you to test the route deviation notification system by sending coordinates and checking if they're on a trip's route. When a significant deviation is detected, the system will send an email notification to group members.</p>
+    <p>This tool allows you to test the route deviation notification system by sending coordinates and checking if they're on a trip's route. When a significant deviation is detected, the system will send an email notification to group members <strong>if notifications are enabled</strong> for the trip.</p>
+    <div style="background-color: #e6f7ff; border-left: 4px solid #1890ff; padding: 12px; margin: 16px 0;">
+        <p style="margin-bottom: 6px;"><strong>Note:</strong> Test trip 37 has notifications enabled by default.</p>
+        <p style="margin-bottom: 0;">Any new trips created with the test form will also have notifications enabled by default.</p>
+    </div>
     
     <div class="card">
         <h2>Step 1: Select a trip</h2>
@@ -295,10 +299,18 @@
                         summary += '<p class="error">Location is <strong>OFF</strong> the route (exceeds 5km tolerance).</p>';
                     }
                     
-                    if (data.emailSent) {
-                        summary += '<p class="success">Deviation notification email was sent successfully.</p>';
+                    // Show notification status
+                    if (data.notificationsEnabled) {
+                        summary += '<p class="success">Notifications are enabled for this trip.</p>';
+                        
+                        if (data.emailSent) {
+                            summary += '<p class="success">Deviation notification email was sent successfully.</p>';
+                        } else {
+                            summary += '<p class="error">Email was not sent despite notifications being enabled. Check server logs.</p>';
+                        }
                     } else {
-                        summary += '<p>No notification email was sent.</p>';
+                        summary += '<p class="error">Notifications are disabled for this trip.</p>';
+                        summary += '<p>Enable notifications in trip settings to receive deviation alerts.</p>';
                     }
                     
                     resultSummaryDiv.innerHTML = summary;

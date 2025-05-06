@@ -229,7 +229,10 @@ app.use((req, res, next) => {
       
       // Test sending a notification email for route deviation
       let emailSuccess = false;
-      if (req.user?.email) {
+      
+      // Only send email if notifications are enabled for this trip
+      if (req.user?.email && trip.enableMobileNotifications) {
+        console.log(`[TEST] Route deviation notifications enabled for trip ${tripId}`)
         emailSuccess = await sendRouteDeviationEmail(
           req.user.email,
           username,
@@ -239,19 +242,32 @@ app.use((req, res, next) => {
           lat,
           lng
         );
+      } else {
+        console.log(`[TEST] Route deviation notifications ${trip.enableMobileNotifications ? 'enabled' : 'disabled'} for trip ${tripId}`)
+      }
+      
+      // Create a detailed message about why an email was sent or not
+      let resultMessage = '';
+      if (emailSuccess) {
+        resultMessage = `Test deviation notification sent to ${req.user?.email}`;
+      } else if (!trip.enableMobileNotifications) {
+        resultMessage = `Notifications are disabled for this trip. Enable them in trip settings.`;
+      } else if (!req.user?.email) {
+        resultMessage = `No email address available for the current user.`;
+      } else {
+        resultMessage = `Location checked but email sending failed.`;
       }
       
       res.json({
         success: true,
-        message: emailSuccess 
-          ? `Test deviation notification sent to ${req.user?.email}` 
-          : "Location checked but no email was sent",
+        message: resultMessage,
         location: { latitude: lat, longitude: lng },
         routeCheck: {
           isOnRoute: routeCheck.isOnRoute,
           distanceFromRoute: routeCheck.distanceFromRoute,
           isDeviation: routeCheck.distanceFromRoute > 5.0
         },
+        notificationsEnabled: !!trip.enableMobileNotifications,
         emailSent: emailSuccess
       });
     } catch (error) {
