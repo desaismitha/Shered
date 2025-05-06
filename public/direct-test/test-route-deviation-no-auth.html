@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Route Deviation Test (No Auth) | TravelGroupr</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        h1, h2, h3 {
+            color: #2563eb;
+        }
+        label {
+            display: block;
+            margin-top: 15px;
+            font-weight: bold;
+        }
+        input, button {
+            padding: 8px;
+            margin-top: 5px;
+            width: 100%;
+            max-width: 300px;
+        }
+        button {
+            background-color: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 15px;
+        }
+        button:hover {
+            background-color: #1d4ed8;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+        }
+        .response {
+            white-space: pre-wrap;
+            font-family: monospace;
+            background-color: #f1f1f1;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        .success {
+            color: #16a34a;
+        }
+        .error {
+            color: #dc2626;
+        }
+        .loading {
+            text-align: center;
+            margin: 20px;
+            display: none;
+        }
+        .loader {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #2563eb;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .coordinates {
+            margin-top: 10px;
+            font-size: 0.9em;
+            color: #777;
+        }
+    </style>
+</head>
+<body>
+    <h1>Route Deviation Test (No Authentication Required)</h1>
+    <p>This special version uses the debug API that doesn't require authentication.</p>
+    <p>Use this tool to test route deviation notifications for Trip #37.</p>
+    
+    <div>
+        <h2>Your position</h2>
+        <p>Enter latitude and longitude coordinates or use the predefined options.</p>
+        
+        <label for="preset">Position Preset:</label>
+        <select id="preset" onchange="updateCoordinates()">
+            <option value="">-- Custom --</option>
+            <option value="route-start">Route Starting Point</option>
+            <option value="route-end">Route Destination</option>
+            <option value="near-route">Near Route (within 5km)</option>
+            <option value="far-from-route">Far From Route (>5km)</option>
+        </select>
+        
+        <label for="latitude">Latitude:</label>
+        <input type="text" id="latitude" value="47.643210">
+        
+        <label for="longitude">Longitude:</label>
+        <input type="text" id="longitude" value="-122.062622">
+    </div>
+    
+    <button id="testDeviationBtn" onclick="testDeviation()">Test Deviation</button>
+    
+    <div class="loading" id="loadingDiv">
+        <div class="loader"></div>
+        <p>Testing route deviation...</p>
+    </div>
+    
+    <div class="result" id="resultDiv" style="display: none;">
+        <h2>Test Results</h2>
+        <div id="resultSummary"></div>
+        
+        <h3>Raw Response:</h3>
+        <div id="responseDiv" class="response"></div>
+    </div>
+    
+    <script>
+        // Pre-defined coordinates
+        const presets = {
+            'route-start': { lat: 47.643210, lng: -122.062622 },
+            'route-end': { lat: 47.639104, lng: -122.066813 },
+            'near-route': { lat: 47.642000, lng: -122.064000 },
+            'far-from-route': { lat: 47.680000, lng: -122.100000 }
+        };
+        
+        // Update coordinates based on preset selection
+        function updateCoordinates() {
+            const preset = document.getElementById('preset').value;
+            if (preset && presets[preset]) {
+                document.getElementById('latitude').value = presets[preset].lat;
+                document.getElementById('longitude').value = presets[preset].lng;
+            }
+        }
+        
+        // Test route deviation
+        async function testDeviation() {
+            const testDeviationBtn = document.getElementById('testDeviationBtn');
+            const loadingDiv = document.getElementById('loadingDiv');
+            const resultDiv = document.getElementById('resultDiv');
+            const responseDiv = document.getElementById('responseDiv');
+            const resultSummaryDiv = document.getElementById('resultSummary');
+            
+            testDeviationBtn.disabled = true;
+            loadingDiv.style.display = 'block';
+            resultDiv.style.display = 'none';
+            
+            try {
+                const latitude = parseFloat(document.getElementById('latitude').value);
+                const longitude = parseFloat(document.getElementById('longitude').value);
+                
+                if (isNaN(latitude) || isNaN(longitude)) {
+                    throw new Error('Please enter valid latitude and longitude values');
+                }
+                
+                // Use the debug API that doesn't require authentication
+                const response = await fetch(`/api/debug/route-deviation?lat=${latitude}&lng=${longitude}&tripId=37`);
+                const data = await response.json();
+                
+                responseDiv.textContent = JSON.stringify(data, null, 2);
+                resultDiv.style.display = 'block';
+                
+                // Create a user-friendly summary
+                let summary = '';
+                
+                if (data.success) {
+                    summary += '<h3>Trip Information</h3>';
+                    if (data.tripData) {
+                        summary += `<p>Trip name: ${data.tripData.name}</p>`;
+                        summary += `<p>Start location: ${data.tripData.startLocation}</p>`;
+                        summary += `<p>Destination: ${data.tripData.destination}</p>`;
+                        summary += `<p>Notifications enabled: ${data.tripData.enableMobileNotifications ? 'Yes' : 'No'}</p>`;
+                    }
+                    
+                    summary += '<h3>Coordinate Parsing</h3>';
+                    if (data.parsedCoordinates) {
+                        if (data.parsedCoordinates.start) {
+                            summary += `<p class="success">Start coordinates parsed: [${data.parsedCoordinates.start.lat.toFixed(6)}, ${data.parsedCoordinates.start.lng.toFixed(6)}]</p>`;
+                        } else {
+                            summary += `<p class="error">Failed to parse start coordinates</p>`;
+                        }
+                        
+                        if (data.parsedCoordinates.end) {
+                            summary += `<p class="success">End coordinates parsed: [${data.parsedCoordinates.end.lat.toFixed(6)}, ${data.parsedCoordinates.end.lng.toFixed(6)}]</p>`;
+                        } else {
+                            summary += `<p class="error">Failed to parse end coordinates</p>`;
+                        }
+                    }
+                    
+                    summary += '<h3>Calculated Distance</h3>';
+                    if (data.parsedCoordinates && data.parsedCoordinates.start && data.parsedCoordinates.end) {
+                        // Calculate route length and distances to endpoints
+                        const startCoords = data.parsedCoordinates.start;
+                        const endCoords = data.parsedCoordinates.end;
+                        
+                        // Simple distance function
+                        const calcDistance = (lat1, lon1, lat2, lon2) => {
+                            const R = 6371; // Earth radius in km
+                            const dLat = (lat2 - lat1) * Math.PI / 180;
+                            const dLon = (lon2 - lon1) * Math.PI / 180;
+                            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                                    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+                                    Math.sin(dLon/2) * Math.sin(dLon/2);
+                            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+                            return R * c;
+                        };
+                        
+                        const d1 = calcDistance(latitude, longitude, startCoords.lat, startCoords.lng);
+                        const d2 = calcDistance(latitude, longitude, endCoords.lat, endCoords.lng);
+                        const routeLength = calcDistance(startCoords.lat, startCoords.lng, endCoords.lat, endCoords.lng);
+                        const minDist = Math.min(d1, d2);
+                        
+                        summary += `<p>Your location: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}</p>`;
+                        summary += `<p>Distance to start: ${d1.toFixed(2)} km</p>`;
+                        summary += `<p>Distance to end: ${d2.toFixed(2)} km</p>`;
+                        summary += `<p>Route length: ${routeLength.toFixed(2)} km</p>`;
+                        summary += `<p>Minimum distance to endpoints: ${minDist.toFixed(2)} km</p>`;
+                        
+                        if (minDist <= 5.0) {
+                            summary += '<p class="success">Your position is likely <strong>ON</strong> the route (within 5km tolerance).</p>';
+                        } else {
+                            summary += '<p class="error">Your position is likely <strong>OFF</strong> the route (exceeds 5km tolerance).</p>';
+                        }
+                    }
+                    
+                    summary += '<h3>Notification Status</h3>';
+                    if (data.enableMobileNotifications) {
+                        summary += '<p class="success">Notifications are ENABLED for this trip in the database.</p>';
+                    } else {
+                        summary += '<p class="error">Notifications are DISABLED for this trip in the database.</p>';
+                        summary += '<p>This is unusual since the trip should have notifications enabled. Please check the trip settings.</p>';
+                    }
+                                        
+                    summary += `<p><strong>Note:</strong> This debug page only shows information about the trip and cannot send actual email notifications.</p>`;
+                    summary += `<p>To test actual email notifications, try using the regular test page after logging in.</p>`;
+                    
+                } else {
+                    summary = `<p class="error">Error: ${data.error || 'Unknown error'}</p>`;
+                    if (data.details) {
+                        summary += `<p>${data.details}</p>`;
+                    }
+                }
+                
+                resultSummaryDiv.innerHTML = summary;
+            } catch (error) {
+                console.error('Error testing deviation:', error);
+                responseDiv.textContent = `Error: ${error.message}`;
+                resultSummaryDiv.innerHTML = `<p class="error">Error: ${error.message}</p>`;
+                resultDiv.style.display = 'block';
+            } finally {
+                testDeviationBtn.disabled = false;
+                loadingDiv.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
