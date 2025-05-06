@@ -114,6 +114,8 @@ app.use(express.urlencoded({ extended: false }));
 
 // Serve static files from the public directory
 app.use('/test', express.static(path.join(process.cwd(), 'public')));
+// Serve direct access test files
+app.use('/direct-test', express.static(path.join(process.cwd(), 'public/direct-test')));
 
 app.use((req, res, next) => {
   // Log all request paths and queries for debugging

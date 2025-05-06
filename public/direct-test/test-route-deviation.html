@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Route Deviation Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            color: #3b82f6;
+        }
+        .card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #2563eb;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        .map-container {
+            height: 300px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        #response {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .success {
+            color: green;
+        }
+        .error {
+            color: red;
+        }
+        .presets {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .preset-button {
+            background-color: #4b5563;
+            padding: 5px 10px;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <h1>Route Deviation Test Tool</h1>
+    <p>This tool allows you to test the route deviation notification system by sending coordinates and checking if they're on a trip's route.</p>
+    
+    <div class="card">
+        <h2>Step 1: Select a trip</h2>
+        <div id="tripLoader">
+            <button id="loadTrips">Load Active Trips</button>
+        </div>
+        <div id="tripSelector" style="display:none;">
+            <label for="tripId">Select Trip:</label>
+            <select id="tripId"></select>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Step 2: Enter GPS coordinates</h2>
+        <p>Enter the latitude and longitude to test if it's on the trip's route or deviates.</p>
+        
+        <div class="presets">
+            <button class="preset-button" onclick="setOnRouteCoordinates()">Use On-Route Coordinates</button>
+            <button class="preset-button" onclick="setOffRouteCoordinates()">Use Off-Route Coordinates</button>
+        </div>
+
+        <div>
+            <label for="latitude">Latitude:</label>
+            <input type="number" id="latitude" step="0.000001" placeholder="Example: 47.6062">
+        </div>
+        
+        <div>
+            <label for="longitude">Longitude:</label>
+            <input type="number" id="longitude" step="0.000001" placeholder="Example: -122.3321">
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Step 3: Test the deviation</h2>
+        <button id="testDeviation">Test Deviation</button>
+        <div id="loading" style="display:none; margin-top: 10px;">Testing... please wait</div>
+    </div>
+
+    <div class="card">
+        <h2>Results</h2>
+        <div id="resultSummary"></div>
+        <pre id="response">Response will appear here</pre>
+    </div>
+
+    <script>
+        // DOM elements
+        const loadTripsBtn = document.getElementById('loadTrips');
+        const tripSelector = document.getElementById('tripSelector');
+        const tripIdSelect = document.getElementById('tripId');
+        const latitudeInput = document.getElementById('latitude');
+        const longitudeInput = document.getElementById('longitude');
+        const testDeviationBtn = document.getElementById('testDeviation');
+        const loadingDiv = document.getElementById('loading');
+        const responseDiv = document.getElementById('response');
+        const resultSummaryDiv = document.getElementById('resultSummary');
+
+        // Store the loaded trips for later use
+        let loadedTrips = [];
+        
+        // Event listeners
+        loadTripsBtn.addEventListener('click', loadActiveTrips);
+        testDeviationBtn.addEventListener('click', testDeviation);
+        tripIdSelect.addEventListener('change', updateCoordinatePresets);
+
+        // Helper functions
+        function setOnRouteCoordinates() {
+            const tripId = tripIdSelect.value;
+            const trip = loadedTrips.find(t => t.id == tripId);
+            
+            if (trip) {
+                // Try to find coordinates in the start location
+                const startCoords = parseCoordinates(trip.startLocation);
+                if (startCoords) {
+                    // Slightly offset from the start point but still on the route
+                    latitudeInput.value = (startCoords.lat + 0.0001).toFixed(6);
+                    longitudeInput.value = (startCoords.lng + 0.0001).toFixed(6);
+                    return;
+                }
+            }
+            
+            // Default fallback if no coordinates found
+            latitudeInput.value = "47.6062";
+            longitudeInput.value = "-122.3321";
+        }
+
+        function setOffRouteCoordinates() {
+            const tripId = tripIdSelect.value;
+            const trip = loadedTrips.find(t => t.id == tripId);
+            
+            if (trip) {
+                // Try to find coordinates in the start location
+                const startCoords = parseCoordinates(trip.startLocation);
+                if (startCoords) {
+                    // Set coordinates far enough to be off-route (> 5km)
+                    latitudeInput.value = (startCoords.lat + 0.08).toFixed(6);
+                    longitudeInput.value = (startCoords.lng + 0.08).toFixed(6);
+                    return;
+                }
+            }
+            
+            // Default fallback if no coordinates found
+            latitudeInput.value = "47.6950";
+            longitudeInput.value = "-122.4380";
+        }
+
+        function parseCoordinates(locationStr) {
+            if (!locationStr) return null;
+            
+            // Try both formats: [lat, lng] and (lat, lng)
+            const bracketMatch = locationStr.match(/\[(-?\d+\.\d+),\s*(-?\d+\.\d+)\]/);
+            const parenMatch = locationStr.match(/\((-?\d+\.\d+),\s*(-?\d+\.\d+)\)/);
+            
+            const match = bracketMatch || parenMatch;
+            
+            if (match && match.length === 3) {
+                return {
+                    lat: parseFloat(match[1]),
+                    lng: parseFloat(match[2])
+                };
+            }
+            
+            return null;
+        }
+
+        function updateCoordinatePresets() {
+            // When a new trip is selected, update the coordinate presets
+            const tripId = tripIdSelect.value;
+            if (!tripId) return;
+            
+            const trip = loadedTrips.find(t => t.id == tripId);
+            if (!trip) return;
+            
+            console.log('Selected trip:', trip);
+        }
+
+        async function loadActiveTrips() {
+            try {
+                loadTripsBtn.disabled = true;
+                loadTripsBtn.textContent = 'Loading...';
+                
+                const response = await fetch('/api/trips/active');
+                
+                if (!response.ok) {
+                    throw new Error(`Error loading trips: ${response.statusText}`);
+                }
+                
+                const trips = await response.json();
+                loadedTrips = trips;
+                
+                console.log('Loaded trips:', trips);
+                
+                if (trips.length === 0) {
+                    resultSummaryDiv.innerHTML = '<p class="error">No active trips found. Please create a trip first.</p>';
+                    return;
+                }
+                
+                // Populate the trip selector
+                tripIdSelect.innerHTML = '';
+                trips.forEach(trip => {
+                    const option = document.createElement('option');
+                    option.value = trip.id;
+                    option.textContent = `${trip.id}: ${trip.name} (${trip.status}) - ${trip.startLocationDisplay} to ${trip.destinationDisplay}`;
+                    tripIdSelect.appendChild(option);
+                });
+                
+                // Show the trip selector
+                tripSelector.style.display = 'block';
+                updateCoordinatePresets();
+                
+                // Auto-fill the first trip
+                if (trips.length > 0) {
+                    setOnRouteCoordinates();
+                }
+            } catch (error) {
+                console.error('Error loading trips:', error);
+                resultSummaryDiv.innerHTML = `<p class="error">Error: ${error.message}</p>`;
+            } finally {
+                loadTripsBtn.disabled = false;
+                loadTripsBtn.textContent = 'Load Active Trips';
+            }
+        }
+        
+        async function testDeviation() {
+            const tripId = tripIdSelect.value;
+            const latitude = parseFloat(latitudeInput.value);
+            const longitude = parseFloat(longitudeInput.value);
+            
+            if (!tripId || isNaN(latitude) || isNaN(longitude)) {
+                resultSummaryDiv.innerHTML = '<p class="error">Please select a trip and enter valid coordinates.</p>';
+                return;
+            }
+            
+            try {
+                testDeviationBtn.disabled = true;
+                loadingDiv.style.display = 'block';
+                responseDiv.textContent = 'Sending request...';
+                
+                const response = await fetch(`/api/test/route-deviation?tripId=${tripId}&lat=${latitude}&lng=${longitude}`);
+                const data = await response.json();
+                
+                responseDiv.textContent = JSON.stringify(data, null, 2);
+                
+                // Display a user-friendly summary
+                if (data.success) {
+                    let summary = '<p class="success">Test completed successfully!</p>';
+                    summary += `<p>Location: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}</p>`;
+                    summary += `<p>Distance from route: ${data.routeCheck.distanceFromRoute.toFixed(2)} km</p>`;
+                    
+                    if (data.routeCheck.isOnRoute) {
+                        summary += '<p class="success">Location is <strong>ON</strong> the route (within 5km tolerance).</p>';
+                    } else {
+                        summary += '<p class="error">Location is <strong>OFF</strong> the route (exceeds 5km tolerance).</p>';
+                    }
+                    
+                    if (data.emailSent) {
+                        summary += '<p class="success">Deviation notification email was sent successfully.</p>';
+                    } else {
+                        summary += '<p>No notification email was sent.</p>';
+                    }
+                    
+                    resultSummaryDiv.innerHTML = summary;
+                } else {
+                    resultSummaryDiv.innerHTML = `<p class="error">Error: ${data.error}</p><p>${data.details || ''}</p>`;
+                }
+            } catch (error) {
+                console.error('Error testing deviation:', error);
+                responseDiv.textContent = `Error: ${error.message}`;
+                resultSummaryDiv.innerHTML = `<p class="error">Error: ${error.message}</p>`;
+            } finally {
+                testDeviationBtn.disabled = false;
+                loadingDiv.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
