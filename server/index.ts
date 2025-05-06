@@ -348,9 +348,14 @@ app.use((req, res, next) => {
       // Test sending a notification email for route deviation
       let emailSuccess = false;
       
-      // Only send email if notifications are enabled for this trip
+      // Ensure we have a proper debug logging for authentication/email status
+      console.log(`[TEST] User authentication status - isAuthenticated: ${req.isAuthenticated()}, has email: ${req.user?.email ? 'YES' : 'NO'}`);
+      console.log(`[TEST] Trip enableMobileNotifications value: ${trip.enableMobileNotifications}`);
+      
+      // Note: the correct condition is that BOTH the user must have an email AND the trip must have notifications enabled
+      // Only send email if notifications are enabled for this trip AND we have a valid user email
       if (req.user?.email && trip.enableMobileNotifications) {
-        console.log(`[TEST] Route deviation notifications enabled for trip ${tripId}`)
+        console.log(`[TEST] Route deviation notifications enabled for trip ${tripId} and user has email: ${req.user.email}`);
         emailSuccess = await sendRouteDeviationEmail(
           req.user.email,
           username,
@@ -360,8 +365,15 @@ app.use((req, res, next) => {
           lat,
           lng
         );
+        console.log(`[TEST] Email sending result: ${emailSuccess ? 'SUCCESS' : 'FAILED'}`);
       } else {
-        console.log(`[TEST] Route deviation notifications ${trip.enableMobileNotifications ? 'enabled' : 'disabled'} for trip ${tripId}`)
+        // Explain exactly why we're not sending an email
+        if (!req.user?.email) {
+          console.log(`[TEST] Not sending notification because user email is missing`);
+        }
+        if (!trip.enableMobileNotifications) {
+          console.log(`[TEST] Not sending notification because enableMobileNotifications is ${trip.enableMobileNotifications} for trip ${tripId}`);
+        }
       }
       
       // Create a detailed message about why an email was sent or not

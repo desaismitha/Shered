@@ -358,11 +358,15 @@
                         if (data.emailSent) {
                             summary += '<p class="success">Deviation notification email was sent successfully.</p>';
                         } else {
-                            summary += '<p class="error">Email was not sent despite notifications being enabled. Check server logs.</p>';
+                            summary += '<p class="error">Email was not sent despite notifications being enabled.</p>';
+                            summary += '<p>Most likely reason: <strong>You must be logged in</strong> to send test emails.</p>';
+                            summary += '<p>This is because the test needs your email address from your user account.</p>';
+                            summary += '<p>Go to the trip page first, then try the test again.</p>';
                         }
                     } else {
                         summary += '<p class="error">Notifications are disabled for this trip.</p>';
-                        summary += '<p>Enable notifications in trip settings to receive deviation alerts.</p>';
+                        summary += '<p>This is unusual since the database shows they should be enabled.</p>';
+                        summary += '<p>Try navigating to the trip details page and confirming notifications are enabled.</p>';
                     }
                     
                     resultSummaryDiv.innerHTML = summary;
