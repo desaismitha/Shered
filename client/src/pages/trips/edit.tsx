@@ -300,12 +300,28 @@ export default function EditTripPage() {
       
       // Check end date is not before start date
       if (values.endDate < values.startDate) {
-        toast({
-          title: "Invalid date range",
-          description: "End date cannot be before start date",
-          variant: "destructive",
+        // Instead of showing an error, automatically adjust the end date to be 30 minutes after start date
+        const adjustedEndDate = new Date(values.startDate.getTime());
+        adjustedEndDate.setMinutes(adjustedEndDate.getMinutes() + 30);
+        
+        console.log("Auto-adjusting end date in edit form:", {
+          originalStartDate: values.startDate.toISOString(),
+          originalEndDate: values.endDate.toISOString(),
+          adjustedEndDate: adjustedEndDate.toISOString()
         });
-        return;
+        
+        // Update the form values
+        form.setValue('endDate', adjustedEndDate);
+        
+        // Update the values object that will be submitted
+        values.endDate = adjustedEndDate;
+        
+        // Show toast notification about the adjustment
+        toast({
+          title: "End time adjusted",
+          description: "End time cannot be before start time. Adjusted to be 30 minutes after start time.",
+          duration: 5000
+        });
       }
       
       // Create a stripped-down version with only the fields we want to update

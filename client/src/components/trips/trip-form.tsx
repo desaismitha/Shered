@@ -502,10 +502,39 @@ export function TripForm() {
                                     message: 'End date and time must be in the future'
                                   });
                                 } else if (startDate && newDate < startDate) {
-                                  form.setError('endDate', {
-                                    type: 'manual',
-                                    message: 'End date cannot be before start date'
-                                  });
+                                  // Handle same-day time conflicts by auto-adjusting
+                                  if (format(startDate, "yyyy-MM-dd") === format(newDate, "yyyy-MM-dd")) {
+                                    // Same day - adjust the time to be 30 min after start time
+                                    const adjustedDate = new Date(startDate.getTime());
+                                    adjustedDate.setMinutes(adjustedDate.getMinutes() + 30);
+                                    
+                                    // Update state and form
+                                    setEndDate(adjustedDate);
+                                    field.onChange(adjustedDate);
+                                    
+                                    // Show toast notification
+                                    toast({
+                                      title: "Time adjusted",
+                                      description: "End time cannot be before start time. Adjusted to 30 minutes after start time.",
+                                      duration: 5000
+                                    });
+                                    
+                                    // Log the adjustment
+                                    console.log("Auto-adjusted end time (hours):", {
+                                      startTime: startDate.toISOString(),
+                                      originalEndTime: newDate.toISOString(),
+                                      adjustedEndTime: adjustedDate.toISOString()
+                                    });
+                                    
+                                    // Clear any errors
+                                    form.clearErrors('endDate');
+                                  } else {
+                                    // Different days - show error
+                                    form.setError('endDate', {
+                                      type: 'manual',
+                                      message: 'End date cannot be before start date'
+                                    });
+                                  }
                                 } else {
                                   form.clearErrors('endDate');
                                 }
