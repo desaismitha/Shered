@@ -125,23 +125,19 @@ export default function AuthPage() {
     }
   }, [inviteEmail, inviteToken, inviteMode, inviteGroupId]);
   
-  // Register form with pre-filled email if coming from invitation
+  // Register form with empty fields (no longer pre-filling email)
   const registerForm = useForm<RegisterValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
       displayName: "",
-      email: inviteEmail || "",
+      email: "",
       password: "",
       confirmPassword: "",
     }
   });
   
-  // Keep the email field updated if the URL params change
-  useEffect(() => {
-    if (inviteEmail) {
-      registerForm.setValue("email", inviteEmail);
-    }
-  }, [inviteEmail, registerForm]);
+  // No longer automatically filling email field from URL params
+  // to avoid confusion and make the registration process more deliberate
   
   useEffect(() => {
     // Show verification modal if registration initialization is successful
