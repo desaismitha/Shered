@@ -396,6 +396,8 @@ export function setupAuth(app: Express) {
         // Import the sendRegistrationConfirmation function from email.ts
         const { sendRegistrationConfirmation } = await import('./email');
         
+        console.log(`Sending registration confirmation email to ${user.email}`);
+        
         // Send the confirmation email with group information if available
         const confirmationSent = await sendRegistrationConfirmation(
           user.email,
@@ -404,6 +406,12 @@ export function setupAuth(app: Express) {
         );
         
         console.log(`Registration confirmation email sent: ${confirmationSent}`);
+        
+        if (!confirmationSent) {
+          console.warn(`⚠️ Failed to send registration confirmation email to ${user.email}`);
+        } else {
+          console.log(`✅ Successfully sent registration confirmation email to ${user.email}`);
+        }
       } catch (emailError) {
         console.error("Error sending registration confirmation email:", emailError);
       }
