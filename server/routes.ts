@@ -437,8 +437,8 @@ async function sendTripStatusNotifications(tripId: number, newStatus: string): P
       return;
     }
     
-    // Only send notifications for status transitions to 'planning', 'in-progress', or 'completed'
-    if (newStatus !== 'planning' && newStatus !== 'in-progress' && newStatus !== 'completed') {
+    // Only send notifications for status transitions to 'planning', 'confirmed', 'in-progress', or 'completed'
+    if (newStatus !== 'planning' && newStatus !== 'confirmed' && newStatus !== 'in-progress' && newStatus !== 'completed') {
       console.log(`[STATUS_NOTIFICATIONS] Not sending notifications for '${newStatus}' status`);
       return;
     }

@@ -11,8 +11,10 @@ if (!process.env.SENDGRID_VERIFIED_SENDER) {
 // Create a function to always get a fresh instance of the mail service
 // This ensures we always have an up-to-date client with the latest API key
 function getMailService(): MailService {
+  const apiKey = process.env.SENDGRID_API_KEY || '';
+  console.log('[SENDGRID_DEBUG] Setting up mail service with API key length:', apiKey.length);
   const mailService = new MailService();
-  mailService.setApiKey(process.env.SENDGRID_API_KEY || '');
+  mailService.setApiKey(apiKey);
   return mailService;
 }
 
@@ -26,13 +28,17 @@ export interface EmailParams {
 
 export async function sendEmail(params: EmailParams): Promise<boolean> {
   try {
+    // Enhanced logging to debug SendGrid configuration
+    console.log('[SENDGRID_DEBUG] API Key configured:', !!process.env.SENDGRID_API_KEY);
+    console.log('[SENDGRID_DEBUG] Verified Sender:', process.env.SENDGRID_VERIFIED_SENDER || 'not set');
+    
     if (!process.env.SENDGRID_API_KEY) {
-      console.error('SendGrid API key is not set');
+      console.error('[SENDGRID_ERROR] SendGrid API key is not set');
       return false;
     }
     
-    console.log(`Attempting to send email to ${params.to} with subject "${params.subject}"`);
-    console.log(`Using sender: ${params.from || process.env.SENDGRID_VERIFIED_SENDER || 'unknown'}`);
+    console.log(`[SENDGRID_INFO] Attempting to send email to ${params.to} with subject "${params.subject}"`);
+    console.log(`[SENDGRID_INFO] Using sender: ${params.from || process.env.SENDGRID_VERIFIED_SENDER || 'unknown'}`);
     
     // Ensure we have a valid from address - this is required by SendGrid
     const fromEmail = params.from || process.env.SENDGRID_VERIFIED_SENDER;
