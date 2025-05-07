@@ -1096,6 +1096,163 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Test email verification
+  app.post("/api/debug/email/verification", async (req, res) => {
+    try {
+      const { email, name } = req.body;
+      
+      if (!email || !name) {
+        return res.status(400).json({ message: "Email and name are required" });
+      }
+      
+      console.log(`[EMAIL_DEBUG] Sending test verification email to ${email}`);
+      
+      // Generate a test verification token
+      const verificationToken = Math.random().toString(36).substring(2, 15);
+      
+      // Use the sendEmailVerification function
+      const { sendEmailVerification } = await import('./email');
+      
+      const verificationLink = `https://${req.headers.host}/verify-email?token=${verificationToken}&email=${encodeURIComponent(email)}`;
+      
+      const success = await sendEmailVerification(
+        email,
+        name,
+        verificationLink
+      );
+      
+      if (success) {
+        console.log(`[EMAIL_DEBUG] Test verification email successfully sent to ${email}`);
+        return res.json({ 
+          message: `Verification email sent to ${email}`,
+          token: verificationToken // Include token in response for testing
+        });
+      } else {
+        console.error(`[EMAIL_DEBUG] Failed to send test verification email to ${email}`);
+        return res.status(500).json({ message: 'Email sending failed. Check server logs for details.' });
+      }
+    } catch (error) {
+      console.error("[EMAIL_DEBUG] Error sending test verification email:", error);
+      return res.status(500).json({ message: "Server error", error: String(error) });
+    }
+  });
+  
+  // Test password reset email
+  app.post("/api/debug/email/reset-password", async (req, res) => {
+    try {
+      const { email, name } = req.body;
+      
+      if (!email || !name) {
+        return res.status(400).json({ message: "Email and name are required" });
+      }
+      
+      console.log(`[EMAIL_DEBUG] Sending test password reset email to ${email}`);
+      
+      // Generate a test reset token
+      const resetToken = Math.random().toString(36).substring(2, 15);
+      
+      // Use the sendPasswordResetEmail function
+      const { sendPasswordResetEmail } = await import('./email');
+      
+      const resetLink = `https://${req.headers.host}/reset-password?token=${resetToken}&email=${encodeURIComponent(email)}`;
+      
+      const success = await sendPasswordResetEmail(
+        email,
+        name,
+        resetLink
+      );
+      
+      if (success) {
+        console.log(`[EMAIL_DEBUG] Test password reset email successfully sent to ${email}`);
+        return res.json({ 
+          message: `Password reset email sent to ${email}`,
+          token: resetToken // Include token in response for testing
+        });
+      } else {
+        console.error(`[EMAIL_DEBUG] Failed to send test password reset email to ${email}`);
+        return res.status(500).json({ message: 'Email sending failed. Check server logs for details.' });
+      }
+    } catch (error) {
+      console.error("[EMAIL_DEBUG] Error sending test password reset email:", error);
+      return res.status(500).json({ message: "Server error", error: String(error) });
+    }
+  });
+  
+  // Test trip status change email
+  app.post("/api/debug/email/trip-status", async (req, res) => {
+    try {
+      const { email, name, tripName, status } = req.body;
+      
+      if (!email || !name || !tripName || !status) {
+        return res.status(400).json({ message: "Email, name, trip name, and status are required" });
+      }
+      
+      console.log(`[EMAIL_DEBUG] Sending test trip status email to ${email}`);
+      
+      // Use the sendTripStatusChangeEmail function
+      const { sendTripStatusChangeEmail } = await import('./email');
+      
+      const success = await sendTripStatusChangeEmail(
+        email,
+        name,
+        tripName,
+        status,
+        "Seattle, WA", // Example start location
+        "Portland, OR", // Example destination
+        new Date(), // Example start date
+        new Date(Date.now() + 86400000) // Example end date (tomorrow)
+      );
+      
+      if (success) {
+        console.log(`[EMAIL_DEBUG] Test trip status email successfully sent to ${email}`);
+        return res.json({ message: `Trip status email sent to ${email}` });
+      } else {
+        console.error(`[EMAIL_DEBUG] Failed to send test trip status email to ${email}`);
+        return res.status(500).json({ message: 'Email sending failed. Check server logs for details.' });
+      }
+    } catch (error) {
+      console.error("[EMAIL_DEBUG] Error sending test trip status email:", error);
+      return res.status(500).json({ message: "Server error", error: String(error) });
+    }
+  });
+  
+  // Test route deviation email
+  app.post("/api/debug/email/route-deviation", async (req, res) => {
+    try {
+      const { email, name, tripName, deviatorName, distance } = req.body;
+      
+      if (!email || !name || !tripName || !deviatorName || !distance) {
+        return res.status(400).json({ message: "Email, name, trip name, deviator name, and distance are required" });
+      }
+      
+      console.log(`[EMAIL_DEBUG] Sending test route deviation email to ${email}`);
+      
+      // Use the sendRouteDeviationEmail function
+      const { sendRouteDeviationEmail } = await import('./email');
+      
+      const success = await sendRouteDeviationEmail(
+        email,
+        name,
+        tripName,
+        deviatorName,
+        parseFloat(distance),
+        47.6062, // Example latitude (Seattle)
+        -122.3321 // Example longitude (Seattle)
+      );
+      
+      if (success) {
+        console.log(`[EMAIL_DEBUG] Test route deviation email successfully sent to ${email}`);
+        return res.json({ message: `Route deviation email sent to ${email}` });
+      } else {
+        console.error(`[EMAIL_DEBUG] Failed to send test route deviation email to ${email}`);
+        return res.status(500).json({ message: 'Email sending failed. Check server logs for details.' });
+      }
+    } catch (error) {
+      console.error("[EMAIL_DEBUG] Error sending test route deviation email:", error);
+      return res.status(500).json({ message: "Server error", error: String(error) });
+    }
+  });
+  
   // Test endpoint for route deviation notifications - REMOVE IN PRODUCTION
   app.get("/api/test/route-deviation", async (req, res) => {
     try {
