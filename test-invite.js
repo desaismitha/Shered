@@ -1,5 +1,5 @@
 // Test script for group invitations
-const fetch = require('node-fetch');
+import fetch from 'node-fetch';
 
 async function testInviteEmails() {
   const baseUrl = 'http://localhost:5000';
