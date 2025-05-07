@@ -2152,16 +2152,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         endDate = newEndDate;
       }
       
-      // STEP 5: Validate end date is not before start date
-      if (endDate < startDate) {
-        console.log("[DATE CHECK FAILED] End date is before start date");
-        console.log(`Start: ${startDate.toISOString()}`);
-        console.log(`End: ${endDate.toISOString()}`);
+      // STEP 5: Validate end date is not before or equal to start date
+      // Instead of rejecting, automatically adjust the end date to be 30 min after start date
+      if (endDate <= startDate) {
+        console.log("[DATE CHECK] End date is before or equal to start date - ADJUSTING");
+        console.log(`Original Start: ${startDate.toISOString()}`);
+        console.log(`Original End: ${endDate.toISOString()}`);
         
-        return res.status(400).json({
-          error: "Invalid date range",
-          details: "End date cannot be before start date"
-        });
+        // Add 30 minutes to the start date for the new end date
+        endDate = new Date(startDate.getTime() + 30 * 60 * 1000);
+        
+        console.log(`ADJUSTED End: ${endDate.toISOString()}`);
+        console.log(`Time difference after adjustment: ${(endDate.getTime() - startDate.getTime()) / 60000} minutes`);
       }
       
       // If we reached here, dates are valid
@@ -2380,12 +2382,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         // If both dates are provided, we can check their relationship
-        if (startDate && endDate && endDate < startDate) {
-          console.log("[TRIP_EDIT] Date validation failed: end date before start date");
-          return res.status(400).json({
-            error: "Invalid date range",
-            details: "End date cannot be before start date"
-          });
+        // Instead of rejecting, automatically adjust the end date to be 30 min after start date
+        if (startDate && endDate && endDate <= startDate) {
+          console.log("[TRIP_EDIT] End date is before or equal to start date - ADJUSTING");
+          console.log(`Original Start: ${startDate.toISOString()}`);
+          console.log(`Original End: ${endDate.toISOString()}`);
+          
+          // Add 30 minutes to the start date for the new end date
+          endDate = new Date(startDate.getTime() + 30 * 60 * 1000);
+          
+          console.log(`ADJUSTED End: ${endDate.toISOString()}`);
+          console.log(`Time difference after adjustment: ${(endDate.getTime() - startDate.getTime()) / 60000} minutes`);
+          
+          // Update the request body with the adjusted end date
+          req.body.endDate = endDate;
         }
         
         // If only one date is provided, we need to check against the existing trip
