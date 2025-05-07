@@ -452,10 +452,30 @@ export function TripForm() {
                                 message: 'End date and time must be in the future'
                               });
                             } else if (startDate && newDate < startDate) {
-                              form.setError('endDate', {
-                                type: 'manual',
-                                message: 'End date cannot be before start date'
+                              // Auto-adjust the time to be 30 minutes after the start time
+                              const adjustedDate = new Date(startDate.getTime());
+                              adjustedDate.setMinutes(adjustedDate.getMinutes() + 30);
+                              
+                              // Update state and form
+                              setEndDate(adjustedDate);
+                              field.onChange(adjustedDate);
+                              
+                              // Show toast notification
+                              toast({
+                                title: "Time adjusted",
+                                description: "End time cannot be before start time. Adjusted to be 30 minutes after start time.",
+                                duration: 5000
                               });
+                              
+                              // Log the adjustment
+                              console.log("Auto-adjusted end time (calendar selection):", {
+                                startTime: startDate.toISOString(),
+                                originalEndTime: newDate.toISOString(),
+                                adjustedEndTime: adjustedDate.toISOString()
+                              });
+                              
+                              // Clear any errors
+                              form.clearErrors('endDate');
                             } else {
                               form.clearErrors('endDate');
                             }
@@ -471,9 +491,15 @@ export function TripForm() {
                           }
                           
                           // If we have a start date, don't allow dates before the start date
+                          // For same day as start date, we'll handle it with time adjustments 
                           if (startDate) {
                             const startDay = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
-                            if (date < startDay) return true;
+                            const selectedDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+                              
+                            // Only disable day selection if it's a different day before the start date
+                            if (selectedDay.getTime() < startDay.getTime()) {
+                              return true;
+                            }
                           }
                           
                           return false;
