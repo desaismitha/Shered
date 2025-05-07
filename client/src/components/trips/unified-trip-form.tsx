@@ -62,16 +62,24 @@ type FormSchemaType = {
 
 const formSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters"),
-  startDate: z.date(),
-  endDate: z.date(),
+  startDate: z.date({
+    required_error: "Start date is required"
+  }),
+  endDate: z.date({
+    required_error: "End date is required"
+  }),
   description: z.string().optional(),
   groupId: z.number().optional(),
   status: z.enum(["planning", "confirmed", "in-progress", "completed", "cancelled"]).default("planning"),
   isMultiStop: z.boolean().default(false),
-  startLocation: z.string().optional(),
-  endLocation: z.string().optional(),
-  startTime: z.string().optional(),
-  endTime: z.string().optional(),
+  startLocation: z.string().min(1, "Start location is required"),
+  endLocation: z.string().min(1, "Destination is required"),
+  startTime: z.string({
+    required_error: "Start time is required"
+  }),
+  endTime: z.string({
+    required_error: "End time is required"
+  }),
   isRecurring: z.boolean().default(false),
   recurrencePattern: z.enum(["daily", "weekly", "monthly", "custom"]).optional(),
   recurrenceDays: z.array(z.string()).optional(),
@@ -176,6 +184,9 @@ export function UnifiedTripForm({
 
   return (
     <div className="trip-form-container">
+      <div className="mb-4 text-sm text-gray-600">
+        Fields marked with an asterisk (*) are required.
+      </div>
       <Form {...form}>
         <form 
           onSubmit={(e) => {
@@ -194,7 +205,7 @@ export function UnifiedTripForm({
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Trip Name</FormLabel>
+                    <FormLabel>Trip Name *</FormLabel>
                     <FormControl>
                       <Input placeholder="Enter trip name" {...field} />
                     </FormControl>
@@ -247,7 +258,7 @@ export function UnifiedTripForm({
                 control={form.control}
                 name="startDate"
                 render={({ field }) => (
-                  <DatePicker field={field} label="Start Date" />
+                  <DatePicker field={field} label="Start Date *" />
                 )}
               />
               
@@ -255,7 +266,7 @@ export function UnifiedTripForm({
                 control={form.control}
                 name="endDate"
                 render={({ field }) => (
-                  <DatePicker field={field} label="End Date" />
+                  <DatePicker field={field} label="End Date *" />
                 )}
               />
             </div>
@@ -266,7 +277,7 @@ export function UnifiedTripForm({
                 name="startTime"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Start Time</FormLabel>
+                    <FormLabel>Start Time *</FormLabel>
                     <FormControl>
                       <Input type="time" {...field} />
                     </FormControl>
@@ -283,7 +294,7 @@ export function UnifiedTripForm({
                 name="endTime"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>End Time</FormLabel>
+                    <FormLabel>End Time *</FormLabel>
                     <FormControl>
                       <Input type="time" {...field} />
                     </FormControl>
@@ -302,7 +313,7 @@ export function UnifiedTripForm({
                 name="status"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Trip Status</FormLabel>
+                    <FormLabel>Trip Status *</FormLabel>
                     <Select
                       onValueChange={field.onChange}
                       defaultValue={field.value}
@@ -392,7 +403,7 @@ export function UnifiedTripForm({
                   name="startLocation"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Start Location</FormLabel>
+                      <FormLabel>Start Location *</FormLabel>
                       <FormControl>
                         <MapLocationPicker 
                           label=""
@@ -414,7 +425,7 @@ export function UnifiedTripForm({
                   name="endLocation"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Destination</FormLabel>
+                      <FormLabel>Destination *</FormLabel>
                       <FormControl>
                         <MapLocationPicker 
                           label=""
