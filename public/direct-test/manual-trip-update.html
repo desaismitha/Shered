@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manual Trip Update Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    h1 {
+      color: #333;
+    }
+    fieldset {
+      border: 1px solid #ddd;
+      padding: 15px;
+      margin-bottom: 20px;
+      border-radius: 4px;
+    }
+    legend {
+      font-weight: bold;
+      padding: 0 10px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+    }
+    input, select, button {
+      padding: 8px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    button {
+      background-color: #4F46E5;
+      color: white;
+      border: none;
+      cursor: pointer;
+      padding: 10px 15px;
+    }
+    button:hover {
+      background-color: #4338CA;
+    }
+    #result {
+      margin-top: 20px;
+      padding: 10px;
+      border-left: 4px solid #4F46E5;
+      background-color: #EEF2FF;
+      display: none;
+    }
+    .error {
+      border-left: 4px solid #DC2626;
+      background-color: #FEF2F2;
+    }
+  </style>
+</head>
+<body>
+  <h1>Manual Trip Update Test</h1>
+  <p>This tool is for direct testing of the trip update functionality without using the main UI.</p>
+
+  <fieldset>
+    <legend>Trip Status Update</legend>
+    <div>
+      <label for="tripId">Trip ID:</label>
+      <input type="number" id="tripId" placeholder="Enter trip ID" required>
+    </div>
+    <div>
+      <label for="status">New Status:</label>
+      <select id="status" required>
+        <option value="planning">Planning</option>
+        <option value="confirmed">Confirmed</option>
+        <option value="in-progress">In Progress</option>
+        <option value="completed">Completed</option>
+      </select>
+    </div>
+    <div>
+      <button id="updateTrip">Update Trip Status</button>
+    </div>
+  </fieldset>
+
+  <div id="result"></div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const updateButton = document.getElementById('updateTrip');
+      const resultDiv = document.getElementById('result');
+
+      updateButton.addEventListener('click', async () => {
+        const tripId = document.getElementById('tripId').value;
+        const status = document.getElementById('status').value;
+
+        if (!tripId) {
+          showResult('Please enter a trip ID', true);
+          return;
+        }
+
+        try {
+          showResult('Updating trip status...', false);
+          
+          const response = await fetch(`/api/trips/${tripId}`, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ status })
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || `Server returned ${response.status}: ${response.statusText}`);
+          }
+
+          const data = await response.json();
+          showResult(`Trip status updated successfully to "${status}":\n\n${JSON.stringify(data, null, 2)}`, false);
+        } catch (error) {
+          showResult(`Error updating trip: ${error.message}`, true);
+        }
+      });
+
+      function showResult(message, isError) {
+        resultDiv.textContent = message;
+        resultDiv.style.display = 'block';
+        
+        if (isError) {
+          resultDiv.classList.add('error');
+        } else {
+          resultDiv.classList.remove('error');
+        }
+      }
+    });
+  </script>
+</body>
+</html>

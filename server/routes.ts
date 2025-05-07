@@ -437,8 +437,8 @@ async function sendTripStatusNotifications(tripId: number, newStatus: string): P
       return;
     }
     
-    // Only send notifications for status transitions to 'in-progress' or 'completed'
-    if (newStatus !== 'in-progress' && newStatus !== 'completed') {
+    // Only send notifications for status transitions to 'planning', 'in-progress', or 'completed'
+    if (newStatus !== 'planning' && newStatus !== 'in-progress' && newStatus !== 'completed') {
       console.log(`[STATUS_NOTIFICATIONS] Not sending notifications for '${newStatus}' status`);
       return;
     }
@@ -1359,16 +1359,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // In a production app, we might want to implement pagination here
       // For now, we'll just return all users with sensitive fields removed
       const usersList = await db.select({
-        id: usersTable.id,
-        username: usersTable.username,
-        displayName: usersTable.displayName,
-        email: usersTable.email,
-        createdAt: usersTable.createdAt,
-        licenseNumber: usersTable.licenseNumber,
-        licenseState: usersTable.licenseState,
-        licenseExpiry: usersTable.licenseExpiry,
-        isEligibleDriver: usersTable.isEligibleDriver,
-      }).from(usersTable);
+        id: users.id,
+        username: users.username,
+        displayName: users.displayName,
+        email: users.email,
+        createdAt: users.createdAt,
+        licenseNumber: users.licenseNumber,
+        licenseState: users.licenseState,
+        licenseExpiry: users.licenseExpiry,
+        isEligibleDriver: users.isEligibleDriver,
+      }).from(users);
       
       res.json(usersList);
     } catch (err) {
@@ -1395,14 +1395,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Update the user's license information
-      const result = await db.update(usersTable)
+      const result = await db.update(users)
         .set({
           licenseNumber,
           licenseState,
           licenseExpiry: new Date(licenseExpiry),
           isEligibleDriver: isEligibleDriver === undefined ? true : !!isEligibleDriver,
         })
-        .where(eq(usersTable.id, userId))
+        .where(eq(users.id, userId))
         .returning();
       
       if (!result || result.length === 0) {
