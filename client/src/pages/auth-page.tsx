@@ -347,11 +347,7 @@ export default function AuthPage() {
                     ? "Enter your credentials to sign in" 
                     : "Sign up to start planning trips with friends"}
               </CardDescription>
-              {inviteToken && (
-                <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md text-sm text-blue-700">
-                  <p>You've been invited to join a group in TravelGroupr. Please register or log in to access the group.</p>
-                </div>
-              )}
+              {/* Removed blue invitation box as requested */}
             </CardHeader>
             <CardContent>
               <Tabs 
