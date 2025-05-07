@@ -159,16 +159,32 @@ export function TripForm() {
     
     // Check that end date is after start date
     if (values.endDate < values.startDate) {
-      form.setError('endDate', {
-        type: 'manual',
-        message: 'End date and time cannot be before start date and time'
+      // Auto-adjust end date to be 30 minutes after start date
+      // We get to this point, which means other validations passed
+      const adjustedEndDate = new Date(values.startDate);
+      adjustedEndDate.setMinutes(adjustedEndDate.getMinutes() + 30);
+      
+      console.log("Date validation - auto-adjusting end date:", {
+        originalStartDate: values.startDate.toISOString(),
+        originalEndDate: values.endDate.toISOString(),
+        adjustedEndDate: adjustedEndDate.toISOString()
       });
-      console.log("Date validation failed:", {
-        startDate: values.startDate.toISOString(),
-        endDate: values.endDate.toISOString(),
-        comparison: "invalid - end date before start date"
+      
+      // Update form values with adjusted end date
+      form.setValue('endDate', adjustedEndDate);
+      
+      // Update state
+      setEndDate(adjustedEndDate);
+      
+      // Show notification
+      toast({
+        title: "End time adjusted",
+        description: "End time cannot be before start time. Adjusted to be 30 minutes after start time.",
+        duration: 5000
       });
-      return;
+      
+      // Use the adjusted values
+      values.endDate = adjustedEndDate;
     }
     
     // Additional validation logging
