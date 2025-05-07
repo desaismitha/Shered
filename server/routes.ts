@@ -9,11 +9,11 @@ import { setupImportRoutes } from "./import";
 import { setupPhoneVerificationRoutes } from "./phone-verification";
 import fileUpload from "express-fileupload";
 import { db, attemptReconnect, checkDbConnection, cleanupConnections } from "./db";
-import { setupAuth, hashPassword } from "./auth";
+import { setupAuth, hashPassword, generateOTP } from "./auth";
 import { insertGroupSchema, insertTripSchema, insertItineraryItemSchema, insertExpenseSchema, insertMessageSchema, insertGroupMemberSchema, insertVehicleSchema, insertTripVehicleSchema, users, groupMembers, trips, itineraryItems } from "@shared/schema";
 import { z } from "zod";
 import { eq, or, and, asc, desc, sql, isNull, count, between, lt } from "drizzle-orm";
-import { sendGroupInvitation, sendPasswordResetEmail, sendRouteDeviationEmail, sendTripStatusChangeEmail } from "./email";
+import { sendGroupInvitation, sendPasswordResetEmail, sendRouteDeviationEmail, sendTripStatusChangeEmail, sendOTPVerificationCode, sendRegistrationConfirmation } from "./email";
 import crypto from "crypto";
 import fetch from "node-fetch";
 

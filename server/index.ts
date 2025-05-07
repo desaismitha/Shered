@@ -158,6 +158,10 @@ app.use(express.urlencoded({ extended: false }));
 app.use('/test', express.static(path.join(process.cwd(), 'public')));
 // Serve direct access test files
 app.use('/direct-test', express.static(path.join(process.cwd(), 'public/direct-test')));
+// Serve email debug tool
+app.get('/email-debug', (_req, res) => {
+  res.sendFile(path.join(process.cwd(), 'email-debug.html'));
+});
 
 app.use((req, res, next) => {
   // Log all request paths and queries for debugging
