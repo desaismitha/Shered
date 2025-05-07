@@ -280,6 +280,8 @@ export function setupAuth(app: Express) {
       
       // Handle group invitation if present in the request (code remains the same)
       const invitation = pendingData.invitation || {};
+      let joinedGroupName = null;
+      
       if ((invitation.token && invitation.groupId) || 
           (pendingData.token && pendingData.groupId)) {
         try {
@@ -308,6 +310,9 @@ export function setupAuth(app: Express) {
                 role: 'member'
               });
               
+              // Store the group name for the confirmation email
+              joinedGroupName = group.name;
+              
               console.log(`User ${user.id} successfully added to group ${groupId} via invitation`);
             }
           }
@@ -316,6 +321,23 @@ export function setupAuth(app: Express) {
         }
       } else {
         console.log("No valid invitation data found in registration request");
+      }
+      
+      // Send a registration confirmation email
+      try {
+        // Import the sendRegistrationConfirmation function from email.ts
+        const { sendRegistrationConfirmation } = await import('./email');
+        
+        // Send the confirmation email with group information if available
+        const confirmationSent = await sendRegistrationConfirmation(
+          user.email,
+          user.displayName || user.username,
+          joinedGroupName
+        );
+        
+        console.log(`Registration confirmation email sent: ${confirmationSent}`);
+      } catch (emailError) {
+        console.error("Error sending registration confirmation email:", emailError);
       }
       
       // Remove password and sensitive fields from response

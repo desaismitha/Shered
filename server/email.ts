@@ -449,6 +449,57 @@ export async function sendRouteDeviationEmail(
  * @param endDate Trip end date (optional)
  * @returns Promise<boolean> indicating success or failure
  */
+/**
+ * Send registration confirmation email to the user
+ * @param email Recipient's email address
+ * @param username Recipient's username/display name
+ * @param groupName Name of the group they were invited to (optional)
+ * @returns Promise<boolean> indicating success or failure
+ */
+export async function sendRegistrationConfirmation(
+  email: string,
+  username: string,
+  groupName?: string
+): Promise<boolean> {
+  console.log(`[REGISTRATION_CONFIRMATION] Sending confirmation email to ${email}`);
+  
+  const fromEmail = process.env.SENDGRID_VERIFIED_SENDER || 'noreply@travelgroupr.com';
+  const subject = 'Welcome to TravelGroupr - Registration Confirmed';
+  
+  const text = `
+    Hi ${username},
+
+    Your registration with TravelGroupr has been successfully completed!
+    ${groupName ? `You have been added to the group "${groupName}".` : ''}
+
+    You can now log in and start planning trips with your groups.
+
+    Best regards,
+    The TravelGroupr Team
+  `;
+  
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="background-color: #4F46E5; color: white; padding: 15px; text-align: center; border-radius: 4px 4px 0 0;">Welcome to TravelGroupr!</h2>
+      <div style="padding: 20px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 4px 4px;">
+        <p>Hi <strong>${username}</strong>,</p>
+        <p style="font-size: 18px; color: #4F46E5; font-weight: bold;">Your registration has been successfully completed!</p>
+        ${groupName ? `<p>You have been added to the group "<strong>${groupName}</strong>".</p>` : ''}
+        <p>You can now log in and start planning trips with your groups.</p>
+        <p>Best regards,<br>The TravelGroupr Team</p>
+      </div>
+    </div>
+  `;
+  
+  return sendEmail({
+    to: email,
+    from: fromEmail,
+    subject,
+    text,
+    html
+  });
+}
+
 export async function sendTripStatusChangeEmail(
   email: string,
   username: string,
