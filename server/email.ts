@@ -301,6 +301,8 @@ export async function sendOTPVerificationCode(
   username: string,
   otp: string
 ): Promise<boolean> {
+  console.log(`[OTP-EMAIL] Attempting to send OTP code ${otp} to ${email} for user ${username}`);
+  
   const fromEmail = process.env.SENDGRID_VERIFIED_SENDER || 'noreply@travelgroupr.com';
   // Include the code in the subject line for quick reference, even if the email is not opened
   const subject = `Your TravelGroupr Verification Code: ${otp}`;
@@ -341,13 +343,16 @@ export async function sendOTPVerificationCode(
     </div>
   `;
   
-  return sendEmail({
+  const result = await sendEmail({
     to: email,
     from: fromEmail,
     subject,
     text,
     html
   });
+  
+  console.log(`[OTP-EMAIL] Result of sending OTP email to ${email}: ${result ? 'SUCCESS' : 'FAILED'}`);
+  return result;
 }
 
 /**
