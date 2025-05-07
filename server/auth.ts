@@ -233,6 +233,9 @@ export function setupAuth(app: Express) {
   // Complete registration after OTP verification
   app.post("/api/register/complete", async (req, res, next) => {
     try {
+      console.log("[AUTH-DEBUG] POST /api/register/complete Query:", req.query);
+      console.log("[AUTH-DEBUG] POST /api/register/complete Body:", JSON.stringify(req.body, null, 2));
+      
       const { registrationId, otp } = req.body;
       
       if (!registrationId || !otp) {
@@ -245,6 +248,30 @@ export function setupAuth(app: Express) {
       }
       
       const pendingData = req.session.pendingRegistrations[registrationId];
+      
+      // Process invitation data from request body if not in pending data
+      // This handles cases where the invitation data wasn't properly saved in the registration init phase
+      if (!pendingData.invitation && !pendingData.token && !pendingData.groupId) {
+        console.log("[AUTH-DEBUG] No invitation data found in pendingData, checking request body");
+        if (req.body.invitation || req.body.token || req.body.groupId) {
+          console.log("[AUTH-DEBUG] Found invitation data in request body, adding to pendingData");
+          
+          if (req.body.invitation) {
+            console.log("[AUTH-DEBUG] Adding nested invitation data:", req.body.invitation);
+            pendingData.invitation = req.body.invitation;
+          }
+          
+          if (req.body.token) {
+            console.log("[AUTH-DEBUG] Adding token:", req.body.token);
+            pendingData.token = req.body.token;
+          }
+          
+          if (req.body.groupId) {
+            console.log("[AUTH-DEBUG] Adding groupId:", req.body.groupId);
+            pendingData.groupId = req.body.groupId;
+          }
+        }
+      }
       
       // Check if OTP is expired
       if (new Date() > new Date(pendingData.otpExpiry)) {

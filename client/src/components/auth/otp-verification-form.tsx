@@ -86,11 +86,28 @@ export function OtpVerificationForm({ onVerified, onCancel, registrationId, smsS
         // This is a new registration verification using the mutation from the auth hook
         console.log('Verifying registration with ID:', registrationId);
         try {
-          // Use the registerCompleteMutation from the auth hook instead of direct API call
-          await registerCompleteMutation.mutateAsync({
+          // Get URL parameters for invitation data
+          const searchParams = new URLSearchParams(window.location.search);
+          const inviteToken = searchParams.get('token');
+          const inviteGroupId = searchParams.get('groupId');
+          
+          // Build completion data with invitation parameters if available
+          const completionData: any = {
             registrationId,
             otp: values.otp,
-          });
+          };
+          
+          // Add invitation data if present
+          if (inviteToken && inviteGroupId) {
+            console.log('INVITATION: Including group invitation data in completion request:', { token: inviteToken, groupId: inviteGroupId });
+            completionData.token = inviteToken;
+            completionData.groupId = inviteGroupId;
+            // Also include as nested property for maximum compatibility
+            completionData.invitation = { token: inviteToken, groupId: inviteGroupId };
+          }
+          
+          // Use the registerCompleteMutation from the auth hook
+          await registerCompleteMutation.mutateAsync(completionData);
           
           console.log('Registration complete mutation successful');
           toast({
