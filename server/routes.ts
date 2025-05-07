@@ -994,18 +994,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Serve email debug HTML page
-  app.get("/debug/email", (req, res) => {
-    const fs = require('fs');
-    const path = require('path');
-    
+  app.get("/debug/email", async (req, res) => {
     try {
-      const emailDebugHtmlPath = path.join(process.cwd(), 'email-debug.html');
-      const htmlContent = fs.readFileSync(emailDebugHtmlPath, 'utf8');
+      // Import modules using ES module imports
+      const { readFile } = await import('fs/promises');
+      const { join } = await import('path');
+      
+      const emailDebugHtmlPath = join(process.cwd(), 'email-debug.html');
+      const htmlContent = await readFile(emailDebugHtmlPath, 'utf8');
       res.setHeader('Content-Type', 'text/html');
       res.send(htmlContent);
     } catch (error) {
       console.error("Failed to serve email debug page:", error);
-      res.status(500).send("Error loading email debug page");
+      res.status(500).json({ message: String(error) });
     }
   });
   

@@ -1,4 +1,8 @@
-const sgMail = require('@sendgrid/mail');
+import sgMail from '@sendgrid/mail';
+import * as dotenv from 'dotenv';
+
+// Load environment variables from .env file if available
+dotenv.config();
 
 // Get the API key from environment variable
 const sendgridApiKey = process.env.SENDGRID_API_KEY;
@@ -23,7 +27,7 @@ async function testEmail() {
   
   // Test email content
   const msg = {
-    to: 'YOUR_EMAIL_HERE', // REPLACE WITH YOUR EMAIL TO TEST
+    to: 'test@example.com', // This should be a real email for actual testing
     from: verifiedSender || 'noreply@travelgroupr.com',
     subject: 'TravelGroupr Email Test',
     text: 'This is a test email from TravelGroupr',
