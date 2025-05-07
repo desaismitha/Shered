@@ -298,13 +298,13 @@ export default function EditTripPage() {
         return;
       }
       
-      // Check end date is not before start date
-      if (values.endDate < values.startDate) {
-        // Instead of showing an error, automatically adjust the end date to be 30 minutes after start date
-        const adjustedEndDate = new Date(values.startDate.getTime());
-        adjustedEndDate.setMinutes(adjustedEndDate.getMinutes() + 30);
+      // ALWAYS check and enforce that end date is after start date
+      // This is our final validation gate to ensure data integrity
+      if (values.endDate <= values.startDate) {
+        // Force end date to be 30 minutes after start date with precise calculation
+        const adjustedEndDate = new Date(values.startDate.getTime() + 30 * 60 * 1000);
         
-        console.log("Auto-adjusting end date in edit form:", {
+        console.log("FINAL VALIDATION - auto-adjusting end date in edit form:", {
           originalStartDate: values.startDate.toISOString(),
           originalEndDate: values.endDate.toISOString(),
           adjustedEndDate: adjustedEndDate.toISOString()
@@ -319,10 +319,17 @@ export default function EditTripPage() {
         // Show toast notification about the adjustment
         toast({
           title: "End time adjusted",
-          description: "End time cannot be before start time. Adjusted to be 30 minutes after start time.",
+          description: "End time cannot be before or equal to start time. Adjusted to be 30 minutes after start time.",
           duration: 5000
         });
       }
+      
+      // Extra logging to confirm final values being submitted
+      console.log("FINAL EDIT SUBMISSION VALUES:", {
+        startDate: values.startDate.toISOString(),
+        endDate: values.endDate.toISOString(),
+        timeDiff: (values.endDate.getTime() - values.startDate.getTime()) / 60000 + " minutes"
+      });
       
       // Create a stripped-down version with only the fields we want to update
       const updateData = {

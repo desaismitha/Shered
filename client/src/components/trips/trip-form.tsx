@@ -157,14 +157,13 @@ export function TripForm() {
       return;
     }
     
-    // Check that end date is after start date
-    if (values.endDate < values.startDate) {
-      // Auto-adjust end date to be 30 minutes after start date
-      // We get to this point, which means other validations passed
-      const adjustedEndDate = new Date(values.startDate);
-      adjustedEndDate.setMinutes(adjustedEndDate.getMinutes() + 30);
+    // ALWAYS verify and force end date to be after start date, regardless of what's in the form
+    // This is our final validation gate to ensure data integrity
+    if (values.endDate <= values.startDate) {
+      // Force end date to be 30 minutes after start date
+      const adjustedEndDate = new Date(values.startDate.getTime() + 30 * 60 * 1000);
       
-      console.log("Date validation - auto-adjusting end date:", {
+      console.log("FINAL VALIDATION - auto-adjusting end date:", {
         originalStartDate: values.startDate.toISOString(),
         originalEndDate: values.endDate.toISOString(),
         adjustedEndDate: adjustedEndDate.toISOString()
@@ -179,13 +178,20 @@ export function TripForm() {
       // Show notification
       toast({
         title: "End time adjusted",
-        description: "End time cannot be before start time. Adjusted to be 30 minutes after start time.",
+        description: "End time cannot be before or equal to start time. Adjusted to be 30 minutes after start time.",
         duration: 5000
       });
       
       // Use the adjusted values
       values.endDate = adjustedEndDate;
     }
+    
+    // Extra logging to confirm final values being submitted
+    console.log("FINAL SUBMISSION VALUES:", {
+      startDate: values.startDate.toISOString(),
+      endDate: values.endDate.toISOString(),
+      timeDiff: (values.endDate.getTime() - values.startDate.getTime()) / 60000 + " minutes"
+    });
     
     // Additional validation logging
     console.log("Date validation passed:", {
