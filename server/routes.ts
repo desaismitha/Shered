@@ -1903,6 +1903,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       headers: req.headers
     });
     
+    // Enhanced logging for SendGrid configuration
+    console.log("[INVITE] SendGrid configuration check:", {
+      apiKeyConfigured: !!process.env.SENDGRID_API_KEY,
+      verifiedSender: process.env.SENDGRID_VERIFIED_SENDER,
+      apiKeyLength: process.env.SENDGRID_API_KEY ? process.env.SENDGRID_API_KEY.length : 'none',
+    });
+    
     try {
       if (!req.isAuthenticated()) {
         console.log("[INVITE] Rejecting - User not authenticated");
