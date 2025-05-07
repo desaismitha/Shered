@@ -129,28 +129,12 @@ export function VerificationModal({ isOpen, onOpenChange, userEmail, userPhone, 
           </TabsList>
 
           <TabsContent value="otp" className="mt-4">
-            {verificationCode && (
-              <div className="mb-6 p-4 border border-blue-100 bg-blue-50 rounded-md">
-                <div className="flex items-center justify-center gap-2 mb-3">
-                  <Mail className="h-5 w-5 text-blue-600" />
-                  <p className="text-sm text-blue-800 font-medium">Verification Code</p>
-                </div>
-                <div className="flex items-center justify-center">
-                  <div className="text-xl font-mono bg-white p-3 rounded-md border border-blue-200 tracking-widest shadow-sm">
-                    {verificationCode}
-                  </div>
-                </div>
-                <p className="text-xs text-blue-700 mt-3 text-center">
-                  Enter this code below to verify your account.
-                </p>
-              </div>
-            )}
             <OtpVerificationForm 
               onVerified={handleVerified}
               registrationId={registrationId}
               smsSent={smsSent}
               phoneNumber={userPhone}
-              initialCode={verificationCode} // Pass the code for auto-filling
+              initialCode="" // Don't auto-fill verification code
             />
           </TabsContent>
 

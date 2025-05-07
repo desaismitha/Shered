@@ -544,7 +544,6 @@ export default function AuthPage() {
         onVerified={handleOtpVerified}
         registrationId={registrationId}
         smsSent={smsSent}
-        verificationCode={verificationCode}
       />
     </>
   );
