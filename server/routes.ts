@@ -856,6 +856,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .returning();
 
       if (updated) {
+        // Send email notifications for the status change
+        await sendTripStatusNotifications(28, 'in-progress');
+        
         return res.json({ 
           success: true, 
           message: "Trip 28 status updated to in-progress",
@@ -2264,6 +2267,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const validatedData = parsedData.data;
         console.log("Validated data:", validatedData);
         
+        // Get the trip's current data to check for status changes
+        const currentTrip = await storage.getTrip(tripId);
+        const originalStatus = currentTrip?.status;
+        
         // Update the trip
         const updatedTrip = await storage.updateTrip(tripId, validatedData);
         if (!updatedTrip) {
@@ -2272,6 +2279,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         console.log("Trip updated successfully:", updatedTrip);
+        
+        // Check if status has changed and send notifications if needed
+        if (validatedData.status && originalStatus !== validatedData.status) {
+          console.log(`[TRIP_EDIT] Status changed from ${originalStatus} to ${validatedData.status} - sending notifications`);
+          await sendTripStatusNotifications(tripId, validatedData.status);
+        }
         
         // Handle itinerary items if present in the request
         if (req.body.itineraryItems && Array.isArray(req.body.itineraryItems)) {
@@ -2584,6 +2597,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
+      // Store the original status to check for changes
+      const originalStatus = existingTrip.status;
+      
       // Update the trip with the processed data
       const result = await storage.updateTrip(tripId, updateData);
       
@@ -2591,6 +2607,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (!result) {
         return res.status(500).json({ error: "Failed to update" });
+      }
+      
+      // Check if status has changed and send notifications if needed
+      if (updateData.status && originalStatus !== updateData.status) {
+        console.log(`[SIMPLE_UPDATE] Status changed from ${originalStatus} to ${updateData.status} - sending notifications`);
+        await sendTripStatusNotifications(tripId, updateData.status);
       }
       
       // Success - return the updated trip
