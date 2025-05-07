@@ -174,6 +174,13 @@ export function setupAuth(app: Express) {
       // Hash the OTP for secure storage
       const hashedOTP = await hashPassword(otpCode);
       
+      // Log invitation details for debugging
+      console.log("INVITATION DEBUG - Before storing in session:", JSON.stringify({
+        invitation: req.body.invitation,
+        token: req.body.token,
+        groupId: req.body.groupId
+      }, null, 2));
+      
       // Store pending registration data
       req.session.pendingRegistrations[registrationId] = {
         ...req.body,
@@ -181,6 +188,13 @@ export function setupAuth(app: Express) {
         otpExpiry: otpExpiry,
         createdAt: new Date()
       };
+      
+      // Log what was stored to ensure invitation was properly saved
+      console.log("INVITATION DEBUG - After storing in session:", JSON.stringify({
+        invitation: req.session.pendingRegistrations[registrationId].invitation,
+        token: req.session.pendingRegistrations[registrationId].token,
+        groupId: req.session.pendingRegistrations[registrationId].groupId
+      }, null, 2));
       
       // Send OTP via email
       const emailOtpSent = await sendOTPVerificationCode(
@@ -278,10 +292,20 @@ export function setupAuth(app: Express) {
         verificationUrl
       );
       
-      // Handle group invitation if present in the request (code remains the same)
+      // Enhanced debug logging for invitation processing
+      console.log("INVITATION DEBUG - Full pendingData:", JSON.stringify(pendingData, null, 2));
+      
+      // Extract and handle invitation data properly
       const invitation = pendingData.invitation || {};
       let joinedGroupName = null;
       
+      console.log("INVITATION DEBUG - Extracted invitation:", JSON.stringify(invitation, null, 2));
+      console.log("INVITATION DEBUG - Direct token/groupId:", {
+        token: pendingData.token,
+        groupId: pendingData.groupId
+      });
+      
+      // Check for invitation data in either format (nested or direct properties)
       if ((invitation.token && invitation.groupId) || 
           (pendingData.token && pendingData.groupId)) {
         try {
@@ -303,6 +327,8 @@ export function setupAuth(app: Express) {
             if (!group) {
               console.log(`Group ${groupId} not found during invitation processing`);
             } else {
+              console.log(`Found group ${groupId}: ${group.name}`);
+              
               // Add user to the group with member role
               const groupMember = await storage.addUserToGroup({
                 groupId,
