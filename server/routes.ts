@@ -1684,8 +1684,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const baseUrl = process.env.BASE_URL || `${protocol}://${host}`;
       
       console.log("Using base URL for invitation:", baseUrl);
-      // Create invite link for the auth page with the dedicated invitation route
-      const inviteLink = `${baseUrl}/auth/invite?token=${token}&groupId=${groupId}&email=${encodeURIComponent(validatedData.email)}&mode=register`;
+      // Create invite link with cleaner URL format that will be redirected to auth page
+      const inviteLink = `${baseUrl}/invite/${groupId}/${token}?email=${encodeURIComponent(validatedData.email)}`;
       
       // Send invitation email
       const inviter = req.user;

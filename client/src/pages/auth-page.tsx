@@ -186,6 +186,9 @@ export default function AuthPage() {
   
   // If user is already logged in, redirect to home
   if (user) {
+    console.log("User already authenticated, redirecting to dashboard from auth page");
+    // When a user is already logged in and visits the auth page with invitation parameters,
+    // they're automatically redirected to dashboard, ensuring security
     return <Redirect to="/" />;
   }
 

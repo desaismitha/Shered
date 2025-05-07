@@ -46,9 +46,17 @@ function Router() {
       <ProtectedRoute path="/trips-debug" component={TripsDebugPage} />
       <ProtectedRoute path="/active-trips-debug" component={ActiveTripsDebug} />
       <Route path="/auth" component={AuthPage} />
-      {/* Add explicit invitation route - invited users must register/login first */}
-      <Route path="/auth/invite" component={AuthPage} />
-      <Route path="/invite" component={() => <Redirect to="/auth" />} />
+      <Route path="/invite/:groupId/:token">
+        {(params) => {
+          console.log("Invite route detected with params:", params);
+          const { groupId, token } = params;
+          return <Redirect to={`/auth?token=${token}&groupId=${groupId}&mode=register`} />;
+        }}
+      </Route>
+      {/* Catch all other invite paths and redirect to auth */}
+      <Route path="/invite">
+        {() => <Redirect to="/auth" />}
+      </Route>
       <Route path="/forgot-password" component={ForgotPasswordPage} />
       <Route path="/reset-password/:token" component={ResetPasswordPage} />
       <Route path="/verify-email" component={VerifyEmailPage} />
