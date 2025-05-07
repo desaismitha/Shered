@@ -256,14 +256,19 @@ export function setupAuth(app: Express) {
       // Verify OTP
       const isValidOTP = await comparePasswords(otp, pendingData.otpToken);
       if (!isValidOTP) {
+        console.log(`OTP verification failed: provided=${otp}, stored hashed=${pendingData.otpToken}`);
         return res.status(400).json({ message: "Invalid verification code" });
       }
+      
+      console.log(`OTP verification successful for registration ${registrationId}`);
       
       // Generate a SEPARATE verification token (different from OTP) for email link verification
       // This ensures the email link and OTP are different
       const verificationToken = generateVerificationToken(); // This generates a 64-character hex string
       const verificationExpiry = new Date();
       verificationExpiry.setHours(verificationExpiry.getHours() + 24);
+      
+      console.log(`Creating user with verified email (OTP verified): ${pendingData.email}`);
       
       // Create user now that OTP is verified
       const user = await storage.createUser({
