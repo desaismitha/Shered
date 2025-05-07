@@ -126,6 +126,15 @@ export async function sendGroupInvitation(
   console.log('[SENDGRID_DEBUG] API Key configured:', !!process.env.SENDGRID_API_KEY);
   console.log('[SENDGRID_DEBUG] Verified Sender:', process.env.SENDGRID_VERIFIED_SENDER);
   
+  if (!process.env.SENDGRID_API_KEY) {
+    console.error('[GROUP_INVITATION] SendGrid API key is not configured');
+    return false;
+  }
+  
+  if (!process.env.SENDGRID_VERIFIED_SENDER) {
+    console.warn('[GROUP_INVITATION] SendGrid verified sender is not configured, using fallback');
+  }
+  
   const fromEmail = process.env.SENDGRID_VERIFIED_SENDER || 'noreply@travelgroupr.com';
   const subject = isExistingUser 
     ? `You've been added to ${groupName} on TravelGroupr` 
@@ -189,13 +198,23 @@ export async function sendGroupInvitation(
     `;
   }
   
-  return sendEmail({
-    to: email,
-    from: fromEmail,
-    subject,
-    text,
-    html
-  });
+  console.log(`[GROUP_INVITATION] Sending ${isExistingUser ? 'existing user' : 'new user'} invitation email to ${email}`);
+  
+  try {
+    const result = await sendEmail({
+      to: email,
+      from: fromEmail,
+      subject,
+      text,
+      html
+    });
+    
+    console.log(`[GROUP_INVITATION] Result of sending invitation email to ${email}: ${result ? 'SUCCESS' : 'FAILED'}`);
+    return result;
+  } catch (error) {
+    console.error(`[GROUP_INVITATION] Error sending invitation email to ${email}:`, error);
+    return false;
+  }
 }
 
 export async function sendPasswordResetEmail(

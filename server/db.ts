@@ -33,7 +33,7 @@ pool.on('error', (err, client) => {
   console.error('Unexpected error on idle database client', err);
   
   // Check for specific termination errors
-  if (err.code === '57P01' || err.message.includes('terminating connection')) {
+  if ((err as any).code === '57P01' || err.message.includes('terminating connection')) {
     console.log('Detected connection termination, attempting to reconnect...');
     // Attempt to reconnect in the background
     setTimeout(async () => {
