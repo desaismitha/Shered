@@ -118,15 +118,52 @@ interface Trip {
 // Simple edit form component to edit trip directly on the details page
 function TripQuickEdit({ trip, onSuccess }: { trip: Trip, onSuccess: () => void }) {
   const { toast } = useToast();
-  const [name, setName] = useState(trip.name);
+  // Initialize state with trip data, using empty values as fallbacks
+  const [name, setName] = useState(trip.name || '');
   const [status, setStatus] = useState(trip.status || 'planning');
   const [startLocation, setStartLocation] = useState(trip.startLocation || '');
-  const [destination, setDestination] = useState(trip.destination);
+  const [destination, setDestination] = useState(trip.destination || '');
   const [description, setDescription] = useState(trip.description || '');
-  // Use normalizeDate to handle date timezone issues
-  const [startDate, setStartDate] = useState(normalizeDate(trip.startDate) || new Date());
-  const [endDate, setEndDate] = useState(normalizeDate(trip.endDate) || new Date());
+  
+  // Properly handle date conversion from ISO strings to Date objects
+  const [startDate, setStartDate] = useState<Date>(() => {
+    try {
+      return new Date(trip.startDate);
+    } catch (e) {
+      console.error("Error parsing start date:", e);
+      return new Date();
+    }
+  });
+  
+  const [endDate, setEndDate] = useState<Date>(() => {
+    try {
+      return new Date(trip.endDate);
+    } catch (e) {
+      console.error("Error parsing end date:", e);
+      // Default to start date + 1 hour if start date is valid
+      const defaultDate = new Date(trip.startDate);
+      if (!isNaN(defaultDate.getTime())) {
+        defaultDate.setHours(defaultDate.getHours() + 1);
+        return defaultDate;
+      }
+      return new Date();
+    }
+  });
+  
   const [isUpdating, setIsUpdating] = useState(false);
+  
+  // Debug logging to check state initialization
+  useEffect(() => {
+    console.log("TripQuickEdit initialized with:", {
+      tripId: trip.id,
+      originalName: trip.name,
+      stateName: name,
+      originalStartDate: trip.startDate,
+      stateStartDate: startDate.toISOString(),
+      originalEndDate: trip.endDate,
+      stateEndDate: endDate.toISOString()
+    });
+  }, []);
   
   // Status options for the select component
   const statusOptions = [
@@ -342,7 +379,38 @@ function TripQuickEdit({ trip, onSuccess }: { trip: Trip, onSuccess: () => void 
                   const [hours, minutes] = e.target.value.split(':').map(Number);
                   newDate.setHours(hours);
                   newDate.setMinutes(minutes);
+                  
+                  // Update startDate first
                   setStartDate(newDate);
+                  
+                  // If end date is the same day as start date, ensure end time is later
+                  if (format(endDate, "yyyy-MM-dd") === format(newDate, "yyyy-MM-dd")) {
+                    const newStartTime = hours * 60 + minutes;
+                    const endTime = endDate.getHours() * 60 + endDate.getMinutes();
+                    
+                    // Log validation check
+                    console.log("Checking if end time adjustment needed:", {
+                      date: format(newDate, "yyyy-MM-dd"),
+                      newStartTime,
+                      endTime,
+                      endTimeIsEarlier: endTime < newStartTime
+                    });
+                    
+                    // If end time is now earlier than start time, adjust it
+                    if (endTime < newStartTime) {
+                      // Make end time 30 minutes after new start time
+                      const adjustedEndDate = new Date(newDate);
+                      adjustedEndDate.setMinutes(adjustedEndDate.getMinutes() + 30);
+                      
+                      toast({
+                        title: "End time adjusted",
+                        description: "End time must be after start time. Adjusted to 30 minutes after start time.",
+                        duration: 5000
+                      });
+                      
+                      setEndDate(adjustedEndDate);
+                    }
+                  }
                 }
               }}
             />
@@ -382,6 +450,35 @@ function TripQuickEdit({ trip, onSuccess }: { trip: Trip, onSuccess: () => void 
                   const [hours, minutes] = e.target.value.split(':').map(Number);
                   newDate.setHours(hours);
                   newDate.setMinutes(minutes);
+                  
+                  // Validate that end time is not before start time if same day
+                  if (format(startDate, "yyyy-MM-dd") === format(newDate, "yyyy-MM-dd")) {
+                    const startTime = startDate.getHours() * 60 + startDate.getMinutes();
+                    const endTime = hours * 60 + minutes;
+                    
+                    // Log this validation check
+                    console.log("Validating end time on same day:", {
+                      date: format(newDate, "yyyy-MM-dd"),
+                      startTime,
+                      endTime,
+                      valid: endTime >= startTime
+                    });
+                    
+                    // If end time is before start time on the same day, adjust it
+                    if (endTime < startTime) {
+                      // Make end time 30 minutes after start time
+                      const adjustedDate = new Date(startDate);
+                      adjustedDate.setMinutes(adjustedDate.getMinutes() + 30);
+                      toast({
+                        title: "Time adjusted",
+                        description: "End time cannot be before start time. Adjusted to 30 minutes after start time.",
+                        duration: 5000
+                      });
+                      setEndDate(adjustedDate);
+                      return;
+                    }
+                  }
+                  
                   setEndDate(newDate);
                 }
               }}

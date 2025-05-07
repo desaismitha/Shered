@@ -161,10 +161,22 @@ export function TripForm() {
     if (values.endDate < values.startDate) {
       form.setError('endDate', {
         type: 'manual',
-        message: 'End date cannot be before start date'
+        message: 'End date and time cannot be before start date and time'
+      });
+      console.log("Date validation failed:", {
+        startDate: values.startDate.toISOString(),
+        endDate: values.endDate.toISOString(),
+        comparison: "invalid - end date before start date"
       });
       return;
     }
+    
+    // Additional validation logging
+    console.log("Date validation passed:", {
+      startDate: values.startDate.toISOString(),
+      endDate: values.endDate.toISOString(),
+      comparison: "valid"
+    });
     
     // Add createdBy
     const createTrip: InsertTrip = {
