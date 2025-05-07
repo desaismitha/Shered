@@ -75,7 +75,7 @@ const formSchema = z.object({
   isRecurring: z.boolean().default(false),
   recurrencePattern: z.enum(["daily", "weekly", "monthly", "custom"]).optional(),
   recurrenceDays: z.array(z.string()).optional(),
-  enableMobileNotifications: z.boolean().default(false),
+  enableMobileNotifications: z.boolean().default(true),
   phoneNumber: z.string().optional(),
   stops: z.array(
     z.object({
@@ -132,7 +132,7 @@ export function UnifiedTripForm({
       startLocation: "",
       endLocation: "",
       isRecurring: false,
-      enableMobileNotifications: true, // Always enable notifications for testing route deviation
+      enableMobileNotifications: true, // Enable notifications by default for status changes and route deviations
       phoneNumber: "",
       stops: [],
       ...defaultValues,
@@ -447,9 +447,9 @@ export function UnifiedTripForm({
             </Card>
           )}
           
-          {/* Route Deviation Notifications Card */}
+          {/* Email Notifications Card */}
           <Card className="p-6">
-            <h2 className="text-lg font-medium mb-4">Route Deviation Notifications</h2>
+            <h2 className="text-lg font-medium mb-4">Email Notifications</h2>
             
             <div className="flex flex-col space-y-4">
               <FormField
@@ -459,10 +459,10 @@ export function UnifiedTripForm({
                   <FormItem className="flex flex-row items-center justify-between space-x-3 space-y-0 rounded-md border p-4">
                     <div className="space-y-1">
                       <FormLabel className="text-base">
-                        Route Change Notifications
+                        Trip Notifications
                       </FormLabel>
                       <FormDescription>
-                        Receive email notifications when someone deviates from the planned route
+                        Receive email notifications for trip status changes and route deviations
                       </FormDescription>
                     </div>
                     <FormControl>
@@ -478,8 +478,13 @@ export function UnifiedTripForm({
               {form.watch("enableMobileNotifications") && (
                 <div className="px-4 py-3 rounded-md bg-blue-50 border border-blue-200">
                   <p className="text-sm text-blue-700">
-                    Email notifications will be sent to all members of the group when someone deviates from the planned route. 
-                    Make sure group members have verified their email addresses to receive these notifications.
+                    Email notifications will be sent when:
+                    <ul className="list-disc ml-6 mt-1">
+                      <li>Trip status changes (planning, confirmed, in-progress, completed)</li>
+                      <li>Someone deviates from the planned route</li>
+                      <li>Important trip updates occur</li>
+                    </ul>
+                    Make sure all group members have verified their email addresses.
                   </p>
                 </div>
               )}
