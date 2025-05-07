@@ -1,4 +1,4 @@
-import { Switch } from "wouter";
+import { Switch, Redirect } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -46,8 +46,9 @@ function Router() {
       <ProtectedRoute path="/trips-debug" component={TripsDebugPage} />
       <ProtectedRoute path="/active-trips-debug" component={ActiveTripsDebug} />
       <Route path="/auth" component={AuthPage} />
-      {/* Add explicit invitation route */}
+      {/* Add explicit invitation route - invited users must register/login first */}
       <Route path="/auth/invite" component={AuthPage} />
+      <Route path="/invite" component={() => <Redirect to="/auth" />} />
       <Route path="/forgot-password" component={ForgotPasswordPage} />
       <Route path="/reset-password/:token" component={ResetPasswordPage} />
       <Route path="/verify-email" component={VerifyEmailPage} />

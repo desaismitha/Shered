@@ -335,13 +335,24 @@ export default function AuthPage() {
           <Card className="w-full max-w-md">
             <CardHeader className="space-y-1">
               <CardTitle className="text-2xl font-bold text-center">
-                {activeTab === "login" ? "Welcome back" : "Create an account"}
+                {inviteToken 
+                  ? "Join Group Invitation" 
+                  : activeTab === "login" 
+                    ? "Welcome back" 
+                    : "Create an account"}
               </CardTitle>
               <CardDescription className="text-center">
-                {activeTab === "login" 
-                  ? "Enter your credentials to sign in" 
-                  : "Sign up to start planning trips with friends"}
+                {inviteToken 
+                  ? "Please sign in or create an account to join the group" 
+                  : activeTab === "login" 
+                    ? "Enter your credentials to sign in" 
+                    : "Sign up to start planning trips with friends"}
               </CardDescription>
+              {inviteToken && (
+                <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md text-sm text-blue-700">
+                  <p>You've been invited to join a group in TravelGroupr. Please register or log in to access the group.</p>
+                </div>
+              )}
             </CardHeader>
             <CardContent>
               <Tabs 
