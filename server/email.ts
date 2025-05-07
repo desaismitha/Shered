@@ -118,6 +118,13 @@ export async function sendGroupInvitation(
   inviteLink: string,
   isExistingUser: boolean = false
 ): Promise<boolean> {
+  console.log(`[GROUP_INVITATION] Attempting to send ${isExistingUser ? 'member added' : 'new invitation'} email to ${email} for group "${groupName}"`);
+  console.log(`[GROUP_INVITATION] Invite details: inviter=${inviterName}, link=${inviteLink}`);
+
+  // Check for valid SendGrid configuration
+  console.log('[SENDGRID_DEBUG] API Key configured:', !!process.env.SENDGRID_API_KEY);
+  console.log('[SENDGRID_DEBUG] Verified Sender:', process.env.SENDGRID_VERIFIED_SENDER);
+  
   const fromEmail = process.env.SENDGRID_VERIFIED_SENDER || 'noreply@travelgroupr.com';
   const subject = isExistingUser 
     ? `You've been added to ${groupName} on TravelGroupr` 
