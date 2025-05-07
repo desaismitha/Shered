@@ -329,17 +329,27 @@ export function setupAuth(app: Express) {
             } else {
               console.log(`Found group ${groupId}: ${group.name}`);
               
-              // Add user to the group with member role
-              const groupMember = await storage.addUserToGroup({
-                groupId,
-                userId: user.id,
-                role: 'member'
-              });
-              
-              // Store the group name for the confirmation email
-              joinedGroupName = group.name;
-              
-              console.log(`User ${user.id} successfully added to group ${groupId} via invitation`);
+              try {
+                // Add user to the group with member role
+                const groupMember = await storage.addUserToGroup({
+                  groupId,
+                  userId: user.id,
+                  role: 'member'
+                });
+                
+                // Store the group name for the confirmation email
+                joinedGroupName = group.name;
+                
+                console.log(`User ${user.id} successfully added to group ${groupId} via invitation`);
+                
+                // Double-check that the user was added to the group and log the result
+                const groupMembers = await storage.getGroupMembers(groupId);
+                const userAddedToGroup = groupMembers.some(member => member.userId === user.id);
+                console.log(`Verification check - User ${user.id} in group ${groupId}: ${userAddedToGroup}`);
+                console.log(`Group members after adding user:`, JSON.stringify(groupMembers, null, 2));
+              } catch (addUserError) {
+                console.error(`Error adding user ${user.id} to group ${groupId}:`, addUserError);
+              }
             }
           }
         } catch (inviteError) {
@@ -358,7 +368,7 @@ export function setupAuth(app: Express) {
         const confirmationSent = await sendRegistrationConfirmation(
           user.email,
           user.displayName || user.username,
-          joinedGroupName
+          joinedGroupName || undefined
         );
         
         console.log(`Registration confirmation email sent: ${confirmationSent}`);
