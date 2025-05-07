@@ -46,7 +46,7 @@ export function OtpVerificationForm({ onVerified, onCancel, registrationId, smsS
   const form = useForm<OtpFormValues>({
     resolver: zodResolver(otpFormSchema),
     defaultValues: {
-      otp: initialCode || "",
+      otp: "", // Never auto-fill verification code
     },
   });
   
@@ -64,27 +64,7 @@ export function OtpVerificationForm({ onVerified, onCancel, registrationId, smsS
     };
   }, [form]);
   
-  // Auto-submit effect when initialCode is set
-  useEffect(() => {
-    if (initialCode && initialCode.length === 6) {
-      // Set the value first
-      form.setValue('otp', initialCode);
-      
-      // Then auto-submit with delay to let the UI update
-      const timer = setTimeout(() => {
-        if (!isVerifying) {
-          console.log('Auto-submitting form with code:', initialCode);
-          const submitFn = form.handleSubmit((values) => {
-            console.log('Auto-submit with values:', values);
-            handleVerify(values);
-          });
-          submitFn();
-        }
-      }, 1500);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [initialCode, isVerifying, form]); // Deliberately not including handleVerify to avoid circular dependency
+  // Removed auto-submit effect to require manual code entry
 
   const handleVerify = useCallback(async (values: OtpFormValues) => {
     // Different paths for registration verification vs. regular account verification
