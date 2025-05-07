@@ -74,12 +74,11 @@ const tripSchema = insertTripSchema
     ),
   })
   .refine((data) => {
-    // Use our new compareDates function that handles local timezone correctly
-    const comparison = compareDates(data.startDate, data.endDate);
-    // Allow same day or end date after start date
-    return comparison === 'same' || comparison === 'before';
+    // Use our datetime objects directly to ensure exact time comparison
+    // This gives us a more precise comparison including time component
+    return data.endDate >= data.startDate;
   }, {
-    message: "End date cannot be before start date",
+    message: "End date and time cannot be before start date and time",
     path: ["endDate"],
   });
 

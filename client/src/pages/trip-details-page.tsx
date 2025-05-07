@@ -225,11 +225,18 @@ function TripQuickEdit({ trip, onSuccess }: { trip: Trip, onSuccess: () => void 
     if (endDate < startDate) {
       toast({
         title: "Invalid date range",
-        description: "End date cannot be before start date",
+        description: "End date and time cannot be before start date and time",
         variant: "destructive",
       });
       return;
     }
+    
+    // Additional logging to help debug date validation issues
+    console.log("Date validation passed:", {
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+      comparison: endDate >= startDate ? "valid" : "invalid"
+    });
     
     // If validation passes, submit the form
     const values = {
@@ -302,44 +309,84 @@ function TripQuickEdit({ trip, onSuccess }: { trip: Trip, onSuccess: () => void 
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Start Date */}
+        {/* Start Date and Time */}
         <div className="space-y-2">
-          <label htmlFor="startDate" className="text-sm font-medium">Start Date</label>
-          <input
-            id="startDate"
-            type="date"
-            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-            value={startDate ? format(startDate, "yyyy-MM-dd") : ""}
-            onChange={(e) => {
-              if (e.target.value) {
-                // Create a date at noon UTC to avoid timezone issues
-                const dateStr = `${e.target.value}T12:00:00Z`;
-                setStartDate(new Date(dateStr));
-              } else {
-                setStartDate(new Date());
-              }
-            }}
-          />
+          <label htmlFor="startDate" className="text-sm font-medium">Start Date and Time</label>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            <input
+              id="startDate"
+              type="date"
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              value={startDate ? format(startDate, "yyyy-MM-dd") : ""}
+              onChange={(e) => {
+                if (e.target.value) {
+                  // Keep the time but change the date
+                  const newDate = new Date(startDate || new Date());
+                  const [year, month, day] = e.target.value.split('-').map(Number);
+                  newDate.setFullYear(year);
+                  newDate.setMonth(month - 1); // Months are 0-indexed
+                  newDate.setDate(day);
+                  setStartDate(newDate);
+                }
+              }}
+            />
+            <input
+              id="startTime"
+              type="time"
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              value={startDate ? format(startDate, "HH:mm") : ""}
+              onChange={(e) => {
+                if (e.target.value) {
+                  // Keep the date but change the time
+                  const newDate = new Date(startDate || new Date());
+                  const [hours, minutes] = e.target.value.split(':').map(Number);
+                  newDate.setHours(hours);
+                  newDate.setMinutes(minutes);
+                  setStartDate(newDate);
+                }
+              }}
+            />
+          </div>
         </div>
         
-        {/* End Date */}
+        {/* End Date and Time */}
         <div className="space-y-2">
-          <label htmlFor="endDate" className="text-sm font-medium">End Date</label>
-          <input
-            id="endDate"
-            type="date"
-            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-            value={endDate ? format(endDate, "yyyy-MM-dd") : ""}
-            onChange={(e) => {
-              if (e.target.value) {
-                // Create a date at noon UTC to avoid timezone issues
-                const dateStr = `${e.target.value}T12:00:00Z`;
-                setEndDate(new Date(dateStr));
-              } else {
-                setEndDate(new Date());
-              }
-            }}
-          />
+          <label htmlFor="endDate" className="text-sm font-medium">End Date and Time</label>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            <input
+              id="endDate"
+              type="date"
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              value={endDate ? format(endDate, "yyyy-MM-dd") : ""}
+              onChange={(e) => {
+                if (e.target.value) {
+                  // Keep the time but change the date
+                  const newDate = new Date(endDate || new Date());
+                  const [year, month, day] = e.target.value.split('-').map(Number);
+                  newDate.setFullYear(year);
+                  newDate.setMonth(month - 1); // Months are 0-indexed
+                  newDate.setDate(day);
+                  setEndDate(newDate);
+                }
+              }}
+            />
+            <input
+              id="endTime"
+              type="time"
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              value={endDate ? format(endDate, "HH:mm") : ""}
+              onChange={(e) => {
+                if (e.target.value) {
+                  // Keep the date but change the time
+                  const newDate = new Date(endDate || new Date());
+                  const [hours, minutes] = e.target.value.split(':').map(Number);
+                  newDate.setHours(hours);
+                  newDate.setMinutes(minutes);
+                  setEndDate(newDate);
+                }
+              }}
+            />
+          </div>
         </div>
       </div>
       
