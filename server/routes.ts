@@ -1971,16 +1971,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const isExistingUser = !!existingUser;
       
       console.log(`[INVITE] User ${validatedData.email} exists in system: ${isExistingUser}`);
-      
-      const success = await sendGroupInvitation(
-        validatedData.email,
-        group.name,
-        inviter.displayName || inviter.username,
+      console.log(`[INVITE] Full invitation details:`, {
+        email: validatedData.email,
+        groupName: group.name,
+        inviterName: inviter.displayName || inviter.username,
         inviteLink,
         isExistingUser
-      );
+      });
       
-      console.log(`Email invitation result: ${success ? 'Success' : 'Failed'}`);
+      // Double check API key configuration
+      console.log('[INVITE] SendGrid API Key status:', !!process.env.SENDGRID_API_KEY);
+      console.log('[INVITE] SendGrid verified sender:', process.env.SENDGRID_VERIFIED_SENDER || 'not configured');
+      
+      // Try with error catching for the email call specifically
+      let success = false;
+      try {
+        success = await sendGroupInvitation(
+          validatedData.email,
+          group.name,
+          inviter.displayName || inviter.username,
+          inviteLink,
+          isExistingUser
+        );
+        
+        console.log(`[INVITE] Email invitation result: ${success ? 'Success' : 'Failed'}`);
+      } catch (emailError) {
+        console.error('[INVITE] Error during email sending:', emailError);
+        success = false;
+      }
       
       if (!success) {
         // If we can't send email due to SendGrid not being available,
