@@ -68,6 +68,14 @@ type RegistrationInitResponse = {
 type RegistrationCompleteData = {
   registrationId: string;
   otp: string;
+  // Add invitation data properties
+  invitation?: {
+    token?: string;
+    groupId?: string;
+  };
+  // Also allow at root level
+  token?: string;
+  groupId?: string;
 };
 
 export const AuthContext = createContext<AuthContextType | null>(null);
