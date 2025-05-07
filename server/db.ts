@@ -31,6 +31,20 @@ pool.on('connect', (client) => {
 
 pool.on('error', (err, client) => {
   console.error('Unexpected error on idle database client', err);
+  
+  // Check for specific termination errors
+  if (err.code === '57P01' || err.message.includes('terminating connection')) {
+    console.log('Detected connection termination, attempting to reconnect...');
+    // Attempt to reconnect in the background
+    setTimeout(async () => {
+      try {
+        await attemptReconnect(3, 1000);
+      } catch (reconnectError) {
+        console.error('Error during reconnection attempt:', reconnectError);
+      }
+    }, 500);
+  }
+  
   // Do not terminate the process, allow for recovery
   // process.exit(-1);
 });
