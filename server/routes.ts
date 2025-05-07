@@ -980,6 +980,121 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
   
+  // Email debugging endpoints - REMOVE IN PRODUCTION
+  
+  // Get email configuration info
+  app.get("/api/debug/email-config", (req, res) => {
+    const configured = !!process.env.SENDGRID_API_KEY;
+    const sender = process.env.SENDGRID_VERIFIED_SENDER;
+    
+    res.json({
+      configured,
+      sender
+    });
+  });
+  
+  // Serve email debug HTML page
+  app.get("/debug/email", (req, res) => {
+    const fs = require('fs');
+    const path = require('path');
+    
+    try {
+      const emailDebugHtmlPath = path.join(process.cwd(), 'email-debug.html');
+      const htmlContent = fs.readFileSync(emailDebugHtmlPath, 'utf8');
+      res.setHeader('Content-Type', 'text/html');
+      res.send(htmlContent);
+    } catch (error) {
+      console.error("Failed to serve email debug page:", error);
+      res.status(500).send("Error loading email debug page");
+    }
+  });
+  
+  // Send a test email
+  app.post("/api/debug/test-email", async (req, res) => {
+    try {
+      // Use query param or body, with body taking precedence
+      const email = req.body.email || req.query.email || (req.isAuthenticated() ? req.user.email : null);
+      
+      if (!email) {
+        return res.status(400).json({ message: "Email address is required" });
+      }
+      
+      const subject = req.body.subject || "TravelGroupr Test Email";
+      const message = req.body.message || "This is a test email from TravelGroupr to verify email delivery is working correctly.";
+      
+      console.log(`[EMAIL_DEBUG] Sending test email to ${email}`);
+      
+      // Use the sendEmail function
+      const { sendEmail } = await import('./email');
+      
+      const success = await sendEmail({
+        to: email,
+        from: process.env.SENDGRID_VERIFIED_SENDER || 'noreply@travelgroupr.com',
+        subject,
+        text: message,
+        html: `
+          <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 600px;">
+            <h2 style="color: #4a6ee0;">TravelGroupr Test Email</h2>
+            <p>${message}</p>
+            <p><strong>Sent at:</strong> ${new Date().toISOString()}</p>
+            <div style="margin-top: 30px; padding: 15px; background-color: #f5f5f5; border-radius: 5px;">
+              <p style="margin: 0; font-size: 12px; color: #666;">
+                This is an automated message from TravelGroupr. Please do not reply to this email.
+              </p>
+            </div>
+          </div>
+        `
+      });
+      
+      if (success) {
+        console.log(`[EMAIL_DEBUG] Test email successfully sent to ${email}`);
+        return res.json({ message: `Test email sent to ${email}` });
+      } else {
+        console.error(`[EMAIL_DEBUG] Failed to send test email to ${email}`);
+        return res.status(500).json({ message: 'Email sending failed. Check server logs for details.' });
+      }
+    } catch (error) {
+      console.error("[EMAIL_DEBUG] Error sending test email:", error);
+      return res.status(500).json({ message: "Server error", error: String(error) });
+    }
+  });
+  
+  // Test group invitation email
+  app.post("/api/debug/email/invitation", async (req, res) => {
+    try {
+      const { email, groupName, inviterName } = req.body;
+      
+      if (!email || !groupName || !inviterName) {
+        return res.status(400).json({ message: "Email, group name, and inviter name are required" });
+      }
+      
+      console.log(`[EMAIL_DEBUG] Sending test invitation email to ${email}`);
+      
+      // Use the sendGroupInvitation function
+      const { sendGroupInvitation } = await import('./email');
+      
+      const inviteLink = `https://${req.headers.host}/invite/test/test123?email=${encodeURIComponent(email)}`;
+      
+      const success = await sendGroupInvitation(
+        email,
+        groupName,
+        inviterName,
+        inviteLink
+      );
+      
+      if (success) {
+        console.log(`[EMAIL_DEBUG] Test invitation email successfully sent to ${email}`);
+        return res.json({ message: `Invitation email sent to ${email}` });
+      } else {
+        console.error(`[EMAIL_DEBUG] Failed to send test invitation email to ${email}`);
+        return res.status(500).json({ message: 'Email sending failed. Check server logs for details.' });
+      }
+    } catch (error) {
+      console.error("[EMAIL_DEBUG] Error sending test invitation email:", error);
+      return res.status(500).json({ message: "Server error", error: String(error) });
+    }
+  });
+  
   // Test endpoint for route deviation notifications - REMOVE IN PRODUCTION
   app.get("/api/test/route-deviation", async (req, res) => {
     try {

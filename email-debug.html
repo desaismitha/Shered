@@ -1,166 +1,506 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Email Verification Debug Tool</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 600px;
-            margin: 40px auto;
-            padding: 20px;
-            background-color: #f5f7f9;
-        }
-        .container {
-            background-color: white;
-            border-radius: 8px;
-            padding: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        h1 {
-            color: #4338ca;
-            margin-top: 0;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-        input[type="email"], input[type="text"] {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            box-sizing: border-box;
-        }
-        button {
-            background-color: #4338ca;
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-        button:hover {
-            background-color: #3730a3;
-        }
-        .result {
-            margin-top: 20px;
-            padding: 15px;
-            border-radius: 4px;
-            border-left: 4px solid #4338ca;
-            background-color: #f3f4f6;
-        }
-        .error {
-            border-left-color: #dc2626;
-            background-color: #fee2e2;
-        }
-        .success {
-            border-left-color: #16a34a;
-            background-color: #dcfce7;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Email Debugging Tool</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    h1 {
+      color: #2563eb;
+      margin-bottom: 30px;
+    }
+    
+    .card {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      padding: 24px;
+      margin-bottom: 24px;
+      border: 1px solid #e2e8f0;
+    }
+    
+    .form-group {
+      margin-bottom: 16px;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+    
+    input, select, textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #cbd5e0;
+      border-radius: 4px;
+      font-size: 16px;
+    }
+    
+    button {
+      background-color: #2563eb;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    
+    button:hover {
+      background-color: #1d4ed8;
+    }
+    
+    button:disabled {
+      background-color: #a0aec0;
+      cursor: not-allowed;
+    }
+    
+    .result {
+      margin-top: 24px;
+      padding: 16px;
+      border-radius: 4px;
+    }
+    
+    .success {
+      background-color: #def7ec;
+      border-left: 4px solid #0e9f6e;
+      color: #014737;
+    }
+    
+    .error {
+      background-color: #fde8e8;
+      border-left: 4px solid #e02424;
+      color: #771d1d;
+    }
+    
+    .log {
+      background-color: #f8f9fa;
+      padding: 16px;
+      border-radius: 4px;
+      font-family: monospace;
+      margin-top: 16px;
+      max-height: 300px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid #e2e8f0;
+      margin-bottom: 20px;
+    }
+    
+    .tab {
+      padding: 10px 20px;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+    }
+    
+    .tab.active {
+      border-bottom: 2px solid #2563eb;
+      font-weight: 500;
+    }
+    
+    .tab-content {
+      display: none;
+    }
+    
+    .tab-content.active {
+      display: block;
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Email Verification Debug Tool</h1>
-        <p>Use this tool to test email delivery functionality.</p>
-        
-        <div class="form-group">
-            <label for="email">Email Address:</label>
-            <input type="email" id="email" name="email" placeholder="Enter your email address">
-        </div>
-        
-        <div class="form-group">
-            <label for="name">Display Name:</label>
-            <input type="text" id="name" name="name" placeholder="Enter your name">
-        </div>
-        
-        <button id="sendOTP">Send Test Verification Code</button>
-        <button id="sendWelcome">Send Test Welcome Email</button>
-        
-        <div id="result" class="result" style="display: none;"></div>
+  <h1>TravelGroupr Email Debugging Tool</h1>
+  
+  <div class="card">
+    <div class="tabs">
+      <div class="tab active" data-tab="invite">Group Invitation</div>
+      <div class="tab" data-tab="test">Test Email</div>
+      <div class="tab" data-tab="verification">Email Verification</div>
+      <div class="tab" data-tab="reset">Password Reset</div>
+      <div class="tab" data-tab="status">Trip Status</div>
+      <div class="tab" data-tab="deviation">Route Deviation</div>
     </div>
-
-    <script>
-        document.getElementById('sendOTP').addEventListener('click', async function() {
-            const email = document.getElementById('email').value;
-            const name = document.getElementById('name').value;
-            
-            if (!email || !name) {
-                showResult('Please fill in all fields', 'error');
-                return;
-            }
-            
-            try {
-                const response = await fetch('/api/debug/send-test-otp', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ email, name })
-                });
-                
-                const data = await response.json();
-                
-                if (response.ok) {
-                    showResult(`Success! Test OTP email sent to ${email}`, 'success');
-                } else {
-                    showResult(`Error: ${data.message || 'Failed to send email'}`, 'error');
-                }
-            } catch (error) {
-                showResult(`Error: ${error.message}`, 'error');
-            }
+    
+    <div class="tab-content active" id="invite-tab">
+      <h2>Send Group Invitation Email</h2>
+      <form id="invite-form">
+        <div class="form-group">
+          <label for="invite-email">Recipient Email:</label>
+          <input type="email" id="invite-email" required placeholder="recipient@example.com">
+        </div>
+        <div class="form-group">
+          <label for="group-name">Group Name:</label>
+          <input type="text" id="group-name" required placeholder="Adventure Seekers">
+        </div>
+        <div class="form-group">
+          <label for="inviter-name">Inviter Name:</label>
+          <input type="text" id="inviter-name" required placeholder="John Smith">
+        </div>
+        <button type="submit">Send Invitation Email</button>
+      </form>
+    </div>
+    
+    <div class="tab-content" id="test-tab">
+      <h2>Send Test Email</h2>
+      <form id="test-form">
+        <div class="form-group">
+          <label for="test-email">Recipient Email:</label>
+          <input type="email" id="test-email" required placeholder="recipient@example.com">
+        </div>
+        <div class="form-group">
+          <label for="test-subject">Subject:</label>
+          <input type="text" id="test-subject" required value="TravelGroupr Test Email">
+        </div>
+        <div class="form-group">
+          <label for="test-message">Message:</label>
+          <textarea id="test-message" rows="3" required>This is a test email from TravelGroupr to verify email delivery is working correctly.</textarea>
+        </div>
+        <button type="submit">Send Test Email</button>
+      </form>
+    </div>
+    
+    <div class="tab-content" id="verification-tab">
+      <h2>Send Email Verification</h2>
+      <form id="verification-form">
+        <div class="form-group">
+          <label for="verification-email">Recipient Email:</label>
+          <input type="email" id="verification-email" required placeholder="recipient@example.com">
+        </div>
+        <div class="form-group">
+          <label for="verification-name">Recipient Name:</label>
+          <input type="text" id="verification-name" required placeholder="John Smith">
+        </div>
+        <button type="submit">Send Verification Email</button>
+      </form>
+    </div>
+    
+    <div class="tab-content" id="reset-tab">
+      <h2>Send Password Reset Email</h2>
+      <form id="reset-form">
+        <div class="form-group">
+          <label for="reset-email">Recipient Email:</label>
+          <input type="email" id="reset-email" required placeholder="recipient@example.com">
+        </div>
+        <div class="form-group">
+          <label for="reset-name">Recipient Name:</label>
+          <input type="text" id="reset-name" required placeholder="John Smith">
+        </div>
+        <button type="submit">Send Password Reset Email</button>
+      </form>
+    </div>
+    
+    <div class="tab-content" id="status-tab">
+      <h2>Send Trip Status Change Email</h2>
+      <form id="status-form">
+        <div class="form-group">
+          <label for="status-email">Recipient Email:</label>
+          <input type="email" id="status-email" required placeholder="recipient@example.com">
+        </div>
+        <div class="form-group">
+          <label for="status-name">Recipient Name:</label>
+          <input type="text" id="status-name" required placeholder="John Smith">
+        </div>
+        <div class="form-group">
+          <label for="trip-name">Trip Name:</label>
+          <input type="text" id="trip-name" required placeholder="Summer Road Trip">
+        </div>
+        <div class="form-group">
+          <label for="trip-status">New Status:</label>
+          <select id="trip-status" required>
+            <option value="planning">Planning</option>
+            <option value="confirmed">Confirmed</option>
+            <option value="in-progress">In Progress</option>
+            <option value="completed">Completed</option>
+          </select>
+        </div>
+        <button type="submit">Send Status Change Email</button>
+      </form>
+    </div>
+    
+    <div class="tab-content" id="deviation-tab">
+      <h2>Send Route Deviation Email</h2>
+      <form id="deviation-form">
+        <div class="form-group">
+          <label for="deviation-email">Recipient Email:</label>
+          <input type="email" id="deviation-email" required placeholder="recipient@example.com">
+        </div>
+        <div class="form-group">
+          <label for="deviation-name">Recipient Name:</label>
+          <input type="text" id="deviation-name" required placeholder="John Smith">
+        </div>
+        <div class="form-group">
+          <label for="deviation-trip-name">Trip Name:</label>
+          <input type="text" id="deviation-trip-name" required placeholder="Summer Road Trip">
+        </div>
+        <div class="form-group">
+          <label for="deviator-name">Deviator Name:</label>
+          <input type="text" id="deviator-name" required placeholder="Jane Doe">
+        </div>
+        <div class="form-group">
+          <label for="distance">Distance from Route (km):</label>
+          <input type="number" id="distance" required placeholder="5.2" step="0.1" min="0.1" value="5.2">
+        </div>
+        <button type="submit">Send Deviation Email</button>
+      </form>
+    </div>
+    
+    <div id="result"></div>
+    <div id="log" class="log"></div>
+  </div>
+  
+  <script>
+    // Select DOM elements
+    const tabs = document.querySelectorAll('.tab');
+    const tabContents = document.querySelectorAll('.tab-content');
+    const resultDiv = document.getElementById('result');
+    const logDiv = document.getElementById('log');
+    
+    // Forms
+    const inviteForm = document.getElementById('invite-form');
+    const testForm = document.getElementById('test-form');
+    const verificationForm = document.getElementById('verification-form');
+    const resetForm = document.getElementById('reset-form');
+    const statusForm = document.getElementById('status-form');
+    const deviationForm = document.getElementById('deviation-form');
+    
+    // Tab switching
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        // Remove active class from all tabs and contents
+        tabs.forEach(t => t.classList.remove('active'));
+        tabContents.forEach(c => c.classList.remove('active'));
+        
+        // Add active class to clicked tab and content
+        tab.classList.add('active');
+        const tabId = `${tab.dataset.tab}-tab`;
+        document.getElementById(tabId).classList.add('active');
+      });
+    });
+    
+    // Log function
+    function log(message, isError = false) {
+      const now = new Date().toISOString();
+      logDiv.innerHTML += `<div${isError ? ' style="color:#e53e3e"' : ''}>[${now.split('T')[1].split('.')[0]}] ${message}</div>`;
+      logDiv.scrollTop = logDiv.scrollHeight;
+    }
+    
+    // Show result
+    function showResult(message, isError = false) {
+      resultDiv.innerHTML = `<div class="${isError ? 'error' : 'success'} result">${message}</div>`;
+      logDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+    
+    // API call helper
+    async function makeApiCall(endpoint, data) {
+      try {
+        log(`Making API call to ${endpoint}`);
+        log(`Request data: ${JSON.stringify(data, null, 2)}`);
+        
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(data),
+          credentials: 'include' // Include cookies for authentication
         });
         
-        document.getElementById('sendWelcome').addEventListener('click', async function() {
-            const email = document.getElementById('email').value;
-            const name = document.getElementById('name').value;
-            
-            if (!email || !name) {
-                showResult('Please fill in all fields', 'error');
-                return;
-            }
-            
-            try {
-                const response = await fetch('/api/debug/send-test-welcome', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ email, name })
-                });
-                
-                const data = await response.json();
-                
-                if (response.ok) {
-                    showResult(`Success! Test welcome email sent to ${email}`, 'success');
-                } else {
-                    showResult(`Error: ${data.message || 'Failed to send email'}`, 'error');
-                }
-            } catch (error) {
-                showResult(`Error: ${error.message}`, 'error');
-            }
-        });
+        log(`Response status: ${response.status}`);
         
-        function showResult(message, type) {
-            const resultDiv = document.getElementById('result');
-            resultDiv.textContent = message;
-            resultDiv.style.display = 'block';
-            
-            // Reset classes
-            resultDiv.classList.remove('error', 'success');
-            
-            // Add the appropriate class
-            if (type) {
-                resultDiv.classList.add(type);
-            }
+        if (!response.ok) {
+          const errorText = await response.text();
+          log(`Error response: ${errorText}`, true);
+          throw new Error(`API call failed: ${errorText}`);
         }
-    </script>
+        
+        const responseData = await response.json();
+        log(`Response data: ${JSON.stringify(responseData, null, 2)}`);
+        return responseData;
+      } catch (error) {
+        log(`Error: ${error.message}`, true);
+        throw error;
+      }
+    }
+    
+    // Form submission handlers
+    inviteForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      try {
+        log('Starting group invitation email test...');
+        
+        const email = document.getElementById('invite-email').value;
+        const groupName = document.getElementById('group-name').value;
+        const inviterName = document.getElementById('inviter-name').value;
+        
+        // Call API
+        const response = await makeApiCall('/api/debug/email/invitation', {
+          email,
+          groupName,
+          inviterName
+        });
+        
+        showResult(`Invitation email sent to ${email} successfully!`);
+      } catch (error) {
+        showResult(`Failed to send invitation email: ${error.message}`, true);
+      }
+    });
+    
+    testForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      try {
+        log('Starting test email...');
+        
+        const email = document.getElementById('test-email').value;
+        const subject = document.getElementById('test-subject').value;
+        const message = document.getElementById('test-message').value;
+        
+        // Call API
+        const response = await makeApiCall('/api/debug/test-email', {
+          email,
+          subject,
+          message
+        });
+        
+        showResult(`Test email sent to ${email} successfully!`);
+      } catch (error) {
+        showResult(`Failed to send test email: ${error.message}`, true);
+      }
+    });
+    
+    verificationForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      try {
+        log('Starting verification email test...');
+        
+        const email = document.getElementById('verification-email').value;
+        const name = document.getElementById('verification-name').value;
+        
+        // Call API
+        const response = await makeApiCall('/api/debug/email/verification', {
+          email,
+          name
+        });
+        
+        showResult(`Verification email sent to ${email} successfully!`);
+      } catch (error) {
+        showResult(`Failed to send verification email: ${error.message}`, true);
+      }
+    });
+    
+    resetForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      try {
+        log('Starting password reset email test...');
+        
+        const email = document.getElementById('reset-email').value;
+        const name = document.getElementById('reset-name').value;
+        
+        // Call API
+        const response = await makeApiCall('/api/debug/email/reset-password', {
+          email,
+          name
+        });
+        
+        showResult(`Password reset email sent to ${email} successfully!`);
+      } catch (error) {
+        showResult(`Failed to send password reset email: ${error.message}`, true);
+      }
+    });
+    
+    statusForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      try {
+        log('Starting trip status change email test...');
+        
+        const email = document.getElementById('status-email').value;
+        const name = document.getElementById('status-name').value;
+        const tripName = document.getElementById('trip-name').value;
+        const status = document.getElementById('trip-status').value;
+        
+        // Call API
+        const response = await makeApiCall('/api/debug/email/trip-status', {
+          email,
+          name,
+          tripName,
+          status
+        });
+        
+        showResult(`Trip status change email sent to ${email} successfully!`);
+      } catch (error) {
+        showResult(`Failed to send trip status change email: ${error.message}`, true);
+      }
+    });
+    
+    deviationForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      try {
+        log('Starting route deviation email test...');
+        
+        const email = document.getElementById('deviation-email').value;
+        const name = document.getElementById('deviation-name').value;
+        const tripName = document.getElementById('deviation-trip-name').value;
+        const deviatorName = document.getElementById('deviator-name').value;
+        const distance = document.getElementById('distance').value;
+        
+        // Call API
+        const response = await makeApiCall('/api/debug/email/route-deviation', {
+          email,
+          name,
+          tripName,
+          deviatorName,
+          distance
+        });
+        
+        showResult(`Route deviation email sent to ${email} successfully!`);
+      } catch (error) {
+        showResult(`Failed to send route deviation email: ${error.message}`, true);
+      }
+    });
+    
+    // Initialize
+    log('Email debugging tool initialized');
+    log('Select a tab and fill out the form to test email sending');
+    
+    // Add API endpoint info
+    log('Checking API endpoints...');
+    fetch('/api/health')
+      .then(response => response.json())
+      .then(data => {
+        log(`API health check: ${data.status}`);
+        log(`DB connection: ${data.dbConnection}`);
+      })
+      .catch(error => {
+        log(`API health check failed: ${error.message}`, true);
+      });
+    
+    // Check SendGrid configuration
+    fetch('/api/debug/email-config')
+      .then(response => response.json())
+      .then(data => {
+        if (data.configured) {
+          log(`SendGrid configured: API key ${data.configured ? 'present' : 'missing'}`);
+          log(`Verified sender: ${data.sender || 'not configured'}`);
+        } else {
+          log('SendGrid not configured properly', true);
+        }
+      })
+      .catch(error => {
+        log(`Failed to check email configuration: ${error.message}`, true);
+      });
+  </script>
 </body>
 </html>
