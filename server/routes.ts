@@ -4519,5 +4519,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
   
+  // Special endpoint for sending direct status updates with email notifications
+  app.patch("/api/direct-status-update", async (req, res) => {
+    console.log("[DIRECT_STATUS_UPDATE] Request received:", req.body);
+    
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+    
+    const { tripId, status } = req.body;
+    
+    if (!tripId || !status) {
+      return res.status(400).json({ 
+        error: "Missing required parameters", 
+        message: "Both tripId and status are required" 
+      });
+    }
+    
+    console.log(`[DIRECT_STATUS_UPDATE] Updating trip ${tripId} status to '${status}'`);
+    
+    try {
+      // Verify the trip exists and get original status
+      const [trip] = await db.select().from(trips).where(eq(trips.id, tripId));
+      if (!trip) {
+        return res.status(404).json({ error: "Trip not found" });
+      }
+      
+      const originalStatus = trip.status;
+      console.log(`[DIRECT_STATUS_UPDATE] Original status: '${originalStatus}'`);
+      
+      // Update the trip status
+      const [updatedTrip] = await db
+        .update(trips)
+        .set({ status })
+        .where(eq(trips.id, tripId))
+        .returning();
+      
+      if (!updatedTrip) {
+        return res.status(500).json({ error: "Failed to update trip status" });
+      }
+      
+      console.log(`[DIRECT_STATUS_UPDATE] Status changed, directly calling sendTripStatusNotifications with status '${status}'`);
+      
+      // Enhanced logging for debugging
+      console.log(`[DIRECT_STATUS_UPDATE] Trip details before notification:`, {
+        id: updatedTrip.id,
+        name: updatedTrip.name,
+        creatorId: updatedTrip.createdBy,
+        status: updatedTrip.status
+      });
+      
+      // Send the status change notification
+      await sendTripStatusNotifications(tripId, status);
+      
+      return res.json({
+        success: true,
+        message: `Trip ${tripId} status updated from '${originalStatus}' to '${status}'`,
+        trip: updatedTrip
+      });
+    } catch (error) {
+      console.error("[DIRECT_STATUS_UPDATE] Error updating trip status:", error);
+      return res.status(500).json({ 
+        error: "Server error", 
+        message: error instanceof Error ? error.message : String(error) 
+      });
+    }
+  });
+  
   return httpServer;
 }
