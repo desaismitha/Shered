@@ -129,6 +129,18 @@ export function VerificationModal({ isOpen, onOpenChange, userEmail, userPhone, 
           </TabsList>
 
           <TabsContent value="otp" className="mt-4">
+            {/* Display the verification code in development mode */}
+            {verificationCode && (
+              <div className="mb-4 p-2 bg-yellow-50 border border-yellow-200 rounded-md">
+                <p className="text-sm text-yellow-800 font-medium">For testing purposes only:</p>
+                <p className="text-sm text-center font-mono bg-white p-1 rounded mt-1">
+                  Your verification code is: <span className="font-bold">{verificationCode}</span>
+                </p>
+                <p className="text-xs text-yellow-600 mt-1">
+                  In production, this code is sent only to your email and not displayed here.
+                </p>
+              </div>
+            )}
             <OtpVerificationForm 
               onVerified={handleVerified}
               registrationId={registrationId}
