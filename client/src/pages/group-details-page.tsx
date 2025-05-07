@@ -732,9 +732,9 @@ export default function GroupDetailsPage() {
         )}
         
         {/* Group content */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left column - Trips and messages */}
-          <div className="lg:col-span-2">
+        <div className="grid grid-cols-1 gap-6">
+          {/* Main content - Trips and messages */}
+          <div>
             <Tabs defaultValue="trips">
               <TabsList>
                 <TabsTrigger value="trips">Trips</TabsTrigger>
@@ -889,34 +889,6 @@ export default function GroupDetailsPage() {
             </Tabs>
           </div>
           
-          {/* Right column - Group info */}
-          <div>
-            <Card>
-              <CardHeader>
-                <CardTitle>Group Information</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="text-sm font-medium text-neutral-500 mb-1">Created</h3>
-                    <p className="text-neutral-800">{group.createdAt ? format(new Date(group.createdAt), 'PPP') : 'Unknown'}</p>
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-medium text-neutral-500 mb-1">Creator</h3>
-                    <p className="text-neutral-800">
-                      {users?.find(u => u.id === group.createdBy)?.displayName || 
-                       users?.find(u => u.id === group.createdBy)?.username || 
-                       'Unknown'}
-                    </p>
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-medium text-neutral-500 mb-1">Members</h3>
-                    <p className="text-neutral-800">{groupMembers?.length || 0} members</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
         </div>
       </div>
     </AppShell>
