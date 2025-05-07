@@ -94,9 +94,10 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
       }
       
       // Extract error response if available
-      // @ts-ignore - access SendGrid specific properties
-      if (sendError?.response?.body) {
-        console.error('[SENDGRID] API Response:', JSON.stringify(sendError.response.body, null, 2));
+      // SendGrid errors have a specific shape
+      const sgError = sendError as any;
+      if (sgError?.response?.body) {
+        console.error('[SENDGRID] API Response:', JSON.stringify(sgError.response.body, null, 2));
       }
       
       return false;
@@ -119,7 +120,7 @@ export async function sendGroupInvitation(
   isExistingUser: boolean = false
 ): Promise<boolean> {
   console.log(`[GROUP_INVITATION] Attempting to send ${isExistingUser ? 'member added' : 'new invitation'} email to ${email} for group "${groupName}"`);
-  console.log(`[GROUP_INVITATION] Invite details: inviter=${inviterName}, link=${inviteLink}`);
+  console.log(`[GROUP_INVITATION] Invite details: inviter=${inviterName}, link=${inviteLink}, isExistingUser=${isExistingUser}`);
 
   // Check for valid SendGrid configuration
   console.log('[SENDGRID_DEBUG] API Key configured:', !!process.env.SENDGRID_API_KEY);

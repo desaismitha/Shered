@@ -1962,14 +1962,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Send invitation email
       const inviter = req.user;
-      console.log(`Attempting to send invitation email to ${validatedData.email} for group ${group.name}`);
-      console.log(`Invite link: ${inviteLink}`);
+      console.log(`[INVITE] Attempting to send invitation email to ${validatedData.email} for group ${group.name}`);
+      console.log(`[INVITE] Invite link: ${inviteLink}`);
+      
+      // Check if the user already exists in the system
+      const existingUser = await storage.getUserByUsername(validatedData.email);
+      const isExistingUser = !!existingUser;
+      
+      console.log(`[INVITE] User ${validatedData.email} exists in system: ${isExistingUser}`);
       
       const success = await sendGroupInvitation(
         validatedData.email,
         group.name,
         inviter.displayName || inviter.username,
-        inviteLink
+        inviteLink,
+        isExistingUser
       );
       
       console.log(`Email invitation result: ${success ? 'Success' : 'Failed'}`);
