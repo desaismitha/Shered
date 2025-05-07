@@ -57,7 +57,18 @@
 </head>
 <body>
   <h1>Trip Status Update Test Tool</h1>
-  <p>This tool tests the direct status update endpoint with email notification.</p>
+  <p>This tool tests the direct status update endpoint with email notification. Follow these steps:</p>
+  <ol>
+    <li>Log in to the main application first</li>
+    <li>Enter a valid Trip ID (suggested: create a new trip for testing)</li>
+    <li>Select a status (especially "confirmed" to test that status notification)</li>
+    <li>Click "Update Trip Status" to send the update and trigger email notifications</li>
+    <li>Check your email to see if you received the status notification</li>
+  </ol>
+  <div style="margin-bottom: 20px; padding: 10px; background-color: #f0f9ff; border-left: 4px solid #4F46E5; border-radius: 4px;">
+    <strong>Important:</strong> You must be logged in to use this tool. 
+    <a href="/" style="color: #4F46E5; text-decoration: underline;">Click here to go to the main application</a> and sign in first.
+  </div>
   
   <div class="form-group">
     <label for="tripId">Trip ID:</label>
@@ -89,14 +100,32 @@
       resultElement.className = "result";
       
       try {
+        // First check if we're logged in
+        const userCheckResponse = await fetch('/api/user');
+        if (userCheckResponse.status === 401) {
+          resultElement.textContent = "ERROR: You need to be logged in. Please sign in through the main application first.";
+          resultElement.className = "result error";
+          return;
+        }
+
+        // Now make the status update request
         const response = await fetch('/api/direct-status-update', {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({ tripId, status })
+          body: JSON.stringify({ tripId, status }),
+          credentials: 'include' // Important for session cookies
         });
         
+        // Check if we got HTML back (indicates we're not logged in)
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('text/html')) {
+          resultElement.textContent = "ERROR: You need to be logged in. Please sign in through the main application first.";
+          resultElement.className = "result error";
+          return;
+        }
+
         const data = await response.json();
         
         if (response.ok) {
@@ -107,7 +136,7 @@
           resultElement.className = "result error";
         }
       } catch (error) {
-        resultElement.textContent = "ERROR: " + error.message;
+        resultElement.textContent = "ERROR: " + error.message + "\n\nNote: This likely means you need to log in first. Please open the main app and sign in.";
         resultElement.className = "result error";
       }
     });
