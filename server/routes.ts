@@ -1063,13 +1063,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Test group invitation email
   app.post("/api/debug/email/invitation", async (req, res) => {
     try {
-      const { email, groupName, inviterName } = req.body;
+      const { email, groupName, inviterName, isExistingUser } = req.body;
       
       if (!email || !groupName || !inviterName) {
         return res.status(400).json({ message: "Email, group name, and inviter name are required" });
       }
       
-      console.log(`[EMAIL_DEBUG] Sending test invitation email to ${email}`);
+      console.log(`[EMAIL_DEBUG] Sending test ${isExistingUser ? 'existing user' : 'new user'} invitation email to ${email}`);
       
       // Use the sendGroupInvitation function
       const { sendGroupInvitation } = await import('./email');
@@ -1080,7 +1080,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         email,
         groupName,
         inviterName,
-        inviteLink
+        inviteLink,
+        isExistingUser
       );
       
       if (success) {
