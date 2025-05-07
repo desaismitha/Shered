@@ -2410,12 +2410,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
             isValid: fullEndDate >= fullStartDate
           });
           
-          if (fullEndDate < fullStartDate) {
-            console.log("[TRIP_EDIT] Date validation failed: derived end date before start date");
-            return res.status(400).json({
-              error: "Invalid date range",
-              details: "End date cannot be before start date"
-            });
+          // Instead of rejecting, adjust the end date if it's before or equal to the start date
+          if (fullEndDate <= fullStartDate) {
+            console.log("[TRIP_EDIT] End date is before or equal to start date - ADJUSTING");
+            console.log(`Original Start: ${fullStartDate.toISOString()}`);
+            console.log(`Original End: ${fullEndDate.toISOString()}`);
+              
+            // Add 30 minutes to the start date for the new end date
+            const adjustedEndDate = new Date(fullStartDate.getTime() + 30 * 60 * 1000);
+              
+            console.log(`ADJUSTED End: ${adjustedEndDate.toISOString()}`);
+            console.log(`Time difference after adjustment: ${(adjustedEndDate.getTime() - fullStartDate.getTime()) / 60000} minutes`);
+              
+            // Update the request body with the adjusted end date
+            if (endDate) {
+              req.body.endDate = adjustedEndDate;
+              endDate = adjustedEndDate;
+            } else {
+              // This is the case where startDate was provided but endDate wasn't
+              // We need to add endDate to the request
+              req.body.endDate = adjustedEndDate;
+            }
           }
         }
       }
@@ -2546,6 +2561,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log("EndDate type:", typeof processedData.endDate);
           console.log("EndDate is Date?", processedData.endDate instanceof Date);
           console.log("EndDate value:", processedData.endDate);
+        }
+        
+        // Final validation check: If both dates are provided, ensure end date is after start date
+        if (processedData.startDate && processedData.endDate) {
+          console.log("[TRIP_EDIT_FINAL_CHECK] Comparing processed dates:", {
+            startDate: processedData.startDate.toISOString(),
+            endDate: processedData.endDate.toISOString(),
+            isValid: processedData.endDate > processedData.startDate
+          });
+          
+          if (processedData.endDate <= processedData.startDate) {
+            console.log("[TRIP_EDIT_FINAL_CHECK] End date is before or equal to start date - ADJUSTING");
+            
+            // Add 30 minutes to the start date for the new end date
+            processedData.endDate = new Date(processedData.startDate.getTime() + 30 * 60 * 1000);
+            
+            console.log(`[TRIP_EDIT_FINAL_CHECK] ADJUSTED End: ${processedData.endDate.toISOString()}`);
+            console.log(`[TRIP_EDIT_FINAL_CHECK] Time difference after adjustment: ${(processedData.endDate.getTime() - processedData.startDate.getTime()) / 60000} minutes`);
+          }
         }
         
         // Create a simplified schema without transforms
