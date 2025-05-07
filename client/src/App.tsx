@@ -50,16 +50,29 @@ function Router() {
         {(params) => {
           console.log("Invite route detected with params:", params);
           const { groupId, token } = params;
+          
+          // Get email from URL query params if present
+          const searchParams = new URLSearchParams(window.location.search);
+          const email = searchParams.get('email');
+          
+          console.log("Invitation processing with:", { groupId, token, email });
+          
           // Force logout any existing session before redirecting to auth page
           // This ensures that the invitation flow always starts fresh
           fetch('/api/logout', { method: 'POST' })
             .then(() => {
               console.log("Forced logout for invitation flow");
-              window.location.href = `/auth?token=${token}&groupId=${groupId}&mode=register`;
+              // Include email in the redirect if it exists
+              const authUrl = `/auth?token=${token}&groupId=${groupId}&mode=register${email ? `&email=${encodeURIComponent(email)}` : ''}`;
+              console.log("Redirecting to:", authUrl);
+              window.location.href = authUrl;
             })
             .catch(err => {
               console.error("Error during forced logout:", err);
-              window.location.href = `/auth?token=${token}&groupId=${groupId}&mode=register`;
+              // Include email in the redirect if it exists
+              const authUrl = `/auth?token=${token}&groupId=${groupId}&mode=register${email ? `&email=${encodeURIComponent(email)}` : ''}`;
+              console.log("Redirecting to (after error):", authUrl);
+              window.location.href = authUrl;
             });
           return <div className="flex items-center justify-center min-h-screen">
             <div className="text-center">
