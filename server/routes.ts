@@ -4590,5 +4590,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Add debug routes for email testing
+  app.post('/api/debug/send-test-otp', async (req, res) => {
+    try {
+      const { email, name } = req.body;
+      
+      if (!email || !name) {
+        return res.status(400).json({ 
+          message: 'Email and name are required' 
+        });
+      }
+      
+      // Generate a test OTP code
+      const otpCode = generateOTP();
+      console.log(`[DEBUG-EMAIL] Generated test OTP code for ${email}: ${otpCode}`);
+      
+      // Send the OTP email
+      const result = await sendOTPVerificationCode(email, name, otpCode);
+      
+      if (result) {
+        res.json({ 
+          success: true, 
+          message: 'Test OTP email sent successfully',
+          code: otpCode // Include the code in the response for testing
+        });
+      } else {
+        res.status(500).json({ 
+          success: false, 
+          message: 'Failed to send test OTP email' 
+        });
+      }
+    } catch (error) {
+      console.error('[DEBUG-EMAIL] Error sending test OTP:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: error instanceof Error ? error.message : 'An unexpected error occurred'
+      });
+    }
+  });
+  
+  app.post('/api/debug/send-test-welcome', async (req, res) => {
+    try {
+      const { email, name } = req.body;
+      
+      if (!email || !name) {
+        return res.status(400).json({ 
+          message: 'Email and name are required' 
+        });
+      }
+      
+      // Send a welcome email
+      const result = await sendRegistrationConfirmation(email, name);
+      
+      if (result) {
+        res.json({ 
+          success: true, 
+          message: 'Test welcome email sent successfully'
+        });
+      } else {
+        res.status(500).json({ 
+          success: false, 
+          message: 'Failed to send test welcome email' 
+        });
+      }
+    } catch (error) {
+      console.error('[DEBUG-EMAIL] Error sending test welcome email:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: error instanceof Error ? error.message : 'An unexpected error occurred'
+      });
+    }
+  });
+  
   return httpServer;
 }
