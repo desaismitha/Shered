@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Direct Status Update Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    h1 {
+      color: #333;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    input, select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    button {
+      background-color: #4F46E5;
+      color: white;
+      padding: 10px 15px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    pre {
+      background-color: #f5f5f5;
+      padding: 15px;
+      border-radius: 4px;
+      overflow: auto;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Direct Status Update Test</h1>
+  
+  <div class="form-group">
+    <label for="tripId">Trip ID:</label>
+    <input type="number" id="tripId" value="40">
+  </div>
+  
+  <div class="form-group">
+    <label for="status">Status:</label>
+    <select id="status">
+      <option value="planning">Planning</option>
+      <option value="confirmed" selected>Confirmed</option>
+      <option value="in-progress">In Progress</option>
+      <option value="completed">Completed</option>
+    </select>
+  </div>
+  
+  <button id="sendButton">Send Direct Update</button>
+  
+  <pre id="result">Results will appear here</pre>
+  
+  <script>
+    document.getElementById('sendButton').addEventListener('click', async () => {
+      const tripId = document.getElementById('tripId').value;
+      const status = document.getElementById('status').value;
+      const resultEl = document.getElementById('result');
+      
+      resultEl.textContent = 'Sending request...';
+      
+      try {
+        const response = await fetch('/api/direct-status-update', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tripId, status })
+        });
+        
+        const text = await response.text();
+        let data;
+        
+        try {
+          data = JSON.parse(text);
+          resultEl.textContent = JSON.stringify(data, null, 2);
+        } catch (e) {
+          // Handle HTML response
+          resultEl.textContent = 'Received HTML instead of JSON. This usually means you need to log in.\n\n' + 
+                                 'Please go to the main app and log in first: http://localhost:5000/\n\n' +
+                                 'First 100 characters of response:\n' + text.substring(0, 100) + '...';
+        }
+      } catch (error) {
+        resultEl.textContent = 'Error: ' + error.message;
+      }
+    });
+  </script>
+</body>
+</html>

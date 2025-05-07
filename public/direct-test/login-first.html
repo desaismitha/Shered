@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Authentication Check</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    h1 {
+      color: #333;
+      border-bottom: 1px solid #ccc;
+      padding-bottom: 10px;
+    }
+    .status {
+      margin-top: 20px;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    .logged-in {
+      background-color: #d4edda;
+      border-color: #c3e6cb;
+      color: #155724;
+    }
+    .logged-out {
+      background-color: #f8d7da;
+      border-color: #f5c6cb;
+      color: #721c24;
+    }
+    button {
+      background-color: #4F46E5;
+      color: white;
+      padding: 10px 15px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-top: 15px;
+    }
+    button:hover {
+      background-color: #4338CA;
+    }
+    .info {
+      margin-top: 20px;
+      padding: 15px;
+      background-color: #f0f9ff;
+      border-left: 4px solid #4F46E5;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Authentication Check</h1>
+  
+  <p>This page checks if you're logged in to the application.</p>
+  
+  <div id="status" class="status">Checking login status...</div>
+  
+  <div class="info">
+    <p><strong>Why am I seeing this?</strong></p>
+    <p>The test tools in the /direct-test/ directory require you to be logged in to work properly. They use your authenticated session to make API calls.</p>
+    <p>If you're not logged in, please <a href="/" style="color: #4F46E5;">go to the main application</a> and sign in first.</p>
+  </div>
+  
+  <button id="checkButton">Check Again</button>
+  <button id="goToApp">Go To Main App</button>
+  <button id="goToTestTool" style="display:none;">Go To Status Update Test Tool</button>
+  
+  <script>
+    async function checkLoginStatus() {
+      const statusElement = document.getElementById('status');
+      const testToolButton = document.getElementById('goToTestTool');
+      
+      try {
+        const response = await fetch('/api/user');
+        
+        if (response.status === 401) {
+          statusElement.textContent = 'You are NOT logged in. Please go to the main application and sign in first.';
+          statusElement.className = 'status logged-out';
+          testToolButton.style.display = 'none';
+          return false;
+        }
+        
+        const data = await response.json();
+        statusElement.innerHTML = `You are logged in as <strong>${data.username || data.email || 'Unknown User'}</strong>. You can now use the test tools.`;
+        statusElement.className = 'status logged-in';
+        testToolButton.style.display = 'inline-block';
+        return true;
+      } catch (error) {
+        statusElement.textContent = 'Error checking login status: ' + error.message;
+        statusElement.className = 'status logged-out';
+        testToolButton.style.display = 'none';
+        return false;
+      }
+    }
+    
+    document.getElementById('checkButton').addEventListener('click', checkLoginStatus);
+    
+    document.getElementById('goToApp').addEventListener('click', () => {
+      window.location.href = '/';
+    });
+    
+    document.getElementById('goToTestTool').addEventListener('click', () => {
+      window.location.href = '/direct-test/test-status-update.html';
+    });
+    
+    // Check status on page load
+    checkLoginStatus();
+  </script>
+</body>
+</html>
