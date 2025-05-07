@@ -330,23 +330,50 @@ export function setupAuth(app: Express) {
               console.log(`Found group ${groupId}: ${group.name}`);
               
               try {
-                // Add user to the group with member role
-                const groupMember = await storage.addUserToGroup({
-                  groupId,
-                  userId: user.id,
-                  role: 'member'
-                });
-                
-                // Store the group name for the confirmation email
-                joinedGroupName = group.name;
-                
-                console.log(`User ${user.id} successfully added to group ${groupId} via invitation`);
-                
-                // Double-check that the user was added to the group and log the result
-                const groupMembers = await storage.getGroupMembers(groupId);
-                const userAddedToGroup = groupMembers.some(member => member.userId === user.id);
-                console.log(`Verification check - User ${user.id} in group ${groupId}: ${userAddedToGroup}`);
-                console.log(`Group members after adding user:`, JSON.stringify(groupMembers, null, 2));
+                // Add user to the group with member role - wrap in try-catch for better error handling
+                try {
+                  console.log(`Attempting to add user ${user.id} to group ${groupId}...`);
+                  
+                  // First check if the user is already a member to avoid duplicates
+                  const existingMembers = await storage.getGroupMembers(groupId);
+                  const isAlreadyMember = existingMembers.some(member => member.userId === user.id);
+                  
+                  if (isAlreadyMember) {
+                    console.log(`User ${user.id} is already a member of group ${groupId}, skipping addition`);
+                    joinedGroupName = group.name;
+                  } else {
+                    // Not a member yet, so add them
+                    console.log(`User ${user.id} is not yet a member of group ${groupId}, adding now...`);
+                    
+                    const groupMember = await storage.addUserToGroup({
+                      groupId,
+                      userId: user.id,
+                      role: 'member'
+                    });
+                    
+                    // Store the group name for the confirmation email
+                    joinedGroupName = group.name;
+                    
+                    console.log(`User ${user.id} successfully added to group ${groupId} via invitation, returned member:`, groupMember);
+                  }
+                  
+                  // Double-check that the user was added to the group and log the result
+                  const groupMembers = await storage.getGroupMembers(groupId);
+                  console.log(`Group ${groupId} now has ${groupMembers.length} members`);
+                  
+                  const userAddedToGroup = groupMembers.some(member => member.userId === user.id);
+                  console.log(`Verification check - User ${user.id} in group ${groupId}: ${userAddedToGroup}`);
+                  
+                  if (!userAddedToGroup) {
+                    console.error(`ERROR: User ${user.id} was NOT added to group ${groupId} despite attempt`);
+                    console.log(`Current group members:`, JSON.stringify(groupMembers, null, 2));
+                  } else {
+                    console.log(`SUCCESS: User ${user.id} confirmed as member of group ${groupId}`);
+                  }
+                } catch (groupAddError) {
+                  console.error(`Critical error adding user ${user.id} to group ${groupId}:`, groupAddError);
+                  throw groupAddError; // Re-throw to be caught by the outer try-catch
+                }
               } catch (addUserError) {
                 console.error(`Error adding user ${user.id} to group ${groupId}:`, addUserError);
               }
@@ -619,14 +646,35 @@ export function setupAuth(app: Express) {
               if (isMember) {
                 console.log(`User ${user.id} is already a member of group ${groupId}`);
               } else {
-                // Add user to the group with member role
-                const groupMember = await storage.addUserToGroup({
-                  groupId,
-                  userId: user.id,
-                  role: 'member'
-                });
-                
-                console.log(`User ${user.id} successfully added to group ${groupId} via invitation during login`);
+                // Add user to the group with member role - with better error handling
+                try {
+                  console.log(`Attempting to add user ${user.id} to group ${groupId} during login...`);
+                  
+                  const groupMember = await storage.addUserToGroup({
+                    groupId,
+                    userId: user.id,
+                    role: 'member'
+                  });
+                  
+                  console.log(`User ${user.id} successfully added to group ${groupId} via invitation during login:`, groupMember);
+                  
+                  // Double-check that the user was added to the group and log the result
+                  const updatedMembers = await storage.getGroupMembers(groupId);
+                  console.log(`Group ${groupId} now has ${updatedMembers.length} members`);
+                  
+                  const userAddedToGroup = updatedMembers.some(member => member.userId === user.id);
+                  console.log(`Verification check - User ${user.id} in group ${groupId}: ${userAddedToGroup}`);
+                  
+                  if (!userAddedToGroup) {
+                    console.error(`ERROR: User ${user.id} was NOT added to group ${groupId} despite attempt`);
+                    console.log(`Current group members:`, JSON.stringify(updatedMembers, null, 2));
+                  } else {
+                    console.log(`SUCCESS: User ${user.id} confirmed as member of group ${groupId}`);
+                  }
+                } catch (groupAddError) {
+                  console.error(`Critical error adding user ${user.id} to group ${groupId} during login:`, groupAddError);
+                  throw groupAddError; // Re-throw to be caught by the outer try-catch
+                }
               }
             }
           }
