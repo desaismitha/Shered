@@ -73,9 +73,6 @@ export function ExpenseForm({ tripId, groupMembers: initialGroupMembers, users: 
     queryKey: ["/api/trips", tripId],
     enabled: !!tripId,
   });
-
-  // Define a safe groupId that won't cause TypeScript errors
-  const safeGroupId = trip && 'groupId' in trip ? trip.groupId : 0;
   
   // Get all users for expense details
   const { data: allUsers, isLoading: isLoadingUsers } = useQuery<User[]>({
@@ -83,10 +80,13 @@ export function ExpenseForm({ tripId, groupMembers: initialGroupMembers, users: 
     enabled: showForm,
   });
 
+  // Extract group ID from trip data safely
+  const tripGroupId = trip && 'groupId' in trip ? trip.groupId : 0;
+  
   // Get group members directly from the API if the group exists
   const { data: fetchedGroupMembers, isLoading: isLoadingGroupMembers } = useQuery<GroupMember[]>({
-    queryKey: ["/api/groups", safeGroupId, "members"],
-    enabled: showForm && !!safeGroupId,
+    queryKey: ["/api/groups", tripGroupId, "members"],
+    enabled: showForm && !!tripGroupId,
   });
 
   // Combine the fetched and initially provided data
@@ -96,7 +96,7 @@ export function ExpenseForm({ tripId, groupMembers: initialGroupMembers, users: 
   // Add the current user to the list if they're not in the group members
   const effectiveGroupMembers = groupMembers.length > 0 ? 
     groupMembers : 
-    [{ id: 1, groupId: safeGroupId || 0, userId: user?.id || 0, role: "member" } as GroupMember];
+    [{ id: 1, groupId: tripGroupId, userId: user?.id || 0, role: "member" } as GroupMember];
 
   // Create the expense categories
   const expenseCategories = [
