@@ -1,15 +1,18 @@
-import { Expense, User } from "@shared/schema";
+import { Expense, User, Trip } from "@shared/schema";
 import { format } from "date-fns";
-import { DollarSign, Calendar, Tag } from "lucide-react";
+import { DollarSign, Calendar, Tag, MapPin } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 interface ExpenseCardProps {
   expense: Expense;
   users: User[];
+  trips?: Trip[];
 }
 
-export function ExpenseCard({ expense, users }: ExpenseCardProps) {
+export function ExpenseCard({ expense, users, trips = [] }: ExpenseCardProps) {
+  // Find the trip this expense belongs to
+  const trip = trips.find(t => t.id === expense.tripId);
   // Find the user who paid
   const paidByUser = users.find(user => user.id === expense.paidBy);
   
@@ -56,6 +59,14 @@ export function ExpenseCard({ expense, users }: ExpenseCardProps) {
                   <span className="mx-2">•</span>
                   <Tag className="h-4 w-4 mr-1" />
                   {expense.category}
+                </>
+              )}
+
+              {trip && (
+                <>
+                  <span className="mx-2">•</span>
+                  <MapPin className="h-4 w-4 mr-1" />
+                  {trip.name || "Unknown Trip"}
                 </>
               )}
             </div>

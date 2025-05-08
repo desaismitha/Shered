@@ -260,7 +260,7 @@ export default function ExpensesPage() {
                       </Badge>
                     </div>
                   )}
-                  <ExpenseCard expense={expense} users={users || []} />
+                  <ExpenseCard expense={expense} users={users || []} trips={trips || []} />
                 </div>
               ))
             }
