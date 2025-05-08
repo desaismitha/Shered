@@ -431,7 +431,7 @@ export async function sendRouteDeviationEmail(
     You're receiving this notification because you're a member of this trip's group.
     
     Best regards,
-    The TravelGroupr Team
+    The Shered Team
   `;
   
   const html = `
@@ -581,7 +581,7 @@ export async function sendTripReminderEmail(
     Please make sure you're ready and at the starting location.
     
     Safe travels!
-    The TravelGroupr Team
+    The Shered Team
   `;
   
   const html = `
@@ -598,7 +598,7 @@ export async function sendTripReminderEmail(
       </div>
       
       <p>Please make sure you're ready and at the starting location.</p>
-      <p>Safe travels!<br>The TravelGroupr Team</p>
+      <p>Safe travels!<br>The Shered Team</p>
     </div>
   `;
   
@@ -660,7 +660,7 @@ export async function sendTripEndReminderEmail(
     Please make sure to wrap up your activities and be ready to conclude the trip.
     
     Safe travels!
-    The TravelGroupr Team
+    The Shered Team
   `;
   
   const html = `
@@ -677,7 +677,7 @@ export async function sendTripEndReminderEmail(
       </div>
       
       <p>Please make sure to wrap up your activities and be ready to conclude the trip.</p>
-      <p>Thank you for using TravelGroupr!<br>The TravelGroupr Team</p>
+      <p>Thank you for using Shered!<br>The Shered Team</p>
     </div>
   `;
   
@@ -776,7 +776,7 @@ export async function sendTripStatusChangeEmail(
     Visit the app to view more details about your trip.
     
     Best regards,
-    The TravelGroupr Team
+    The Shered Team
   `;
   
   const html = `
@@ -820,7 +820,7 @@ export async function sendTripStatusChangeEmail(
         </a>
       </div>
       
-      <p>Best regards,<br>The TravelGroupr Team</p>
+      <p>Best regards,<br>The Shered Team</p>
     </div>
   `;
   
