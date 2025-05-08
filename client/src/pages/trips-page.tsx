@@ -56,13 +56,16 @@ export default function TripsPage() {
 
   // Filter trips based on search query and status
   const filteredTrips = trips?.filter(trip => {
+    // Use type guard to check for display fields
+    const tripWithDisplay = hasTripDisplayFields(trip);
+    
     const matchesSearch = 
       searchQuery === "" || 
-      trip.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (trip.name?.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (trip.destination && trip.destination.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (trip.startLocation && trip.startLocation.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (trip.destinationDisplay && trip.destinationDisplay.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (trip.startLocationDisplay && trip.startLocationDisplay.toLowerCase().includes(searchQuery.toLowerCase()));
+      (tripWithDisplay.destinationDisplay && tripWithDisplay.destinationDisplay.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (tripWithDisplay.startLocationDisplay && tripWithDisplay.startLocationDisplay.toLowerCase().includes(searchQuery.toLowerCase()));
     
     const matchesStatus = statusFilter === "all" || trip.status === statusFilter;
     
@@ -161,15 +164,34 @@ export default function TripsPage() {
     const relevantExpenses = getExpensesByTab(tabValue);
     return relevantExpenses.reduce((sum, expense) => sum + expense.amount, 0);
   };
+  
+  // Type guard for Trip objects
+  const hasTripDisplayFields = (trip: any): trip is Trip & { 
+    startLocationDisplay?: string; 
+    destinationDisplay?: string;
+  } => {
+    return trip && typeof trip === 'object';
+  };
 
+  // Get group members for the selected trip's group
+  const { data: groupMembers, isLoading: isLoadingGroupMembers } = useQuery<GroupMember[]>({
+    queryKey: ["/api/groups", selectedTripForExpense?.groupId, "members"],
+    enabled: !!selectedTripForExpense?.groupId, // Only run the query if we have a selected trip with a group
+  });
+  
   // Function to get group members for the selected trip
   const getGroupMembersForTrip = (trip: Trip | null): GroupMember[] => {
-    if (!trip || !trip.groupId) return [];
+    if (!trip) return [];
     
-    // Mock implementation - in reality, you would fetch this from API
-    // This would be replaced with actual data from your API
+    // If the trip has a group, use the fetched group members
+    if (trip.groupId && groupMembers) {
+      return groupMembers;
+    }
+    
+    // If the trip doesn't have a group or we're still loading group members,
+    // return just the current user as a temporary group member
     return [
-      { id: 1, groupId: trip.groupId, userId: user?.id || 0, role: "member" } as GroupMember
+      { id: 1, groupId: trip.groupId || 0, userId: user?.id || 0, role: "member" } as GroupMember
     ];
   };
 
