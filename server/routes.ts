@@ -4885,7 +4885,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Send a welcome message
       ws.send(JSON.stringify({
         type: 'connection',
-        message: 'Connected to TravelGroupr WebSocket server',
+        message: 'Connected to Shered WebSocket server',
         userId: userId,
         timestamp: new Date().toISOString()
       }));
