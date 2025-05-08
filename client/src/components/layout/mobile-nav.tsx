@@ -27,7 +27,7 @@ export function MobileHeader() {
           </button>
           <div className="flex items-center">
             <Plane className="h-5 w-5 text-primary mr-2" />
-            <h1 className="text-xl font-bold text-neutral-800">TravelGroupr</h1>
+            <h1 className="text-xl font-bold text-neutral-800">Groupr</h1>
           </div>
         </div>
         <div className="flex items-center">
@@ -84,7 +84,7 @@ export function MobileMenu({ isOpen, onClose }: { isOpen: boolean; onClose: () =
         <div className="flex-1 h-0 pt-5 pb-4 overflow-y-auto">
           <div className="flex-shrink-0 flex items-center px-4">
             <Plane className="h-5 w-5 text-primary mr-2" />
-            <span className="text-xl font-bold text-neutral-800">TravelGroupr</span>
+            <span className="text-xl font-bold text-neutral-800">Groupr</span>
           </div>
           <nav className="mt-5 px-2 space-y-1">
             {navItems.map((item) => {
