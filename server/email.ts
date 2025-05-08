@@ -611,6 +611,85 @@ export async function sendTripReminderEmail(
   });
 }
 
+/**
+ * Send a trip end-time reminder notification via email
+ * @param email Recipient's email address
+ * @param username Recipient's username/display name
+ * @param tripName Name of the trip
+ * @param startLocation Trip start location
+ * @param destination Trip destination
+ * @param endDate Trip end date/time
+ * @param minutesUntilEnd Number of minutes until the trip ends
+ * @returns Promise<boolean> indicating success or failure
+ */
+export async function sendTripEndReminderEmail(
+  email: string,
+  username: string,
+  tripName: string,
+  startLocation: string | null,
+  destination: string | null,
+  endDate: Date,
+  minutesUntilEnd: number
+): Promise<boolean> {
+  console.log(`[END_REMINDER_EMAIL] Sending ${minutesUntilEnd}-minute end reminder to ${email} for trip "${tripName}"`);
+  
+  const fromEmail = process.env.SENDGRID_VERIFIED_SENDER || 'noreply@travelgroupr.com';
+  const subject = `🔔 Trip End Reminder: "${tripName}" ends in ${minutesUntilEnd} minute${minutesUntilEnd === 1 ? '' : 's'}`;
+  
+  // Format the end date/time
+  const formattedEndTime = endDate ? new Date(endDate).toLocaleString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  }) : 'unknown time';
+  
+  const text = `
+    Hi ${username},
+    
+    This is a reminder that your trip "${tripName}" will end in ${minutesUntilEnd} minute${minutesUntilEnd === 1 ? '' : 's'}.
+    
+    Trip Details:
+    - End Time: ${formattedEndTime}
+    - Start Location: ${startLocation || 'Not specified'}
+    - Destination: ${destination || 'Not specified'}
+    
+    Please make sure to wrap up your activities and be ready to conclude the trip.
+    
+    Safe travels!
+    The TravelGroupr Team
+  `;
+  
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: #3b82f6;">🔔 Trip End Reminder</h2>
+      <p>Hi <strong>${username}</strong>,</p>
+      <p>This is a reminder that your trip <strong>"${tripName}"</strong> will end in <strong>${minutesUntilEnd} minute${minutesUntilEnd === 1 ? '' : 's'}</strong>.</p>
+      
+      <div style="background-color: #f3f4f6; padding: 15px; border-radius: 8px; margin: 20px 0;">
+        <h3 style="margin-top: 0; color: #111827;">Trip Details:</h3>
+        <p style="margin-bottom: 5px;"><strong>End Time:</strong> ${formattedEndTime}</p>
+        <p style="margin-bottom: 5px;"><strong>Start Location:</strong> ${startLocation || 'Not specified'}</p>
+        <p style="margin-bottom: 0;"><strong>Destination:</strong> ${destination || 'Not specified'}</p>
+      </div>
+      
+      <p>Please make sure to wrap up your activities and be ready to conclude the trip.</p>
+      <p>Thank you for using TravelGroupr!<br>The TravelGroupr Team</p>
+    </div>
+  `;
+  
+  return sendEmail({
+    to: email,
+    from: fromEmail,
+    subject,
+    text,
+    html
+  });
+}
+
 export async function sendTripStatusChangeEmail(
   email: string,
   username: string,

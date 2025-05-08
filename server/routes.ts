@@ -13,7 +13,7 @@ import { setupAuth, hashPassword, generateOTP } from "./auth";
 import { insertGroupSchema, insertTripSchema, insertItineraryItemSchema, insertExpenseSchema, insertMessageSchema, insertGroupMemberSchema, insertVehicleSchema, insertTripVehicleSchema, users, groupMembers, trips, itineraryItems } from "@shared/schema";
 import { z } from "zod";
 import { eq, or, and, asc, desc, sql, isNull, count, between, lt, gte, lte } from "drizzle-orm";
-import { sendGroupInvitation, sendPasswordResetEmail, sendRouteDeviationEmail, sendTripStatusChangeEmail, sendOTPVerificationCode, sendRegistrationConfirmation, sendTripReminderEmail } from "./email";
+import { sendGroupInvitation, sendPasswordResetEmail, sendRouteDeviationEmail, sendTripStatusChangeEmail, sendOTPVerificationCode, sendRegistrationConfirmation, sendTripReminderEmail, sendTripEndReminderEmail } from "./email";
 import crypto from "crypto";
 import fetch from "node-fetch";
 
@@ -517,39 +517,50 @@ async function sendTripStatusNotifications(tripId: number, newStatus: string): P
  * Sends reminders to trip members for trips that are about to start
  * @param minutesBefore Number of minutes before the trip start to send reminders
  */
-async function sendTripReminders(minutesBefore: number): Promise<void> {
-  console.log(`[REMINDERS] Checking for trips starting in ${minutesBefore} minutes...`);
-  
+async function sendTripReminders(minutesBefore: number, isEndReminder: boolean = false): Promise<void> {
   try {
+    // Decide if we're handling start reminders or end reminders
+    const reminderType = isEndReminder ? "ending" : "starting";
+    console.log(`[REMINDERS] Checking for trips ${reminderType} in ${minutesBefore} minutes...`);
+    
     // Calculate the time window for upcoming trips
     const now = new Date();
     
     // Find the time that's exactly minutesBefore minutes from now
     const reminderTime = new Date(now.getTime() + minutesBefore * 60 * 1000);
     
-    // Find trips starting within a 1-minute window of our target time
+    // Find trips starting/ending within a 1-minute window of our target time
     // This ensures we don't send the same reminder multiple times if the scheduler runs frequently
     const windowStart = new Date(reminderTime.getTime() - 30 * 1000); // 30 seconds before
     const windowEnd = new Date(reminderTime.getTime() + 30 * 1000);   // 30 seconds after
     
-    console.log(`[REMINDERS] Looking for trips starting between ${windowStart.toISOString()} and ${windowEnd.toISOString()}`);
+    console.log(`[REMINDERS] Looking for trips ${reminderType} between ${windowStart.toISOString()} and ${windowEnd.toISOString()}`);
     
-    // Query the database for trips that are starting soon
+    // Query the database for trips that are starting/ending soon
     const upcomingTrips = await db.select()
       .from(trips)
       .where(
         and(
-          gte(trips.startDate, windowStart),
-          lte(trips.startDate, windowEnd),
-          eq(trips.status, 'planning') // Only get trips still in planning stage
+          // If it's an end reminder, look at endDate; otherwise look at startDate
+          isEndReminder 
+            ? gte(trips.endDate, windowStart) 
+            : gte(trips.startDate, windowStart),
+          isEndReminder 
+            ? lte(trips.endDate, windowEnd) 
+            : lte(trips.startDate, windowEnd),
+          // For start reminders, only consider trips in planning stage
+          // For end reminders, only consider trips in in-progress stage
+          isEndReminder
+            ? eq(trips.status, 'in-progress')
+            : eq(trips.status, 'planning')
         )
       );
     
-    console.log(`[REMINDERS] Found ${upcomingTrips.length} trips starting in about ${minutesBefore} minutes`);
+    console.log(`[REMINDERS] Found ${upcomingTrips.length} trips ${reminderType} in about ${minutesBefore} minutes`);
     
     // Process each upcoming trip
     for (const trip of upcomingTrips) {
-      console.log(`[REMINDERS] Processing ${minutesBefore}-minute reminders for trip "${trip.name}" (ID: ${trip.id})`);
+      console.log(`[REMINDERS] Processing ${minutesBefore}-minute ${isEndReminder ? 'end' : 'start'} reminders for trip "${trip.name}" (ID: ${trip.id})`);
       
       try {
         // Get the group ID to find members
@@ -580,24 +591,40 @@ async function sendTripReminders(minutesBefore: number): Promise<void> {
           const startLocationDisplay = trip.startLocation ? cleanLocationString(trip.startLocation) : 'Unknown location';
           const destinationDisplay = trip.destination ? cleanLocationString(trip.destination) : 'Unknown location';
           
-          const reminderSent = await sendTripReminderEmail(
-            user[0].email,
-            user[0].displayName || user[0].username,
-            trip.name,
-            startLocationDisplay,
-            destinationDisplay,
-            trip.startDate,
-            minutesBefore
-          );
+          let reminderSent = false;
           
-          console.log(`[REMINDERS] ${minutesBefore}-minute reminder for user ${user[0].displayName || user[0].username} (${user[0].email}) - ${reminderSent ? 'SENT' : 'FAILED'}`);
+          if (isEndReminder) {
+            // Send end reminder
+            reminderSent = await sendTripEndReminderEmail(
+              user[0].email,
+              user[0].displayName || user[0].username,
+              trip.name,
+              startLocationDisplay,
+              destinationDisplay,
+              trip.endDate,
+              minutesBefore
+            );
+          } else {
+            // Send start reminder
+            reminderSent = await sendTripReminderEmail(
+              user[0].email,
+              user[0].displayName || user[0].username,
+              trip.name,
+              startLocationDisplay,
+              destinationDisplay,
+              trip.startDate,
+              minutesBefore
+            );
+          }
+          
+          console.log(`[REMINDERS] ${minutesBefore}-minute ${isEndReminder ? 'end' : 'start'} reminder for user ${user[0].displayName || user[0].username} (${user[0].email}) - ${reminderSent ? 'SENT' : 'FAILED'}`);
         }
       } catch (error) {
-        console.error(`[REMINDERS] Error processing ${minutesBefore}-minute reminders for trip ${trip.id}:`, error);
+        console.error(`[REMINDERS] Error processing ${minutesBefore}-minute ${isEndReminder ? 'end' : 'start'} reminders for trip ${trip.id}:`, error);
       }
     }
   } catch (error) {
-    console.error(`[REMINDERS] Error checking for ${minutesBefore}-minute reminders:`, error);
+    console.error(`[REMINDERS] Error checking for ${minutesBefore}-minute ${isEndReminder ? 'end' : 'start'} reminders:`, error);
   }
 }
 
@@ -885,13 +912,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('[SCHEDULER] Running scheduled trip status check');
       await checkAndUpdateTripStatuses();
       
-      // Send trip reminders (15 minutes and 5 minutes before start time)
-      console.log('[SCHEDULER] Checking for upcoming trips to send reminders');
+      // Send trip start reminders (15 minutes and 5 minutes before start time)
+      console.log('[SCHEDULER] Checking for upcoming trips to send start reminders');
       try {
-        await sendTripReminders(15); // 15-minute reminders
-        await sendTripReminders(5);  // 5-minute reminders
+        await sendTripReminders(15); // 15-minute start reminders
+        await sendTripReminders(5);  // 5-minute start reminders
       } catch (reminderError) {
-        console.error('[SCHEDULER] Error sending trip reminders:', reminderError);
+        console.error('[SCHEDULER] Error sending trip start reminders:', reminderError);
+      }
+      
+      // Send trip end reminders (15 minutes and 5 minutes before end time)
+      console.log('[SCHEDULER] Checking for in-progress trips to send end reminders');
+      try {
+        await sendTripReminders(15, true); // 15-minute end reminders
+        await sendTripReminders(5, true);  // 5-minute end reminders
+      } catch (reminderError) {
+        console.error('[SCHEDULER] Error sending trip end reminders:', reminderError);
       }
     } catch (error) {
       console.error('[SCHEDULER] Error in scheduled trip status check:', error);
@@ -904,13 +940,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('[STARTUP] Running initial trip status check');
       await checkAndUpdateTripStatuses();
       
-      // Also check for upcoming trips that need reminders
-      console.log('[STARTUP] Checking for upcoming trips that need reminders');
+      // Check for upcoming trips that need start reminders
+      console.log('[STARTUP] Checking for upcoming trips that need start reminders');
       try {
-        await sendTripReminders(15); // 15-minute reminders
-        await sendTripReminders(5);  // 5-minute reminders
+        await sendTripReminders(15); // 15-minute start reminders
+        await sendTripReminders(5);  // 5-minute start reminders
       } catch (reminderError) {
-        console.error('[STARTUP] Error sending initial trip reminders:', reminderError);
+        console.error('[STARTUP] Error sending initial trip start reminders:', reminderError);
+      }
+      
+      // Check for in-progress trips that need end reminders
+      console.log('[STARTUP] Checking for in-progress trips that need end reminders');
+      try {
+        await sendTripReminders(15, true); // 15-minute end reminders
+        await sendTripReminders(5, true);  // 5-minute end reminders
+      } catch (reminderError) {
+        console.error('[STARTUP] Error sending initial trip end reminders:', reminderError);
       }
     } catch (error) {
       console.error('[STARTUP] Error in initial trip status check:', error);
@@ -951,13 +996,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/test/trip-reminders", async (req, res) => {
     try {
       const minutesBefore = parseInt(req.query.minutes as string) || 15;
+      const isEndReminder = req.query.type === 'end';
       
-      console.log(`[TEST] Manually triggered ${minutesBefore}-minute reminders check`);
-      await sendTripReminders(minutesBefore);
+      console.log(`[TEST] Manually triggered ${minutesBefore}-minute ${isEndReminder ? 'end' : 'start'} reminders check`);
+      await sendTripReminders(minutesBefore, isEndReminder);
       
       res.json({ 
         success: true, 
-        message: `${minutesBefore}-minute trip reminders check completed` 
+        message: `${minutesBefore}-minute trip ${isEndReminder ? 'end' : 'start'} reminders check completed` 
       });
     } catch (error) {
       console.error("[TEST] Error sending trip reminders:", error);
