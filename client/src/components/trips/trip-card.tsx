@@ -1,6 +1,6 @@
-import { Calendar, Users, Edit, CheckSquare } from "lucide-react";
+import { Calendar, Users, Edit, CheckSquare, DollarSign } from "lucide-react";
 import { format } from "date-fns";
-import { Trip as BaseTrip } from "@shared/schema";
+import { Trip as BaseTrip, Expense } from "@shared/schema";
 
 // Extend the Trip type to include the _accessLevel property
 interface Trip extends BaseTrip {
@@ -12,6 +12,7 @@ import { GroupMember, User } from "@shared/schema";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
+import { ExpenseForm } from "@/components/expenses/expense-form";
 
 interface TripCardProps {
   trip: Trip;
@@ -36,12 +37,21 @@ export function TripCard({ trip }: TripCardProps) {
     enabled: true, // Always fetch users so we can display the creator at minimum
   });
   
+  // Get trip expenses
+  const { data: expenses } = useQuery<Expense[]>({
+    queryKey: ["/api/trips", trip.id, "expenses"],
+    enabled: true, // Always fetch expenses
+  });
+  
   // Check if user is the creator or admin - use the _accessLevel now
   // Use the _accessLevel from API response or fall back to direct ID comparison
   const isCreator = trip._accessLevel === 'owner' || user?.id === trip.createdBy;
   
   // Log access level for debugging
   console.log("Trip access level:", trip._accessLevel);
+  
+  // Calculate total expenses for the trip
+  const totalExpenses = expenses?.reduce((sum, expense) => sum + expense.amount, 0) || 0;
   
   const formatDateRange = (startDate: Date | string | null, endDate: Date | string | null) => {
     // Handle missing or invalid dates
@@ -130,6 +140,33 @@ export function TripCard({ trip }: TripCardProps) {
           <Badge className={getStatusColor(trip.status)}>
             {trip.status ? (trip.status.charAt(0).toUpperCase() + trip.status.slice(1)) : 'Unknown'}
           </Badge>
+        </div>
+        
+        {/* Expense Summary */}
+        <div className="mt-3 flex items-center justify-between border-t border-gray-100 pt-3">
+          <div className="flex items-center gap-1 text-sm">
+            <DollarSign className="h-4 w-4 text-primary-500" />
+            <span className="font-medium">
+              ${(totalExpenses / 100).toFixed(2)}
+            </span>
+            <span className="text-neutral-500 text-xs ml-1">
+              total expenses
+            </span>
+          </div>
+          
+          {isCreator && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs"
+              onClick={(e) => {
+                e.preventDefault();
+                navigate(`/trips/${trip.id}?tab=expenses`);
+              }}
+            >
+              {expenses && expenses.length > 0 ? "Manage expenses" : "Add expense"}
+            </Button>
+          )}
         </div>
         <div className="mt-3 flex items-center justify-between">
           <div className="flex -space-x-2">

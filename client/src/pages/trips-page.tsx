@@ -54,6 +54,14 @@ export default function TripsPage() {
   console.log("All expenses:", expenses);
   console.log("Total expenses calculated:", expenses?.reduce((sum, expense) => sum + expense.amount, 0) || 0);
 
+  // Type guard for Trip objects
+  const hasTripDisplayFields = (trip: any): trip is Trip & { 
+    startLocationDisplay?: string; 
+    destinationDisplay?: string;
+  } => {
+    return trip && typeof trip === 'object';
+  };
+
   // Filter trips based on search query and status
   const filteredTrips = trips?.filter(trip => {
     // Use type guard to check for display fields
@@ -163,14 +171,6 @@ export default function TripsPage() {
   const calculateTotalForTab = (tabValue: string) => {
     const relevantExpenses = getExpensesByTab(tabValue);
     return relevantExpenses.reduce((sum, expense) => sum + expense.amount, 0);
-  };
-  
-  // Type guard for Trip objects
-  const hasTripDisplayFields = (trip: any): trip is Trip & { 
-    startLocationDisplay?: string; 
-    destinationDisplay?: string;
-  } => {
-    return trip && typeof trip === 'object';
   };
 
   // Get group members for the selected trip's group
