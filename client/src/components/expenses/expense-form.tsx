@@ -1,12 +1,17 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertExpenseSchema, InsertExpense, GroupMember, User } from "@shared/schema";
+import { insertExpenseSchema, InsertExpense, GroupMember, User, Trip as BaseTrip } from "@shared/schema";
 import { z } from "zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
+
+// Extend the Trip type to include the _accessLevel property
+interface Trip extends BaseTrip {
+  _accessLevel?: 'owner' | 'member' | null;
+}
 
 import {
   Form,
@@ -33,18 +38,20 @@ import { cn } from "@/lib/utils";
 import { Calendar as CalendarIcon, Loader2 } from "lucide-react";
 
 // Extend the expense schema for the form
-const expenseFormSchema = insertExpenseSchema
-  .extend({
-    date: z.coerce.date({
-      required_error: "Date is required",
-    }),
-    amount: z.coerce.number({
-      required_error: "Amount is required",
-      invalid_type_error: "Amount must be a number",
-    }).min(0, "Amount must be positive"),
-    splitAmong: z.array(z.number()).min(1, "Select at least one person"),
-  })
-  .omit({ id: true, createdAt: true });
+const expenseFormSchema = z.object({
+  tripId: z.number(),
+  title: z.string().min(1, "Title is required"),
+  amount: z.coerce.number({
+    required_error: "Amount is required",
+    invalid_type_error: "Amount must be a number",
+  }).min(0, "Amount must be positive"),
+  paidBy: z.number(),
+  splitAmong: z.array(z.number()).min(1, "Select at least one person"),
+  date: z.coerce.date({
+    required_error: "Date is required",
+  }),
+  category: z.string().optional(),
+});
 
 type ExpenseFormValues = z.infer<typeof expenseFormSchema>;
 
@@ -62,11 +69,14 @@ export function ExpenseForm({ tripId, groupMembers: initialGroupMembers, users: 
   const [showForm, setShowForm] = useState(false);
 
   // Get trip details to get the groupId
-  const { data: trip } = useQuery({
+  const { data: trip } = useQuery<Trip>({
     queryKey: ["/api/trips", tripId],
     enabled: !!tripId,
   });
 
+  // Define a safe groupId that won't cause TypeScript errors
+  const safeGroupId = trip && 'groupId' in trip ? trip.groupId : 0;
+  
   // Get all users for expense details
   const { data: allUsers, isLoading: isLoadingUsers } = useQuery<User[]>({
     queryKey: ["/api/users"],
@@ -75,8 +85,8 @@ export function ExpenseForm({ tripId, groupMembers: initialGroupMembers, users: 
 
   // Get group members directly from the API if the group exists
   const { data: fetchedGroupMembers, isLoading: isLoadingGroupMembers } = useQuery<GroupMember[]>({
-    queryKey: ["/api/groups", trip?.groupId, "members"],
-    enabled: showForm && !!trip?.groupId,
+    queryKey: ["/api/groups", safeGroupId, "members"],
+    enabled: showForm && !!safeGroupId,
   });
 
   // Combine the fetched and initially provided data
@@ -86,7 +96,7 @@ export function ExpenseForm({ tripId, groupMembers: initialGroupMembers, users: 
   // Add the current user to the list if they're not in the group members
   const effectiveGroupMembers = groupMembers.length > 0 ? 
     groupMembers : 
-    [{ id: 1, groupId: trip?.groupId || 0, userId: user?.id || 0, role: "member" } as GroupMember];
+    [{ id: 1, groupId: safeGroupId || 0, userId: user?.id || 0, role: "member" } as GroupMember];
 
   // Create the expense categories
   const expenseCategories = [
