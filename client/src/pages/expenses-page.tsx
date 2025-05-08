@@ -220,7 +220,7 @@ export default function ExpensesPage() {
                 <SelectItem value="all">All Trips</SelectItem>
                 {trips?.map(trip => (
                   <SelectItem key={trip.id} value={trip.id.toString()}>
-                    {trip.destination}
+                    {trip.name || "Unnamed trip"}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -256,7 +256,7 @@ export default function ExpensesPage() {
                   {tripFilter === "all" && trips && (
                     <div className="absolute top-4 right-4 z-10">
                       <Badge className="bg-neutral-100 text-neutral-800 hover:bg-neutral-200">
-                        {trips.find(t => t.id === expense.tripId)?.destination || "Unknown Trip"}
+                        {trips.find(t => t.id === expense.tripId)?.name || "Unknown Trip"}
                       </Badge>
                     </div>
                   )}
