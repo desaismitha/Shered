@@ -884,6 +884,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log('[SCHEDULER] Running scheduled trip status check');
       await checkAndUpdateTripStatuses();
+      
+      // Send trip reminders (15 minutes and 5 minutes before start time)
+      console.log('[SCHEDULER] Checking for upcoming trips to send reminders');
+      try {
+        await sendTripReminders(15); // 15-minute reminders
+        await sendTripReminders(5);  // 5-minute reminders
+      } catch (reminderError) {
+        console.error('[SCHEDULER] Error sending trip reminders:', reminderError);
+      }
     } catch (error) {
       console.error('[SCHEDULER] Error in scheduled trip status check:', error);
     }
@@ -894,6 +903,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log('[STARTUP] Running initial trip status check');
       await checkAndUpdateTripStatuses();
+      
+      // Also check for upcoming trips that need reminders
+      console.log('[STARTUP] Checking for upcoming trips that need reminders');
+      try {
+        await sendTripReminders(15); // 15-minute reminders
+        await sendTripReminders(5);  // 5-minute reminders
+      } catch (reminderError) {
+        console.error('[STARTUP] Error sending initial trip reminders:', reminderError);
+      }
     } catch (error) {
       console.error('[STARTUP] Error in initial trip status check:', error);
     }
@@ -926,6 +944,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("[TEST] Error checking trip statuses:", error);
       res.status(500).json({ success: false, error: "Failed to check trip statuses" });
+    }
+  });
+  
+  // Test endpoint to manually trigger trip reminders
+  app.get("/api/test/trip-reminders", async (req, res) => {
+    try {
+      const minutesBefore = parseInt(req.query.minutes as string) || 15;
+      
+      console.log(`[TEST] Manually triggered ${minutesBefore}-minute reminders check`);
+      await sendTripReminders(minutesBefore);
+      
+      res.json({ 
+        success: true, 
+        message: `${minutesBefore}-minute trip reminders check completed` 
+      });
+    } catch (error) {
+      console.error("[TEST] Error sending trip reminders:", error);
+      res.status(500).json({ success: false, error: "Failed to send trip reminders" });
     }
   });
 
