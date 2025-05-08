@@ -513,6 +513,91 @@ async function sendTripStatusNotifications(tripId: number, newStatus: string): P
  * Checks all trips that should be in progress and updates their status
  * This is called periodically to ensure trip statuses are accurate
  */
+/**
+ * Sends reminders to trip members for trips that are about to start
+ * @param minutesBefore Number of minutes before the trip start to send reminders
+ */
+async function sendTripReminders(minutesBefore: number): Promise<void> {
+  console.log(`[REMINDERS] Checking for trips starting in ${minutesBefore} minutes...`);
+  
+  try {
+    // Calculate the time window for upcoming trips
+    const now = new Date();
+    
+    // Find the time that's exactly minutesBefore minutes from now
+    const reminderTime = new Date(now.getTime() + minutesBefore * 60 * 1000);
+    
+    // Find trips starting within a 1-minute window of our target time
+    // This ensures we don't send the same reminder multiple times if the scheduler runs frequently
+    const windowStart = new Date(reminderTime.getTime() - 30 * 1000); // 30 seconds before
+    const windowEnd = new Date(reminderTime.getTime() + 30 * 1000);   // 30 seconds after
+    
+    console.log(`[REMINDERS] Looking for trips starting between ${windowStart.toISOString()} and ${windowEnd.toISOString()}`);
+    
+    // Query the database for trips that are starting soon
+    const upcomingTrips = await db.select()
+      .from(trips)
+      .where(
+        and(
+          gte(trips.startDate, windowStart),
+          lte(trips.startDate, windowEnd),
+          eq(trips.status, 'planning') // Only get trips still in planning stage
+        )
+      );
+    
+    console.log(`[REMINDERS] Found ${upcomingTrips.length} trips starting in about ${minutesBefore} minutes`);
+    
+    // Process each upcoming trip
+    for (const trip of upcomingTrips) {
+      console.log(`[REMINDERS] Processing ${minutesBefore}-minute reminders for trip "${trip.name}" (ID: ${trip.id})`);
+      
+      try {
+        // Get the group ID to find members
+        if (!trip.groupId) {
+          console.log(`[REMINDERS] Trip ${trip.id} has no group ID, skipping reminders`);
+          continue;
+        }
+        
+        // Query the database for group members
+        const groupMembers = await db.select()
+          .from(groupMembers_table)
+          .where(eq(groupMembers_table.groupId, trip.groupId));
+        
+        // Get emails for all members
+        for (const member of groupMembers) {
+          // Get the user email
+          const user = await db.select()
+            .from(users)
+            .where(eq(users.id, member.userId))
+            .limit(1);
+          
+          if (user.length === 0 || !user[0].email) {
+            console.log(`[REMINDERS] Could not find email for user ${member.userId}, skipping reminder`);
+            continue;
+          }
+          
+          // Send reminder email
+          const reminderSent = await sendTripReminderEmail(
+            user[0].email,
+            user[0].displayName || user[0].username,
+            trip.name,
+            trip.startLocation,
+            trip.destination,
+            trip.startDate,
+            minutesBefore
+          );
+          
+          console.log(`[REMINDERS] ${minutesBefore}-minute reminder for user ${user[0].displayName || user[0].username} (${user[0].email}) - ${reminderSent ? 'SENT' : 'FAILED'}`);
+        }
+      } catch (error) {
+        console.error(`[REMINDERS] Error processing ${minutesBefore}-minute reminders for trip ${trip.id}:`, error);
+      }
+    }
+  } catch (error) {
+    console.error(`[REMINDERS] Error checking for ${minutesBefore}-minute reminders:`, error);
+  }
+}
+
 async function checkAndUpdateTripStatuses(): Promise<void> {
   try {
     console.log('[AUTO-UPDATE] Checking trips for status updates...');

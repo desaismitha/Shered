@@ -532,6 +532,85 @@ export async function sendRegistrationConfirmation(
   });
 }
 
+/**
+ * Send a trip reminder notification via email
+ * @param email Recipient's email address
+ * @param username Recipient's username/display name
+ * @param tripName Name of the trip
+ * @param startLocation Trip start location
+ * @param destination Trip destination
+ * @param startDate Trip start date/time
+ * @param minutesUntilStart Number of minutes until the trip starts
+ * @returns Promise<boolean> indicating success or failure
+ */
+export async function sendTripReminderEmail(
+  email: string,
+  username: string,
+  tripName: string,
+  startLocation: string | null,
+  destination: string | null,
+  startDate: Date,
+  minutesUntilStart: number
+): Promise<boolean> {
+  console.log(`[REMINDER_EMAIL] Sending ${minutesUntilStart}-minute reminder to ${email} for trip "${tripName}"`);
+  
+  const fromEmail = process.env.SENDGRID_VERIFIED_SENDER || 'noreply@travelgroupr.com';
+  const subject = `🕒 Trip Reminder: "${tripName}" starts in ${minutesUntilStart} minute${minutesUntilStart === 1 ? '' : 's'}`;
+  
+  // Format the start date/time
+  const formattedStartTime = startDate ? new Date(startDate).toLocaleString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  }) : 'unknown time';
+  
+  const text = `
+    Hi ${username},
+    
+    This is a reminder that your trip "${tripName}" will start in ${minutesUntilStart} minute${minutesUntilStart === 1 ? '' : 's'}.
+    
+    Trip Details:
+    - Start Time: ${formattedStartTime}
+    - Start Location: ${startLocation || 'Not specified'}
+    - Destination: ${destination || 'Not specified'}
+    
+    Please make sure you're ready and at the starting location.
+    
+    Safe travels!
+    The TravelGroupr Team
+  `;
+  
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: #3b82f6;">🕒 Trip Reminder</h2>
+      <p>Hi <strong>${username}</strong>,</p>
+      <p>This is a reminder that your trip <strong>"${tripName}"</strong> will start in <strong>${minutesUntilStart} minute${minutesUntilStart === 1 ? '' : 's'}</strong>.</p>
+      
+      <div style="background-color: #f3f4f6; padding: 15px; border-radius: 8px; margin: 20px 0;">
+        <h3 style="margin-top: 0; color: #111827;">Trip Details:</h3>
+        <p style="margin-bottom: 5px;"><strong>Start Time:</strong> ${formattedStartTime}</p>
+        <p style="margin-bottom: 5px;"><strong>Start Location:</strong> ${startLocation || 'Not specified'}</p>
+        <p style="margin-bottom: 0;"><strong>Destination:</strong> ${destination || 'Not specified'}</p>
+      </div>
+      
+      <p>Please make sure you're ready and at the starting location.</p>
+      <p>Safe travels!<br>The TravelGroupr Team</p>
+    </div>
+  `;
+  
+  return sendEmail({
+    to: email,
+    from: fromEmail,
+    subject,
+    text,
+    html
+  });
+}
+
 export async function sendTripStatusChangeEmail(
   email: string,
   username: string,
