@@ -277,12 +277,28 @@ export default function UnifiedTripPage() {
     console.log("Preparing form data with trip data:", tripData);
     console.log("Using itinerary items:", itineraryItems);
     
+    // Extract times from trip dates
+    const startDate = new Date(tripData.startDate);
+    const endDate = new Date(tripData.endDate);
+    
+    // Format times as HH:MM for the form inputs
+    const extractTimeString = (date: Date): string => {
+      const hours = date.getHours().toString().padStart(2, '0');
+      const minutes = date.getMinutes().toString().padStart(2, '0');
+      return `${hours}:${minutes}`;
+    };
+    
+    const defaultStartTime = extractTimeString(startDate);
+    const defaultEndTime = extractTimeString(endDate);
+    
+    console.log(`Extracted times from dates - Start: ${defaultStartTime}, End: ${defaultEndTime}`);
+    
     // Start with basic trip data
     const formData: any = {
       name: tripData.name,
       description: tripData.description || "",
-      startDate: new Date(tripData.startDate),
-      endDate: new Date(tripData.endDate),
+      startDate: startDate,
+      endDate: endDate,
       groupId: tripData.groupId || undefined,
       status: tripData.status || "planning",
       // These fields are now part of the unified schema but might come from itinerary
@@ -291,8 +307,9 @@ export default function UnifiedTripPage() {
       // Default to single stop if we don't have itinerary items
       isMultiStop: false,
       isRecurring: false,
-      startTime: "",
-      endTime: ""
+      // Use times extracted from the dates
+      startTime: defaultStartTime,
+      endTime: defaultEndTime
     };
     
     // If we have itinerary items, populate the stops array for multi-stop trips
@@ -379,8 +396,10 @@ export default function UnifiedTripPage() {
         // Prioritize using trip data for locations when itinerary locations are null/empty
         formData.startLocation = item.fromLocation || tripData.startLocation || "Unknown location";
         formData.endLocation = item.toLocation || tripData.destination || "Unknown location";
-        formData.startTime = item.startTime || "";
-        formData.endTime = item.endTime || "";
+        
+        // Prioritize using itinerary time if available, or keep what we extracted from trip dates
+        formData.startTime = item.startTime || formData.startTime;
+        formData.endTime = item.endTime || formData.endTime;
         formData.isRecurring = item.isRecurring || false;
         
         console.log(`Single stop - using startLoc: ${formData.startLocation}, endLoc: ${formData.endLocation}`);

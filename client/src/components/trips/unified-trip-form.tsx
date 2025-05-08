@@ -179,8 +179,18 @@ export function UnifiedTripForm({
   console.log('Form component default values:', defaultValues);
   console.log('FORM STATE:', { 
     enableMobileNotifications: form.watch("enableMobileNotifications"),
+    startTime: form.watch("startTime"),
+    endTime: form.watch("endTime"),
     userData: userData
   });
+  
+  // Log time values received for debugging
+  useEffect(() => {
+    console.log('Default time values received by form:', {
+      startTime: defaultValues?.startTime,
+      endTime: defaultValues?.endTime
+    });
+  }, [defaultValues?.startTime, defaultValues?.endTime]);
 
   return (
     <div className="trip-form-container">
