@@ -2,11 +2,11 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertExpenseSchema, InsertExpense, GroupMember, User } from "@shared/schema";
 import { z } from "zod";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import {
   Form,
@@ -30,7 +30,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
-import { Calendar as CalendarIcon } from "lucide-react";
+import { Calendar as CalendarIcon, Loader2 } from "lucide-react";
 
 // Extend the expense schema for the form
 const expenseFormSchema = insertExpenseSchema
@@ -56,10 +56,37 @@ interface ExpenseFormProps {
   onCancel: () => void;
 }
 
-export function ExpenseForm({ tripId, groupMembers, users, onSuccess, onCancel }: ExpenseFormProps) {
+export function ExpenseForm({ tripId, groupMembers: initialGroupMembers, users: initialUsers, onSuccess, onCancel }: ExpenseFormProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [showForm, setShowForm] = useState(false);
+
+  // Get trip details to get the groupId
+  const { data: trip } = useQuery({
+    queryKey: ["/api/trips", tripId],
+    enabled: !!tripId,
+  });
+
+  // Get all users for expense details
+  const { data: allUsers, isLoading: isLoadingUsers } = useQuery<User[]>({
+    queryKey: ["/api/users"],
+    enabled: showForm,
+  });
+
+  // Get group members directly from the API if the group exists
+  const { data: fetchedGroupMembers, isLoading: isLoadingGroupMembers } = useQuery<GroupMember[]>({
+    queryKey: ["/api/groups", trip?.groupId, "members"],
+    enabled: showForm && !!trip?.groupId,
+  });
+
+  // Combine the fetched and initially provided data
+  const users = allUsers || initialUsers || [];
+  const groupMembers = fetchedGroupMembers || initialGroupMembers || [];
+  
+  // Add the current user to the list if they're not in the group members
+  const effectiveGroupMembers = groupMembers.length > 0 ? 
+    groupMembers : 
+    [{ id: 1, groupId: trip?.groupId || 0, userId: user?.id || 0, role: "member" } as GroupMember];
 
   // Create the expense categories
   const expenseCategories = [
@@ -79,11 +106,20 @@ export function ExpenseForm({ tripId, groupMembers, users, onSuccess, onCancel }
       title: "",
       amount: 0,
       paidBy: user?.id || 0,
-      splitAmong: groupMembers.map(member => member.userId),
+      splitAmong: [],
       date: new Date(),
       category: "Other",
     },
   });
+
+  // Update the splitAmong field when group members change
+  useEffect(() => {
+    if (effectiveGroupMembers.length > 0) {
+      const memberIds = effectiveGroupMembers.map(member => member.userId);
+      console.log("Setting splitAmong with member IDs:", memberIds);
+      form.setValue('splitAmong', memberIds);
+    }
+  }, [form, effectiveGroupMembers]);
 
   // Create expense mutation
   const mutation = useMutation({
@@ -95,6 +131,7 @@ export function ExpenseForm({ tripId, groupMembers, users, onSuccess, onCancel }
         amount: amountInCents,
       };
       
+      console.log("Submitting expense:", expenseData);
       const res = await apiRequest("POST", `/api/trips/${tripId}/expenses`, expenseData);
       return await res.json();
     },
@@ -108,6 +145,7 @@ export function ExpenseForm({ tripId, groupMembers, users, onSuccess, onCancel }
       handleSuccess();
     },
     onError: (error) => {
+      console.error("Error adding expense:", error);
       toast({
         title: "Error",
         description: `Failed to add expense: ${error.message}`,
@@ -137,8 +175,6 @@ export function ExpenseForm({ tripId, groupMembers, users, onSuccess, onCancel }
     onSuccess();
   };
 
-  // Instead of trying to modify the mutation directly, we'll update the onSuccess handler in the component
-
   // If the form isn't shown, just display the button to add an expense
   if (!showForm) {
     return (
@@ -150,6 +186,8 @@ export function ExpenseForm({ tripId, groupMembers, users, onSuccess, onCancel }
       </Button>
     );
   }
+
+  const isLoading = isLoadingUsers || isLoadingGroupMembers;
 
   return (
     <Form {...form}>
@@ -262,7 +300,7 @@ export function ExpenseForm({ tripId, groupMembers, users, onSuccess, onCancel }
               <FormLabel>Paid By</FormLabel>
               <Select 
                 onValueChange={(value) => field.onChange(parseInt(value))} 
-                defaultValue={field.value.toString()}
+                defaultValue={String(user?.id || 0)}
               >
                 <FormControl>
                   <SelectTrigger>
@@ -270,14 +308,25 @@ export function ExpenseForm({ tripId, groupMembers, users, onSuccess, onCancel }
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {groupMembers.map(member => {
-                    const memberUser = users.find(u => u.id === member.userId);
-                    return (
-                      <SelectItem key={member.userId} value={member.userId.toString()}>
-                        {memberUser?.displayName || memberUser?.username || "Unknown User"}
-                      </SelectItem>
-                    );
-                  })}
+                  {isLoading ? (
+                    <div className="flex items-center justify-center p-4">
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      <span>Loading members...</span>
+                    </div>
+                  ) : effectiveGroupMembers.length > 0 ? (
+                    effectiveGroupMembers.map(member => {
+                      const memberUser = users.find(u => u.id === member.userId) || { id: member.userId, displayName: null, username: "User" };
+                      return (
+                        <SelectItem key={member.userId} value={member.userId.toString()}>
+                          {memberUser?.displayName || memberUser?.username || `User ${member.userId}`}
+                        </SelectItem>
+                      );
+                    })
+                  ) : (
+                    <SelectItem value={String(user?.id || 0)}>
+                      {user?.displayName || user?.username || "You"}
+                    </SelectItem>
+                  )}
                 </SelectContent>
               </Select>
               <FormMessage />
@@ -293,43 +342,56 @@ export function ExpenseForm({ tripId, groupMembers, users, onSuccess, onCancel }
               <div className="mb-4">
                 <FormLabel>Split Among</FormLabel>
               </div>
-              <div className="space-y-2">
-                {groupMembers.map(member => {
-                  const memberUser = users.find(u => u.id === member.userId);
-                  return (
-                    <div key={member.userId} className="flex items-center space-x-2">
-                      <FormField
-                        control={form.control}
-                        name="splitAmong"
-                        render={({ field }) => {
-                          return (
-                            <FormItem className="flex items-center space-x-2">
-                              <FormControl>
-                                <Checkbox
-                                  checked={field.value?.includes(member.userId)}
-                                  onCheckedChange={(checked) => {
-                                    return checked
-                                      ? field.onChange([...field.value, member.userId])
-                                      : field.onChange(
-                                          field.value?.filter(
-                                            (value) => value !== member.userId
-                                          )
-                                        );
-                                  }}
-                                />
-                              </FormControl>
-                              <FormLabel className="text-sm font-normal">
-                                {memberUser?.displayName || memberUser?.username || "Unknown User"}
-                              </FormLabel>
-                            </FormItem>
-                          );
-                        }}
-                      />
+              {isLoading ? (
+                <div className="flex items-center p-4 border rounded-md text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  <span>Loading group members...</span>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {effectiveGroupMembers.length > 0 ? (
+                    effectiveGroupMembers.map(member => {
+                      const memberUser = users.find(u => u.id === member.userId) || { id: member.userId, displayName: null, username: "User" };
+                      return (
+                        <div key={member.userId} className="flex items-center space-x-2">
+                          <FormField
+                            control={form.control}
+                            name="splitAmong"
+                            render={({ field }) => {
+                              return (
+                                <FormItem className="flex items-center space-x-2">
+                                  <FormControl>
+                                    <Checkbox
+                                      checked={field.value?.includes(member.userId)}
+                                      onCheckedChange={(checked) => {
+                                        return checked
+                                          ? field.onChange([...field.value, member.userId])
+                                          : field.onChange(
+                                              field.value?.filter(
+                                                (value) => value !== member.userId
+                                              )
+                                            );
+                                      }}
+                                    />
+                                  </FormControl>
+                                  <FormLabel className="text-sm font-normal">
+                                    {memberUser?.displayName || memberUser?.username || `User ${member.userId}`}
+                                  </FormLabel>
+                                </FormItem>
+                              );
+                            }}
+                          />
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="p-4 border rounded-md text-muted-foreground">
+                      No group members found. The expense will be assigned to you.
                     </div>
-                  );
-                })}
-                <FormMessage />
-              </div>
+                  )}
+                  <FormMessage />
+                </div>
+              )}
             </FormItem>
           )}
         />
@@ -344,7 +406,7 @@ export function ExpenseForm({ tripId, groupMembers, users, onSuccess, onCancel }
           </Button>
           <Button 
             type="submit" 
-            disabled={mutation.isPending}
+            disabled={mutation.isPending || isLoading}
           >
             {mutation.isPending ? "Adding..." : "Add Expense"}
           </Button>

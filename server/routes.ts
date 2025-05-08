@@ -3230,7 +3230,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // If we have access, prepare the expense data
       // Make sure date is properly handled if it's a string
-      const { date, splitAmong, ...otherFields } = req.body;
+      const { date, splitAmong, paidBy, ...otherFields } = req.body;
+      
+      console.log(`[EXPENSE_ADD] Request body:`, req.body);
       
       // Convert date string to Date object if it's a string
       let processedDate: Date | undefined;
@@ -3246,27 +3248,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`[EXPENSE_ADD] Processed date: ${processedDate}`);
       
+      // Make sure paidBy is a number
+      const payerUserId = paidBy ? (typeof paidBy === 'string' ? parseInt(paidBy) : paidBy) : req.user!.id;
+      console.log(`[EXPENSE_ADD] Payer user ID: ${payerUserId}`);
+      
       // Process splitAmong - convert array to JSON string
       // This is needed because we're storing it as text in the database
       let splitAmongString: string;
       try {
         // Ensure we have a valid array to serialize
         if (Array.isArray(splitAmong)) {
-          splitAmongString = JSON.stringify(splitAmong);
+          // Make sure all items are numbers
+          const splitAmongNumbers = splitAmong.map(id => typeof id === 'string' ? parseInt(id) : id);
+          splitAmongString = JSON.stringify(splitAmongNumbers);
           console.log(`[EXPENSE_ADD] Converted splitAmong array to string: ${splitAmongString}`);
         } else if (typeof splitAmong === 'string') {
-          // If it's already a string, make sure it's valid JSON
-          JSON.parse(splitAmong); // This will throw if not valid JSON
-          splitAmongString = splitAmong;
+          try {
+            // If it's already a string, make sure it's valid JSON
+            const parsed = JSON.parse(splitAmong);
+            // Make sure all items are numbers
+            if (Array.isArray(parsed)) {
+              const splitAmongNumbers = parsed.map(id => typeof id === 'string' ? parseInt(id) : id);
+              splitAmongString = JSON.stringify(splitAmongNumbers);
+            } else {
+              splitAmongString = '[]';
+            }
+          } catch (err) {
+            console.error(`[EXPENSE_ADD] Error parsing splitAmong JSON string:`, err);
+            splitAmongString = '[]';
+          }
           console.log(`[EXPENSE_ADD] Using provided splitAmong string: ${splitAmongString}`);
         } else {
-          // Default to empty array
-          splitAmongString = '[]';
-          console.log(`[EXPENSE_ADD] Using default empty array string for splitAmong`);
+          // Default to array with just the current user
+          splitAmongString = JSON.stringify([payerUserId]);
+          console.log(`[EXPENSE_ADD] Using default splitAmong array with current user: ${splitAmongString}`);
         }
       } catch (err) {
         console.error(`[EXPENSE_ADD] Error processing splitAmong:`, err);
-        splitAmongString = '[]';
+        splitAmongString = JSON.stringify([payerUserId]);
       }
       
       // Validate and create the expense
@@ -3274,8 +3293,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...otherFields,
         date: processedDate,
         tripId,
-        paidBy: req.user!.id,
-        splitAmong: splitAmongString // Pass the JSON string instead of an array
+        paidBy: payerUserId,
+        splitAmong: splitAmongString // Pass the JSON string 
       });
       
       console.log(`[EXPENSE_ADD] Validated data:`, validatedData);
