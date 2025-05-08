@@ -223,7 +223,7 @@ export async function sendPasswordResetEmail(
   resetLink: string
 ): Promise<boolean> {
   const fromEmail = process.env.SENDGRID_VERIFIED_SENDER || 'noreply@travelgroupr.com';
-  const subject = 'Password Reset for TravelGroupr';
+  const subject = 'Password Reset for Shered';
   
   const text = `
     Hi ${username},
@@ -272,12 +272,12 @@ export async function sendEmailVerification(
   verificationLink: string
 ): Promise<boolean> {
   const fromEmail = process.env.SENDGRID_VERIFIED_SENDER || 'noreply@travelgroupr.com';
-  const subject = 'Welcome to TravelGroupr!';
+  const subject = 'Welcome to Shered!';
   
   const text = `
     Hi ${username},
     
-    Thank you for signing up with TravelGroupr! Your account has been successfully created.
+    Thank you for signing up with Shered! Your account has been successfully created.
     
     Your account is already active since you verified it with the one-time code during registration.
     
@@ -289,14 +289,14 @@ export async function sendEmailVerification(
     If you didn't create an account, please ignore this email.
     
     Best regards,
-    The TravelGroupr Team
+    The Shered Team
   `;
   
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <h2>Welcome to TravelGroupr!</h2>
+      <h2>Welcome to Shered!</h2>
       <p>Hi <strong>${username}</strong>,</p>
-      <p>Thank you for signing up with TravelGroupr. Your account has been successfully created!</p>
+      <p>Thank you for signing up with Shered. Your account has been successfully created!</p>
       
       <p style="background-color: #d1e7dd; padding: 10px; border-radius: 4px; border-left: 4px solid #198754;">
         <strong>Your account is already active</strong> since you verified it with the one-time code during registration.
@@ -310,7 +310,7 @@ export async function sendEmailVerification(
       </div>
       <p>This backup verification link will expire in 24 hours.</p>
       <p>If you didn't create an account, you can safely ignore this email.</p>
-      <p>Best regards,<br>The TravelGroupr Team</p>
+      <p>Best regards,<br>The Shered Team</p>
     </div>
   `;
   
@@ -332,12 +332,12 @@ export async function sendOTPVerificationCode(
   
   const fromEmail = process.env.SENDGRID_VERIFIED_SENDER || 'noreply@travelgroupr.com';
   // Include the code in the subject line for quick reference, even if the email is not opened
-  const subject = `Your TravelGroupr Verification Code: ${otp}`;
+  const subject = `Your Shered Verification Code: ${otp}`;
   
   const text = `
     Hi ${username},
     
-    Your one-time registration code for TravelGroupr is: ${otp}
+    Your one-time registration code for Shered is: ${otp}
     
     Please enter this code in the verification form that appeared when you registered.
     This code will expire in 10 minutes.
@@ -347,12 +347,12 @@ export async function sendOTPVerificationCode(
     If you didn't request this code, please ignore this email.
     
     Best regards,
-    The TravelGroupr Team
+    The Shered Team
   `;
   
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <h2>Your TravelGroupr Registration Code</h2>
+      <h2>Your Shered Registration Code</h2>
       <p>Hi <strong>${username}</strong>,</p>
       <p>Please use the following code to complete your registration:</p>
       <div style="text-align: center; margin: 30px 0;">
@@ -366,7 +366,7 @@ export async function sendOTPVerificationCode(
         <strong>Important:</strong> This verification code is different from the verification link you will receive in a separate welcome email.
       </p>
       <p>If you didn't request this code, please ignore this email.</p>
-      <p>Best regards,<br>The TravelGroupr Team</p>
+      <p>Best regards,<br>The Shered Team</p>
     </div>
   `;
   
@@ -496,29 +496,29 @@ export async function sendRegistrationConfirmation(
   console.log(`[REGISTRATION_CONFIRMATION] Sending confirmation email to ${email}`);
   
   const fromEmail = process.env.SENDGRID_VERIFIED_SENDER || 'noreply@travelgroupr.com';
-  const subject = 'Welcome to TravelGroupr - Registration Confirmed';
+  const subject = 'Welcome to Shered - Registration Confirmed';
   
   const text = `
     Hi ${username},
 
-    Your registration with TravelGroupr has been successfully completed!
+    Your registration with Shered has been successfully completed!
     ${groupName ? `You have been added to the group "${groupName}".` : ''}
 
     You can now log in and start planning trips with your groups.
 
     Best regards,
-    The TravelGroupr Team
+    The Shered Team
   `;
   
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <h2 style="background-color: #4F46E5; color: white; padding: 15px; text-align: center; border-radius: 4px 4px 0 0;">Welcome to TravelGroupr!</h2>
+      <h2 style="background-color: #4F46E5; color: white; padding: 15px; text-align: center; border-radius: 4px 4px 0 0;">Welcome to Shered!</h2>
       <div style="padding: 20px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 4px 4px;">
         <p>Hi <strong>${username}</strong>,</p>
         <p style="font-size: 18px; color: #4F46E5; font-weight: bold;">Your registration has been successfully completed!</p>
         ${groupName ? `<p>You have been added to the group "<strong>${groupName}</strong>".</p>` : ''}
         <p>You can now log in and start planning trips with your groups.</p>
-        <p>Best regards,<br>The TravelGroupr Team</p>
+        <p>Best regards,<br>The Shered Team</p>
       </div>
     </div>
   `;
