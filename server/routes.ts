@@ -12,8 +12,8 @@ import { db, attemptReconnect, checkDbConnection, cleanupConnections } from "./d
 import { setupAuth, hashPassword, generateOTP } from "./auth";
 import { insertGroupSchema, insertTripSchema, insertItineraryItemSchema, insertExpenseSchema, insertMessageSchema, insertGroupMemberSchema, insertVehicleSchema, insertTripVehicleSchema, users, groupMembers, trips, itineraryItems } from "@shared/schema";
 import { z } from "zod";
-import { eq, or, and, asc, desc, sql, isNull, count, between, lt } from "drizzle-orm";
-import { sendGroupInvitation, sendPasswordResetEmail, sendRouteDeviationEmail, sendTripStatusChangeEmail, sendOTPVerificationCode, sendRegistrationConfirmation } from "./email";
+import { eq, or, and, asc, desc, sql, isNull, count, between, lt, gte, lte } from "drizzle-orm";
+import { sendGroupInvitation, sendPasswordResetEmail, sendRouteDeviationEmail, sendTripStatusChangeEmail, sendOTPVerificationCode, sendRegistrationConfirmation, sendTripReminderEmail } from "./email";
 import crypto from "crypto";
 import fetch from "node-fetch";
 
@@ -559,12 +559,12 @@ async function sendTripReminders(minutesBefore: number): Promise<void> {
         }
         
         // Query the database for group members
-        const groupMembers = await db.select()
-          .from(groupMembers_table)
-          .where(eq(groupMembers_table.groupId, trip.groupId));
+        const groupMembersData = await db.select()
+          .from(groupMembers)
+          .where(eq(groupMembers.groupId, trip.groupId));
         
         // Get emails for all members
-        for (const member of groupMembers) {
+        for (const member of groupMembersData) {
           // Get the user email
           const user = await db.select()
             .from(users)
@@ -577,12 +577,15 @@ async function sendTripReminders(minutesBefore: number): Promise<void> {
           }
           
           // Send reminder email
+          const startLocationDisplay = trip.startLocation ? cleanLocationString(trip.startLocation) : 'Unknown location';
+          const destinationDisplay = trip.destination ? cleanLocationString(trip.destination) : 'Unknown location';
+          
           const reminderSent = await sendTripReminderEmail(
             user[0].email,
             user[0].displayName || user[0].username,
             trip.name,
-            trip.startLocation,
-            trip.destination,
+            startLocationDisplay,
+            destinationDisplay,
             trip.startDate,
             minutesBefore
           );
