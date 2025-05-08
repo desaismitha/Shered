@@ -1,20 +1,35 @@
 import { AppShell } from "@/components/layout/app-shell";
 import { useQuery } from "@tanstack/react-query";
-import { Trip } from "@shared/schema";
+import { Expense, Trip, User, GroupMember } from "@shared/schema";
 import { TripCard } from "@/components/trips/trip-card";
 import { Button } from "@/components/ui/button";
-import { PlusIcon, Search } from "lucide-react";
+import { PlusIcon, Search, DollarSign, ReceiptIcon } from "lucide-react";
 import { useLocation } from "wouter";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ExpenseCard } from "@/components/expenses/expense-card";
+import { ExpenseForm } from "@/components/expenses/expense-form";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogDescription 
+} from "@/components/ui/dialog";
+import { useAuth } from "@/hooks/use-auth";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
 export default function TripsPage() {
   const [, navigate] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [selectedTripForExpense, setSelectedTripForExpense] = useState<Trip | null>(null);
+  const [expenseDialogOpen, setExpenseDialogOpen] = useState(false);
+  const { user } = useAuth();
   
+  // Get all trips
   const { data: trips, isLoading, refetch } = useQuery<Trip[]>({
     queryKey: ["/api/trips"],
     staleTime: 0,
@@ -24,8 +39,20 @@ export default function TripsPage() {
     refetchInterval: 10000, // Refetch every 10 seconds
   });
 
+  // Get all expenses
+  const { data: expenses, isLoading: isLoadingExpenses } = useQuery<Expense[]>({
+    queryKey: ["/api/expenses"],
+  });
+
+  // Get all users for expense details
+  const { data: users } = useQuery<User[]>({
+    queryKey: ["/api/users"],
+  });
+
   // Debug logging for trips data
   console.log("Trips data from API:", trips);
+  console.log("All expenses:", expenses);
+  console.log("Total expenses calculated:", expenses?.reduce((sum, expense) => sum + expense.amount, 0) || 0);
 
   // Filter trips based on search query and status
   const filteredTrips = trips?.filter(trip => {
@@ -78,7 +105,7 @@ export default function TripsPage() {
     }
   });
   
-  console.log("Upcoming trips:", upcomingTrips);
+  console.log("Upcoming trips count:", upcomingTrips?.length || 0);
   
   const pastTrips = filteredTrips?.filter(trip => {
     if (!trip.endDate) return false;
@@ -112,6 +139,46 @@ export default function TripsPage() {
   
   console.log("Cancelled trips:", cancelledTrips);
 
+  // Filter expenses for the current tab
+  const upcomingTripIds = upcomingTrips?.map(trip => trip.id) || [];
+  const pastTripIds = pastTrips?.map(trip => trip.id) || [];
+  const cancelledTripIds = cancelledTrips?.map(trip => trip.id) || [];
+  
+  // Get expenses for the currently active tab
+  const getExpensesByTab = (tabValue: string) => {
+    if (!expenses) return [];
+    
+    let relevantTripIds: number[] = [];
+    if (tabValue === "upcoming") relevantTripIds = upcomingTripIds;
+    else if (tabValue === "past") relevantTripIds = pastTripIds;
+    else if (tabValue === "cancelled") relevantTripIds = cancelledTripIds;
+    
+    return expenses.filter(expense => relevantTripIds.includes(expense.tripId));
+  };
+
+  // Calculate total expenses
+  const calculateTotalForTab = (tabValue: string) => {
+    const relevantExpenses = getExpensesByTab(tabValue);
+    return relevantExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+  };
+
+  // Function to get group members for the selected trip
+  const getGroupMembersForTrip = (trip: Trip | null): GroupMember[] => {
+    if (!trip || !trip.groupId) return [];
+    
+    // Mock implementation - in reality, you would fetch this from API
+    // This would be replaced with actual data from your API
+    return [
+      { id: 1, groupId: trip.groupId, userId: user?.id || 0, role: "member" } as GroupMember
+    ];
+  };
+
+  // Function to open expense dialog for a specific trip
+  const openExpenseDialog = (trip: Trip) => {
+    setSelectedTripForExpense(trip);
+    setExpenseDialogOpen(true);
+  };
+
   return (
     <AppShell>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -133,13 +200,23 @@ export default function TripsPage() {
               ↻
             </Button>
           </div>
-          <Button 
-            onClick={() => navigate("/trips/new")}
-            className="inline-flex items-center"
-          >
-            <PlusIcon className="h-4 w-4 mr-2" />
-            Create New Trip
-          </Button>
+          <div className="flex gap-2 mt-2 sm:mt-0">
+            <Button 
+              variant="outline"
+              onClick={() => navigate("/expenses")}
+              className="inline-flex items-center"
+            >
+              <DollarSign className="h-4 w-4 mr-2" />
+              View All Expenses
+            </Button>
+            <Button 
+              onClick={() => navigate("/trips/new")}
+              className="inline-flex items-center"
+            >
+              <PlusIcon className="h-4 w-4 mr-2" />
+              Create New Trip
+            </Button>
+          </div>
         </div>
         
         <div className="mb-6">
@@ -168,6 +245,69 @@ export default function TripsPage() {
           </TabsList>
           
           <TabsContent value="upcoming">
+            {/* Expenses Summary Card for Upcoming Trips */}
+            {!isLoading && !isLoadingExpenses && upcomingTrips && upcomingTrips.length > 0 && (
+              <Card className="mb-6">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-lg flex items-center">
+                    <ReceiptIcon className="h-5 w-5 mr-2" />
+                    Trip Expenses
+                  </CardTitle>
+                  <span className="text-lg font-medium">
+                    Total: ${(calculateTotalForTab("upcoming") / 100).toFixed(2)}
+                  </span>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {getExpensesByTab("upcoming").length > 0 ? (
+                      <div className="space-y-3">
+                        {getExpensesByTab("upcoming")
+                          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                          .slice(0, 3) // Show only the 3 most recent expenses
+                          .map(expense => (
+                            <ExpenseCard key={expense.id} expense={expense} users={users || []} />
+                          ))
+                        }
+                        {getExpensesByTab("upcoming").length > 3 && (
+                          <div className="text-center mt-2">
+                            <Button 
+                              variant="link" 
+                              onClick={() => navigate("/expenses")}
+                            >
+                              View all {getExpensesByTab("upcoming").length} expenses
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-center text-muted-foreground py-3">
+                        No expenses recorded for your upcoming trips yet.
+                      </p>
+                    )}
+                    <div className="mt-4 flex justify-end">
+                      <Button 
+                        onClick={() => {
+                          if (upcomingTrips.length === 1) {
+                            // If there's only one trip, select it automatically
+                            openExpenseDialog(upcomingTrips[0]);
+                          } else {
+                            // If there are multiple trips, navigate to expenses page
+                            navigate("/expenses");
+                          }
+                        }}
+                        className="inline-flex items-center"
+                        variant="outline"
+                        size="sm"
+                      >
+                        <PlusIcon className="h-4 w-4 mr-2" />
+                        Add Expense
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {isLoading ? (
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {[...Array(3)].map((_, i) => (
@@ -191,7 +331,24 @@ export default function TripsPage() {
             ) : upcomingTrips && upcomingTrips.length > 0 ? (
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {upcomingTrips.map((trip) => (
-                  <TripCard key={trip.id} trip={trip} />
+                  <div key={trip.id} className="relative group">
+                    <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                      <Button 
+                        size="sm" 
+                        variant="secondary"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          openExpenseDialog(trip);
+                        }}
+                        className="shadow-md"
+                      >
+                        <DollarSign className="h-4 w-4 mr-1" />
+                        Add Expense
+                      </Button>
+                    </div>
+                    <TripCard key={trip.id} trip={trip} />
+                  </div>
                 ))}
               </div>
             ) : (
@@ -210,6 +367,50 @@ export default function TripsPage() {
           </TabsContent>
           
           <TabsContent value="past">
+            {/* Expenses Summary Card for Past Trips */}
+            {!isLoading && !isLoadingExpenses && pastTrips && pastTrips.length > 0 && (
+              <Card className="mb-6">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-lg flex items-center">
+                    <ReceiptIcon className="h-5 w-5 mr-2" />
+                    Trip Expenses
+                  </CardTitle>
+                  <span className="text-lg font-medium">
+                    Total: ${(calculateTotalForTab("past") / 100).toFixed(2)}
+                  </span>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {getExpensesByTab("past").length > 0 ? (
+                      <div className="space-y-3">
+                        {getExpensesByTab("past")
+                          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                          .slice(0, 3) // Show only the 3 most recent expenses
+                          .map(expense => (
+                            <ExpenseCard key={expense.id} expense={expense} users={users || []} />
+                          ))
+                        }
+                        {getExpensesByTab("past").length > 3 && (
+                          <div className="text-center mt-2">
+                            <Button 
+                              variant="link" 
+                              onClick={() => navigate("/expenses")}
+                            >
+                              View all {getExpensesByTab("past").length} expenses
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-center text-muted-foreground py-3">
+                        No expenses recorded for your past trips.
+                      </p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+            
             {isLoading ? (
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {[...Array(3)].map((_, i) => (
@@ -280,6 +481,28 @@ export default function TripsPage() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Expense Dialog */}
+      <Dialog open={expenseDialogOpen} onOpenChange={setExpenseDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Add Expense for Trip</DialogTitle>
+            <DialogDescription>
+              {selectedTripForExpense?.name} - {selectedTripForExpense?.destination}
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedTripForExpense && (
+            <ExpenseForm
+              tripId={selectedTripForExpense.id}
+              groupMembers={getGroupMembersForTrip(selectedTripForExpense)}
+              users={users || []}
+              onSuccess={() => setExpenseDialogOpen(false)}
+              onCancel={() => setExpenseDialogOpen(false)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 }
