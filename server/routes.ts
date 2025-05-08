@@ -1190,8 +1190,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Email address is required" });
       }
       
-      const subject = req.body.subject || "TravelGroupr Test Email";
-      const message = req.body.message || "This is a test email from TravelGroupr to verify email delivery is working correctly.";
+      const subject = req.body.subject || "Shered Test Email";
+      const message = req.body.message || "This is a test email from Shered to verify email delivery is working correctly.";
       
       console.log(`[EMAIL_DEBUG] Sending test email to ${email}`);
       
@@ -1205,12 +1205,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         text: message,
         html: `
           <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 600px;">
-            <h2 style="color: #4a6ee0;">TravelGroupr Test Email</h2>
+            <h2 style="color: #4a6ee0;">Shered Test Email</h2>
             <p>${message}</p>
             <p><strong>Sent at:</strong> ${new Date().toISOString()}</p>
             <div style="margin-top: 30px; padding: 15px; background-color: #f5f5f5; border-radius: 5px;">
               <p style="margin: 0; font-size: 12px; color: #666;">
-                This is an automated message from TravelGroupr. Please do not reply to this email.
+                This is an automated message from Shered. Please do not reply to this email.
               </p>
             </div>
           </div>

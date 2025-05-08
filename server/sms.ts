@@ -94,7 +94,7 @@ export async function sendOTPVerificationSMS(
   username: string,
   otp: string
 ): Promise<boolean> {
-  const message = `TravelGroupr verification code: ${otp}. This code will expire in 10 minutes.`;
+  const message = `Shered verification code: ${otp}. This code will expire in 10 minutes.`;
   
   return sendSMS({
     to: phoneNumber,

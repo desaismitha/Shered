@@ -138,7 +138,7 @@ export async function sendGroupInvitation(
   const fromEmail = process.env.SENDGRID_VERIFIED_SENDER || 'noreply@travelgroupr.com';
   const subject = isExistingUser 
     ? `You've been added to ${groupName} on Shered` 
-    : `You've been invited to join ${groupName} on TravelGroupr`;
+    : `You've been invited to join ${groupName} on Shered`;
   
   let text, html;
   
@@ -147,7 +147,7 @@ export async function sendGroupInvitation(
     text = `
       Hi there!
       
-      ${inviterName} has added you to the travel group "${groupName}" on TravelGroupr.
+      ${inviterName} has added you to the travel group "${groupName}" on Shered.
       
       To view the group and plan trips, please visit:
       ${inviteLink}
