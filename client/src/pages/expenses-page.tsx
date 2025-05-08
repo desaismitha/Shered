@@ -1,14 +1,16 @@
 import { AppShell } from "@/components/layout/app-shell";
 import { useQuery } from "@tanstack/react-query";
-import { Expense, Trip, User } from "@shared/schema";
+import { Expense, Trip, User, GroupMember } from "@shared/schema";
 import { Button } from "@/components/ui/button";
-import { PlusIcon, Search, DollarSign, Filter } from "lucide-react";
+import { PlusIcon, Search, DollarSign, Filter, CalendarClock } from "lucide-react";
 import { useLocation } from "wouter";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ExpenseCard } from "@/components/expenses/expense-card";
+import { ExpenseForm } from "@/components/expenses/expense-form";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -16,12 +18,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { format } from "date-fns";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function ExpensesPage() {
   const [, navigate] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [tripFilter, setTripFilter] = useState<string>("all");
+  const [expenseDialogOpen, setExpenseDialogOpen] = useState(false);
+  const [selectedTripId, setSelectedTripId] = useState<number | null>(null);
+  const { user } = useAuth();
   
   // Get all expenses
   const { data: expenses, isLoading: isLoadingExpenses } = useQuery<Expense[]>({
@@ -36,6 +50,17 @@ export default function ExpensesPage() {
   // Get all users for expense details
   const { data: users } = useQuery<User[]>({
     queryKey: ["/api/users"],
+  });
+  
+  // Get group members for the selected trip's group
+  const { data: selectedTrip } = useQuery<Trip>({
+    queryKey: ["/api/trips", selectedTripId],
+    enabled: !!selectedTripId,
+  });
+  
+  const { data: groupMembers } = useQuery<GroupMember[]>({
+    queryKey: ["/api/groups", selectedTrip?.groupId, "members"],
+    enabled: !!selectedTrip?.groupId,
   });
 
   // Filter expenses based on search query and trip filter
@@ -71,13 +96,105 @@ export default function ExpensesPage() {
               Total: ${(totalExpenses / 100).toFixed(2)}
             </p>
             <Button 
-              onClick={() => navigate("/trips")}
+              onClick={() => setExpenseDialogOpen(true)}
               className="inline-flex items-center"
             >
               <PlusIcon className="h-4 w-4 mr-2" />
               Add Expense
             </Button>
           </div>
+          
+          {/* Add Expense Dialog */}
+          <Dialog open={expenseDialogOpen} onOpenChange={setExpenseDialogOpen}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Add New Expense</DialogTitle>
+                <DialogDescription>
+                  Select a trip to associate with this expense
+                </DialogDescription>
+              </DialogHeader>
+              
+              {!selectedTripId ? (
+                <div className="space-y-4 py-4">
+                  <div className="flex items-center">
+                    <CalendarClock className="mr-2 h-5 w-5 text-primary-500" />
+                    <h3 className="text-lg font-medium">Select Trip</h3>
+                  </div>
+                  
+                  <div className="grid gap-4">
+                    {isLoadingTrips ? (
+                      <div className="flex justify-center p-4">
+                        <Skeleton className="h-10 w-full" />
+                      </div>
+                    ) : trips && trips.length > 0 ? (
+                      trips.map(trip => (
+                        <Card 
+                          key={trip.id} 
+                          className="cursor-pointer hover:bg-neutral-50"
+                          onClick={() => setSelectedTripId(trip.id)}
+                        >
+                          <CardContent className="p-4 flex justify-between items-center">
+                            <div>
+                              <h4 className="font-medium">{trip.name || 'Unnamed trip'}</h4>
+                              <p className="text-sm text-neutral-500">
+                                {trip.destination}
+                              </p>
+                            </div>
+                            <PlusIcon className="h-5 w-5 text-primary-500" />
+                          </CardContent>
+                        </Card>
+                      ))
+                    ) : (
+                      <div className="text-center p-4">
+                        <p className="mb-4">No trips found to associate expenses with</p>
+                        <Button 
+                          onClick={() => navigate("/trips/new")}
+                          className="inline-flex items-center"
+                        >
+                          <PlusIcon className="h-4 w-4 mr-2" />
+                          Create a Trip First
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="py-4">
+                  <div className="mb-4 flex justify-between items-center">
+                    <div>
+                      <h3 className="text-lg font-medium">
+                        {trips?.find(t => t.id === selectedTripId)?.name || 'Selected Trip'}
+                      </h3>
+                      <p className="text-sm text-neutral-500">
+                        {trips?.find(t => t.id === selectedTripId)?.destination}
+                      </p>
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setSelectedTripId(null)}
+                    >
+                      Change Trip
+                    </Button>
+                  </div>
+                  
+                  <ExpenseForm 
+                    tripId={selectedTripId} 
+                    groupMembers={groupMembers || []} 
+                    users={users || []}
+                    onSuccess={() => {
+                      setExpenseDialogOpen(false);
+                      setSelectedTripId(null);
+                    }}
+                    onCancel={() => {
+                      setExpenseDialogOpen(false);
+                      setSelectedTripId(null);
+                    }}
+                  />
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
         </div>
         
         <div className="flex flex-col space-y-4 md:flex-row md:space-y-0 md:space-x-4 mb-6">
@@ -162,7 +279,7 @@ export default function ExpensesPage() {
                 : "Start tracking your trip expenses"}
             </p>
             <Button 
-              onClick={() => navigate("/trips")}
+              onClick={() => setExpenseDialogOpen(true)}
               className="inline-flex items-center"
             >
               <PlusIcon className="h-4 w-4 mr-2" />
