@@ -418,6 +418,9 @@ export async function sendRouteDeviationEmail(
   console.log(`[DEVIATION_EMAIL] Maps link: ${mapsLink}`);
   console.log(`[DEVIATION_EMAIL] Using sender: ${fromEmail}`);
   
+  // Update the default from email to use shered domain
+  const sheredFromEmail = process.env.SENDGRID_VERIFIED_SENDER || 'noreply@shered.com';
+  
   const text = `
     Hi ${username},
     
@@ -456,7 +459,7 @@ export async function sendRouteDeviationEmail(
       
       <p>You're receiving this notification because you're a member of this trip's group.</p>
       
-      <p>Best regards,<br>The TravelGroupr Team</p>
+      <p>Best regards,<br>The Shered Team</p>
     </div>
   `;
   
