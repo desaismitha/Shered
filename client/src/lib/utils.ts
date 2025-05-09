@@ -48,20 +48,29 @@ export function cleanLocationString(location: string | null | undefined): string
   return cleaned;
 }
 
-// Format time string from 24-hour format to 12-hour format with AM/PM
-export function formatTime(timeString: string | null | undefined): string {
-  if (!timeString) return '';
+// Format time string or Date object to 12-hour format with AM/PM
+export function formatTime(time: string | Date | null | undefined): string {
+  if (!time) return '';
   
   try {
-    // Assuming timeString is in 24-hour format (HH:MM)
-    const [hours, minutes] = timeString.split(':');
+    // If it's a Date object, extract hours and minutes
+    if (time instanceof Date) {
+      const hours = time.getHours();
+      const minutes = time.getMinutes().toString().padStart(2, '0');
+      const isPM = hours >= 12;
+      const hour12 = hours % 12 || 12;
+      return `${hour12}:${minutes} ${isPM ? 'PM' : 'AM'}`;
+    }
+    
+    // If it's a string, assume it's in 24-hour format (HH:MM)
+    const [hours, minutes] = time.split(':');
     const hourInt = parseInt(hours);
     const isPM = hourInt >= 12;
     const hour12 = hourInt % 12 || 12;
     return `${hour12}:${minutes} ${isPM ? 'PM' : 'AM'}`;
   } catch (error) {
     console.error('Error formatting time:', error);
-    return timeString;
+    return typeof time === 'string' ? time : '';
   }
 }
 

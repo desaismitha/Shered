@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import { 
   Plane, LayoutDashboard, Users, Calendar, DollarSign, 
   MessageSquare, Settings, LogOut, Car, MapPin,
-  Navigation
+  Navigation, PlusCircle, CalendarPlus
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DbResetButton } from "@/components/ui/db-reset-button";
@@ -26,6 +26,11 @@ export function Sidebar() {
     { icon: Users, label: "Import Members", href: "/bulk-import" },
     { icon: DollarSign, label: "Expenses", href: "/expenses" },
     { icon: MessageSquare, label: "Messages", href: "/messages" },
+  ];
+  
+  const actionItems = [
+    { icon: PlusCircle, label: "Create Trip", href: "/trips/new" },
+    { icon: CalendarPlus, label: "Create Event", href: "/events/new" },
   ];
 
   const footerItems = [

@@ -448,8 +448,8 @@ export default function EventPage() {
                 <>
                   <TripCheckIn 
                     tripId={parseInt(eventId)} 
-                    accessLevel={eventData._accessLevel}
-                    tripStatus={eventData.status}
+                    accessLevel={eventData._accessLevel || undefined}
+                    tripStatus={eventData.status || undefined}
                   />
                   <div className="mt-8">
                     <TripCheckInStatus tripId={parseInt(eventId)} />
