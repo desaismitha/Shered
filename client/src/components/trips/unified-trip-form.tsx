@@ -418,19 +418,29 @@ export function UnifiedTripForm({
           </Card>
           
           {/* Location Information Card */}
-          {!isMultiStop && (
-            <Card className="p-6">
-              <h2 className="text-lg font-medium mb-4">{tripType === 'event' ? 'Event Location' : 'Location Information'}</h2>
-              
-              {tripType === 'event' ? (
-                // For events, just show one location field
-                <div className="grid gap-6">
+          <Card className="p-6">
+            <h2 className="text-lg font-medium mb-4">{tripType === 'event' ? 'Event Location' : 'Location Information'}</h2>
+            
+            {isMultiStop ? (
+              // For multi-stop trips/events, show just the main/primary location
+              <div className="grid gap-6">
+                <div className="px-4 py-3 rounded-md bg-blue-50 border border-blue-200 mb-4">
+                  <p className="text-sm text-blue-700">
+                    {tripType === 'event' 
+                      ? "This is the main location for your multi-day event. You can add specific locations for each day's activities after creating the event."
+                      : "This is the main location for your multi-stop trip. You can add specific stops and destinations after creating the trip."
+                    }
+                  </p>
+                </div>
+                
+                {tripType === 'event' ? (
+                  // For multi-day events, show one location field
                   <FormField
                     control={form.control}
                     name="startLocation"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Event Location *</FormLabel>
+                        <FormLabel>Main Event Location *</FormLabel>
                         <FormControl>
                           <MapLocationPicker 
                             label=""
@@ -440,80 +450,161 @@ export function UnifiedTripForm({
                               field.onChange(value);
                               form.setValue("endLocation", value);
                             }}
-                            placeholder="Enter event location"
+                            placeholder="Enter main event location"
                           />
                         </FormControl>
                         <FormDescription>
-                          Where the event takes place
+                          The primary venue for this multi-day event
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                </div>
-              ) : (
-                // For trips, show both start and destination
-                <div className="grid gap-6 sm:grid-cols-2">
-                  <FormField
-                    control={form.control}
-                    name="startLocation"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Start Location *</FormLabel>
-                        <FormControl>
-                          <MapLocationPicker 
-                            label=""
-                            value={field.value || ""} 
-                            onChange={field.onChange}
-                            placeholder="Enter start location"
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          Where the trip begins
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="endLocation"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Destination *</FormLabel>
-                        <FormControl>
-                          <MapLocationPicker 
-                            label=""
-                            value={field.value || ""} 
-                            onChange={field.onChange}
-                            placeholder="Enter destination"
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          Where the trip ends
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              )}
-              
-              {form.watch("startLocation") && form.watch("endLocation") && (
-                <div className="mt-6">
-                  <h3 className="text-sm font-medium mb-2">Route Preview</h3>
-                  <div className="h-[300px] border rounded-md overflow-hidden">
-                    <RouteMapPreview 
-                      startLocation={form.watch("startLocation") || ""} 
-                      endLocation={form.watch("endLocation") || ""}
-                      showMap={true}
+                ) : (
+                  // For multi-stop trips, show both start and end
+                  <div className="grid gap-6 sm:grid-cols-2">
+                    <FormField
+                      control={form.control}
+                      name="startLocation"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Starting Point *</FormLabel>
+                          <FormControl>
+                            <MapLocationPicker 
+                              label=""
+                              value={field.value || ""} 
+                              onChange={field.onChange}
+                              placeholder="Enter starting point"
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Where your journey begins
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="endLocation"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Final Destination *</FormLabel>
+                          <FormControl>
+                            <MapLocationPicker 
+                              label=""
+                              value={field.value || ""} 
+                              onChange={field.onChange}
+                              placeholder="Enter final destination"
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            The final stop of your journey
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
                   </div>
+                )}
+              </div>
+            ) : (
+              // For single-stop trips or single-day events
+              <>
+                {tripType === 'event' ? (
+                  // For events, just show one location field
+                  <div className="grid gap-6">
+                    <FormField
+                      control={form.control}
+                      name="startLocation"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Event Location *</FormLabel>
+                          <FormControl>
+                            <MapLocationPicker 
+                              label=""
+                              value={field.value || ""} 
+                              onChange={(value) => {
+                                // Update both startLocation and endLocation with the same value
+                                field.onChange(value);
+                                form.setValue("endLocation", value);
+                              }}
+                              placeholder="Enter event location"
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Where the event takes place
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                ) : (
+                  // For trips, show both start and destination
+                  <div className="grid gap-6 sm:grid-cols-2">
+                    <FormField
+                      control={form.control}
+                      name="startLocation"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Start Location *</FormLabel>
+                          <FormControl>
+                            <MapLocationPicker 
+                              label=""
+                              value={field.value || ""} 
+                              onChange={field.onChange}
+                              placeholder="Enter start location"
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Where the trip begins
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="endLocation"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Destination *</FormLabel>
+                          <FormControl>
+                            <MapLocationPicker 
+                              label=""
+                              value={field.value || ""} 
+                              onChange={field.onChange}
+                              placeholder="Enter destination"
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Where the trip ends
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                )}
+              </>
+            )}
+            
+            {form.watch("startLocation") && form.watch("endLocation") && (
+              <div className="mt-6">
+                <h3 className="text-sm font-medium mb-2">Route Preview</h3>
+                <div className="h-[300px] border rounded-md overflow-hidden">
+                  <RouteMapPreview 
+                    startLocation={form.watch("startLocation") || ""} 
+                    endLocation={form.watch("endLocation") || ""}
+                    showMap={true}
+                  />
                 </div>
-              )}
-            </Card>
-          )}
+              </div>
+            )}
+          </Card>
           
           {/* Email Notifications Card */}
           <Card className="p-6">
