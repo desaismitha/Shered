@@ -430,12 +430,12 @@ export default function EventPage() {
                       <div className="bg-gray-50 p-4 rounded-lg flex-1">
                         <h3 className="font-semibold mb-2">Start</h3>
                         <p>{eventData?.startDate ? new Date(eventData.startDate).toLocaleDateString() : ""}</p>
-                        <p>{eventData?.startDate ? formatTime(eventData.startDate) : ""}</p>
+                        <p>{eventData?.startDate ? formatTime(new Date(eventData.startDate)) : ""}</p>
                       </div>
                       <div className="bg-gray-50 p-4 rounded-lg flex-1">
                         <h3 className="font-semibold mb-2">End</h3>
                         <p>{eventData?.endDate ? new Date(eventData.endDate).toLocaleDateString() : ""}</p>
-                        <p>{eventData?.endDate ? formatTime(eventData.endDate) : ""}</p>
+                        <p>{eventData?.endDate ? formatTime(new Date(eventData.endDate)) : ""}</p>
                       </div>
                     </div>
                   </div>
