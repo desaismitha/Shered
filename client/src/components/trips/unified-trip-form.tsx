@@ -260,7 +260,6 @@ export function UnifiedTripForm({
                 name="startDate"
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
-                    <FormLabel>Start Date *</FormLabel>
                     <DatePicker 
                       field={field}
                       label="Start Date *"
@@ -278,7 +277,6 @@ export function UnifiedTripForm({
                 name="endDate"
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
-                    <FormLabel>End Date *</FormLabel>
                     <DatePicker 
                       field={field}
                       label="End Date *"
