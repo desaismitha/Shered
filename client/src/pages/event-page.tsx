@@ -51,10 +51,10 @@ function tryParseJSON(jsonString: string | null | undefined | any[], defaultValu
   }
 }
 
-// Define an extended type for our form data structure
-interface FormDataWithExtras {
+// Use the same type that the form expects to ensure compatibility
+type FormData = {
   name: string;
-  description: string;
+  description?: string;
   startDate: Date;
   endDate: Date;
   groupId?: number;
@@ -62,11 +62,15 @@ interface FormDataWithExtras {
   endLocation: string;
   startTime?: string;
   endTime?: string;
+  status?: "planning" | "confirmed" | "in-progress" | "completed" | "cancelled";
   isMultiStop: boolean;
   isRecurring?: boolean;
-  recurrencePattern?: string;
+  recurrencePattern?: "daily" | "weekly" | "monthly" | "custom";
   recurrenceDays?: string[];
+  enableMobileNotifications: boolean;
+  phoneNumber?: string;
   stops?: Array<{
+    id?: number;
     day: number;
     title: string;
     startLocation: string;
@@ -75,10 +79,10 @@ interface FormDataWithExtras {
     endTime?: string;
     description?: string;
     isRecurring?: boolean;
-    recurrencePattern?: string;
+    recurrencePattern?: "daily" | "weekly" | "monthly" | "custom";
     recurrenceDays?: string[];
   }>;
-}
+};
 
 export default function EventPage() {
   const { toast } = useToast();
@@ -331,13 +335,13 @@ export default function EventPage() {
   const isLoading = mutation.isPending || isLoadingEvent || isLoadingItinerary;
   
   // Handler for form submission
-  const handleSubmit = (formData: FormDataWithExtras) => {
+  const handleSubmit = (formData: FormData) => {
     console.log('Form submitted with data:', formData);
     
     // Prepare data for API
     const apiData: any = {
       name: formData.name,
-      description: formData.description,
+      description: formData.description || "",
       startDate: formData.startDate,
       endDate: formData.endDate,
       groupId: formData.groupId,
@@ -425,13 +429,13 @@ export default function EventPage() {
                     <div className="flex flex-col sm:flex-row gap-4 mb-4">
                       <div className="bg-gray-50 p-4 rounded-lg flex-1">
                         <h3 className="font-semibold mb-2">Start</h3>
-                        <p>{new Date(eventData?.startDate || "").toLocaleDateString()}</p>
-                        <p>{formatTime(new Date(eventData?.startDate || ""))}</p>
+                        <p>{eventData?.startDate ? new Date(eventData.startDate).toLocaleDateString() : ""}</p>
+                        <p>{eventData?.startDate ? formatTime(eventData.startDate) : ""}</p>
                       </div>
                       <div className="bg-gray-50 p-4 rounded-lg flex-1">
                         <h3 className="font-semibold mb-2">End</h3>
-                        <p>{new Date(eventData?.endDate || "").toLocaleDateString()}</p>
-                        <p>{formatTime(new Date(eventData?.endDate || ""))}</p>
+                        <p>{eventData?.endDate ? new Date(eventData.endDate).toLocaleDateString() : ""}</p>
+                        <p>{eventData?.endDate ? formatTime(eventData.endDate) : ""}</p>
                       </div>
                     </div>
                   </div>
@@ -442,7 +446,11 @@ export default function EventPage() {
             <TabsContent value="check-in">
               {eventData ? (
                 <>
-                  <TripCheckIn trip={eventData} />
+                  <TripCheckIn 
+                    tripId={parseInt(eventId)} 
+                    accessLevel={eventData._accessLevel}
+                    tripStatus={eventData.status}
+                  />
                   <div className="mt-8">
                     <TripCheckInStatus tripId={parseInt(eventId)} />
                   </div>
@@ -456,7 +464,11 @@ export default function EventPage() {
             
             <TabsContent value="tracking">
               {eventData ? (
-                <TripTracking tripId={parseInt(eventId)} />
+                <TripTracking 
+                  tripId={parseInt(eventId)} 
+                  tripName={eventData.name} 
+                  isActive={activeTab === "tracking"} 
+                />
               ) : (
                 <div className="text-center py-12 text-gray-500">
                   <h3 className="text-lg font-medium">Loading tracking information...</h3>

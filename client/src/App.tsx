@@ -36,6 +36,8 @@ function Router() {
       <ProtectedRoute path="/trips" component={TripsPage} />
       <ProtectedRoute path="/trips/new" component={UnifiedTripPage} />
       <ProtectedRoute path="/trips/:tripId" component={UnifiedTripPage} />
+      <ProtectedRoute path="/events/new" component={EventPage} />
+      <ProtectedRoute path="/events/:eventId" component={EventPage} />
       <ProtectedRoute path="/active-trips" component={ActiveTripsPage} />
       <ProtectedRoute path="/groups/new" component={NewGroupPage} />
       <ProtectedRoute path="/groups/:id" component={GroupDetailsPage} />
