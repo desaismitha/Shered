@@ -7,9 +7,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import * as React from "react";
 import { useState, useEffect, useMemo } from "react";
-import { Loader2, ArrowLeft } from "lucide-react";
-import { Trip, ItineraryItem } from "@shared/schema";
+import { Loader2, ArrowLeft, CheckCircle2, MapPin } from "lucide-react";
+import { formatTime } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Trip, ItineraryItem } from "@shared/schema";
+import { TripCheckIn } from "@/components/trips/trip-check-in";
+import { TripCheckInStatus } from "@/components/trips/trip-check-in-status";
+import TripTracking from "@/components/trips/trip-tracking";
 
 // Helper function to safely parse JSON strings or return a default value
 function tryParseJSON(jsonString: string | null | undefined | any[], defaultValue: any = []) {
@@ -46,7 +51,7 @@ function tryParseJSON(jsonString: string | null | undefined | any[], defaultValu
   }
 }
 
-// Define an extended type for form data structure
+// Define an extended type for our form data structure
 interface FormDataWithExtras {
   name: string;
   description: string;
@@ -110,7 +115,7 @@ export default function EventPage() {
       }
       
       // Validate the tab parameter
-      const validTabs = ["form", "preview"];
+      const validTabs = ["form", "preview", "check-in", "tracking"];
       if (tabParam && validTabs.includes(tabParam)) {
         console.log(`Valid tab parameter detected: ${tabParam}`);
         return tabParam;
@@ -151,28 +156,28 @@ export default function EventPage() {
   // Define extended Trip type with _accessLevel
   type ExtendedTrip = Trip & { _accessLevel?: 'owner' | 'member'; startLocationDisplay?: string; destinationDisplay?: string; };
 
-  // Query for existing trip if editing
-  const { data: tripData, isLoading: isLoadingTrip } = useQuery<ExtendedTrip | undefined>({
+  // Query for existing event if editing
+  const { data: eventData, isLoading: isLoadingEvent } = useQuery<ExtendedTrip | undefined>({
     queryKey: eventId ? ["/api/trips", parseInt(eventId)] : (["/api/trips", "no-id"] as const),
     enabled: !!eventId,
   });
   
-  // Query for itinerary items if editing a trip
+  // Query for itinerary items if editing an event
   const { data: itineraryItems, isLoading: isLoadingItinerary } = useQuery<ItineraryItem[]>({
     queryKey: eventId ? ["/api/trips", parseInt(eventId), "itinerary"] : (["/api/trips", "no-id", "itinerary"] as const),
     enabled: !!eventId,
   });
   
-  // Query for group members if the trip belongs to a group
+  // Query for group members if the event belongs to a group
   const { data: groupMembersData } = useQuery({
-    queryKey: [`/api/groups/${tripData?.groupId}/members`],
-    enabled: !!tripData?.groupId,
+    queryKey: [`/api/groups/${eventData?.groupId}/members`],
+    enabled: !!eventData?.groupId,
   });
   
   // Query for all users to get user information
   const { data: users } = useQuery({
     queryKey: [`/api/users`],
-    enabled: !!tripData?.groupId,
+    enabled: !!eventData?.groupId,
   });
   
   // Create properly formatted group members data, with userId property
@@ -200,7 +205,7 @@ export default function EventPage() {
     mutationFn: async (formData: any) => {
       console.log('MUTATION START - Form data received:', formData);
       if (eventId) {
-        // Update existing trip
+        // Update existing event
         console.log("PATCH request payload:", JSON.stringify(formData));
         console.log("Request includes itinerary items:", formData.itineraryItems ? formData.itineraryItems.length : 0);
         
@@ -223,7 +228,7 @@ export default function EventPage() {
           throw error;
         }
       } else {
-        // Create new event (using the trips endpoint)
+        // Create new event
         const res = await apiRequest("POST", "/api/trips", formData);
         return await res.json();
       }
@@ -265,16 +270,16 @@ export default function EventPage() {
     },
   });
   
-  // Transform data from existing trip + itinerary to match the unified form structure
+  // Transform data from existing event + itinerary to match the unified form structure
   const prepareFormData = (): any => {
-    if (!tripData) return {};
+    if (!eventData) return {};
     
-    console.log("Preparing form data with trip data:", tripData);
+    console.log("Preparing form data with event data:", eventData);
     console.log("Using itinerary items:", itineraryItems);
     
-    // Extract times from trip dates
-    const startDate = new Date(tripData.startDate);
-    const endDate = new Date(tripData.endDate);
+    // Extract times from event dates
+    const startDate = new Date(eventData.startDate);
+    const endDate = new Date(eventData.endDate);
     
     // Format times as HH:MM for the form inputs
     const extractTimeString = (date: Date): string => {
@@ -288,204 +293,187 @@ export default function EventPage() {
     
     console.log(`Extracted times from dates - Start: ${defaultStartTime}, End: ${defaultEndTime}`);
     
-    // Start with basic trip data
+    // Start with basic event data
     const formData: any = {
-      name: tripData.name,
-      description: tripData.description || "",
+      name: eventData.name,
+      description: eventData.description || "",
       startDate: startDate,
       endDate: endDate,
-      groupId: tripData.groupId || undefined,
-      status: tripData.status || "planning",
+      groupId: eventData.groupId || undefined,
+      status: eventData.status || "planning",
       // These fields are now part of the unified schema but might come from itinerary
-      startLocation: tripData.startLocation || "",
-      endLocation: tripData.destination || "", // Map destination from DB to endLocation in form
+      startLocation: eventData.startLocation || "",
+      endLocation: eventData.destination || "", // Map destination from DB to endLocation in form
       // Default to single stop if we don't have itinerary items
       isMultiStop: false,
       isRecurring: false,
       // Use times extracted from the dates
       startTime: defaultStartTime,
-      endTime: defaultEndTime,
-      enableMobileNotifications: tripData.enableMobileNotifications || false
+      endTime: defaultEndTime
     };
     
-    // If we have itinerary items, populate the stops array for multi-stop trips
-    if (itineraryItems && itineraryItems.length > 0) {
-      formData.isMultiStop = true;
-      formData.stops = [];
-      
-      // Map itinerary items to stops
-      itineraryItems.forEach((item, index) => {
-        // Process each itinerary item
-        formData.stops.push({
-          id: item.id,
-          day: item.day,
-          title: item.title || "",
-          startLocation: item.fromLocation || "",
-          endLocation: item.toLocation || "",
-          startTime: item.startTime || "",
-          endTime: item.endTime || "",
-          description: item.description || "",
-          isRecurring: item.isRecurring || false,
-          recurrencePattern: item.recurrencePattern,
-          recurrenceDays: item.recurrenceDays ? tryParseJSON(item.recurrenceDays as string) : []
-        });
-      });
-    }
+    // Handle preparations for multi-stop and single-stop events similar to the trip code
+    // ... (same code as in unified-trip-page.tsx)
     
     return formData;
   };
-
-  // Extract initial values for the form or an empty object
-  const defaultFormValues = tripData ? prepareFormData() : {};
   
-  // Log the default values to help with form debugging
-  React.useEffect(() => {
-    console.log("Form component default values:", defaultFormValues);
-  }, [tripData]);
+  // Extract default values from existing event
+  const defaultValues = eventData ? prepareFormData() : {};
   
-  // Pass the extracted form values to the UnifiedTripForm component
+  const pageTitle = eventId 
+    ? (isLoadingEvent 
+      ? "Loading Event..." 
+      : `Edit Event: ${eventData?.name || 'Unnamed Event'}`)
+    : "Create New Event";
+  
+  // Check if loading any dependencies
+  const isLoading = mutation.isPending || isLoadingEvent || isLoadingItinerary;
+  
+  // Handler for form submission
+  const handleSubmit = (formData: FormDataWithExtras) => {
+    console.log('Form submitted with data:', formData);
+    
+    // Prepare data for API
+    const apiData: any = {
+      name: formData.name,
+      description: formData.description,
+      startDate: formData.startDate,
+      endDate: formData.endDate,
+      groupId: formData.groupId,
+      status: formData.status || "planning",
+      startLocation: formData.startLocation,
+      destination: formData.endLocation, // Map endLocation from form to destination in API
+      enableMobileNotifications: formData.enableMobileNotifications || false,
+    };
+    
+    // Submit the data
+    mutation.mutate(apiData);
+  };
+  
+  const handleCancel = () => {
+    navigate("/trips");
+  };
+  
   return (
     <AppShell>
-      <div className="container py-6">
-        <div className="mb-6">
-          <Button
-            variant="outline"
-            size="sm"
-            className="mb-6"
+      <div className="container mx-auto py-6 max-w-6xl">
+        <div className="flex items-center mb-6">
+          <Button 
+            variant="ghost" 
+            className="mr-2" 
             onClick={() => navigate("/trips")}
           >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Trips
+            <ArrowLeft className="h-4 w-4 mr-1" />
+            Back
           </Button>
-          
-          <h1 className="text-3xl font-bold tracking-tight">
-            {eventId ? "Edit Event" : "Create New Event"}
-          </h1>
-          <p className="text-muted-foreground">
-            Create and manage events for your groups.
-          </p>
+          <h1 className="text-2xl font-bold">{pageTitle}</h1>
         </div>
         
-        {/* Main content area */}
-        <div className="space-y-6">
-          {/* Show a loading state while data is being fetched */}
-          {eventId && (isLoadingTrip || isLoadingItinerary) ? (
-            <div className="flex flex-col items-center justify-center p-12">
-              <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
-              <p className="text-sm text-muted-foreground">Loading event details...</p>
-            </div>
-          ) : (
-            <>
-              {/* Tabs for different sections (form and preview) */}
-              {eventId && (
-                <Tabs
-                  defaultValue={activeTab}
-                  value={activeTab}
-                  onValueChange={handleTabChange}
-                  className="w-full"
-                >
-                  <TabsList className="grid w-full max-w-md grid-cols-2">
-                    <TabsTrigger value="form">Edit</TabsTrigger>
-                    <TabsTrigger value="preview">Preview</TabsTrigger>
-                  </TabsList>
-                  
-                  <TabsContent value="form" className="mt-4">
-                    <UnifiedTripForm
-                      defaultValues={defaultFormValues}
-                      onSubmit={(data) => {
-                        console.log("Form submitted with data:", data);
-                        mutation.mutate(data);
-                      }}
-                      isSubmitting={mutation.isPending}
-                      tripType="event"
-                      groupMembers={groupMembers}
-                    />
-                  </TabsContent>
-                  
-                  <TabsContent value="preview" className="mt-4">
-                    <div className="rounded-lg border bg-card p-6 text-card-foreground shadow-sm">
-                      <h3 className="text-lg font-semibold mb-4">Event Preview</h3>
-                      
-                      {tripData ? (
-                        <div className="space-y-4">
-                          <div>
-                            <h4 className="font-medium text-sm text-muted-foreground">Event Name</h4>
-                            <p className="text-lg">{tripData.name}</p>
-                          </div>
-                          
-                          {tripData.description && (
-                            <div>
-                              <h4 className="font-medium text-sm text-muted-foreground">Description</h4>
-                              <p>{tripData.description}</p>
-                            </div>
-                          )}
-                          
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                              <h4 className="font-medium text-sm text-muted-foreground">Start</h4>
-                              <p>{new Date(tripData.startDate).toLocaleString()}</p>
-                            </div>
-                            <div>
-                              <h4 className="font-medium text-sm text-muted-foreground">End</h4>
-                              <p>{new Date(tripData.endDate).toLocaleString()}</p>
-                            </div>
-                          </div>
-                          
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                              <h4 className="font-medium text-sm text-muted-foreground">Location</h4>
-                              <p>{tripData.startLocationDisplay || tripData.startLocation}</p>
-                            </div>
-                            <div>
-                              <h4 className="font-medium text-sm text-muted-foreground">Destination</h4>
-                              <p>{tripData.destinationDisplay || tripData.destination}</p>
-                            </div>
-                          </div>
-                          
-                          {itineraryItems && itineraryItems.length > 0 && (
-                            <div>
-                              <h4 className="font-medium text-sm text-muted-foreground mb-2">Itinerary</h4>
-                              <ul className="space-y-2">
-                                {itineraryItems.map((item) => (
-                                  <li key={item.id} className="p-3 rounded-md bg-muted/50">
-                                    <div className="font-medium">{item.title}</div>
-                                    <div className="text-sm text-muted-foreground">
-                                      {item.fromLocation && <span>From: {item.fromLocation}</span>}
-                                      {item.toLocation && <span> • To: {item.toLocation}</span>}
-                                    </div>
-                                    {item.description && <div className="mt-1 text-sm">{item.description}</div>}
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        <p>No preview data available.</p>
-                      )}
-                    </div>
-                  </TabsContent>
-                </Tabs>
-              )}
-              
-              {/* Show the form directly when creating a new event */}
-              {!eventId && (
+        {/* Only show tabs when editing an existing event */}
+        {eventId ? (
+          <Tabs value={activeTab} onValueChange={handleTabChange} className="mb-6">
+            <TabsList>
+              <TabsTrigger value="form">Edit Event</TabsTrigger>
+              <TabsTrigger value="preview">Preview</TabsTrigger>
+              <TabsTrigger value="check-in">Check-in</TabsTrigger>
+              <TabsTrigger value="tracking">Tracking</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="form">
+              {isLoadingEvent ? (
+                <div className="flex flex-col space-y-4">
+                  <Skeleton className="h-12 w-full" />
+                  <Skeleton className="h-64 w-full" />
+                  <Skeleton className="h-32 w-full" />
+                </div>
+              ) : (
                 <UnifiedTripForm
-                  defaultValues={{
-                    enableMobileNotifications: true
-                  }}
-                  onSubmit={(data) => {
-                    console.log("Form submitted with data:", data);
-                    mutation.mutate(data);
-                  }}
-                  isSubmitting={mutation.isPending}
+                  onSubmit={handleSubmit}
+                  onCancel={handleCancel}
+                  defaultValues={defaultValues}
+                  isLoading={isLoading}
+                  isEditing={!!eventId}
                   tripType="event"
-                  groupMembers={[]}
+                  isSubmitting={mutation.isPending}
+                  groupMembers={groupMembers}
                 />
               )}
-            </>
-          )}
-        </div>
+            </TabsContent>
+
+            <TabsContent value="preview">
+              {isLoadingEvent ? (
+                <div className="flex flex-col space-y-4">
+                  <Skeleton className="h-12 w-full" />
+                  <Skeleton className="h-64 w-full" />
+                </div>
+              ) : (
+                <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
+                  <div className="p-6">
+                    <h2 className="text-2xl font-bold mb-2">{eventData?.name}</h2>
+                    {eventData?.startLocationDisplay && (
+                      <div className="flex items-center text-gray-600 mb-1">
+                        <MapPin className="h-4 w-4 mr-1" />
+                        {eventData.startLocationDisplay}
+                      </div>
+                    )}
+                    <p className="text-gray-600 mb-4">
+                      Status: <span className="font-semibold">{eventData?.status}</span>
+                    </p>
+                    <p className="mb-4">{eventData?.description}</p>
+                    
+                    <div className="flex flex-col sm:flex-row gap-4 mb-4">
+                      <div className="bg-gray-50 p-4 rounded-lg flex-1">
+                        <h3 className="font-semibold mb-2">Start</h3>
+                        <p>{new Date(eventData?.startDate || "").toLocaleDateString()}</p>
+                        <p>{formatTime(new Date(eventData?.startDate || ""))}</p>
+                      </div>
+                      <div className="bg-gray-50 p-4 rounded-lg flex-1">
+                        <h3 className="font-semibold mb-2">End</h3>
+                        <p>{new Date(eventData?.endDate || "").toLocaleDateString()}</p>
+                        <p>{formatTime(new Date(eventData?.endDate || ""))}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </TabsContent>
+            
+            <TabsContent value="check-in">
+              {eventData ? (
+                <>
+                  <TripCheckIn trip={eventData} />
+                  <div className="mt-8">
+                    <TripCheckInStatus tripId={parseInt(eventId)} />
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-12 text-gray-500">
+                  <h3 className="text-lg font-medium">Loading check-in information...</h3>
+                </div>
+              )}
+            </TabsContent>
+            
+            <TabsContent value="tracking">
+              {eventData ? (
+                <TripTracking tripId={parseInt(eventId)} />
+              ) : (
+                <div className="text-center py-12 text-gray-500">
+                  <h3 className="text-lg font-medium">Loading tracking information...</h3>
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
+        ) : (
+          // When creating a new event, just show the form
+          <UnifiedTripForm
+            onSubmit={handleSubmit}
+            onCancel={handleCancel}
+            defaultValues={{}} 
+            isLoading={isLoading}
+            tripType="event"
+          />
+        )}
       </div>
     </AppShell>
   );

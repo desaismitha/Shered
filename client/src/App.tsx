@@ -12,6 +12,7 @@ import DashboardPage from "@/pages/dashboard-page";
 import TripsPage from "@/pages/trips-page";
 // Using unified trip page instead of separate pages
 import UnifiedTripPage from "@/pages/unified-trip-page";
+import EventPage from "@/pages/event-page";
 import TripsDebugPage from "@/pages/trips-debug-page";
 import ActiveTripsDebug from "@/pages/active-trips-debug";
 import GroupsPage from "@/pages/groups-page";

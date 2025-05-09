@@ -365,7 +365,7 @@ export function UnifiedTripForm({
                     <FormLabel>Description (Optional)</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="Enter trip description"
+                        placeholder={`Enter ${tripType} description`}
                         className="min-h-[100px]"
                         {...field}
                       />
@@ -417,7 +417,7 @@ export function UnifiedTripForm({
           {/* Location Information Card */}
           {!isMultiStop && (
             <Card className="p-6">
-              <h2 className="text-lg font-medium mb-4">Location Information</h2>
+              <h2 className="text-lg font-medium mb-4">{tripType === 'event' ? 'Event Location' : 'Location Information'}</h2>
               
               <div className="grid gap-6 sm:grid-cols-2">
                 <FormField
@@ -547,7 +547,11 @@ export function UnifiedTripForm({
                     Saving...
                   </>
                 ) : (
-                  isEditing ? "Save Changes" : (isMultiStop ? "Create Multi-Stop Trip" : "Create Trip")
+                  isEditing ? "Save Changes" : (
+                    isMultiStop 
+                      ? (tripType === 'event' ? "Create Multi-Day Event" : "Create Multi-Stop Trip")
+                      : (tripType === 'event' ? "Create Event" : "Create Trip")
+                  )
                 )}
               </button>
             </div>
