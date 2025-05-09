@@ -109,6 +109,9 @@ interface UnifiedTripFormProps {
   defaultValues?: Partial<FormData>;
   isLoading?: boolean;
   isEditing?: boolean;
+  tripType?: 'trip' | 'event';
+  isSubmitting?: boolean;
+  groupMembers?: any[];
 }
 
 export function UnifiedTripForm({ 
@@ -116,7 +119,10 @@ export function UnifiedTripForm({
   onCancel, 
   defaultValues, 
   isLoading = false,
-  isEditing = false 
+  isEditing = false,
+  tripType = 'trip',
+  isSubmitting = false,
+  groupMembers = []
 }: UnifiedTripFormProps) {
   const { toast } = useToast();
   const [, navigate] = useLocation();
