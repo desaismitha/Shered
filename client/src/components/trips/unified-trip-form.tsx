@@ -213,7 +213,7 @@ export function UnifiedTripForm({
           className="space-y-8">
           
           <Card className="p-6">
-            <h2 className="text-lg font-medium mb-4">Trip Details</h2>
+            <h2 className="text-lg font-medium mb-4">{tripType === 'event' ? 'Event Details' : 'Trip Details'}</h2>
             
             <div className="grid gap-4 sm:grid-cols-2">
               <FormField
@@ -221,9 +221,9 @@ export function UnifiedTripForm({
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Trip Name *</FormLabel>
+                    <FormLabel>{tripType === 'event' ? 'Event Name *' : 'Trip Name *'}</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter trip name" {...field} />
+                      <Input placeholder={`Enter ${tripType} name`} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -261,7 +261,7 @@ export function UnifiedTripForm({
                       </SelectContent>
                     </Select>
                     <FormDescription>
-                      Choose a group to share this trip with
+                      Choose a group to share this {tripType} with
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -298,7 +298,7 @@ export function UnifiedTripForm({
                       <Input type="time" {...field} />
                     </FormControl>
                     <FormDescription>
-                      What time will the trip start?
+                      What time will the {tripType} start?
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -315,7 +315,7 @@ export function UnifiedTripForm({
                       <Input type="time" {...field} />
                     </FormControl>
                     <FormDescription>
-                      What time will the trip end?
+                      What time will the {tripType} end?
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -329,7 +329,7 @@ export function UnifiedTripForm({
                 name="status"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Trip Status *</FormLabel>
+                    <FormLabel>{tripType === 'event' ? 'Event Status *' : 'Trip Status *'}</FormLabel>
                     <Select
                       onValueChange={field.onChange}
                       defaultValue={field.value}
@@ -348,7 +348,7 @@ export function UnifiedTripForm({
                       </SelectContent>
                     </Select>
                     <FormDescription>
-                      Current status of your trip
+                      Current status of your {tripType}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -378,7 +378,7 @@ export function UnifiedTripForm({
           </Card>
           
           <Card className="p-6">
-            <h2 className="text-lg font-medium mb-4">Trip Type</h2>
+            <h2 className="text-lg font-medium mb-4">{tripType === 'event' ? 'Event Type' : 'Trip Type'}</h2>
             
             <div className="flex flex-col space-y-4">
               <FormField
@@ -388,12 +388,18 @@ export function UnifiedTripForm({
                   <FormItem className="flex flex-row items-center justify-between space-x-3 space-y-0 rounded-md border p-4">
                     <div className="space-y-1">
                       <FormLabel className="text-base">
-                        {field.value ? "Multi-Stop Trip" : "Single Stop Trip"}
+                        {field.value 
+                          ? (tripType === 'event' ? "Multi-Day Event" : "Multi-Stop Trip") 
+                          : (tripType === 'event' ? "Single Day Event" : "Single Stop Trip")}
                       </FormLabel>
                       <FormDescription>
                         {field.value 
-                          ? "Create a trip with multiple stops on different days" 
-                          : "Create a simple trip with one start and end location"}
+                          ? (tripType === 'event' 
+                             ? "Create an event with multiple activities on different days" 
+                             : "Create a trip with multiple stops on different days")
+                          : (tripType === 'event'
+                             ? "Create a simple event with one location"
+                             : "Create a simple trip with one start and end location")}
                       </FormDescription>
                     </div>
                     <FormControl>
@@ -429,7 +435,7 @@ export function UnifiedTripForm({
                         />
                       </FormControl>
                       <FormDescription>
-                        Where the trip begins
+                        Where the {tripType} begins
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -451,7 +457,7 @@ export function UnifiedTripForm({
                         />
                       </FormControl>
                       <FormDescription>
-                        Where the trip ends
+                        Where the {tripType} ends
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -486,10 +492,10 @@ export function UnifiedTripForm({
                   <FormItem className="flex flex-row items-center justify-between space-x-3 space-y-0 rounded-md border p-4">
                     <div className="space-y-1">
                       <FormLabel className="text-base">
-                        Trip Notifications
+                        {tripType === 'event' ? 'Event Notifications' : 'Trip Notifications'}
                       </FormLabel>
                       <FormDescription>
-                        Receive email notifications for trip status changes and route deviations
+                        Receive email notifications for {tripType} status changes and route deviations
                       </FormDescription>
                     </div>
                     <FormControl>
@@ -507,9 +513,9 @@ export function UnifiedTripForm({
                   <p className="text-sm text-blue-700">
                     Email notifications will be sent when:
                     <ul className="list-disc ml-6 mt-1">
-                      <li>Trip status changes (planning, confirmed, in-progress, completed)</li>
+                      <li>{tripType === 'event' ? 'Event' : 'Trip'} status changes (planning, confirmed, in-progress, completed)</li>
                       <li>Someone deviates from the planned route</li>
-                      <li>Important trip updates occur</li>
+                      <li>Important {tripType} updates occur</li>
                     </ul>
                     Make sure all group members have verified their email addresses.
                   </p>
