@@ -447,17 +447,17 @@ export function UnifiedTripForm({
                   name="endLocation"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Destination *</FormLabel>
+                      <FormLabel>{tripType === 'event' ? 'Event Location *' : 'Destination *'}</FormLabel>
                       <FormControl>
                         <MapLocationPicker 
                           label=""
                           value={field.value || ""} 
                           onChange={field.onChange}
-                          placeholder="Enter destination"
+                          placeholder={tripType === 'event' ? "Enter event location" : "Enter destination"}
                         />
                       </FormControl>
                       <FormDescription>
-                        Where the {tripType} ends
+                        {tripType === 'event' ? 'Where the event takes place' : 'Where the trip ends'}
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
