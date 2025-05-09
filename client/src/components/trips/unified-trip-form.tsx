@@ -132,7 +132,7 @@ export function UnifiedTripForm({
   const [location, navigate] = useLocation();
   
   // Fetch user's phone number and groups
-  const { data: groups } = useQuery({
+  const { data: groups = [] } = useQuery<Group[]>({
     queryKey: ['/api/groups'],
   });
   
@@ -238,7 +238,7 @@ export function UnifiedTripForm({
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="none">No group</SelectItem>
-                        {groups?.map((group) => (
+                        {groups?.map((group: Group) => (
                           <SelectItem key={group.id} value={group.id.toString()}>
                             {group.name}
                           </SelectItem>
@@ -262,8 +262,8 @@ export function UnifiedTripForm({
                   <FormItem className="flex flex-col">
                     <FormLabel>Start Date *</FormLabel>
                     <DatePicker 
-                      selected={field.value} 
-                      onSelect={field.onChange}
+                      field={field}
+                      label="Start Date *"
                     />
                     <FormDescription>
                       When will the {tripType} start?
@@ -280,8 +280,8 @@ export function UnifiedTripForm({
                   <FormItem className="flex flex-col">
                     <FormLabel>End Date *</FormLabel>
                     <DatePicker 
-                      selected={field.value} 
-                      onSelect={field.onChange}
+                      field={field}
+                      label="End Date *"
                     />
                     <FormDescription>
                       When will the {tripType} end?
