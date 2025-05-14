@@ -22,6 +22,7 @@ import ExpensesPage from "@/pages/expenses-page";
 import MessagesPage from "@/pages/messages-page";
 import VehiclesPage from "@/pages/vehicles-page";
 import ActiveTripsPage from "@/pages/active-trips-page";
+import CheckInPage from "@/pages/check-in-page";
 import ForgotPasswordPage from "@/pages/forgot-password";
 import ResetPasswordPage from "@/pages/reset-password";
 import VerifyEmailPage from "@/pages/verify-email-page";
@@ -39,6 +40,7 @@ function Router() {
       <ProtectedRoute path="/events/new" component={EventPage} />
       <ProtectedRoute path="/events/:eventId" component={EventPage} />
       <ProtectedRoute path="/active-trips" component={ActiveTripsPage} />
+      <ProtectedRoute path="/check-in" component={CheckInPage} />
       <ProtectedRoute path="/groups/new" component={NewGroupPage} />
       <ProtectedRoute path="/groups/:id" component={GroupDetailsPage} />
       <ProtectedRoute path="/groups" component={GroupsPage} />
