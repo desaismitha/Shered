@@ -1,32 +1,20 @@
 import { AppShell } from "@/components/layout/app-shell";
 import { useQuery } from "@tanstack/react-query";
-import { Expense, Trip, User, GroupMember } from "@shared/schema";
+import { Trip, User } from "@shared/schema";
 import { TripCard } from "@/components/trips/trip-card";
 import { Button } from "@/components/ui/button";
-import { PlusIcon, Search, DollarSign, ReceiptIcon } from "lucide-react";
+import { PlusIcon, Search } from "lucide-react";
 import { useLocation } from "wouter";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ExpenseCard } from "@/components/expenses/expense-card";
-import { ExpenseForm } from "@/components/expenses/expense-form";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogDescription 
-} from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/use-auth";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
 export default function TripsPage() {
   const [, navigate] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [selectedTripForExpense, setSelectedTripForExpense] = useState<Trip | null>(null);
-  const [expenseDialogOpen, setExpenseDialogOpen] = useState(false);
   const { user } = useAuth();
   
   // Get all trips
@@ -39,41 +27,24 @@ export default function TripsPage() {
     refetchInterval: 10000, // Refetch every 10 seconds
   });
 
-  // Get all expenses
-  const { data: expenses, isLoading: isLoadingExpenses } = useQuery<Expense[]>({
-    queryKey: ["/api/expenses"],
-  });
-
-  // Get all users for expense details
-  const { data: users } = useQuery<User[]>({
-    queryKey: ["/api/users"],
-  });
-
   // Debug logging for trips data
   console.log("Trips data from API:", trips);
-  console.log("All expenses:", expenses);
-  console.log("Total expenses calculated:", expenses?.reduce((sum, expense) => sum + expense.amount, 0) || 0);
 
   // Type guard for Trip objects
-  const hasTripDisplayFields = (trip: any): trip is Trip & { 
+  const hasTripDisplayFields = (trip: Trip): trip is Trip & { 
     startLocationDisplay?: string; 
     destinationDisplay?: string;
   } => {
-    return trip && typeof trip === 'object';
+    return typeof trip === 'object' && trip !== null;
   };
 
   // Filter trips based on search query and status
   const filteredTrips = trips?.filter(trip => {
-    // Use type guard to check for display fields
-    const tripWithDisplay = hasTripDisplayFields(trip);
-    
     const matchesSearch = 
       searchQuery === "" || 
       (trip.name?.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (trip.destination && trip.destination.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (trip.startLocation && trip.startLocation.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (tripWithDisplay.destinationDisplay && tripWithDisplay.destinationDisplay.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (tripWithDisplay.startLocationDisplay && tripWithDisplay.startLocationDisplay.toLowerCase().includes(searchQuery.toLowerCase()));
+      (trip.startLocation && trip.startLocation.toLowerCase().includes(searchQuery.toLowerCase()));
     
     const matchesStatus = statusFilter === "all" || trip.status === statusFilter;
     
@@ -150,56 +121,10 @@ export default function TripsPage() {
   
   console.log("Cancelled trips:", cancelledTrips);
 
-  // Filter expenses for the current tab
+  // Get trip IDs for each category
   const upcomingTripIds = upcomingTrips?.map(trip => trip.id) || [];
   const pastTripIds = pastTrips?.map(trip => trip.id) || [];
   const cancelledTripIds = cancelledTrips?.map(trip => trip.id) || [];
-  
-  // Get expenses for the currently active tab
-  const getExpensesByTab = (tabValue: string) => {
-    if (!expenses) return [];
-    
-    let relevantTripIds: number[] = [];
-    if (tabValue === "upcoming") relevantTripIds = upcomingTripIds;
-    else if (tabValue === "past") relevantTripIds = pastTripIds;
-    else if (tabValue === "cancelled") relevantTripIds = cancelledTripIds;
-    
-    return expenses.filter(expense => relevantTripIds.includes(expense.tripId));
-  };
-
-  // Calculate total expenses
-  const calculateTotalForTab = (tabValue: string) => {
-    const relevantExpenses = getExpensesByTab(tabValue);
-    return relevantExpenses.reduce((sum, expense) => sum + expense.amount, 0);
-  };
-
-  // Get group members for the selected trip's group
-  const { data: groupMembers, isLoading: isLoadingGroupMembers } = useQuery<GroupMember[]>({
-    queryKey: ["/api/groups", selectedTripForExpense?.groupId, "members"],
-    enabled: !!selectedTripForExpense?.groupId, // Only run the query if we have a selected trip with a group
-  });
-  
-  // Function to get group members for the selected trip
-  const getGroupMembersForTrip = (trip: Trip | null): GroupMember[] => {
-    if (!trip) return [];
-    
-    // If the trip has a group, use the fetched group members
-    if (trip.groupId && groupMembers) {
-      return groupMembers;
-    }
-    
-    // If the trip doesn't have a group or we're still loading group members,
-    // return just the current user as a temporary group member
-    return [
-      { id: 1, groupId: trip.groupId || 0, userId: user?.id || 0, role: "member" } as GroupMember
-    ];
-  };
-
-  // Function to open expense dialog for a specific trip
-  const openExpenseDialog = (trip: Trip) => {
-    setSelectedTripForExpense(trip);
-    setExpenseDialogOpen(true);
-  };
 
   return (
     <AppShell>
@@ -377,26 +302,7 @@ export default function TripsPage() {
       </div>
 
       {/* Expense Dialog */}
-      <Dialog open={expenseDialogOpen} onOpenChange={setExpenseDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>Add Expense for Trip</DialogTitle>
-            <DialogDescription>
-              {selectedTripForExpense?.name} - {selectedTripForExpense?.destination}
-            </DialogDescription>
-          </DialogHeader>
-
-          {selectedTripForExpense && (
-            <ExpenseForm
-              tripId={selectedTripForExpense.id}
-              groupMembers={getGroupMembersForTrip(selectedTripForExpense)}
-              users={users || []}
-              onSuccess={() => setExpenseDialogOpen(false)}
-              onCancel={() => setExpenseDialogOpen(false)}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
+      {/* Expense dialog removed */}
     </AppShell>
   );
 }
