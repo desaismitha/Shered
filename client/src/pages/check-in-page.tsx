@@ -8,11 +8,12 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, CheckCircle2, XCircle, Clock, AlertTriangle } from "lucide-react";
+import { Loader2, CheckCircle2, XCircle, Clock, AlertTriangle, PlusCircle } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
+import { useLocation } from "wouter";
 
 // Define interface for the Trip data structure
 interface Trip {
@@ -60,6 +61,7 @@ interface CheckInStatusData {
 function CheckInPage() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [, navigate] = useLocation();
   const [selectedTripId, setSelectedTripId] = useState<number | null>(null);
   const [formData, setFormData] = useState<CheckInFormData>({
     status: "ready",
