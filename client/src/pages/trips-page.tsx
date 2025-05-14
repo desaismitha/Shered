@@ -224,14 +224,6 @@ export default function TripsPage() {
           </div>
           <div className="flex gap-2 mt-2 sm:mt-0">
             <Button 
-              variant="outline"
-              onClick={() => navigate("/expenses")}
-              className="inline-flex items-center"
-            >
-              <DollarSign className="h-4 w-4 mr-2" />
-              View All Expenses
-            </Button>
-            <Button 
               onClick={() => navigate("/trips/new")}
               className="inline-flex items-center"
             >
@@ -267,68 +259,7 @@ export default function TripsPage() {
           </TabsList>
           
           <TabsContent value="upcoming">
-            {/* Expenses Summary Card for Upcoming Trips */}
-            {!isLoading && !isLoadingExpenses && upcomingTrips && upcomingTrips.length > 0 && (
-              <Card className="mb-6">
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-lg flex items-center">
-                    <ReceiptIcon className="h-5 w-5 mr-2" />
-                    Trip Expenses
-                  </CardTitle>
-                  <span className="text-lg font-medium">
-                    Total: ${(calculateTotalForTab("upcoming") / 100).toFixed(2)}
-                  </span>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {getExpensesByTab("upcoming").length > 0 ? (
-                      <div className="space-y-3">
-                        {getExpensesByTab("upcoming")
-                          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                          .slice(0, 3) // Show only the 3 most recent expenses
-                          .map(expense => (
-                            <ExpenseCard key={expense.id} expense={expense} users={users || []} />
-                          ))
-                        }
-                        {getExpensesByTab("upcoming").length > 3 && (
-                          <div className="text-center mt-2">
-                            <Button 
-                              variant="link" 
-                              onClick={() => navigate("/expenses")}
-                            >
-                              View all {getExpensesByTab("upcoming").length} expenses
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <p className="text-center text-muted-foreground py-3">
-                        No expenses recorded for your upcoming trips yet.
-                      </p>
-                    )}
-                    <div className="mt-4 flex justify-end">
-                      <Button 
-                        onClick={() => {
-                          if (upcomingTrips.length === 1) {
-                            // If there's only one trip, select it automatically
-                            openExpenseDialog(upcomingTrips[0]);
-                          } else {
-                            // If there are multiple trips, navigate to expenses page
-                            navigate("/expenses");
-                          }
-                        }}
-                        className="inline-flex items-center"
-                        variant="outline"
-                        size="sm"
-                      >
-                        <PlusIcon className="h-4 w-4 mr-2" />
-                        Add Expense
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+            {/* Expenses section removed */}
 
             {isLoading ? (
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -353,24 +284,7 @@ export default function TripsPage() {
             ) : upcomingTrips && upcomingTrips.length > 0 ? (
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {upcomingTrips.map((trip) => (
-                  <div key={trip.id} className="relative group">
-                    <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                      <Button 
-                        size="sm" 
-                        variant="secondary"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          openExpenseDialog(trip);
-                        }}
-                        className="shadow-md"
-                      >
-                        <DollarSign className="h-4 w-4 mr-1" />
-                        Add Expense
-                      </Button>
-                    </div>
-                    <TripCard key={trip.id} trip={trip} />
-                  </div>
+                  <TripCard key={trip.id} trip={trip} />
                 ))}
               </div>
             ) : (
@@ -389,49 +303,7 @@ export default function TripsPage() {
           </TabsContent>
           
           <TabsContent value="past">
-            {/* Expenses Summary Card for Past Trips */}
-            {!isLoading && !isLoadingExpenses && pastTrips && pastTrips.length > 0 && (
-              <Card className="mb-6">
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-lg flex items-center">
-                    <ReceiptIcon className="h-5 w-5 mr-2" />
-                    Trip Expenses
-                  </CardTitle>
-                  <span className="text-lg font-medium">
-                    Total: ${(calculateTotalForTab("past") / 100).toFixed(2)}
-                  </span>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {getExpensesByTab("past").length > 0 ? (
-                      <div className="space-y-3">
-                        {getExpensesByTab("past")
-                          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                          .slice(0, 3) // Show only the 3 most recent expenses
-                          .map(expense => (
-                            <ExpenseCard key={expense.id} expense={expense} users={users || []} />
-                          ))
-                        }
-                        {getExpensesByTab("past").length > 3 && (
-                          <div className="text-center mt-2">
-                            <Button 
-                              variant="link" 
-                              onClick={() => navigate("/expenses")}
-                            >
-                              View all {getExpensesByTab("past").length} expenses
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <p className="text-center text-muted-foreground py-3">
-                        No expenses recorded for your past trips.
-                      </p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+            {/* Expenses section removed */}
             
             {isLoading ? (
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
