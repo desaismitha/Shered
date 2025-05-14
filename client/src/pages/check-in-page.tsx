@@ -208,17 +208,7 @@ function CheckInPage() {
           {/* Trip Selector */}
           <div className="lg:col-span-1">
             <Card className="p-5">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-semibold">Select a Trip</h2>
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  className="flex items-center gap-1"
-                  onClick={() => navigate("/trips/new")}
-                >
-                  <PlusCircle className="h-4 w-4" /> New Trip
-                </Button>
-              </div>
+              <h2 className="text-lg font-semibold mb-4">Select a Trip</h2>
               
               <div className="mb-4 flex items-center space-x-2">
                 <Switch 
@@ -242,15 +232,6 @@ function CheckInPage() {
                   {showPastTrips 
                     ? "No trips found. Create a trip first." 
                     : "No active trips found. Try enabling 'Show past trips' to see completed trips."}
-                  <div className="mt-4">
-                    <Button 
-                      variant="default" 
-                      className="flex items-center gap-1 mx-auto"
-                      onClick={() => navigate("/trips/new")}
-                    >
-                      <PlusCircle className="h-4 w-4" /> Create a New Trip
-                    </Button>
-                  </div>
                 </div>
               ) : (
                 <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
