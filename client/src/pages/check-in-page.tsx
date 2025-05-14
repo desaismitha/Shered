@@ -73,7 +73,7 @@ function CheckInPage() {
     isLoading: isLoadingTrips,
     error: tripsError,
   } = useQuery<Trip[]>({
-    queryKey: ["/api/trips/user"],
+    queryKey: ["/api/trips"],
     refetchInterval: 30000, // Refresh every 30 seconds
   });
   
@@ -223,11 +223,13 @@ function CheckInPage() {
                 </div>
               ) : tripsError ? (
                 <div className="text-red-500 p-4 border border-red-200 rounded-md">
-                  Failed to load trips. Please try again.
+                  Error loading trips: {tripsError instanceof Error ? tripsError.message : "Unknown error. Please try again."}
                 </div>
               ) : filteredTrips.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
-                  No trips found. Create a trip first.
+                  {showPastTrips 
+                    ? "No trips found. Create a trip first." 
+                    : "No active trips found. Try enabling 'Show past trips' to see completed trips."}
                 </div>
               ) : (
                 <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
