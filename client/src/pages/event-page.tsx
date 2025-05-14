@@ -15,6 +15,7 @@ import { Trip, ItineraryItem } from "@shared/schema";
 import { TripCheckIn } from "@/components/trips/trip-check-in";
 import { TripCheckInStatus } from "@/components/trips/trip-check-in-status";
 import TripTracking from "@/components/trips/trip-tracking";
+import { CheckInUser } from "@/pages/unified-trip-page";
 
 // Helper function to safely parse JSON strings or return a default value
 function tryParseJSON(jsonString: string | null | undefined | any[], defaultValue: any = []) {
@@ -186,7 +187,7 @@ export default function EventPage() {
   
   // Create properly formatted group members data, with userId property
   const groupMembers = React.useMemo(() => {
-    if (!groupMembersData || !users) return [];
+    if (!groupMembersData || !users) return [] as CheckInUser[];
     
     // Map group member IDs to user information
     const membersList = Array.isArray(groupMembersData) 
@@ -198,7 +199,7 @@ export default function EventPage() {
             username: user.username,
             displayName: user.displayName || user.username
           } : null;
-        }).filter(Boolean)
+        }).filter((member): member is CheckInUser => member !== null)
       : [];
     
     return membersList;
@@ -232,9 +233,25 @@ export default function EventPage() {
           throw error;
         }
       } else {
-        // Create new event
-        const res = await apiRequest("POST", "/api/trips", formData);
-        return await res.json();
+        // Create new event - ensure enableMobileNotifications is set
+        console.log("Creating new event with data:", JSON.stringify(formData));
+        
+        // Ensure enableMobileNotifications is set to true by default
+        if (formData.enableMobileNotifications === undefined) {
+          formData.enableMobileNotifications = true;
+        }
+        
+        try {
+          console.log("About to send POST request to /api/trips for event creation");
+          const res = await apiRequest("POST", "/api/trips", formData);
+          console.log("POST request successful, parsing response");
+          const jsonResponse = await res.json();
+          console.log("POST response:", JSON.stringify(jsonResponse));
+          return jsonResponse;
+        } catch (error) {
+          console.error("POST request failed:", error);
+          throw error;
+        }
       }
     },
     onSuccess: () => {

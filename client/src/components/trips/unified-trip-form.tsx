@@ -173,9 +173,16 @@ export function UnifiedTripForm({
   
   // This function will be called when the form is submitted
   const handleSubmit = (data: FormData) => {
+    console.log("UnifiedTripForm - handleSubmit called with data:", data);
     setFormData(data);
     
     try {
+      // Add enableMobileNotifications if not present (fix for trip creation)
+      if (data.enableMobileNotifications === undefined) {
+        data.enableMobileNotifications = true;
+      }
+      
+      console.log("UnifiedTripForm - About to call onSubmit with data:", data);
       onSubmit(data);
     } catch (error: any) {
       console.error("Form submission error:", error);

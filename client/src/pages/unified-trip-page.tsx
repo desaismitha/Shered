@@ -16,6 +16,14 @@ import { TripCheckIn } from "@/components/trips/trip-check-in";
 import { TripCheckInStatus } from "@/components/trips/trip-check-in-status";
 import TripTracking from "@/components/trips/trip-tracking";
 
+// Interface to define the shape of user data
+export interface CheckInUser {
+  id: number;
+  userId: number;
+  username: string;
+  displayName: string;
+}
+
 // Helper function to safely parse JSON strings or return a default value
 function tryParseJSON(jsonString: string | null | undefined | any[], defaultValue: any = []) {
   // If it's already an array, just return it
@@ -180,9 +188,11 @@ export default function UnifiedTripPage() {
     enabled: !!tripData?.groupId,
   });
   
+
+
   // Create properly formatted group members data, with userId property
   const groupMembers = React.useMemo(() => {
-    if (!groupMembersData || !users) return [];
+    if (!groupMembersData || !users) return [] as CheckInUser[];
     
     // Map group member IDs to user information
     const membersList = Array.isArray(groupMembersData) 
@@ -194,7 +204,7 @@ export default function UnifiedTripPage() {
             username: user.username,
             displayName: user.displayName || user.username
           } : null;
-        }).filter(Boolean)
+        }).filter((member): member is CheckInUser => member !== null)
       : [];
     
     return membersList;
@@ -228,9 +238,25 @@ export default function UnifiedTripPage() {
           throw error;
         }
       } else {
-        // Create new trip
-        const res = await apiRequest("POST", "/api/trips", formData);
-        return await res.json();
+        // Create new trip - ensure enableMobileNotifications is set
+        console.log("Creating new trip with data:", JSON.stringify(formData));
+        
+        // Ensure enableMobileNotifications is set to true by default
+        if (formData.enableMobileNotifications === undefined) {
+          formData.enableMobileNotifications = true;
+        }
+        
+        try {
+          console.log("About to send POST request to /api/trips");
+          const res = await apiRequest("POST", "/api/trips", formData);
+          console.log("POST request successful, parsing response");
+          const jsonResponse = await res.json();
+          console.log("POST response:", JSON.stringify(jsonResponse));
+          return jsonResponse;
+        } catch (error) {
+          console.error("POST request failed:", error);
+          throw error;
+        }
       }
     },
     onSuccess: () => {
@@ -449,7 +475,7 @@ export default function UnifiedTripPage() {
         description: data.description,
         startDate: data.startDate,
         endDate: data.endDate,
-        status: data.status,
+        status: data.status || "planning",
         startLocation: hasValidStops && data.stops[0]?.startLocation 
                       ? data.stops[0].startLocation 
                       : (tripData?.startLocation || data.startLocation || "Unknown location"),
@@ -459,6 +485,7 @@ export default function UnifiedTripPage() {
         groupId: data.groupId,
         isRecurring: data.isRecurring || false,
         recurrencePattern: data.recurrencePattern || null,
+        enableMobileNotifications: data.enableMobileNotifications !== undefined ? data.enableMobileNotifications : true,
         // Convert the stops data to itinerary items
         itineraryItems: hasValidStops 
           ? data.stops.map((stop: any) => {
@@ -491,15 +518,16 @@ export default function UnifiedTripPage() {
       // For single-stop trips, create a single itinerary item
       const singleTripData = {
         name: data.name,
-        description: data.description,
+        description: data.description || "",
         startDate: data.startDate,
         endDate: data.endDate,
-        startLocation: data.startLocation,
-        destination: data.endLocation,
+        startLocation: data.startLocation || "Unknown location",
+        destination: data.endLocation || "Unknown location",
         groupId: data.groupId,
-        status: data.status,
+        status: data.status || "planning",
         isRecurring: data.isRecurring || false,
         recurrencePattern: data.recurrencePattern || null,
+        enableMobileNotifications: data.enableMobileNotifications !== undefined ? data.enableMobileNotifications : true,
         // Create a single itinerary item
         itineraryItems: [{
           day: 1,
