@@ -337,21 +337,21 @@ function CheckInPage() {
   return (
     <AppShell>
       <div className="container py-6">
-        <h1 className="text-2xl font-bold mb-6">Trip Check-in</h1>
+        <h1 className="text-2xl font-bold mb-6">Schedule Check-in</h1>
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Trip Selector */}
+          {/* Schedule Selector */}
           <div className="lg:col-span-1">
             <Card className="p-5">
-              <h2 className="text-lg font-semibold mb-4">Select a Trip</h2>
+              <h2 className="text-lg font-semibold mb-4">Select a Schedule</h2>
               
               <div className="mb-4 flex items-center space-x-2">
                 <Switch 
-                  id="show-past-trips"
+                  id="show-past-schedules"
                   checked={showPastTrips}
                   onCheckedChange={setShowPastTrips}
                 />
-                <Label htmlFor="show-past-trips">Show past schedules</Label>
+                <Label htmlFor="show-past-schedules">Show past schedules</Label>
               </div>
               
               {isLoadingTrips ? (
@@ -414,7 +414,7 @@ function CheckInPage() {
           <div className="lg:col-span-2">
             {!selectedTripId ? (
               <Card className="p-5 flex items-center justify-center h-full text-gray-500">
-                Please select a trip to check in
+                Please select a schedule to check in
               </Card>
             ) : (
               <div className="space-y-6">
@@ -504,7 +504,7 @@ function CheckInPage() {
                               </div>
                             )}
 
-                            {/* Trip start location when available */}
+                            {/* Schedule start location when available */}
                             {selectedTrip?.startLocation && (
                               <div className="flex items-center text-xs text-gray-500 mt-1">
                                 <span className="mr-1">Meeting point:</span>
