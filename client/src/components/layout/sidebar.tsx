@@ -53,19 +53,24 @@ export function Sidebar() {
       
       <nav className="flex-1 pt-4 pb-4 overflow-y-auto">
         <div className="px-4 mb-6">
-          <div className="flex items-center px-2 mb-2">
-            <div className="w-10 h-10 rounded-full overflow-hidden bg-neutral-200 text-neutral-500 flex items-center justify-center">
-              {user?.displayName?.[0] || user?.username?.[0] || "U"}
-            </div>
-            <div className="ml-3">
-              <div className="text-sm font-medium text-neutral-800">
-                {user?.displayName || user?.username}
+          <Link href="/profile">
+            <div className="flex items-center px-2 mb-2 cursor-pointer hover:bg-neutral-100 rounded-md py-2 transition-colors">
+              <div className="w-10 h-10 rounded-full overflow-hidden bg-neutral-200 text-neutral-500 flex items-center justify-center">
+                {user?.displayName?.[0] || user?.username?.[0] || "U"}
               </div>
-              <div className="text-xs text-neutral-500">
-                Member since {new Date(user?.createdAt || Date.now()).toLocaleDateString()}
+              <div className="ml-3">
+                <div className="text-sm font-medium text-neutral-800">
+                  {user?.displayName || user?.username}
+                </div>
+                <div className="text-xs text-neutral-500">
+                  Member since {new Date(user?.createdAt || Date.now()).toLocaleDateString()}
+                </div>
+              </div>
+              <div className="ml-auto text-neutral-400">
+                <User className="h-4 w-4" />
               </div>
             </div>
-          </div>
+          </Link>
         </div>
       
         <div className="space-y-1 px-4">
