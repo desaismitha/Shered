@@ -366,3 +366,5 @@ export type InsertTripVehicle = z.infer<typeof insertTripVehicleSchema>;
 
 export type TripCheckIn = typeof tripCheckIns.$inferSelect;
 export type InsertTripCheckIn = z.infer<typeof insertTripCheckInSchema>;
+
+// Child type declarations will be added after fixing relations issues
