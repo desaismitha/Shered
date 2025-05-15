@@ -15,11 +15,20 @@ interface MessageListProps {
   users: User[];
 }
 
-export function MessageList({ groupId, users }: MessageListProps) {
+export function MessageList({ groupId, users = [] }: MessageListProps) {
   const { user: currentUser } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [initialScrollDone, setInitialScrollDone] = useState(false);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  
+  // Get all users if none provided
+  const { data: allUsers } = useQuery<User[]>({
+    queryKey: ["/api/users"],
+    enabled: users.length === 0,
+  });
+  
+  // Use provided users or fetched users
+  const usersList = users.length > 0 ? users : (allUsers || []);
   
   const { data: messages, isLoading } = useQuery<Message[]>({
     queryKey: ["/api/groups", groupId, "messages"],
@@ -122,7 +131,7 @@ export function MessageList({ groupId, users }: MessageListProps) {
   
   const getMessageSender = (userId: number) => {
     if (userId === currentUser?.id) return "You";
-    const sender = users.find(u => u.id === userId);
+    const sender = usersList.find(u => u.id === userId);
     return sender?.displayName || sender?.username || "Unknown User";
   };
   
