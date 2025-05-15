@@ -49,8 +49,9 @@ export default function ChildFormDialog({
     },
   });
   
-  // Update form values when the child prop changes
+  // Update form values when the child prop changes or dialog opens/closes
   React.useEffect(() => {
+    // Reset form when dialog opens/closes
     if (child) {
       form.reset({
         name: child.name,
@@ -68,15 +69,32 @@ export default function ChildFormDialog({
         userId: user?.id || 0,
       });
     }
-  }, [child, form, user]);
+  }, [child, form, user, open]);
   
   // Handle form submission
   const handleSubmit = (data: z.infer<typeof formSchema>) => {
     onSubmit(data as InsertChild);
   };
   
+  // Custom handler for dialog open/close
+  const handleOpenChange = (newOpen: boolean) => {
+    if (!newOpen) {
+      // Ensure form is reset when dialog closes
+      setTimeout(() => {
+        form.reset({
+          name: '',
+          email: '',
+          phoneNumber: '',
+          notes: '',
+          userId: user?.id || 0,
+        });
+      }, 0);
+    }
+    onOpenChange(newOpen);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>{child ? `Edit ${child.name}'s Profile` : 'Add Child Profile'}</DialogTitle>

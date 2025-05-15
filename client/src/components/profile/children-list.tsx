@@ -7,7 +7,7 @@ import { Loader2, PlusCircle, Pencil, Trash2, Upload } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Child, InsertChild } from '@shared/schema';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import ChildFormDialog from './child-form-dialog';
+import { ChildFormDialog } from '@/components/profile';
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -163,8 +163,12 @@ export default function ChildrenList() {
   
   // Open the form dialog for adding a new child
   const handleAddChild = () => {
+    // Ensure we clear any previously selected child
     setSelectedChild(null);
-    setFormOpen(true);
+    // Use setTimeout to ensure state is updated before dialog opens
+    setTimeout(() => {
+      setFormOpen(true);
+    }, 0);
   };
   
   // Open the form dialog for editing an existing child
