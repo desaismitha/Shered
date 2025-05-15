@@ -84,6 +84,13 @@ export interface IStorage {
   deleteTripCheckIn(id: number): Promise<boolean>;
   getAllTripCheckInStatus(tripId: number): Promise<{ userId: number; status: string }[]>;
   
+  // Child profile methods
+  createChild(child: InsertChild): Promise<Child>;
+  getChildById(id: number): Promise<Child | undefined>;
+  getChildrenByUserId(userId: number): Promise<Child[]>;
+  updateChild(id: number, child: Partial<InsertChild>): Promise<Child | undefined>;
+  deleteChild(id: number): Promise<boolean>;
+  
   // Session store
   sessionStore: any;
 }
@@ -1021,6 +1028,48 @@ export class DatabaseStorage implements IStorage {
         userId: checkIn.userId,
         status: checkIn.status || 'unknown'
       }));
+    });
+  }
+
+  // Child profile methods
+  async createChild(insertChild: InsertChild): Promise<Child> {
+    return this.executeDbOperation(async () => {
+      const [child] = await db.insert(children).values(insertChild).returning();
+      return child;
+    });
+  }
+
+  async getChildById(id: number): Promise<Child | undefined> {
+    return this.executeDbOperation(async () => {
+      const [child] = await db.select().from(children).where(eq(children.id, id));
+      return child;
+    });
+  }
+
+  async getChildrenByUserId(userId: number): Promise<Child[]> {
+    return this.executeDbOperation(async () => {
+      return await db.select().from(children).where(eq(children.userId, userId));
+    });
+  }
+
+  async updateChild(id: number, childData: Partial<InsertChild>): Promise<Child | undefined> {
+    return this.executeDbOperation(async () => {
+      const [updatedChild] = await db
+        .update(children)
+        .set(childData)
+        .where(eq(children.id, id))
+        .returning();
+      return updatedChild;
+    });
+  }
+
+  async deleteChild(id: number): Promise<boolean> {
+    return this.executeDbOperation(async () => {
+      const result = await db
+        .delete(children)
+        .where(eq(children.id, id))
+        .returning({ id: children.id });
+      return result.length > 0;
     });
   }
 }
