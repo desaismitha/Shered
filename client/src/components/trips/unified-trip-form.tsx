@@ -205,7 +205,7 @@ export function UnifiedTripForm({
           className="space-y-8">
           
           <Card className="p-6">
-            <h2 className="text-lg font-medium mb-4">{tripType === 'event' ? 'Event Details' : 'Trip Details'}</h2>
+            <h2 className="text-lg font-medium mb-4">{tripType === 'event' ? 'Event Details' : 'Schedule Details'}</h2>
             
             <div className="grid gap-4 sm:grid-cols-2">
               <FormField
@@ -213,7 +213,7 @@ export function UnifiedTripForm({
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{tripType === 'event' ? 'Event Name *' : 'Trip Name *'}</FormLabel>
+                    <FormLabel>{tripType === 'event' ? 'Event Name *' : 'Schedule Name *'}</FormLabel>
                     <FormControl>
                       <Input placeholder={`Enter ${tripType} name`} {...field} />
                     </FormControl>
@@ -684,8 +684,8 @@ export function UnifiedTripForm({
                 ) : (
                   isEditing ? "Save Changes" : (
                     isMultiStop 
-                      ? (tripType === 'event' ? "Create Multi-Day Event" : "Create Multi-Stop Trip")
-                      : (tripType === 'event' ? "Create Event" : "Create Trip")
+                      ? (tripType === 'event' ? "Create Multi-Day Event" : "Create Multi-Stop Schedule")
+                      : (tripType === 'event' ? "Create Event" : "Create Schedule")
                   )
                 )}
               </button>
