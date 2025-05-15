@@ -1072,7 +1072,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Only update allowed fields
-      const allowedUpdates: Partial<InsertChild> = {};
+      const allowedUpdates = {} as Partial<InsertChild>;
       if (req.body.name !== undefined) allowedUpdates.name = req.body.name;
       if (req.body.email !== undefined) allowedUpdates.email = req.body.email;
       if (req.body.phoneNumber !== undefined) allowedUpdates.phoneNumber = req.body.phoneNumber;
