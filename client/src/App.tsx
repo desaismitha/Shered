@@ -9,19 +9,19 @@ import { WebSocketProvider } from "@/components/providers/websocket-provider";
 import { ProtectedRoute } from "@/lib/protected-route";
 import AuthPage from "@/pages/auth-page";
 import DashboardPage from "@/pages/dashboard-page";
-import TripsPage from "@/pages/trips-page"; // This will be our SchedulesPage
+import TripsPage from "@/pages/trips-page"; // Using as SchedulesPage 
 // Using unified schedule page instead of separate pages
-import UnifiedTripPage from "@/pages/unified-trip-page"; // This will be our UnifiedSchedulePage
+import UnifiedTripPage from "@/pages/unified-trip-page"; // Using as UnifiedSchedulePage
 import EventPage from "@/pages/event-page";
-import TripsDebugPage from "@/pages/trips-debug-page"; // Will be SchedulesDebugPage
-import ActiveTripsDebug from "@/pages/active-trips-debug"; // Will be ActiveSchedulesDebug
+import TripsDebugPage from "@/pages/trips-debug-page"; // Using as SchedulesDebugPage
+import ActiveTripsDebug from "@/pages/active-trips-debug"; // Using as ActiveSchedulesDebug
 import GroupsPage from "@/pages/groups-page";
 import GroupDetailsPage from "@/pages/group-details-page";
 import NewGroupPage from "@/pages/groups/new";
 import ExpensesPage from "@/pages/expenses-page";
 import MessagesPage from "@/pages/messages-page";
 import VehiclesPage from "@/pages/vehicles-page";
-import ActiveTripsPage from "@/pages/active-trips-page"; // Will be ActiveSchedulesPage
+import ActiveTripsPage from "@/pages/active-trips-page"; // Using as ActiveSchedulesPage
 import CheckInPage from "@/pages/check-in-page";
 import ProfilePage from "@/pages/profile-page";
 import ForgotPasswordPage from "@/pages/forgot-password";

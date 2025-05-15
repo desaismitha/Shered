@@ -11,15 +11,15 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/use-auth";
 
-export default function TripsPage() {
+export default function TripsPage() { // Using as SchedulesPage
   const [, navigate] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const { user } = useAuth();
   
-  // Get all trips
+  // Get all schedules
   const { data: trips, isLoading, refetch } = useQuery<Trip[]>({
-    queryKey: ["/api/trips"],
+    queryKey: ["/api/schedules"],
     staleTime: 0,
     gcTime: 0, // Don't keep old data in cache at all
     refetchOnMount: "always", // Always refetch on mount
@@ -27,67 +27,67 @@ export default function TripsPage() {
     refetchInterval: 10000, // Refetch every 10 seconds
   });
 
-  // Debug logging for trips data
-  console.log("Trips data from API:", trips);
+  // Debug logging for schedules data
+  console.log("Schedules data from API:", trips);
 
-  // Type guard for Trip objects
-  const hasTripDisplayFields = (trip: Trip): trip is Trip & { 
+  // Type guard for Schedule objects
+  const hasScheduleDisplayFields = (trip: Trip): trip is Trip & { 
     startLocationDisplay?: string; 
     destinationDisplay?: string;
   } => {
     return typeof trip === 'object' && trip !== null;
   };
 
-  // Filter trips based on search query and status
-  const filteredTrips = trips?.filter(trip => {
+  // Filter schedules based on search query and status
+  const filteredSchedules = trips?.filter(schedule => {
     const matchesSearch = 
       searchQuery === "" || 
-      (trip.name?.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (trip.destination && trip.destination.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (trip.startLocation && trip.startLocation.toLowerCase().includes(searchQuery.toLowerCase()));
+      (schedule.name?.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (schedule.destination && schedule.destination.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (schedule.startLocation && schedule.startLocation.toLowerCase().includes(searchQuery.toLowerCase()));
     
-    const matchesStatus = statusFilter === "all" || trip.status === statusFilter;
+    const matchesStatus = statusFilter === "all" || schedule.status === statusFilter;
     
     return matchesSearch && matchesStatus;
   });
   
-  // Debug logging for filtered trips
-  console.log("Filtered trips:", filteredTrips);
+  // Debug logging for filtered schedules
+  console.log("Filtered schedules:", filteredSchedules);
 
-  // Group trips by status
-  const upcomingTrips = filteredTrips?.filter(trip => {
-    if (!trip.startDate) return false;
+  // Group schedules by status
+  const upcomingSchedules = filteredSchedules?.filter(schedule => {
+    if (!schedule.startDate) return false;
     try {
       const now = new Date();
-      const startDate = new Date(trip.startDate);
-      const endDate = new Date(trip.endDate);
+      const startDate = new Date(schedule.startDate);
+      const endDate = new Date(schedule.endDate);
 
-      // Trip has a current status that indicates it's upcoming or in progress
-      const hasActiveStatus = trip.status === "planning" || trip.status === "confirmed" || trip.status === "in-progress";
+      // Schedule has a current status that indicates it's upcoming or in progress
+      const hasActiveStatus = schedule.status === "planning" || schedule.status === "confirmed" || schedule.status === "in-progress";
       
-      // Trip is not marked as cancelled or completed
-      const isNotFinished = trip.status !== "cancelled" && trip.status !== "completed";
+      // Schedule is not marked as cancelled or completed
+      const isNotFinished = schedule.status !== "cancelled" && schedule.status !== "completed";
       
-      // A trip is "upcoming" if it is planning/confirmed regardless of start date
+      // A schedule is "upcoming" if it is planning/confirmed regardless of start date
       // (The auto-update system will take care of changing status when start time is reached)
-      const isUpcoming = (trip.status === "planning" || trip.status === "confirmed");
+      const isUpcoming = (schedule.status === "planning" || schedule.status === "confirmed");
       
-      // A trip is "in progress" if it has that status regardless of start/end times
-      // We used to check: trip.status === "in-progress" && startDate <= now && endDate > now
-      // But this was causing issues with trips not showing up when they should
-      const isActiveNow = trip.status === "in-progress";
+      // A schedule is "in progress" if it has that status regardless of start/end times
+      // We used to check: schedule.status === "in-progress" && startDate <= now && endDate > now
+      // But this was causing issues with schedules not showing up when they should
+      const isActiveNow = schedule.status === "in-progress";
       
       // For debugging
-      console.log(`Trip ${trip.id} (${trip.name}): isUpcoming=${isUpcoming}, isActiveNow=${isActiveNow}, status=${trip.status}`);
+      console.log(`Schedule ${schedule.id} (${schedule.name}): isUpcoming=${isUpcoming}, isActiveNow=${isActiveNow}, status=${schedule.status}`);
       
       return (isUpcoming || isActiveNow) && isNotFinished && hasActiveStatus;
     } catch (e) {
-      console.error("Error parsing date:", trip.startDate);
+      console.error("Error parsing date:", schedule.startDate);
       return false;
     }
   });
   
-  console.log("Upcoming trips count:", upcomingTrips?.length || 0);
+  console.log("Upcoming schedules count:", upcomingSchedules?.length || 0);
   
   const pastTrips = filteredTrips?.filter(trip => {
     if (!trip.endDate) return false;
