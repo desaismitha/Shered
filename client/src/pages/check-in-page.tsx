@@ -38,7 +38,7 @@ interface CheckInFormData {
 
 interface CheckIn {
   id: number;
-  tripId: number;
+  scheduleId: number;
   userId: number;
   checkedInAt: string;
   status: string;
@@ -56,7 +56,7 @@ interface CheckInStatus {
 
 interface CheckInStatusData {
   checkInStatuses: CheckInStatus[];
-  tripInfo: {
+  scheduleInfo: {
     startLocation: string;
     startLocationDisplay?: string;
     destination: string;
@@ -105,7 +105,7 @@ function CheckInPage() {
     isLoading: isLoadingSchedules,
     error: schedulesError,
   } = useQuery<Schedule[]>({
-    queryKey: ["/api/trips"],
+    queryKey: ["/api/schedules"],
     refetchInterval: 30000, // Refresh every 30 seconds
   });
   
@@ -120,7 +120,7 @@ function CheckInPage() {
     data: userCheckIn,
     isLoading: isLoadingUserCheckIn,
   } = useQuery<CheckIn>({
-    queryKey: ["/api/trips", selectedScheduleId, "check-ins/user", user?.id],
+    queryKey: ["/api/schedules", selectedScheduleId, "check-ins/user", user?.id],
     enabled: !!selectedScheduleId && !!user?.id,
   });
   
@@ -129,7 +129,7 @@ function CheckInPage() {
     data: checkInStatus,
     isLoading: isLoadingCheckInStatus,
   } = useQuery<CheckInStatusData>({
-    queryKey: ["/api/trips", selectedScheduleId, "check-in-status"],
+    queryKey: ["/api/schedules", selectedScheduleId, "check-in-status"],
     enabled: !!selectedScheduleId,
     refetchInterval: 10000, // Refresh every 10 seconds
   });
@@ -354,15 +354,15 @@ function CheckInPage() {
                 <Label htmlFor="show-past-schedules">Show past schedules</Label>
               </div>
               
-              {isLoadingTrips ? (
+              {isLoadingSchedules ? (
                 <div className="flex justify-center py-8">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
-              ) : tripsError ? (
+              ) : schedulesError ? (
                 <div className="text-red-500 p-4 border border-red-200 rounded-md">
-                  Error loading schedules: {tripsError instanceof Error ? tripsError.message : "Unknown error. Please try again."}
+                  Error loading schedules: {schedulesError instanceof Error ? schedulesError.message : "Unknown error. Please try again."}
                 </div>
-              ) : filteredTrips.length === 0 ? (
+              ) : filteredSchedules.length === 0 ? (
                 <div className="text-center py-6 text-gray-500">
                   {showPastSchedules 
                     ? "No schedules found. Create a schedule first." 
@@ -370,37 +370,37 @@ function CheckInPage() {
                 </div>
               ) : (
                 <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
-                  {filteredTrips.map((trip) => (
+                  {filteredSchedules.map((schedule) => (
                     <div
-                      key={trip.id}
+                      key={schedule.id}
                       className={cn(
                         "p-3 border rounded-md cursor-pointer transition-colors",
-                        selectedTripId === trip.id
+                        selectedScheduleId === schedule.id
                           ? "border-primary bg-primary-50"
                           : "border-gray-200 hover:border-primary-200 hover:bg-gray-50"
                       )}
-                      onClick={() => setSelectedTripId(trip.id)}
+                      onClick={() => setSelectedScheduleId(schedule.id)}
                     >
-                      <div className="font-medium">{trip.name}</div>
+                      <div className="font-medium">{schedule.name}</div>
                       <div className="text-sm text-gray-500 mt-1">
-                        {new Date(trip.startDate).toLocaleDateString()} - {new Date(trip.endDate).toLocaleDateString()}
+                        {new Date(schedule.startDate).toLocaleDateString()} - {new Date(schedule.endDate).toLocaleDateString()}
                       </div>
                       <div className="text-sm text-gray-500 mt-1">
-                        From: {trip.startLocationDisplay || trip.startLocation.split("[")[0]}
+                        From: {schedule.startLocationDisplay || schedule.startLocation.split("[")[0]}
                       </div>
                       <div className="text-sm text-gray-500 mt-1">
-                        To: {trip.destinationDisplay || trip.destination.split("[")[0]}
+                        To: {schedule.destinationDisplay || schedule.destination.split("[")[0]}
                       </div>
                       <div className="flex items-center mt-2">
                         <span className={cn(
                           "inline-flex items-center px-2 py-1 text-xs font-medium rounded-full",
-                          trip.status === "planning" ? "bg-gray-100 text-gray-800" :
-                          trip.status === "confirmed" ? "bg-blue-100 text-blue-800" :
-                          trip.status === "in-progress" ? "bg-green-100 text-green-800" :
-                          trip.status === "completed" ? "bg-purple-100 text-purple-800" :
+                          schedule.status === "planning" ? "bg-gray-100 text-gray-800" :
+                          schedule.status === "confirmed" ? "bg-blue-100 text-blue-800" :
+                          schedule.status === "in-progress" ? "bg-green-100 text-green-800" :
+                          schedule.status === "completed" ? "bg-purple-100 text-purple-800" :
                           "bg-red-100 text-red-800"
                         )}>
-                          {trip.status.charAt(0).toUpperCase() + trip.status.slice(1)}
+                          {schedule.status.charAt(0).toUpperCase() + schedule.status.slice(1)}
                         </span>
                       </div>
                     </div>
@@ -412,7 +412,7 @@ function CheckInPage() {
           
           {/* Check-in Form */}
           <div className="lg:col-span-2">
-            {!selectedTripId ? (
+            {!selectedScheduleId ? (
               <Card className="p-5 flex items-center justify-center h-full text-gray-500">
                 Please select a schedule to check in
               </Card>
@@ -505,10 +505,10 @@ function CheckInPage() {
                             )}
 
                             {/* Schedule start location when available */}
-                            {selectedTrip?.startLocation && (
+                            {selectedSchedule?.startLocation && (
                               <div className="flex items-center text-xs text-gray-500 mt-1">
                                 <span className="mr-1">Meeting point:</span>
-                                <span className="font-semibold">{selectedTrip.startLocationDisplay || selectedTrip.startLocation}</span>
+                                <span className="font-semibold">{selectedSchedule.startLocationDisplay || selectedSchedule.startLocation}</span>
                               </div>
                             )}
                           </div>
