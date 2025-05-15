@@ -166,17 +166,17 @@ export default function UnifiedTripPage() {
 
   // Query for existing trip if editing
   const { data: tripData, isLoading: isLoadingTrip } = useQuery<ExtendedTrip | undefined>({
-    queryKey: tripId ? ["/api/trips", parseInt(tripId)] : (["/api/trips", "no-id"] as const),
+    queryKey: tripId ? ["/api/schedules", parseInt(tripId)] : (["/api/schedules", "no-id"] as const),
     enabled: !!tripId,
   });
   
-  // Query for itinerary items if editing a trip
+  // Query for itinerary items if editing a schedule
   const { data: itineraryItems, isLoading: isLoadingItinerary } = useQuery<ItineraryItem[]>({
-    queryKey: tripId ? ["/api/trips", parseInt(tripId), "itinerary"] : (["/api/trips", "no-id", "itinerary"] as const),
+    queryKey: tripId ? ["/api/schedules", parseInt(tripId), "itinerary"] : (["/api/schedules", "no-id", "itinerary"] as const),
     enabled: !!tripId,
   });
   
-  // Query for group members if the trip belongs to a group
+  // Query for group members if the schedule belongs to a group
   const { data: groupMembersData } = useQuery({
     queryKey: [`/api/groups/${tripData?.groupId}/members`],
     enabled: !!tripData?.groupId,

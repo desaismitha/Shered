@@ -429,7 +429,7 @@ export function UnifiedTripForm({
             <h2 className="text-lg font-medium mb-4">{tripType === 'event' ? 'Event Location' : 'Location Information'}</h2>
             
             {isMultiStop ? (
-              // For multi-stop trips/events, show just the main/primary location
+              // For multi-stop schedules/events, show just the main/primary location
               <div className="grid gap-6">
                 <div className="px-4 py-3 rounded-md bg-blue-50 border border-blue-200 mb-4">
                   <p className="text-sm text-blue-700">
@@ -625,7 +625,7 @@ export function UnifiedTripForm({
                   <FormItem className="flex flex-row items-center justify-between space-x-3 space-y-0 rounded-md border p-4">
                     <div className="space-y-1">
                       <FormLabel className="text-base">
-                        {tripType === 'event' ? 'Event Notifications' : 'Trip Notifications'}
+                        {tripType === 'event' ? 'Event Notifications' : 'Schedule Notifications'}
                       </FormLabel>
                       <FormDescription>
                         Receive email notifications for {tripType} status changes and route deviations
@@ -647,7 +647,7 @@ export function UnifiedTripForm({
                     Email notifications will be sent when:
                   </p>
                   <ul className="list-disc ml-6 mt-1 text-sm text-blue-700">
-                    <li>{tripType === 'event' ? 'Event' : 'Trip'} status changes (planning, confirmed, in-progress, completed)</li>
+                    <li>{tripType === 'event' ? 'Event' : 'Schedule'} status changes (planning, confirmed, in-progress, completed)</li>
                     <li>Someone deviates from the planned route</li>
                     <li>Important {tripType} updates occur</li>
                   </ul>
