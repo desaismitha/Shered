@@ -52,6 +52,24 @@ function Router() {
       <ProtectedRoute path="/bulk-import" component={BulkImportPage} />
       <ProtectedRoute path="/schedules-debug" component={TripsDebugPage} />
       <ProtectedRoute path="/active-schedules-debug" component={ActiveTripsDebug} />
+      
+      {/* Backward compatibility routes - redirects from old URL patterns */}
+      <Route path="/trips">
+        {() => <Redirect to="/schedules" />}
+      </Route>
+      <Route path="/trips/new">
+        {() => <Redirect to="/schedules/new" />}
+      </Route>
+      <Route path="/active-trips">
+        {() => <Redirect to="/active-schedules" />}
+      </Route>
+      <Route path="/trips-debug">
+        {() => <Redirect to="/schedules-debug" />}
+      </Route>
+      <Route path="/active-trips-debug">
+        {() => <Redirect to="/active-schedules-debug" />}
+      </Route>
+      
       <Route path="/auth" component={AuthPage} />
       <Route path="/invite/:groupId/:token">
         {(params) => {
