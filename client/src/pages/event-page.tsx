@@ -163,13 +163,13 @@ export default function EventPage() {
 
   // Query for existing event if editing
   const { data: eventData, isLoading: isLoadingEvent } = useQuery<ExtendedTrip | undefined>({
-    queryKey: eventId ? ["/api/trips", parseInt(eventId)] : (["/api/trips", "no-id"] as const),
+    queryKey: eventId ? ["/api/schedules", parseInt(eventId)] : (["/api/schedules", "no-id"] as const),
     enabled: !!eventId,
   });
   
   // Query for itinerary items if editing an event
   const { data: itineraryItems, isLoading: isLoadingItinerary } = useQuery<ItineraryItem[]>({
-    queryKey: eventId ? ["/api/trips", parseInt(eventId), "itinerary"] : (["/api/trips", "no-id", "itinerary"] as const),
+    queryKey: eventId ? ["/api/schedules", parseInt(eventId), "itinerary"] : (["/api/schedules", "no-id", "itinerary"] as const),
     enabled: !!eventId,
   });
   
@@ -222,8 +222,8 @@ export default function EventPage() {
         }
         
         try {
-          console.log(`About to send PATCH request to /api/trips/${eventId}`);
-          const res = await apiRequest("PATCH", `/api/trips/${eventId}`, formData);
+          console.log(`About to send PATCH request to /api/schedules/${eventId}`);
+          const res = await apiRequest("PATCH", `/api/schedules/${eventId}`, formData);
           console.log('PATCH request successful, parsing response');
           const jsonResponse = await res.json();
           console.log("PATCH response:", JSON.stringify(jsonResponse));
@@ -242,8 +242,8 @@ export default function EventPage() {
         }
         
         try {
-          console.log("About to send POST request to /api/trips for event creation");
-          const res = await apiRequest("POST", "/api/trips", formData);
+          console.log("About to send POST request to /api/schedules for event creation");
+          const res = await apiRequest("POST", "/api/schedules", formData);
           console.log("POST request successful, parsing response");
           const jsonResponse = await res.json();
           console.log("POST response:", JSON.stringify(jsonResponse));
@@ -262,23 +262,23 @@ export default function EventPage() {
           : "Your new event has been created successfully.",
       });
       
-      // Force invalidate all trip-related queries
-      console.log("Invalidating trip queries after create/update");
+      // Force invalidate all schedule-related queries
+      console.log("Invalidating schedule queries after create/update");
       
-      // Completely clear the cache for trips
-      queryClient.removeQueries({ queryKey: ["/api/trips"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/trips"] });
+      // Completely clear the cache for schedules
+      queryClient.removeQueries({ queryKey: ["/api/schedules"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/schedules"] });
       queryClient.invalidateQueries({ queryKey: ["/api/groups"] });
       
-      // Navigate back to trips page with a small delay to ensure cache is cleared
+      // Navigate back to schedules page with a small delay to ensure cache is cleared
       setTimeout(() => {
-        const targetUrl = "/trips";
+        const targetUrl = "/schedules";
         console.log(`Navigating to ${targetUrl} after event creation/update`);
         navigate(targetUrl);
         
         // Force a refetch after navigation
         setTimeout(() => {
-          queryClient.refetchQueries({ queryKey: ["/api/trips"] });
+          queryClient.refetchQueries({ queryKey: ["/api/schedules"] });
         }, 200);
       }, 300);
     },
