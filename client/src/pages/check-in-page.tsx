@@ -78,8 +78,8 @@ function CheckInPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [, navigate] = useLocation();
-  const [selectedTripId, setSelectedTripId] = useState<number | null>(null);
-  const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
+  const [selectedScheduleId, setSelectedScheduleId] = useState<number | null>(null);
+  const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(null);
   const [formData, setFormData] = useState<CheckInFormData>({
     status: "ready",
     notes: "",
@@ -115,22 +115,22 @@ function CheckInPage() {
     return ["planning", "confirmed", "in-progress"].includes(schedule.status);
   });
   
-  // Fetch user's check-in status for the selected trip
+  // Fetch user's check-in status for the selected schedule
   const {
     data: userCheckIn,
     isLoading: isLoadingUserCheckIn,
   } = useQuery<CheckIn>({
-    queryKey: ["/api/trips", selectedTripId, "check-ins/user", user?.id],
-    enabled: !!selectedTripId && !!user?.id,
+    queryKey: ["/api/trips", selectedScheduleId, "check-ins/user", user?.id],
+    enabled: !!selectedScheduleId && !!user?.id,
   });
   
-  // Fetch all check-in statuses for the selected trip
+  // Fetch all check-in statuses for the selected schedule
   const {
     data: checkInStatus,
     isLoading: isLoadingCheckInStatus,
   } = useQuery<CheckInStatusData>({
-    queryKey: ["/api/trips", selectedTripId, "check-in-status"],
-    enabled: !!selectedTripId,
+    queryKey: ["/api/trips", selectedScheduleId, "check-in-status"],
+    enabled: !!selectedScheduleId,
     refetchInterval: 10000, // Refresh every 10 seconds
   });
   
@@ -210,34 +210,34 @@ function CheckInPage() {
         longitude: undefined
       });
       
-      // Try to get location when a trip is selected and there's no existing check-in
-      if (selectedTripId) {
+      // Try to get location when a schedule is selected and there's no existing check-in
+      if (selectedScheduleId) {
         getCurrentLocation();
       }
     }
-  }, [userCheckIn, selectedTripId]);
+  }, [userCheckIn, selectedScheduleId]);
   
-  // Update selectedTrip when trips or selectedTripId changes
+  // Update selectedSchedule when schedules or selectedScheduleId changes
   useEffect(() => {
-    if (selectedTripId && trips.length > 0) {
-      const trip = trips.find(t => t.id === selectedTripId);
-      if (trip) {
-        setSelectedTrip(trip);
-        console.log(`Selected trip updated: ${trip.name} with start location ${trip.startLocation}`);
+    if (selectedScheduleId && schedules.length > 0) {
+      const schedule = schedules.find(s => s.id === selectedScheduleId);
+      if (schedule) {
+        setSelectedSchedule(schedule);
+        console.log(`Selected schedule updated: ${schedule.name} with start location ${schedule.startLocation}`);
       }
     } else {
-      setSelectedTrip(null);
+      setSelectedSchedule(null);
     }
-  }, [trips, selectedTripId]);
+  }, [schedules, selectedScheduleId]);
 
   // Mutation for creating/updating check-in
   const checkInMutation = useMutation({
     mutationFn: async (data: CheckInFormData) => {
-      if (!selectedTripId) throw new Error("No trip selected");
+      if (!selectedScheduleId) throw new Error("No schedule selected");
       
       const response = await apiRequest(
         "POST",
-        `/api/trips/${selectedTripId}/check-ins`,
+        `/api/trips/${selectedScheduleId}/check-ins`,
         data
       );
       return response.json() as Promise<CheckInResponse>;
@@ -275,10 +275,10 @@ function CheckInPage() {
       
       // Invalidate the queries to refresh data
       queryClient.invalidateQueries({
-        queryKey: ["/api/trips", selectedTripId, "check-ins/user", user?.id],
+        queryKey: ["/api/trips", selectedScheduleId, "check-ins/user", user?.id],
       });
       queryClient.invalidateQueries({
-        queryKey: ["/api/trips", selectedTripId, "check-in-status"],
+        queryKey: ["/api/trips", selectedScheduleId, "check-in-status"],
       });
     },
     onError: (error: Error) => {
