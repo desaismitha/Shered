@@ -132,7 +132,7 @@ export default function TripsPage() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-bold text-neutral-900">
-              My Trips
+              My Schedules
             </h1>
             <Button 
               variant="ghost" 
@@ -173,13 +173,13 @@ export default function TripsPage() {
         <Tabs defaultValue="upcoming" className="mb-8">
           <TabsList className="mb-4">
             <TabsTrigger value="upcoming" onClick={() => setStatusFilter("all")}>
-              Upcoming
+              Upcoming Schedules
             </TabsTrigger>
             <TabsTrigger value="past" onClick={() => setStatusFilter("all")}>
-              Past
+              Past Schedules
             </TabsTrigger>
             <TabsTrigger value="cancelled" onClick={() => setStatusFilter("cancelled")}>
-              Cancelled
+              Cancelled Schedules
             </TabsTrigger>
           </TabsList>
           

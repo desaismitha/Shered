@@ -21,8 +21,8 @@ export function Sidebar() {
   const navItems = [
     { icon: LayoutDashboard, label: "Dashboard", href: "/" },
     { icon: Users, label: "My Groups", href: "/groups" },
-    { icon: Calendar, label: "Upcoming Trips", href: "/trips" },
-    { icon: Navigation, label: "Active Trips", href: "/active-trips" },
+    { icon: Calendar, label: "Upcoming Schedules", href: "/trips" },
+    { icon: Navigation, label: "Active Schedules", href: "/active-trips" },
     { icon: CheckCircle, label: "Check-in", href: "/check-in" },
     { icon: Car, label: "My Vehicles", href: "/vehicles" },
     { icon: Users, label: "Import Members", href: "/bulk-import" },
@@ -31,7 +31,7 @@ export function Sidebar() {
   ];
   
   const actionItems = [
-    { icon: PlusCircle, label: "Create Trip", href: "/trips/new" },
+    { icon: PlusCircle, label: "Create Schedule", href: "/trips/new" },
     { icon: CalendarPlus, label: "Create Event", href: "/events/new" },
   ];
 
