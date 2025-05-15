@@ -5457,5 +5457,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // ===== SCHEDULE ALIASES =====
+  // Add API route aliases to map "/api/schedules/..." to "/api/trips/..."
+  // This supports the terminology change from "Trip" to "Schedule" on the frontend
+  console.log("[API] Setting up /api/schedules aliases for /api/trips routes");
+
+  // Main schedules list
+  app.get("/api/schedules", (req, res) => {
+    console.log("[API] Redirecting /api/schedules to /api/trips");
+    req.url = "/api/trips";
+    app._router.handle(req, res);
+  });
+
+  // Active schedules
+  app.get("/api/schedules/active", (req, res) => {
+    console.log("[API] Redirecting /api/schedules/active to /api/trips/active");
+    req.url = "/api/trips/active";
+    app._router.handle(req, res);
+  });
+
+  // New schedule creation
+  app.post("/api/schedules", (req, res) => {
+    console.log("[API] Redirecting POST /api/schedules to POST /api/trips");
+    req.url = "/api/trips";
+    app._router.handle(req, res);
+  });
+
+  // Individual schedule operations (GET, PUT, PATCH, DELETE)
+  app.all("/api/schedules/:id", (req, res) => {
+    const id = req.params.id;
+    console.log(`[API] Redirecting ${req.method} /api/schedules/${id} to ${req.method} /api/trips/${id}`);
+    req.url = `/api/trips/${id}`;
+    app._router.handle(req, res);
+  });
+
+  // Schedule check-ins
+  app.all("/api/schedules/:scheduleId/check-ins", (req, res) => {
+    const scheduleId = req.params.scheduleId;
+    console.log(`[API] Redirecting ${req.method} /api/schedules/${scheduleId}/check-ins to ${req.method} /api/trips/${scheduleId}/check-ins`);
+    req.url = `/api/trips/${scheduleId}/check-ins`;
+    app._router.handle(req, res);
+  });
+
+  // Individual user check-ins for a schedule
+  app.all("/api/schedules/:scheduleId/check-ins/user/:userId", (req, res) => {
+    const scheduleId = req.params.scheduleId;
+    const userId = req.params.userId;
+    console.log(`[API] Redirecting ${req.method} /api/schedules/${scheduleId}/check-ins/user/${userId} to ${req.method} /api/trips/${scheduleId}/check-ins/user/${userId}`);
+    req.url = `/api/trips/${scheduleId}/check-ins/user/${userId}`;
+    app._router.handle(req, res);
+  });
+
+  // Schedule check-in status
+  app.get("/api/schedules/:scheduleId/check-in-status", (req, res) => {
+    const scheduleId = req.params.scheduleId;
+    console.log(`[API] Redirecting GET /api/schedules/${scheduleId}/check-in-status to GET /api/trips/${scheduleId}/check-in-status`);
+    req.url = `/api/trips/${scheduleId}/check-in-status`;
+    app._router.handle(req, res);
+  });
+
+  // Other schedule-related endpoints can be added here as needed
+  
   return httpServer;
 }
