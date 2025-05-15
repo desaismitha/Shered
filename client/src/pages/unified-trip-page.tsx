@@ -155,7 +155,7 @@ export default function UnifiedTripPage() {
     
     // Update the URL to reflect the tab change
     if (tripId) {
-      const newUrl = `/trips/${tripId}?tab=${tab}`;
+      const newUrl = `/schedules/${tripId}?tab=${tab}`;
       console.log(`Updating URL to: ${newUrl}`);
       navigate(newUrl, { replace: true });
     }
@@ -275,10 +275,10 @@ export default function UnifiedTripPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/trips"] });
       queryClient.invalidateQueries({ queryKey: ["/api/groups"] });
       
-      // Navigate back to trips page with a small delay to ensure cache is cleared
+      // Navigate back to schedules page with a small delay to ensure cache is cleared
       setTimeout(() => {
-        const targetUrl = "/trips";
-        console.log(`Navigating to ${targetUrl} after trip creation/update`);
+        const targetUrl = "/schedules";
+        console.log(`Navigating to ${targetUrl} after schedule creation/update`);
         navigate(targetUrl);
         
         // Force a refetch after navigation
@@ -636,7 +636,7 @@ export default function UnifiedTripPage() {
                     isEditing={true}
                     onCancel={() => {
                       console.log('Cancel callback called');
-                      navigate("/trips");
+                      navigate("/schedules");
                     }}
                   />
                 )}
@@ -644,7 +644,7 @@ export default function UnifiedTripPage() {
               
               <TabsContent value="preview" className="mt-0">
                 <div className="bg-muted p-6 rounded-lg">
-                  <h2 className="text-xl font-medium mb-4">Trip Preview</h2>
+                  <h2 className="text-xl font-medium mb-4">Schedule Preview</h2>
                   {isLoading ? (
                     <div className="flex items-center justify-center py-12">
                       <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
