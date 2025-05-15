@@ -162,7 +162,7 @@ export default function TripsPage() {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-neutral-400" />
             <Input
-              placeholder="Search trips by title or location"
+              placeholder="Search schedules by title or location"
               className="pl-10"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -214,14 +214,14 @@ export default function TripsPage() {
               </div>
             ) : (
               <div className="text-center py-12 bg-white rounded-lg shadow">
-                <h3 className="text-lg font-medium text-neutral-900 mb-1">No upcoming trips</h3>
+                <h3 className="text-lg font-medium text-neutral-900 mb-1">No upcoming schedules</h3>
                 <p className="text-neutral-500 mb-4">Start planning your next adventure!</p>
                 <Button 
                   onClick={() => navigate("/trips/new")}
                   className="inline-flex items-center"
                 >
                   <PlusIcon className="h-4 w-4 mr-2" />
-                  Create New Trip
+                  Create New Schedule
                 </Button>
               </div>
             )}
@@ -258,8 +258,8 @@ export default function TripsPage() {
               </div>
             ) : (
               <div className="text-center py-12 bg-white rounded-lg shadow">
-                <h3 className="text-lg font-medium text-neutral-900 mb-1">No past trips</h3>
-                <p className="text-neutral-500">Your completed trips will appear here</p>
+                <h3 className="text-lg font-medium text-neutral-900 mb-1">No past schedules</h3>
+                <p className="text-neutral-500">Your completed schedules will appear here</p>
               </div>
             )}
           </TabsContent>
@@ -293,8 +293,8 @@ export default function TripsPage() {
               </div>
             ) : (
               <div className="text-center py-12 bg-white rounded-lg shadow">
-                <h3 className="text-lg font-medium text-neutral-900 mb-1">No cancelled trips</h3>
-                <p className="text-neutral-500">Cancelled trips will appear here</p>
+                <h3 className="text-lg font-medium text-neutral-900 mb-1">No cancelled schedules</h3>
+                <p className="text-neutral-500">Cancelled schedules will appear here</p>
               </div>
             )}
           </TabsContent>
