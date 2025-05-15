@@ -60,6 +60,16 @@ function Router() {
       <Route path="/trips/new">
         {() => <Redirect to="/schedules/new" />}
       </Route>
+      <Route path="/trips/:id">
+        {(params) => {
+          // Get the current URL to preserve query parameters
+          const currentLocation = window.location.toString();
+          const queryString = currentLocation.includes('?') 
+            ? currentLocation.substring(currentLocation.indexOf('?')) 
+            : '';
+          return <Redirect to={`/schedules/${params.id}${queryString}`} />;
+        }}
+      </Route>
       <Route path="/active-trips">
         {() => <Redirect to="/active-schedules" />}
       </Route>

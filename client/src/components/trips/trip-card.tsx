@@ -199,8 +199,8 @@ export function TripCard({ trip }: TripCardProps) {
                 className="flex items-center gap-1 text-neutral-500 hover:text-primary-600"
                 onClick={(e) => {
                   e.preventDefault();
-                  console.log("Edit button clicked, navigating to:", `/trips/${trip.id}?tab=form`);
-                  navigate(`/trips/${trip.id}?tab=form`);
+                  console.log("Edit button clicked, navigating to:", `/schedules/${trip.id}?tab=form`);
+                  navigate(`/schedules/${trip.id}?tab=form`);
                 }}
               >
                 <Edit className="h-3 w-3" />
@@ -214,8 +214,8 @@ export function TripCard({ trip }: TripCardProps) {
               className="flex items-center gap-1 text-primary-600 hover:text-primary-700"
               onClick={(e) => {
                 e.preventDefault();
-                console.log("View details clicked, navigating to:", `/trips/${trip.id}?tab=preview`);
-                navigate(`/trips/${trip.id}?tab=preview`);
+                console.log("View details clicked, navigating to:", `/schedules/${trip.id}?tab=preview`);
+                navigate(`/schedules/${trip.id}?tab=preview`);
               }}
             >
               <span className="text-xs font-medium">View Details</span>
