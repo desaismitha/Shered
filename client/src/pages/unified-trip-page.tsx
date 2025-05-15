@@ -210,7 +210,7 @@ export default function UnifiedTripPage() {
     return membersList;
   }, [groupMembersData, users]);
   
-  // Mutation for creating/updating trips
+  // Mutation for creating/updating schedules
   const mutation = useMutation({
     mutationFn: async (formData: any) => {
       console.log('MUTATION START - Form data received:', formData);
@@ -227,8 +227,8 @@ export default function UnifiedTripPage() {
         }
         
         try {
-          console.log(`About to send PATCH request to /api/trips/${tripId}`);
-          const res = await apiRequest("PATCH", `/api/trips/${tripId}`, formData);
+          console.log(`About to send PATCH request to /api/schedules/${tripId}`);
+          const res = await apiRequest("PATCH", `/api/schedules/${tripId}`, formData);
           console.log('PATCH request successful, parsing response');
           const jsonResponse = await res.json();
           console.log("PATCH response:", JSON.stringify(jsonResponse));
@@ -247,8 +247,8 @@ export default function UnifiedTripPage() {
         }
         
         try {
-          console.log("About to send POST request to /api/trips");
-          const res = await apiRequest("POST", "/api/trips", formData);
+          console.log("About to send POST request to /api/schedules");
+          const res = await apiRequest("POST", "/api/schedules", formData);
           console.log("POST request successful, parsing response");
           const jsonResponse = await res.json();
           console.log("POST response:", JSON.stringify(jsonResponse));
@@ -261,18 +261,18 @@ export default function UnifiedTripPage() {
     },
     onSuccess: () => {
       toast({
-        title: tripId ? "Trip updated" : "Trip created",
+        title: tripId ? "Schedule updated" : "Schedule created",
         description: tripId 
-          ? "Your trip has been updated successfully." 
-          : "Your new trip has been created successfully.",
+          ? "Your schedule has been updated successfully." 
+          : "Your new schedule has been created successfully.",
       });
       
-      // Force invalidate all trip-related queries
-      console.log("Invalidating trip queries after create/update");
+      // Force invalidate all schedule-related queries
+      console.log("Invalidating schedule queries after create/update");
       
-      // Completely clear the cache for trips
-      queryClient.removeQueries({ queryKey: ["/api/trips"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/trips"] });
+      // Completely clear the cache for schedules
+      queryClient.removeQueries({ queryKey: ["/api/schedules"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/schedules"] });
       queryClient.invalidateQueries({ queryKey: ["/api/groups"] });
       
       // Navigate back to schedules page with a small delay to ensure cache is cleared
@@ -283,14 +283,14 @@ export default function UnifiedTripPage() {
         
         // Force a refetch after navigation
         setTimeout(() => {
-          queryClient.refetchQueries({ queryKey: ["/api/trips"] });
+          queryClient.refetchQueries({ queryKey: ["/api/schedules"] });
         }, 200);
       }, 300);
     },
     onError: (error: Error) => {
       toast({
         title: "Error",
-        description: `Failed to ${tripId ? "update" : "create"} trip: ${error.message}`,
+        description: `Failed to ${tripId ? "update" : "create"} schedule: ${error.message}`,
         variant: "destructive",
       });
     },
