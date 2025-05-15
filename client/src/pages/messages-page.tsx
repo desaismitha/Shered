@@ -15,7 +15,7 @@ import { useLocation } from "wouter";
 import { useState, useEffect } from "react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MessageList } from "@/components/messages/message-list";
+import { MessageList } from "@/components/messages/message-list-new";
 import { MessageForm } from "@/components/messages/message-form";
 import { Input } from "@/components/ui/input";
 import { 
