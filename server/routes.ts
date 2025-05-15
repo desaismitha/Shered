@@ -978,6 +978,206 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Set up phone verification routes
   setupPhoneVerificationRoutes(app);
   
+  // Set up children profile endpoints
+  app.get('/api/children', async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).send('Unauthorized');
+    }
+    
+    try {
+      const userId = req.user?.id;
+      const children = await storage.getChildrenByUserId(userId);
+      res.json(children);
+    } catch (error) {
+      console.error('Error fetching children:', error);
+      res.status(500).send('Error fetching children');
+    }
+  });
+  
+  app.get('/api/children/:id', async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).send('Unauthorized');
+    }
+    
+    try {
+      const childId = parseInt(req.params.id);
+      const child = await storage.getChildById(childId);
+      
+      if (!child) {
+        return res.status(404).send('Child not found');
+      }
+      
+      // Verify the requesting user is the parent of this child
+      if (child.userId !== req.user?.id) {
+        return res.status(403).send('Forbidden');
+      }
+      
+      res.json(child);
+    } catch (error) {
+      console.error('Error fetching child:', error);
+      res.status(500).send('Error fetching child');
+    }
+  });
+  
+  app.post('/api/children', async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).send('Unauthorized');
+    }
+    
+    try {
+      // Parse with zod schema
+      const result = insertChildSchema.safeParse(req.body);
+      
+      if (!result.success) {
+        return res.status(400).json({
+          error: 'Invalid child data',
+          details: result.error.format()
+        });
+      }
+      
+      // Ensure the userId matches the authenticated user
+      if (result.data.userId !== req.user?.id) {
+        return res.status(403).send('Cannot create children for other users');
+      }
+      
+      const child = await storage.createChild(result.data);
+      res.status(201).json(child);
+    } catch (error) {
+      console.error('Error creating child:', error);
+      res.status(500).send('Error creating child');
+    }
+  });
+  
+  app.patch('/api/children/:id', async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).send('Unauthorized');
+    }
+    
+    try {
+      const childId = parseInt(req.params.id);
+      const child = await storage.getChildById(childId);
+      
+      if (!child) {
+        return res.status(404).send('Child not found');
+      }
+      
+      // Verify the requesting user is the parent of this child
+      if (child.userId !== req.user?.id) {
+        return res.status(403).send('Forbidden');
+      }
+      
+      // Don't allow changing the userId
+      if (req.body.userId && req.body.userId !== req.user.id) {
+        return res.status(403).send('Cannot transfer child to another user');
+      }
+      
+      // Only update allowed fields
+      const allowedUpdates: Partial<InsertChild> = {};
+      if (req.body.name !== undefined) allowedUpdates.name = req.body.name;
+      if (req.body.email !== undefined) allowedUpdates.email = req.body.email;
+      if (req.body.phoneNumber !== undefined) allowedUpdates.phoneNumber = req.body.phoneNumber;
+      if (req.body.pictureUrl !== undefined) allowedUpdates.pictureUrl = req.body.pictureUrl;
+      if (req.body.notes !== undefined) allowedUpdates.notes = req.body.notes;
+      
+      const updatedChild = await storage.updateChild(childId, allowedUpdates);
+      res.json(updatedChild);
+    } catch (error) {
+      console.error('Error updating child:', error);
+      res.status(500).send('Error updating child');
+    }
+  });
+  
+  app.delete('/api/children/:id', async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).send('Unauthorized');
+    }
+    
+    try {
+      const childId = parseInt(req.params.id);
+      const child = await storage.getChildById(childId);
+      
+      if (!child) {
+        return res.status(404).send('Child not found');
+      }
+      
+      // Verify the requesting user is the parent of this child
+      if (child.userId !== req.user?.id) {
+        return res.status(403).send('Forbidden');
+      }
+      
+      const success = await storage.deleteChild(childId);
+      if (success) {
+        res.status(204).send();
+      } else {
+        res.status(500).send('Error deleting child');
+      }
+    } catch (error) {
+      console.error('Error deleting child:', error);
+      res.status(500).send('Error deleting child');
+    }
+  });
+  
+  // Handle file uploads for child profile pictures
+  app.post('/api/children/:id/picture', async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).send('Unauthorized');
+    }
+    
+    try {
+      const childId = parseInt(req.params.id);
+      const child = await storage.getChildById(childId);
+      
+      if (!child) {
+        return res.status(404).send('Child not found');
+      }
+      
+      // Verify the requesting user is the parent of this child
+      if (child.userId !== req.user?.id) {
+        return res.status(403).send('Forbidden');
+      }
+      
+      if (!req.files || !req.files.picture) {
+        return res.status(400).send('No picture file uploaded');
+      }
+      
+      const picture = req.files.picture as fileUpload.UploadedFile;
+      
+      // Validate the file is an image
+      if (!picture.mimetype.startsWith('image/')) {
+        return res.status(400).send('Uploaded file is not an image');
+      }
+      
+      // Create a unique filename
+      const timestamp = Date.now();
+      const filename = `child_${childId}_${timestamp}_${picture.name}`;
+      const uploadPath = `./public/uploads/children/${filename}`;
+      
+      // Create the directory if it doesn't exist
+      await new Promise<void>((resolve, reject) => {
+        if (!picture.mv) {
+          return reject(new Error('File upload middleware not configured correctly'));
+        }
+        
+        picture.mv(uploadPath, (err) => {
+          if (err) {
+            console.error('Error saving file:', err);
+            return reject(err);
+          }
+          resolve();
+        });
+      });
+      
+      // Update the child record with the picture URL
+      const pictureUrl = `/uploads/children/${filename}`;
+      const updatedChild = await storage.updateChild(childId, { pictureUrl });
+      
+      res.json(updatedChild);
+    } catch (error) {
+      console.error('Error uploading picture:', error);
+      res.status(500).send('Error uploading picture');
+    }
+  });
+  
   // Database health check endpoint
   // Manual endpoint to check and update trip statuses (for testing purposes)
   // Public endpoint to test trip status updates (for testing purposes only)
