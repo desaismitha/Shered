@@ -195,6 +195,9 @@ export const tripCheckIns = pgTable("trip_check_ins", {
   checkedInAt: timestamp("checked_in_at").defaultNow(),
   status: text("status").default("ready"), // ready, not-ready, delayed
   notes: text("notes"),
+  latitude: doublePrecision("latitude"),
+  longitude: doublePrecision("longitude"),
+  locationVerified: boolean("location_verified").default(false),
 });
 
 export const insertTripCheckInSchema = createInsertSchema(tripCheckIns).omit({

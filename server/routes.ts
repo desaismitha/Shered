@@ -4528,6 +4528,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const userId = req.user!.id;
       
+      // Get the trip details to validate location
+      const trip = await storage.getTrip(tripId);
+      if (!trip) {
+        return res.status(404).json({ error: 'Trip not found' });
+      }
+      
+      // Validate location if coordinates are provided in the request
+      let locationVerified = false;
+      const { latitude, longitude } = req.body;
+      let locationMessage = null;
+      
+      if (latitude !== undefined && longitude !== undefined) {
+        console.log(`[CHECKIN] Verifying user location: ${latitude}, ${longitude}`);
+        
+        // Extract trip starting location coordinates if available
+        const tripStartCoords = parseCoordinates(trip.startLocation);
+        
+        if (tripStartCoords) {
+          // Calculate distance between user and trip start location
+          const distance = calculateDistance(
+            latitude, 
+            longitude, 
+            tripStartCoords.lat,
+            tripStartCoords.lng
+          );
+          
+          // Consider the location verified if user is within 1km of the trip start location
+          const MAX_DISTANCE_KM = 1.0; // 1 kilometer radius
+          locationVerified = distance <= MAX_DISTANCE_KM;
+          
+          console.log(`[CHECKIN] Distance from start: ${distance.toFixed(2)}km, verified: ${locationVerified}`);
+          
+          if (!locationVerified) {
+            locationMessage = `You are ${distance.toFixed(2)}km away from the meeting point. Please move closer to check in.`;
+            console.log(`[CHECKIN] User is too far from trip start location (${distance.toFixed(2)}km)`);
+          } else {
+            locationMessage = "Location verified successfully.";
+          }
+        } else {
+          console.log(`[CHECKIN] Could not parse coordinates from trip start location: ${trip.startLocation}`);
+          locationMessage = "Could not verify location - trip doesn't have precise coordinates.";
+        }
+      } else {
+        console.log(`[CHECKIN] No location data provided for verification`);
+        locationMessage = "Location data not provided. Please enable location services.";
+      }
+      
       // Check if user already has a check-in
       const existingCheckIn = await storage.getUserTripCheckIn(tripId, userId);
       
@@ -4537,7 +4584,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Update existing check-in
         checkIn = await storage.updateTripCheckIn(existingCheckIn.id, {
           status: req.body.status,
-          notes: req.body.notes
+          notes: req.body.notes,
+          latitude: latitude !== undefined ? latitude : existingCheckIn.latitude,
+          longitude: longitude !== undefined ? longitude : existingCheckIn.longitude,
+          locationVerified: locationVerified
         });
       } else {
         // Create new check-in
@@ -4545,15 +4595,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           tripId,
           userId,
           status: req.body.status || 'ready',
-          notes: req.body.notes
+          notes: req.body.notes,
+          latitude,
+          longitude,
+          locationVerified
         });
       }
 
       // Check if all members have checked in with 'ready' status and update trip status if needed
       const checkIns = await storage.getAllTripCheckInStatus(tripId);
       
-      // Get the trip
-      const trip = await storage.getTrip(tripId);
+      // Get the trip details (we already have the trip from above)
       if (!trip) {
         return res.status(404).json({ error: 'Trip not found' });
       }
@@ -4601,7 +4653,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ 
         checkIn, 
         allReady,
-        notification
+        notification,
+        locationStatus: {
+          verified: locationVerified,
+          message: locationMessage
+        }
       });
     } catch (error) {
       next(error);
