@@ -351,7 +351,7 @@ function CheckInPage() {
                   checked={showPastTrips}
                   onCheckedChange={setShowPastTrips}
                 />
-                <Label htmlFor="show-past-trips">Show past trips</Label>
+                <Label htmlFor="show-past-trips">Show past schedules</Label>
               </div>
               
               {isLoadingTrips ? (
@@ -360,13 +360,13 @@ function CheckInPage() {
                 </div>
               ) : tripsError ? (
                 <div className="text-red-500 p-4 border border-red-200 rounded-md">
-                  Error loading trips: {tripsError instanceof Error ? tripsError.message : "Unknown error. Please try again."}
+                  Error loading schedules: {tripsError instanceof Error ? tripsError.message : "Unknown error. Please try again."}
                 </div>
               ) : filteredTrips.length === 0 ? (
                 <div className="text-center py-6 text-gray-500">
                   {showPastTrips 
-                    ? "No trips found. Create a trip first." 
-                    : "No active trips found. Try enabling 'Show past trips' to see completed trips."}
+                    ? "No schedules found. Create a schedule first." 
+                    : "No active schedules found. Try enabling 'Show past schedules' to see completed schedules."}
                 </div>
               ) : (
                 <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
