@@ -1,5 +1,5 @@
-import { users, groups, groupMembers, trips, itineraryItems, expenses, messages, vehicles, tripVehicles, tripCheckIns } from "@shared/schema";
-import type { User, InsertUser, Group, InsertGroup, GroupMember, InsertGroupMember, Trip, InsertTrip, ItineraryItem, InsertItineraryItem, Expense, InsertExpense, Message, InsertMessage, Vehicle, InsertVehicle, TripVehicle, InsertTripVehicle, TripCheckIn, InsertTripCheckIn } from "@shared/schema";
+import { users, groups, groupMembers, trips, itineraryItems, expenses, messages, vehicles, tripVehicles, tripCheckIns, children } from "@shared/schema";
+import type { User, InsertUser, Group, InsertGroup, GroupMember, InsertGroupMember, Trip, InsertTrip, ItineraryItem, InsertItineraryItem, Expense, InsertExpense, Message, InsertMessage, Vehicle, InsertVehicle, TripVehicle, InsertTripVehicle, TripCheckIn, InsertTripCheckIn, Child, InsertChild } from "@shared/schema";
 import session from "express-session";
 import { eq, ne, and, inArray, gt } from "drizzle-orm";
 import { db, pool, attemptReconnect, checkDbConnection } from "./db";

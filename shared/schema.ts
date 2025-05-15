@@ -215,6 +215,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   messages: many(messages, { relationName: "user_messages" }),
   vehicles: many(vehicles, { relationName: "user_vehicles" }),
   tripCheckIns: many(tripCheckIns, { relationName: "user_check_ins" }),
+  children: many(children, { relationName: "user_children" }),
 }));
 
 export const groupsRelations = relations(groups, ({ one, many }) => ({
@@ -367,4 +368,37 @@ export type InsertTripVehicle = z.infer<typeof insertTripVehicleSchema>;
 export type TripCheckIn = typeof tripCheckIns.$inferSelect;
 export type InsertTripCheckIn = z.infer<typeof insertTripCheckInSchema>;
 
-// Child type declarations will be added after fixing relations issues
+// Children schema
+export const children = pgTable("children", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  name: text("name").notNull(),
+  email: text("email"),
+  phoneNumber: text("phone_number"),
+  pictureUrl: text("picture_url"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertChildSchema = createInsertSchema(children).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  // Add validation for email format (optional)
+  email: z.string().email("Please enter a valid email address").optional().nullable(),
+  // Add validation for phone number format (optional)
+  phoneNumber: z.string().transform(val => val ? val.replace(/[^0-9+]/g, '') : val).optional().nullable(),
+});
+
+// Relations for children
+export const childrenRelations = relations(children, ({ one }) => ({
+  parent: one(users, {
+    fields: [children.userId],
+    references: [users.id],
+    relationName: "user_children",
+  }),
+}));
+
+// Child type
+export type Child = typeof children.$inferSelect;
+export type InsertChild = z.infer<typeof insertChildSchema>;
