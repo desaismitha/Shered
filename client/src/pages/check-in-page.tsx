@@ -32,6 +32,8 @@ interface Trip {
 interface CheckInFormData {
   status: "ready" | "not-ready" | "maybe";
   notes: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 interface CheckIn {
@@ -41,11 +43,15 @@ interface CheckIn {
   checkedInAt: string;
   status: string;
   notes: string;
+  latitude?: number;
+  longitude?: number;
+  locationVerified?: boolean;
 }
 
 interface CheckInStatus {
   userId: number;
   status: string;
+  locationVerified?: boolean;
 }
 
 interface CheckInStatusData {
@@ -58,6 +64,16 @@ interface CheckInStatusData {
   };
 }
 
+interface CheckInResponse {
+  checkIn: CheckIn;
+  allReady: boolean;
+  notification: string | null;
+  locationStatus: {
+    verified: boolean;
+    message: string;
+  }
+}
+
 function CheckInPage() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -66,6 +82,19 @@ function CheckInPage() {
   const [formData, setFormData] = useState<CheckInFormData>({
     status: "ready",
     notes: "",
+    latitude: undefined,
+    longitude: undefined,
+  });
+  const [locationStatus, setLocationStatus] = useState<{
+    acquiring: boolean;
+    error: string | null;
+    verified: boolean;
+    message: string | null;
+  }>({
+    acquiring: false,
+    error: null,
+    verified: false,
+    message: null,
   });
   const [showPastTrips, setShowPastTrips] = useState(false);
   
@@ -104,21 +133,88 @@ function CheckInPage() {
     refetchInterval: 10000, // Refresh every 10 seconds
   });
   
+  // Function to get current location
+  const getCurrentLocation = async (): Promise<void> => {
+    if (!navigator.geolocation) {
+      setLocationStatus({
+        acquiring: false,
+        error: "Geolocation is not supported by your browser.",
+        verified: false,
+        message: null
+      });
+      return;
+    }
+
+    setLocationStatus(prev => ({ ...prev, acquiring: true, error: null }));
+
+    try {
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
+        });
+      });
+
+      const { latitude, longitude } = position.coords;
+      
+      // Update form data with location
+      setFormData(prev => ({
+        ...prev,
+        latitude,
+        longitude
+      }));
+      
+      setLocationStatus(prev => ({
+        ...prev,
+        acquiring: false,
+        message: "Location acquired successfully. Check-in will be verified based on your current location."
+      }));
+      
+    } catch (error) {
+      console.error('Error getting location:', error);
+      setLocationStatus({
+        acquiring: false,
+        error: error instanceof Error ? error.message : "Could not get your location. Please check your device settings.",
+        verified: false,
+        message: null
+      });
+    }
+  };
+
   // Initialize form data when user check-in status is loaded
   useEffect(() => {
     if (userCheckIn) {
       setFormData({
         status: (userCheckIn.status as "ready" | "not-ready" | "maybe") || "ready",
         notes: userCheckIn.notes || "",
+        latitude: userCheckIn.latitude,
+        longitude: userCheckIn.longitude
       });
+      
+      // If they have a previous check-in with verified location, show that status
+      if (userCheckIn.locationVerified) {
+        setLocationStatus(prev => ({
+          ...prev,
+          verified: true,
+          message: "Your location has been verified for this check-in."
+        }));
+      }
     } else {
       // Reset form if no check-in exists
       setFormData({
         status: "ready",
         notes: "",
+        latitude: undefined,
+        longitude: undefined
       });
+      
+      // Try to get location when a trip is selected and there's no existing check-in
+      if (selectedTripId) {
+        getCurrentLocation();
+      }
     }
-  }, [userCheckIn]);
+  }, [userCheckIn, selectedTripId]);
   
   // Mutation for creating/updating check-in
   const checkInMutation = useMutation({
@@ -130,13 +226,38 @@ function CheckInPage() {
         `/api/trips/${selectedTripId}/check-ins`,
         data
       );
-      return response.json();
+      return response.json() as Promise<CheckInResponse>;
     },
-    onSuccess: () => {
-      toast({
-        title: "Check-in successful",
-        description: "Your check-in status has been updated.",
-      });
+    onSuccess: (data) => {
+      // Update location status based on server response
+      setLocationStatus(prev => ({
+        ...prev,
+        verified: data.locationStatus.verified,
+        message: data.locationStatus.message,
+        acquiring: false
+      }));
+      
+      // Different toast message based on location verification
+      if (data.locationStatus.verified) {
+        toast({
+          title: "Check-in successful",
+          description: "Your location has been verified and check-in is complete.",
+        });
+      } else {
+        // If there's a location message but not verified, it means we need to show a warning
+        if (data.locationStatus.message && !data.locationStatus.verified) {
+          toast({
+            title: "Check-in recorded with warning",
+            description: data.locationStatus.message,
+            variant: "warning",
+          });
+        } else {
+          toast({
+            title: "Check-in successful",
+            description: "Your check-in status has been updated.",
+          });
+        }
+      }
       
       // Invalidate the queries to refresh data
       queryClient.invalidateQueries({
