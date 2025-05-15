@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, CheckCircle2, XCircle, Clock, AlertTriangle, PlusCircle } from "lucide-react";
+import { Loader2, CheckCircle2, XCircle, Clock, AlertTriangle, PlusCircle, MapPin } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -79,6 +79,7 @@ function CheckInPage() {
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const [selectedTripId, setSelectedTripId] = useState<number | null>(null);
+  const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
   const [formData, setFormData] = useState<CheckInFormData>({
     status: "ready",
     notes: "",
@@ -216,6 +217,19 @@ function CheckInPage() {
     }
   }, [userCheckIn, selectedTripId]);
   
+  // Update selectedTrip when trips or selectedTripId changes
+  useEffect(() => {
+    if (selectedTripId && trips.length > 0) {
+      const trip = trips.find(t => t.id === selectedTripId);
+      if (trip) {
+        setSelectedTrip(trip);
+        console.log(`Selected trip updated: ${trip.name} with start location ${trip.startLocation}`);
+      }
+    } else {
+      setSelectedTrip(null);
+    }
+  }, [trips, selectedTripId]);
+
   // Mutation for creating/updating check-in
   const checkInMutation = useMutation({
     mutationFn: async (data: CheckInFormData) => {
@@ -479,6 +493,24 @@ function CheckInPage() {
                                 {locationStatus.message}
                               </div>
                             )}
+                            
+                            {/* Display coordinates when available */}
+                            {formData.latitude && formData.longitude && (
+                              <div className="flex items-center text-xs text-gray-500 mt-2">
+                                <MapPin className="h-3 w-3 mr-1" />
+                                <span>
+                                  {formData.latitude.toFixed(6)}, {formData.longitude.toFixed(6)}
+                                </span>
+                              </div>
+                            )}
+
+                            {/* Trip start location when available */}
+                            {selectedTrip?.startLocation && (
+                              <div className="flex items-center text-xs text-gray-500 mt-1">
+                                <span className="mr-1">Meeting point:</span>
+                                <span className="font-semibold">{selectedTrip.startLocationDisplay || selectedTrip.startLocation}</span>
+                              </div>
+                            )}
                           </div>
                           
                           <Button
@@ -491,7 +523,10 @@ function CheckInPage() {
                             {locationStatus.acquiring ? (
                               <Loader2 className="h-4 w-4 animate-spin" />
                             ) : (
-                              "Update Location"
+                              <div className="flex items-center">
+                                <MapPin className="h-4 w-4 mr-1" />
+                                Update Location
+                              </div>
                             )}
                           </Button>
                         </div>
