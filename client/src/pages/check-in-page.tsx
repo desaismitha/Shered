@@ -249,7 +249,7 @@ function CheckInPage() {
           toast({
             title: "Check-in recorded with warning",
             description: data.locationStatus.message,
-            variant: "warning",
+            variant: "destructive",
           });
         } else {
           toast({
@@ -442,6 +442,59 @@ function CheckInPage() {
                             </SelectItem>
                           </SelectContent>
                         </Select>
+                      </div>
+                      
+                      {/* Location Status */}
+                      <div className="p-3 border rounded-md bg-gray-50">
+                        <div className="flex justify-between items-start">
+                          <div className="flex flex-col">
+                            <span className="text-sm font-medium mb-1">Location Verification</span>
+                            {locationStatus.acquiring ? (
+                              <div className="flex items-center text-blue-500 text-sm mt-1">
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Acquiring your location...
+                              </div>
+                            ) : locationStatus.error ? (
+                              <div className="text-red-500 text-sm mt-1">
+                                {locationStatus.error}
+                              </div>
+                            ) : locationStatus.verified ? (
+                              <div className="flex items-center text-green-500 text-sm mt-1">
+                                <CheckCircle2 className="h-4 w-4 mr-2" />
+                                Location verified
+                              </div>
+                            ) : formData.latitude && formData.longitude ? (
+                              <div className="flex items-center text-yellow-500 text-sm mt-1">
+                                <AlertTriangle className="h-4 w-4 mr-2" />
+                                Location needs verification
+                              </div>
+                            ) : (
+                              <div className="text-gray-500 text-sm mt-1">
+                                No location data available
+                              </div>
+                            )}
+                            
+                            {locationStatus.message && (
+                              <div className="text-sm mt-2">
+                                {locationStatus.message}
+                              </div>
+                            )}
+                          </div>
+                          
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={getCurrentLocation}
+                            disabled={locationStatus.acquiring}
+                          >
+                            {locationStatus.acquiring ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              "Update Location"
+                            )}
+                          </Button>
+                        </div>
                       </div>
                       
                       <div>
