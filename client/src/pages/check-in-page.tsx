@@ -237,7 +237,7 @@ function CheckInPage() {
       
       const response = await apiRequest(
         "POST",
-        `/api/trips/${selectedScheduleId}/check-ins`,
+        `/api/schedules/${selectedScheduleId}/check-ins`,
         data
       );
       return response.json() as Promise<CheckInResponse>;
@@ -275,10 +275,10 @@ function CheckInPage() {
       
       // Invalidate the queries to refresh data
       queryClient.invalidateQueries({
-        queryKey: ["/api/trips", selectedScheduleId, "check-ins/user", user?.id],
+        queryKey: ["/api/schedules", selectedScheduleId, "check-ins/user", user?.id],
       });
       queryClient.invalidateQueries({
-        queryKey: ["/api/trips", selectedScheduleId, "check-in-status"],
+        queryKey: ["/api/schedules", selectedScheduleId, "check-in-status"],
       });
     },
     onError: (error: Error) => {

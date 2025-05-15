@@ -9,19 +9,19 @@ import { WebSocketProvider } from "@/components/providers/websocket-provider";
 import { ProtectedRoute } from "@/lib/protected-route";
 import AuthPage from "@/pages/auth-page";
 import DashboardPage from "@/pages/dashboard-page";
-import TripsPage from "@/pages/trips-page";
-// Using unified trip page instead of separate pages
-import UnifiedTripPage from "@/pages/unified-trip-page";
+import TripsPage from "@/pages/trips-page"; // This will be our SchedulesPage
+// Using unified schedule page instead of separate pages
+import UnifiedTripPage from "@/pages/unified-trip-page"; // This will be our UnifiedSchedulePage
 import EventPage from "@/pages/event-page";
-import TripsDebugPage from "@/pages/trips-debug-page";
-import ActiveTripsDebug from "@/pages/active-trips-debug";
+import TripsDebugPage from "@/pages/trips-debug-page"; // Will be SchedulesDebugPage
+import ActiveTripsDebug from "@/pages/active-trips-debug"; // Will be ActiveSchedulesDebug
 import GroupsPage from "@/pages/groups-page";
 import GroupDetailsPage from "@/pages/group-details-page";
 import NewGroupPage from "@/pages/groups/new";
 import ExpensesPage from "@/pages/expenses-page";
 import MessagesPage from "@/pages/messages-page";
 import VehiclesPage from "@/pages/vehicles-page";
-import ActiveTripsPage from "@/pages/active-trips-page";
+import ActiveTripsPage from "@/pages/active-trips-page"; // Will be ActiveSchedulesPage
 import CheckInPage from "@/pages/check-in-page";
 import ProfilePage from "@/pages/profile-page";
 import ForgotPasswordPage from "@/pages/forgot-password";
@@ -35,12 +35,12 @@ function Router() {
   return (
     <Switch>
       <ProtectedRoute path="/" component={DashboardPage} />
-      <ProtectedRoute path="/trips" component={TripsPage} />
-      <ProtectedRoute path="/trips/new" component={UnifiedTripPage} />
-      <ProtectedRoute path="/trips/:tripId" component={UnifiedTripPage} />
+      <ProtectedRoute path="/schedules" component={TripsPage} />
+      <ProtectedRoute path="/schedules/new" component={UnifiedTripPage} />
+      <ProtectedRoute path="/schedules/:scheduleId" component={UnifiedTripPage} />
       <ProtectedRoute path="/events/new" component={EventPage} />
       <ProtectedRoute path="/events/:eventId" component={EventPage} />
-      <ProtectedRoute path="/active-trips" component={ActiveTripsPage} />
+      <ProtectedRoute path="/active-schedules" component={ActiveTripsPage} />
       <ProtectedRoute path="/check-in" component={CheckInPage} />
       <ProtectedRoute path="/groups/new" component={NewGroupPage} />
       <ProtectedRoute path="/groups/:id" component={GroupDetailsPage} />
@@ -50,8 +50,8 @@ function Router() {
       <ProtectedRoute path="/vehicles" component={VehiclesPage} />
       <ProtectedRoute path="/profile" component={ProfilePage} />
       <ProtectedRoute path="/bulk-import" component={BulkImportPage} />
-      <ProtectedRoute path="/trips-debug" component={TripsDebugPage} />
-      <ProtectedRoute path="/active-trips-debug" component={ActiveTripsDebug} />
+      <ProtectedRoute path="/schedules-debug" component={TripsDebugPage} />
+      <ProtectedRoute path="/active-schedules-debug" component={ActiveTripsDebug} />
       <Route path="/auth" component={AuthPage} />
       <Route path="/invite/:groupId/:token">
         {(params) => {
