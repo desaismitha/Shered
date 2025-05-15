@@ -3,7 +3,8 @@ import { Link, useLocation } from "wouter";
 import { 
   Plane, LayoutDashboard, Users, Calendar, DollarSign, 
   MessageSquare, Settings, LogOut, Car, MapPin,
-  Navigation, PlusCircle, CalendarPlus, CheckCircle
+  Navigation, PlusCircle, CalendarPlus, CheckCircle,
+  User
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DbResetButton } from "@/components/ui/db-reset-button";
@@ -35,6 +36,7 @@ export function Sidebar() {
   ];
 
   const footerItems = [
+    { icon: User, label: "My Profile", href: "/profile" },
     { icon: Settings, label: "Settings", href: "/settings" },
     { icon: LogOut, label: "Logout", onClick: handleLogout },
   ];

@@ -61,11 +61,6 @@ export default function ProfilePage() {
                   <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4">
                     <span className="font-medium min-w-32">Phone Number:</span>
                     <span>{user.phoneNumber}</span>
-                    {user?.phoneVerified ? (
-                      <span className="text-sm text-green-500">Verified</span>
-                    ) : (
-                      <span className="text-sm text-amber-500">Not verified</span>
-                    )}
                   </div>
                 )}
                 <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4">

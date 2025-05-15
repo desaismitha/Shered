@@ -23,6 +23,7 @@ import MessagesPage from "@/pages/messages-page";
 import VehiclesPage from "@/pages/vehicles-page";
 import ActiveTripsPage from "@/pages/active-trips-page";
 import CheckInPage from "@/pages/check-in-page";
+import ProfilePage from "@/pages/profile-page";
 import ForgotPasswordPage from "@/pages/forgot-password";
 import ResetPasswordPage from "@/pages/reset-password";
 import VerifyEmailPage from "@/pages/verify-email-page";
@@ -47,6 +48,7 @@ function Router() {
       <ProtectedRoute path="/expenses" component={ExpensesPage} />
       <ProtectedRoute path="/messages" component={MessagesPage} />
       <ProtectedRoute path="/vehicles" component={VehiclesPage} />
+      <ProtectedRoute path="/profile" component={ProfilePage} />
       <ProtectedRoute path="/bulk-import" component={BulkImportPage} />
       <ProtectedRoute path="/trips-debug" component={TripsDebugPage} />
       <ProtectedRoute path="/active-trips-debug" component={ActiveTripsDebug} />
