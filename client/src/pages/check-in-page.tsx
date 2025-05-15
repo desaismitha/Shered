@@ -15,8 +15,8 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
 import { useLocation } from "wouter";
 
-// Define interface for the Trip data structure
-interface Trip {
+// Define interface for the Schedule data structure
+interface Schedule {
   id: number;
   name: string;
   startDate: string;
@@ -97,22 +97,22 @@ function CheckInPage() {
     verified: false,
     message: null,
   });
-  const [showPastTrips, setShowPastTrips] = useState(false);
+  const [showPastSchedules, setShowPastSchedules] = useState(false);
   
-  // Fetch all trips the user is part of
+  // Fetch all schedules the user is part of
   const {
-    data: trips = [],
-    isLoading: isLoadingTrips,
-    error: tripsError,
-  } = useQuery<Trip[]>({
+    data: schedules = [],
+    isLoading: isLoadingSchedules,
+    error: schedulesError,
+  } = useQuery<Schedule[]>({
     queryKey: ["/api/trips"],
     refetchInterval: 30000, // Refresh every 30 seconds
   });
   
-  // Filter trips based on showPastTrips toggle
-  const filteredTrips = trips.filter(trip => {
-    if (showPastTrips) return true;
-    return ["planning", "confirmed", "in-progress"].includes(trip.status);
+  // Filter schedules based on showPastSchedules toggle
+  const filteredSchedules = schedules.filter(schedule => {
+    if (showPastSchedules) return true;
+    return ["planning", "confirmed", "in-progress"].includes(schedule.status);
   });
   
   // Fetch user's check-in status for the selected trip
@@ -348,8 +348,8 @@ function CheckInPage() {
               <div className="mb-4 flex items-center space-x-2">
                 <Switch 
                   id="show-past-schedules"
-                  checked={showPastTrips}
-                  onCheckedChange={setShowPastTrips}
+                  checked={showPastSchedules}
+                  onCheckedChange={setShowPastSchedules}
                 />
                 <Label htmlFor="show-past-schedules">Show past schedules</Label>
               </div>
@@ -364,7 +364,7 @@ function CheckInPage() {
                 </div>
               ) : filteredTrips.length === 0 ? (
                 <div className="text-center py-6 text-gray-500">
-                  {showPastTrips 
+                  {showPastSchedules 
                     ? "No schedules found. Create a schedule first." 
                     : "No active schedules found. Try enabling 'Show past schedules' to see completed schedules."}
                 </div>
