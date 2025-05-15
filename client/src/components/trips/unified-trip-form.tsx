@@ -215,7 +215,7 @@ export function UnifiedTripForm({
                   <FormItem>
                     <FormLabel>{tripType === 'event' ? 'Event Name *' : 'Schedule Name *'}</FormLabel>
                     <FormControl>
-                      <Input placeholder={`Enter ${tripType} name`} {...field} />
+                      <Input placeholder={tripType === 'event' ? 'Enter event name' : 'Enter schedule name'} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -388,7 +388,7 @@ export function UnifiedTripForm({
           </Card>
           
           <Card className="p-6">
-            <h2 className="text-lg font-medium mb-4">{tripType === 'event' ? 'Event Type' : 'Trip Type'}</h2>
+            <h2 className="text-lg font-medium mb-4">{tripType === 'event' ? 'Event Type' : 'Schedule Type'}</h2>
             
             <div className="flex flex-col space-y-4">
               <FormField
@@ -399,17 +399,17 @@ export function UnifiedTripForm({
                     <div className="space-y-1">
                       <FormLabel className="text-base">
                         {field.value 
-                          ? (tripType === 'event' ? "Multi-Day Event" : "Multi-Stop Trip") 
-                          : (tripType === 'event' ? "Single Day Event" : "Single Stop Trip")}
+                          ? (tripType === 'event' ? "Multi-Day Event" : "Multi-Stop Schedule") 
+                          : (tripType === 'event' ? "Single Day Event" : "Single Stop Schedule")}
                       </FormLabel>
                       <FormDescription>
                         {field.value 
                           ? (tripType === 'event' 
                              ? "Create an event with multiple activities on different days" 
-                             : "Create a trip with multiple stops on different days")
+                             : "Create a schedule with multiple stops on different days")
                           : (tripType === 'event'
                              ? "Create a simple event with one location"
-                             : "Create a simple trip with one start and end location")}
+                             : "Create a simple schedule with one start and end location")}
                       </FormDescription>
                     </div>
                     <FormControl>
@@ -435,7 +435,7 @@ export function UnifiedTripForm({
                   <p className="text-sm text-blue-700">
                     {tripType === 'event' 
                       ? "This is the main location for your multi-day event. You can add specific locations for each day's activities after creating the event."
-                      : "This is the main location for your multi-stop trip. You can add specific stops and destinations after creating the trip."
+                      : "This is the main location for your multi-stop schedule. You can add specific stops and destinations after creating the schedule."
                     }
                   </p>
                 </div>
@@ -468,7 +468,7 @@ export function UnifiedTripForm({
                     )}
                   />
                 ) : (
-                  // For multi-stop trips, show both start and end
+                  // For multi-stop schedules, show both start and end
                   <div className="grid gap-6 sm:grid-cols-2">
                     <FormField
                       control={form.control}
