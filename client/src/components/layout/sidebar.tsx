@@ -4,7 +4,7 @@ import {
   Plane, LayoutDashboard, Users, Calendar, DollarSign, 
   MessageSquare, Settings, LogOut, Car, MapPin,
   Navigation, PlusCircle, CalendarPlus, CheckCircle,
-  User
+  User, CarTaxiFront
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DbResetButton } from "@/components/ui/db-reset-button";

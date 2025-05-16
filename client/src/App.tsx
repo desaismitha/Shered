@@ -25,6 +25,7 @@ import NewGroupPage from "@/pages/groups/new";
 import ExpensesPage from "@/pages/expenses-page";
 import MessagesPage from "@/pages/messages-page";
 import VehiclesPage from "@/pages/vehicles-page";
+import DriversPage from "@/pages/drivers-page"; // New Drivers page
 import ActiveTripsPage from "@/pages/active-trips-page"; // Using as ActiveSchedulesPage
 import CheckInPage from "@/pages/check-in-page";
 import ProfilePage from "@/pages/profile-page";
@@ -64,6 +65,7 @@ function Router() {
       <ProtectedRoute path="/expenses" component={ExpensesPage} />
       <ProtectedRoute path="/messages" component={MessagesPage} />
       <ProtectedRoute path="/vehicles" component={VehiclesPage} />
+      <ProtectedRoute path="/drivers" component={DriversPage} />
       <ProtectedRoute path="/profile" component={ProfilePage} />
       <ProtectedRoute path="/bulk-import" component={BulkImportPage} />
       <ProtectedRoute path="/schedules-debug" component={TripsDebugPage} />
