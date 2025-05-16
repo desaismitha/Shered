@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { PlusIcon } from "lucide-react";
 import { useLocation } from "wouter";
 import { DashboardStats } from "@/components/dashboard/stats";
-import { UpcomingTrips } from "@/components/dashboard/upcoming-trips";
 import { PopularDestinations } from "@/components/dashboard/popular-destinations";
 import { GroupActivities } from "@/components/dashboard/group-activities";
 import { TravelTips } from "@/components/dashboard/travel-tips";
@@ -38,9 +37,6 @@ export default function DashboardPage() {
         
         {/* Quick stats */}
         <DashboardStats />
-        
-        {/* Upcoming trips section */}
-        <UpcomingTrips />
         
         {/* Popular Destinations */}
         <PopularDestinations />

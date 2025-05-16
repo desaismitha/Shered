@@ -85,9 +85,16 @@ export function DashboardStats() {
     currency: 'USD',
   }).format(totalExpenses);
 
-  // Calculate unread messages count (assuming all are unread for now)
-  // In a real implementation, you'd filter by read/unread status
-  const unreadMessagesCount = !messagesLoading && messages ? messages.length : 0;
+  // Calculate unread messages count for current user only
+  const { data: user } = useQuery<any>({
+    queryKey: ["/api/user"],
+    staleTime: 1000 * 60, // 1 minute
+  });
+  
+  // Only count messages not created by the current user as unread
+  const unreadMessagesCount = !messagesLoading && messages && user
+    ? messages.filter(message => message.userId !== user.id).length
+    : 0;
 
   const stats: Stat[] = [
     {
@@ -109,16 +116,6 @@ export function DashboardStats() {
       href: "/groups",
       linkText: "View all groups",
       isLoading: groupsLoading
-    },
-    {
-      title: "Shared Expenses",
-      value: expensesLoading ? "..." : formattedExpenses,
-      icon: DollarSign,
-      iconBgColor: "bg-emerald-100",
-      iconColor: "text-emerald-600",
-      href: "/expenses",
-      linkText: "View details",
-      isLoading: expensesLoading
     },
     {
       title: "Unread Messages",
