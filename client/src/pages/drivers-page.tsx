@@ -560,16 +560,18 @@ export default function DriversPage() {
                       : "Select a date to view driver assignments"
                     }
                   </p>
-                  <Button 
-                    onClick={() => {
-                      setSelectedAssignment(null);
-                      resetForm();
-                      setIsDriverDialogOpen(true);
-                    }}
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Driver Assignment
-                  </Button>
+                  {(activeTab === "all" || activeTab === "scheduled") && (
+                    <Button 
+                      onClick={() => {
+                        setSelectedAssignment(null);
+                        resetForm();
+                        setIsDriverDialogOpen(true);
+                      }}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Driver Assignment
+                    </Button>
+                  )}
                 </div>
               )}
             </CardContent>
