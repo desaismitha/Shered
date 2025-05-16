@@ -95,53 +95,31 @@ export default function UnifiedTripPage() {
   const tripId = params.tripId;
   const queryClient = useQueryClient();
   
-  // Parse the URL to extract tab information
+  // Function to determine the active tab from URL parameters
   const getTabFromUrl = () => {
+    // If no trip ID, we're creating a new trip, so show the form
     if (!tripId) return "form";
     
-    try {
-      // Split the URL at the ? mark and parse parameters
-      const searchParams = new URLSearchParams(window.location.search);
-      console.log("DIRECT ACCESS - Search params from window.location.search:", searchParams.toString());
-      
-      // Get tab from URL parameters
-      const tabParam = searchParams.get('tab');
-      // Handle legacy edit parameter
-      const editParam = searchParams.get('edit');
-      
-      console.log("URL Parameters detected:", { 
-        tabParam, 
-        editParam,
-        fullLocationSearch: window.location.search,
-        windowLocationHref: window.location.href
-      });
-      
-      // Map legacy edit=true parameter to form tab
-      if (editParam === 'true') {
-        console.log("Legacy edit=true parameter detected. Using form tab.");
-        return "form";
-      }
-      
-      // Validate the tab parameter
-      const validTabs = ["form", "preview", "check-in", "tracking"];
-      if (tabParam && validTabs.includes(tabParam)) {
-        console.log(`Valid tab parameter detected: ${tabParam}`);
-        return tabParam;
-      }
-      
-      // When coming from the schedule list view and no specific tab is requested,
-      // default to "preview" tab when viewing a schedule details
-      if (tripId && !tabParam && !editParam) {
-        console.log("Schedule details view detected with no specific tab, defaulting to preview");
-        return "preview";
-      }
-      
-      console.log("No valid tab parameter found, defaulting to form");
-      return "form";
-    } catch (error) {
-      console.error("Error parsing URL parameters:", error);
-      return "form";
+    // Get URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const tabParam = urlParams.get('tab');
+    const editParam = urlParams.get('edit');
+    
+    console.log("URL parameters:", { tabParam, editParam });
+    
+    // Handle explicit edit request
+    if (editParam === 'true') return "form";
+    
+    // Valid tab specified in URL
+    if (tabParam && ["form", "preview", "check-in", "tracking"].includes(tabParam)) {
+      return tabParam;
     }
+    
+    // Default to preview when viewing an existing schedule with no specific tab
+    if (tripId) return "preview";
+    
+    // Fallback
+    return "form";
   };
   
   // State to track the active tab

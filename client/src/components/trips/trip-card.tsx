@@ -186,8 +186,9 @@ export function TripCard({ trip }: TripCardProps) {
               className="flex items-center gap-1 text-green-600 hover:text-green-700"
               onClick={(e) => {
                 e.preventDefault();
-                console.log("Check-in button clicked, navigating to:", `/schedules/${trip.id}?tab=check-in`);
-                navigate(`/schedules/${trip.id}?tab=check-in`);
+                const url = `/schedules/${trip.id}?tab=check-in`;
+                console.log("Check-in button clicked, navigating to:", url);
+                window.location.href = url;
               }}
             >
               <CheckSquare className="h-3 w-3" />
