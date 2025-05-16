@@ -89,22 +89,22 @@ export default function TripsPage() { // Using as SchedulesPage
   
   console.log("Upcoming schedules count:", upcomingSchedules?.length || 0);
   
-  const pastTrips = filteredTrips?.filter(trip => {
-    if (!trip.endDate) return false;
+  const pastSchedules = filteredSchedules?.filter(schedule => {
+    if (!schedule.endDate) return false;
     try {
       const now = new Date();
-      const endDate = new Date(trip.endDate);
+      const endDate = new Date(schedule.endDate);
       
-      // A trip is considered "past" if it's completed (by status)
+      // A schedule is considered "past" if it's completed (by status)
       // OR if its end date is in the past AND it's not cancelled
-      const isCompleted = trip.status === "completed";
-      const isPastEndDate = endDate < now && trip.status !== "cancelled";
+      const isCompleted = schedule.status === "completed";
+      const isPastEndDate = endDate < now && schedule.status !== "cancelled";
       
-      // Also mark in-progress trips whose end date has passed as "past"
-      const isOverdueInProgress = trip.status === "in-progress" && endDate < now;
+      // Also mark in-progress schedules whose end date has passed as "past"
+      const isOverdueInProgress = schedule.status === "in-progress" && endDate < now;
       
       // For debugging
-      console.log(`Trip ${trip.id} (${trip.name}): isCompleted=${isCompleted}, isPastEndDate=${isPastEndDate}, isOverdueInProgress=${isOverdueInProgress}`);
+      console.log(`Schedule ${schedule.id} (${schedule.name}): isCompleted=${isCompleted}, isPastEndDate=${isPastEndDate}, isOverdueInProgress=${isOverdueInProgress}`);
       
       return isCompleted || isPastEndDate || isOverdueInProgress;
     } catch (e) {
