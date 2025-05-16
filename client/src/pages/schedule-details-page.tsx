@@ -203,8 +203,23 @@ export default function ScheduleDetailsPage() {
             
             <TabsContent value="form" className="space-y-4">
               <UnifiedTripForm 
-                existingTrip={tripData}
-                existingItinerary={itineraryItems}
+                defaultValues={{
+                  name: tripData?.name || "",
+                  description: tripData?.description || "",
+                  startDate: tripData?.startDate ? new Date(tripData.startDate) : new Date(),
+                  endDate: tripData?.endDate ? new Date(tripData.endDate) : new Date(),
+                  groupId: tripData?.groupId || undefined,
+                  startLocation: tripData?.startLocation || "",
+                  endLocation: tripData?.destination || "",
+                  status: (tripData?.status as any) || "planning",
+                  enableMobileNotifications: tripData?.enableMobileNotifications || false
+                }}
+                isEditing={true}
+                onSubmit={(data) => {
+                  console.log("Form submitted with data:", data);
+                  // We'll implement a proper form submission later
+                  alert("Edit functionality is not fully implemented yet");
+                }}
               />
             </TabsContent>
             
