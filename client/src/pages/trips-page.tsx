@@ -189,27 +189,30 @@ export default function TripsPage() { // Using as SchedulesPage
             {/* Expenses section removed */}
 
             {isLoading ? (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="space-y-1 border rounded overflow-hidden">
                 {[...Array(3)].map((_, i) => (
-                  <div key={i} className="bg-white shadow rounded-lg overflow-hidden">
-                    <Skeleton className="h-48 w-full" />
+                  <div key={i} className="bg-white border-b overflow-hidden">
                     <div className="p-4">
                       <Skeleton className="h-6 w-3/4 mb-2" />
                       <Skeleton className="h-4 w-1/2 mb-4" />
                       <div className="flex justify-between items-center">
                         <div className="flex space-x-1">
-                          <Skeleton className="h-7 w-7 rounded-full" />
-                          <Skeleton className="h-7 w-7 rounded-full" />
-                          <Skeleton className="h-7 w-7 rounded-full" />
+                          <Skeleton className="h-6 w-6 rounded-full" />
+                          <Skeleton className="h-6 w-6 rounded-full" />
+                          <Skeleton className="h-6 w-6 rounded-full" />
                         </div>
-                        <Skeleton className="h-8 w-24" />
+                        <div className="flex space-x-1">
+                          <Skeleton className="h-7 w-7" />
+                          <Skeleton className="h-7 w-16" />
+                          <Skeleton className="h-7 w-7" />
+                        </div>
                       </div>
                     </div>
                   </div>
                 ))}
               </div>
             ) : upcomingSchedules && upcomingSchedules.length > 0 ? (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="border rounded-md overflow-hidden">
                 {upcomingSchedules.map((schedule) => (
                   <TripCard key={schedule.id} trip={schedule} />
                 ))}
@@ -233,27 +236,30 @@ export default function TripsPage() { // Using as SchedulesPage
             {/* Expenses section removed */}
             
             {isLoading ? (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="space-y-1 border rounded overflow-hidden">
                 {[...Array(3)].map((_, i) => (
-                  <div key={i} className="bg-white shadow rounded-lg overflow-hidden">
-                    <Skeleton className="h-48 w-full" />
+                  <div key={i} className="bg-white border-b overflow-hidden">
                     <div className="p-4">
                       <Skeleton className="h-6 w-3/4 mb-2" />
                       <Skeleton className="h-4 w-1/2 mb-4" />
                       <div className="flex justify-between items-center">
                         <div className="flex space-x-1">
-                          <Skeleton className="h-7 w-7 rounded-full" />
-                          <Skeleton className="h-7 w-7 rounded-full" />
-                          <Skeleton className="h-7 w-7 rounded-full" />
+                          <Skeleton className="h-6 w-6 rounded-full" />
+                          <Skeleton className="h-6 w-6 rounded-full" />
+                          <Skeleton className="h-6 w-6 rounded-full" />
                         </div>
-                        <Skeleton className="h-8 w-24" />
+                        <div className="flex space-x-1">
+                          <Skeleton className="h-7 w-7" />
+                          <Skeleton className="h-7 w-16" />
+                          <Skeleton className="h-7 w-7" />
+                        </div>
                       </div>
                     </div>
                   </div>
                 ))}
               </div>
             ) : pastSchedules && pastSchedules.length > 0 ? (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="border rounded-md overflow-hidden">
                 {pastSchedules.map((schedule) => (
                   <TripCard key={schedule.id} trip={schedule} />
                 ))}
@@ -268,27 +274,30 @@ export default function TripsPage() { // Using as SchedulesPage
           
           <TabsContent value="cancelled">
             {isLoading ? (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="space-y-1 border rounded overflow-hidden">
                 {[...Array(2)].map((_, i) => (
-                  <div key={i} className="bg-white shadow rounded-lg overflow-hidden">
-                    <Skeleton className="h-48 w-full" />
+                  <div key={i} className="bg-white border-b overflow-hidden">
                     <div className="p-4">
                       <Skeleton className="h-6 w-3/4 mb-2" />
                       <Skeleton className="h-4 w-1/2 mb-4" />
                       <div className="flex justify-between items-center">
                         <div className="flex space-x-1">
-                          <Skeleton className="h-7 w-7 rounded-full" />
-                          <Skeleton className="h-7 w-7 rounded-full" />
-                          <Skeleton className="h-7 w-7 rounded-full" />
+                          <Skeleton className="h-6 w-6 rounded-full" />
+                          <Skeleton className="h-6 w-6 rounded-full" />
+                          <Skeleton className="h-6 w-6 rounded-full" />
                         </div>
-                        <Skeleton className="h-8 w-24" />
+                        <div className="flex space-x-1">
+                          <Skeleton className="h-7 w-7" />
+                          <Skeleton className="h-7 w-16" />
+                          <Skeleton className="h-7 w-7" />
+                        </div>
                       </div>
                     </div>
                   </div>
                 ))}
               </div>
             ) : cancelledSchedules && cancelledSchedules.length > 0 ? (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="border rounded-md overflow-hidden">
                 {cancelledSchedules.map((schedule) => (
                   <TripCard key={schedule.id} trip={schedule} />
                 ))}
