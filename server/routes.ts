@@ -995,6 +995,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Get all driver assignments across all trips
+  app.get('/api/driver-assignments', async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).send('Not authenticated');
+      }
+      
+      const assignments = await storage.getAllDriverAssignments();
+      res.json(assignments);
+    } catch (error) {
+      console.error("Error fetching all driver assignments:", error);
+      res.status(500).json({ error: "Failed to fetch driver assignments" });
+    }
+  });
+
   // Get driver assignments for a trip
   app.get('/api/trips/:tripId/driver-assignments', async (req, res) => {
     try {
