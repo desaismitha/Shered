@@ -732,7 +732,6 @@ export default function GroupDetailsPage() {
             <Tabs defaultValue="schedules">
               <TabsList>
                 <TabsTrigger value="schedules">Schedules</TabsTrigger>
-                <TabsTrigger value="messages">Messages</TabsTrigger>
                 <TabsTrigger value="members">Members</TabsTrigger>
               </TabsList>
               
@@ -786,25 +785,6 @@ export default function GroupDetailsPage() {
                         </Button>
                       </div>
                     )}
-                  </CardContent>
-                </Card>
-              </TabsContent>
-              
-              {/* Messages tab */}
-              <TabsContent value="messages">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Group Messages</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="h-[500px] flex flex-col">
-                      <div className="flex-1 overflow-hidden mb-4 border border-slate-200 rounded-md p-2">
-                        <MessageList groupId={groupId} users={users || []} />
-                      </div>
-                      <div className="mt-2">
-                        <MessageForm groupId={groupId} />
-                      </div>
-                    </div>
                   </CardContent>
                 </Card>
               </TabsContent>
