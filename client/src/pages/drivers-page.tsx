@@ -581,7 +581,7 @@ export default function DriversPage() {
 
       {/* Driver Assignment Dialog */}
       <Dialog open={isDriverDialogOpen} onOpenChange={setIsDriverDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {selectedAssignment ? "Edit Driver Assignment" : "Add Driver Assignment"}
@@ -594,8 +594,8 @@ export default function DriversPage() {
             </DialogDescription>
           </DialogHeader>
           
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-1 gap-4">
+          <div className="grid gap-4 py-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="schedule">Schedule</Label>
                 <Select 
