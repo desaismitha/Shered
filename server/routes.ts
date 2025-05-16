@@ -1255,6 +1255,157 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Set up saved locations endpoints
+  app.get('/api/locations', async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).send('Unauthorized');
+    }
+    
+    try {
+      const userId = req.user!.id;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+      const locations = await storage.getSavedLocations(userId, limit);
+      res.json(locations);
+    } catch (error) {
+      console.error('Error fetching saved locations:', error);
+      res.status(500).send('Error fetching saved locations');
+    }
+  });
+  
+  app.get('/api/locations/:id', async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).send('Unauthorized');
+    }
+    
+    try {
+      const id = parseInt(req.params.id);
+      const location = await storage.getSavedLocation(id);
+      
+      if (!location) {
+        return res.status(404).send('Location not found');
+      }
+      
+      // Check if user has access to this location
+      if (location.userId !== req.user!.id) {
+        return res.status(403).send('You don\'t have permission to access this location');
+      }
+      
+      res.json(location);
+    } catch (error) {
+      console.error('Error fetching saved location:', error);
+      res.status(500).send('Error fetching saved location');
+    }
+  });
+  
+  app.post('/api/locations', async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).send('Unauthorized');
+    }
+    
+    try {
+      const userId = req.user!.id;
+      const locationData = {
+        ...req.body,
+        userId,
+        visitCount: 1,
+        lastVisited: new Date()
+      };
+      
+      const newLocation = await storage.createSavedLocation(locationData);
+      res.status(201).json(newLocation);
+    } catch (error) {
+      console.error('Error creating saved location:', error);
+      res.status(500).send('Error creating saved location');
+    }
+  });
+  
+  app.patch('/api/locations/:id', async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).send('Unauthorized');
+    }
+    
+    try {
+      const id = parseInt(req.params.id);
+      const location = await storage.getSavedLocation(id);
+      
+      if (!location) {
+        return res.status(404).send('Location not found');
+      }
+      
+      // Check if user has access to this location
+      if (location.userId !== req.user!.id) {
+        return res.status(403).send('You don\'t have permission to modify this location');
+      }
+      
+      // Prevent changing the userId
+      const updates = { ...req.body };
+      delete updates.userId;
+      
+      const updatedLocation = await storage.updateSavedLocation(id, updates);
+      res.json(updatedLocation);
+    } catch (error) {
+      console.error('Error updating saved location:', error);
+      res.status(500).send('Error updating saved location');
+    }
+  });
+  
+  app.delete('/api/locations/:id', async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).send('Unauthorized');
+    }
+    
+    try {
+      const id = parseInt(req.params.id);
+      const location = await storage.getSavedLocation(id);
+      
+      if (!location) {
+        return res.status(404).send('Location not found');
+      }
+      
+      // Check if user has access to this location
+      if (location.userId !== req.user!.id) {
+        return res.status(403).send('You don\'t have permission to delete this location');
+      }
+      
+      const success = await storage.deleteSavedLocation(id);
+      if (success) {
+        res.status(204).send();
+      } else {
+        res.status(500).send('Failed to delete location');
+      }
+    } catch (error) {
+      console.error('Error deleting saved location:', error);
+      res.status(500).send('Error deleting saved location');
+    }
+  });
+  
+  // Add an endpoint to increment a location's visit count
+  app.post('/api/locations/:id/visit', async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).send('Unauthorized');
+    }
+    
+    try {
+      const id = parseInt(req.params.id);
+      const location = await storage.getSavedLocation(id);
+      
+      if (!location) {
+        return res.status(404).send('Location not found');
+      }
+      
+      // Check if user has access to this location
+      if (location.userId !== req.user!.id) {
+        return res.status(403).send('You don\'t have permission to update this location');
+      }
+      
+      const updatedLocation = await storage.incrementLocationVisitCount(id);
+      res.json(updatedLocation);
+    } catch (error) {
+      console.error('Error incrementing location visit count:', error);
+      res.status(500).send('Error incrementing location visit count');
+    }
+  });
+  
   // Set up children profile endpoints
   app.get('/api/children', async (req: Request, res: Response) => {
     if (!req.isAuthenticated()) {

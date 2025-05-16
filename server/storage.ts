@@ -1122,13 +1122,12 @@ export class DatabaseStorage implements IStorage {
   // Saved Locations methods
   async getSavedLocations(userId: number, limit?: number): Promise<SavedLocation[]> {
     return await this.executeDbOperation(async () => {
-      const query = db.select().from(savedLocations)
+      let query = db.select().from(savedLocations)
         .where(eq(savedLocations.userId, userId))
-        .orderBy(savedLocations.visitCount, 'desc')
-        .orderBy(savedLocations.lastVisited, 'desc');
+        .orderBy(desc(savedLocations.visitCount));
         
       if (limit) {
-        query.limit(limit);
+        query = query.limit(limit);
       }
       
       return await query;
