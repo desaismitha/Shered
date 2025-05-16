@@ -2422,6 +2422,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       if (!req.isAuthenticated()) return res.sendStatus(401);
       
+      // Check if user is an admin - only admins can create schedules
+      if (req.user.role !== 'Admin') {
+        return res.status(403).json({
+          error: "Permission denied",
+          message: "Only Admin users can create new schedules"
+        });
+      }
+      
       console.log("Creating trip with dates:", {
         startDate: req.body.startDate,
         endDate: req.body.endDate
@@ -2657,6 +2665,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.isAuthenticated()) {
         console.log(`${method} /api/trips/:id - 401 Unauthorized - Not authenticated`);
         return res.sendStatus(401);
+      }
+      
+      // Admin-only validation - only admins can edit schedules
+      if (req.user.role !== 'Admin') {
+        console.log(`${method} /api/trips/:id - 403 Forbidden - Not an admin user`);
+        return res.status(403).json({
+          error: "Permission denied",
+          message: "Only Admin users can edit schedules"
+        });
       }
       
       const tripId = parseInt(req.params.id);
@@ -3161,6 +3178,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Authentication check
       if (!req.isAuthenticated()) {
         return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      // Admin-only validation - only admins can update schedules
+      if (req.user.role !== 'Admin') {
+        console.log(`POST /api/trips/:id/simple-update - 403 Forbidden - Not an admin user`);
+        return res.status(403).json({
+          error: "Permission denied",
+          message: "Only Admin users can update schedules"
+        });
       }
       
       const tripId = parseInt(req.params.id);
