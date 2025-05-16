@@ -729,25 +729,18 @@ export default function GroupDetailsPage() {
         <div className="grid grid-cols-1 gap-6">
           {/* Main content - Trips and messages */}
           <div>
-            <Tabs defaultValue="trips">
+            <Tabs defaultValue="schedules">
               <TabsList>
-                <TabsTrigger value="trips">Trips</TabsTrigger>
+                <TabsTrigger value="schedules">Schedules</TabsTrigger>
                 <TabsTrigger value="messages">Messages</TabsTrigger>
                 <TabsTrigger value="members">Members</TabsTrigger>
               </TabsList>
               
-              {/* Trips tab */}
-              <TabsContent value="trips">
+              {/* Schedules tab */}
+              <TabsContent value="schedules">
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle>Group Trips</CardTitle>
-                    <Button 
-                      size="sm"
-                      onClick={() => navigate(`/schedules/new?groupId=${groupId}`)}
-                    >
-                      <PlusIcon className="h-4 w-4 mr-2" />
-                      Create Schedule
-                    </Button>
+                    <CardTitle>Group Schedules</CardTitle>
                   </CardHeader>
                   <CardContent>
                     {isLoadingTrips ? (
