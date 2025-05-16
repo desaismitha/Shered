@@ -23,7 +23,7 @@ export function TripCard({ trip }: TripCardProps) {
   // Debug output
   console.log("TripCard received trip data:", trip);
   
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const [, navigate] = useLocation();
   
   // Get group members to display avatars - only fetch if groupId is not null
@@ -195,7 +195,7 @@ export function TripCard({ trip }: TripCardProps) {
               <span className="text-xs">Check-in</span>
             </Button>
             
-            {isCreator && (
+            {isAdmin() && (
               <Button
                 variant="ghost"
                 size="sm"

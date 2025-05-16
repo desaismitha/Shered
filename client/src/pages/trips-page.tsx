@@ -15,7 +15,7 @@ export default function TripsPage() { // Using as SchedulesPage
   const [, navigate] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   
   // Get all schedules
   const { data: trips, isLoading, refetch } = useQuery<Trip[]>({
@@ -148,13 +148,15 @@ export default function TripsPage() { // Using as SchedulesPage
             </Button>
           </div>
           <div className="flex gap-2 mt-2 sm:mt-0">
-            <Button 
-              onClick={() => navigate("/schedules/new")}
-              className="inline-flex items-center"
-            >
-              <PlusIcon className="h-4 w-4 mr-2" />
-              Create New Schedule
-            </Button>
+            {isAdmin() && (
+              <Button 
+                onClick={() => navigate("/schedules/new")}
+                className="inline-flex items-center"
+              >
+                <PlusIcon className="h-4 w-4 mr-2" />
+                Create New Schedule
+              </Button>
+            )}
           </div>
         </div>
         
