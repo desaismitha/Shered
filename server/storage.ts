@@ -1,5 +1,5 @@
-import { users, groups, groupMembers, trips, itineraryItems, expenses, messages, vehicles, tripVehicles, tripCheckIns, children } from "@shared/schema";
-import type { User, InsertUser, Group, InsertGroup, GroupMember, InsertGroupMember, Trip, InsertTrip, ItineraryItem, InsertItineraryItem, Expense, InsertExpense, Message, InsertMessage, Vehicle, InsertVehicle, TripVehicle, InsertTripVehicle, TripCheckIn, InsertTripCheckIn, Child, InsertChild } from "@shared/schema";
+import { users, groups, groupMembers, trips, itineraryItems, expenses, messages, vehicles, tripVehicles, tripCheckIns, children, tripModificationRequests } from "@shared/schema";
+import type { User, InsertUser, Group, InsertGroup, GroupMember, InsertGroupMember, Trip, InsertTrip, ItineraryItem, InsertItineraryItem, Expense, InsertExpense, Message, InsertMessage, Vehicle, InsertVehicle, TripVehicle, InsertTripVehicle, TripCheckIn, InsertTripCheckIn, Child, InsertChild, TripModificationRequest, InsertTripModificationRequest } from "@shared/schema";
 import session from "express-session";
 import { eq, ne, and, inArray, gt } from "drizzle-orm";
 import { db, pool, attemptReconnect, checkDbConnection } from "./db";
@@ -1102,6 +1102,70 @@ export class DatabaseStorage implements IStorage {
         .returning({ id: children.id });
       return result.length > 0;
     });
+  }
+  
+  // Trip modification request methods
+  async createTripModificationRequest(data: InsertTripModificationRequest): Promise<TripModificationRequest> {
+    return this.executeDbOperation(async () => {
+      console.log("[STORAGE] Creating trip modification request:", JSON.stringify(data));
+      const [result] = await db.insert(tripModificationRequests).values(data).returning();
+      return result;
+    });
+  }
+
+  async getTripModificationRequestById(id: number): Promise<TripModificationRequest | undefined> {
+    return this.executeDbOperation(async () => {
+      const [result] = await db.select().from(tripModificationRequests).where(eq(tripModificationRequests.id, id));
+      return result;
+    });
+  }
+
+  async getTripModificationRequestsByTripId(tripId: number): Promise<TripModificationRequest[]> {
+    return this.executeDbOperation(async () => {
+      return await db.select().from(tripModificationRequests).where(eq(tripModificationRequests.tripId, tripId));
+    });
+  }
+
+  async getPendingTripModificationRequests(): Promise<TripModificationRequest[]> {
+    return this.executeDbOperation(async () => {
+      return await db.select().from(tripModificationRequests).where(eq(tripModificationRequests.status, "pending"));
+    });
+  }
+
+  async getRequestsByUser(userId: number): Promise<TripModificationRequest[]> {
+    return this.executeDbOperation(async () => {
+      return await db.select().from(tripModificationRequests).where(eq(tripModificationRequests.requestedBy, userId));
+    });
+  }
+
+  async updateTripModificationRequestStatus(id: number, status: string, reviewerId: number, notes?: string): Promise<TripModificationRequest | undefined> {
+    return this.executeDbOperation(async () => {
+      const updateData: any = {
+        status,
+        reviewedBy: reviewerId,
+        updatedAt: new Date()
+      };
+      
+      if (notes) {
+        updateData.adminNotes = notes;
+      }
+      
+      const [result] = await db
+        .update(tripModificationRequests)
+        .set(updateData)
+        .where(eq(tripModificationRequests.id, id))
+        .returning();
+        
+      return result;
+    });
+  }
+
+  async approveTripModificationRequest(id: number, adminId: number, notes?: string): Promise<TripModificationRequest | undefined> {
+    return this.updateTripModificationRequestStatus(id, "approved", adminId, notes);
+  }
+
+  async rejectTripModificationRequest(id: number, adminId: number, notes?: string): Promise<TripModificationRequest | undefined> {
+    return this.updateTripModificationRequestStatus(id, "rejected", adminId, notes);
   }
 }
 

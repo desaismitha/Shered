@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, json, doublePrecision } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, json, jsonb, doublePrecision } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -404,3 +404,46 @@ export const childrenRelations = relations(children, ({ one }) => ({
 // Child type
 export type Child = typeof children.$inferSelect;
 export type InsertChild = z.infer<typeof insertChildSchema>;
+
+// Trip modification request schema for schedule changes that need admin approval
+export const tripModificationRequests = pgTable("trip_modification_requests", {
+  id: serial("id").primaryKey(),
+  tripId: integer("trip_id").notNull().references(() => trips.id, { onDelete: "cascade" }),
+  requestedBy: integer("requested_by").notNull().references(() => users.id),
+  status: text("status").notNull().default("pending"), // pending, approved, rejected
+  requestData: jsonb("request_data").notNull(), // JSON containing the requested changes
+  adminNotes: text("admin_notes"),
+  reviewedBy: integer("reviewed_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertTripModificationRequestSchema = createInsertSchema(tripModificationRequests).omit({ 
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  reviewedBy: true,
+  status: true 
+}).extend({
+  adminNotes: z.string().optional().nullable()
+});
+
+export const tripModificationRequestsRelations = relations(tripModificationRequests, ({ one }) => ({
+  trip: one(trips, {
+    fields: [tripModificationRequests.tripId],
+    references: [trips.id],
+  }),
+  requestedByUser: one(users, {
+    fields: [tripModificationRequests.requestedBy],
+    references: [users.id],
+    relationName: "requestedByUser",
+  }),
+  reviewedByUser: one(users, {
+    fields: [tripModificationRequests.reviewedBy],
+    references: [users.id],
+    relationName: "reviewedByUser",
+  }),
+}));
+
+export type TripModificationRequest = typeof tripModificationRequests.$inferSelect;
+export type InsertTripModificationRequest = z.infer<typeof insertTripModificationRequestSchema>;
