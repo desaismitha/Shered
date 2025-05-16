@@ -68,6 +68,8 @@ export const groupMembers = pgTable("group_members", {
 export const insertGroupMemberSchema = createInsertSchema(groupMembers).omit({
   id: true,
   joinedAt: true,
+}).extend({
+  role: z.enum(["admin", "parent", "guardian", "caretaker", "driver", "kid", "member"]).default("member")
 });
 
 // Trip schema
