@@ -740,7 +740,7 @@ export default function UnifiedTripPage() {
                     </div>
                   ) : (
                     <div className="text-center py-8 text-muted-foreground">
-                      Trip data not available
+                      Schedule data not available
                     </div>
                   )}
                 </div>
@@ -750,7 +750,7 @@ export default function UnifiedTripPage() {
                 <div className="bg-muted p-6 rounded-lg">
                   <div className="flex items-center gap-2 mb-4">
                     <MapPin className="h-5 w-5 text-blue-600" />
-                    <h2 className="text-xl font-medium">Trip Location Tracking</h2>
+                    <h2 className="text-xl font-medium">Schedule Location Tracking</h2>
                   </div>
                   
                   {isLoading ? (
@@ -849,7 +849,7 @@ export default function UnifiedTripPage() {
                     </div>
                   ) : (
                     <div className="text-center py-8 text-muted-foreground">
-                      Trip data not available
+                      Schedule data not available
                     </div>
                   )}
                 </div>
