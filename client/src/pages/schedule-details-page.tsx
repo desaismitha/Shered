@@ -374,6 +374,12 @@ export default function ScheduleDetailsPage() {
                     )}
                   </div>
                 </TabsContent>
+                
+                {isAdmin() && (
+                  <TabsContent value="requests" className="space-y-4">
+                    <ModificationRequestsTab tripId={parseInt(scheduleId || "0")} tripName={tripData?.name || ""} />
+                  </TabsContent>
+                )}
               </Tabs>
             </div>
           </>
