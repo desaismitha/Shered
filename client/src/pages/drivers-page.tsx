@@ -447,19 +447,6 @@ export default function DriversPage() {
             <CardHeader className="pb-0">
               <div className="flex justify-between items-center">
                 <CardTitle className="text-lg">Current Assignments</CardTitle>
-                {(activeTab === "all" || activeTab === "scheduled") && (
-                  <Button
-                    onClick={() => {
-                      setSelectedAssignment(null);
-                      resetForm();
-                      setIsDriverDialogOpen(true);
-                    }}
-                    size="sm"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Assignment
-                  </Button>
-                )}
               </div>
             </CardHeader>
             <CardContent className="pt-6">
