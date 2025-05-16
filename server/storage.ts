@@ -1111,6 +1111,78 @@ export class DatabaseStorage implements IStorage {
     });
   }
   
+  // Driver Assignment methods
+  async createDriverAssignment(assignment: InsertTripDriverAssignment): Promise<TripDriverAssignment> {
+    return this.executeDbOperation(async () => {
+      console.log("[STORAGE] Creating driver assignment with data:", JSON.stringify(assignment));
+      const [driverAssignment] = await db.insert(tripDriverAssignments).values(assignment).returning();
+      return driverAssignment;
+    });
+  }
+
+  async getDriverAssignments(tripId: number): Promise<TripDriverAssignment[]> {
+    return this.executeDbOperation(async () => {
+      console.log(`[STORAGE] Getting driver assignments for trip ${tripId}`);
+      const assignments = await db.select().from(tripDriverAssignments)
+        .where(eq(tripDriverAssignments.tripId, tripId))
+        .orderBy(tripDriverAssignments.startDate);
+      console.log(`[STORAGE] Found ${assignments.length} driver assignments for trip ${tripId}`);
+      return assignments;
+    });
+  }
+
+  async getDriverAssignment(id: number): Promise<TripDriverAssignment | undefined> {
+    return this.executeDbOperation(async () => {
+      console.log(`[STORAGE] Getting driver assignment with id ${id}`);
+      const [assignment] = await db.select().from(tripDriverAssignments)
+        .where(eq(tripDriverAssignments.id, id));
+      return assignment;
+    });
+  }
+
+  async updateDriverAssignment(id: number, data: Partial<InsertTripDriverAssignment>): Promise<TripDriverAssignment | undefined> {
+    return this.executeDbOperation(async () => {
+      console.log(`[STORAGE] Updating driver assignment ${id} with data:`, JSON.stringify(data));
+      
+      // Make a copy of data to avoid modifying the original
+      const updateData = { ...data };
+      
+      // Never update these fields
+      delete updateData.tripId;
+      
+      const [updatedAssignment] = await db
+        .update(tripDriverAssignments)
+        .set(updateData)
+        .where(eq(tripDriverAssignments.id, id))
+        .returning();
+      
+      console.log(`[STORAGE] Updated driver assignment:`, JSON.stringify(updatedAssignment));
+      return updatedAssignment;
+    });
+  }
+
+  async deleteDriverAssignment(id: number): Promise<boolean> {
+    return this.executeDbOperation(async () => {
+      console.log(`[STORAGE] Deleting driver assignment ${id}`);
+      const result = await db
+        .delete(tripDriverAssignments)
+        .where(eq(tripDriverAssignments.id, id));
+      return !!result;
+    });
+  }
+  
+  // Get all eligible drivers (users with isEligibleDriver=true)
+  async getEligibleDrivers(): Promise<User[]> {
+    return this.executeDbOperation(async () => {
+      console.log(`[STORAGE] Getting all eligible drivers`);
+      const drivers = await db.select().from(users)
+        .where(eq(users.isEligibleDriver, true))
+        .orderBy(users.displayName);
+      console.log(`[STORAGE] Found ${drivers.length} eligible drivers`);
+      return drivers;
+    });
+  }
+
   // Trip modification request methods
   async createTripModificationRequest(data: InsertTripModificationRequest): Promise<TripModificationRequest> {
     return this.executeDbOperation(async () => {
