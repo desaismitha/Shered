@@ -1,7 +1,7 @@
 import { users, groups, groupMembers, trips, itineraryItems, expenses, messages, vehicles, tripVehicles, tripCheckIns, children, tripModificationRequests, tripDriverAssignments, savedLocations } from "@shared/schema";
 import type { User, InsertUser, Group, InsertGroup, GroupMember, InsertGroupMember, Trip, InsertTrip, ItineraryItem, InsertItineraryItem, Expense, InsertExpense, Message, InsertMessage, Vehicle, InsertVehicle, TripVehicle, InsertTripVehicle, TripCheckIn, InsertTripCheckIn, Child, InsertChild, TripModificationRequest, InsertTripModificationRequest, TripDriverAssignment, InsertTripDriverAssignment, SavedLocation, InsertSavedLocation } from "@shared/schema";
 import session from "express-session";
-import { eq, ne, and, inArray, gt } from "drizzle-orm";
+import { eq, ne, and, inArray, gt, desc } from "drizzle-orm";
 import { db, pool, attemptReconnect, checkDbConnection } from "./db";
 import connectPg from "connect-pg-simple";
 import { comparePasswords } from "./auth";
@@ -1122,15 +1122,12 @@ export class DatabaseStorage implements IStorage {
   // Saved Locations methods
   async getSavedLocations(userId: number, limit?: number): Promise<SavedLocation[]> {
     return await this.executeDbOperation(async () => {
-      let query = db.select().from(savedLocations)
+      const query = db.select().from(savedLocations)
         .where(eq(savedLocations.userId, userId))
         .orderBy(desc(savedLocations.visitCount));
         
-      if (limit) {
-        query = query.limit(limit);
-      }
-      
-      return await query;
+      const results = limit ? await query.limit(limit) : await query;
+      return results;
     }, 2); // Allow 2 retries
   }
   
@@ -1195,7 +1192,7 @@ export class DatabaseStorage implements IStorage {
     return await this.executeDbOperation(async () => {
       const result = await db.delete(savedLocations).where(eq(savedLocations.id, id));
       return true;
-    }, 1, false);
+    }, 1);
   }
   
   // Driver Assignment methods
