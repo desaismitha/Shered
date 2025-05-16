@@ -1,5 +1,5 @@
-import { users, groups, groupMembers, trips, itineraryItems, expenses, messages, vehicles, tripVehicles, tripCheckIns, children, tripModificationRequests, tripDriverAssignments } from "@shared/schema";
-import type { User, InsertUser, Group, InsertGroup, GroupMember, InsertGroupMember, Trip, InsertTrip, ItineraryItem, InsertItineraryItem, Expense, InsertExpense, Message, InsertMessage, Vehicle, InsertVehicle, TripVehicle, InsertTripVehicle, TripCheckIn, InsertTripCheckIn, Child, InsertChild, TripModificationRequest, InsertTripModificationRequest, TripDriverAssignment, InsertTripDriverAssignment } from "@shared/schema";
+import { users, groups, groupMembers, trips, itineraryItems, expenses, messages, vehicles, tripVehicles, tripCheckIns, children, tripModificationRequests, tripDriverAssignments, savedLocations } from "@shared/schema";
+import type { User, InsertUser, Group, InsertGroup, GroupMember, InsertGroupMember, Trip, InsertTrip, ItineraryItem, InsertItineraryItem, Expense, InsertExpense, Message, InsertMessage, Vehicle, InsertVehicle, TripVehicle, InsertTripVehicle, TripCheckIn, InsertTripCheckIn, Child, InsertChild, TripModificationRequest, InsertTripModificationRequest, TripDriverAssignment, InsertTripDriverAssignment, SavedLocation, InsertSavedLocation } from "@shared/schema";
 import session from "express-session";
 import { eq, ne, and, inArray, gt } from "drizzle-orm";
 import { db, pool, attemptReconnect, checkDbConnection } from "./db";
@@ -17,6 +17,14 @@ class DatabaseConnectionError extends Error {
 const PostgresSessionStore = connectPg(session);
 
 export interface IStorage {
+  // Saved Locations methods
+  getSavedLocations(userId: number, limit?: number): Promise<SavedLocation[]>;
+  getSavedLocation(id: number): Promise<SavedLocation | undefined>;
+  createSavedLocation(location: InsertSavedLocation): Promise<SavedLocation>;
+  updateSavedLocation(id: number, data: Partial<InsertSavedLocation>): Promise<SavedLocation | undefined>;
+  incrementLocationVisitCount(id: number): Promise<SavedLocation | undefined>;
+  deleteSavedLocation(id: number): Promise<boolean>;
+  
   // Driver Assignment methods
   createDriverAssignment(assignment: InsertTripDriverAssignment): Promise<TripDriverAssignment>;
   getDriverAssignments(tripId: number): Promise<TripDriverAssignment[]>;
@@ -1109,6 +1117,86 @@ export class DatabaseStorage implements IStorage {
         .returning({ id: children.id });
       return result.length > 0;
     });
+  }
+  
+  // Saved Locations methods
+  async getSavedLocations(userId: number, limit?: number): Promise<SavedLocation[]> {
+    return await this.executeDbOperation(async () => {
+      const query = db.select().from(savedLocations)
+        .where(eq(savedLocations.userId, userId))
+        .orderBy(savedLocations.visitCount, 'desc')
+        .orderBy(savedLocations.lastVisited, 'desc');
+        
+      if (limit) {
+        query.limit(limit);
+      }
+      
+      return await query;
+    }, 2); // Allow 2 retries
+  }
+  
+  async getSavedLocation(id: number): Promise<SavedLocation | undefined> {
+    return await this.executeDbOperation(async () => {
+      const [location] = await db.select().from(savedLocations).where(eq(savedLocations.id, id));
+      return location;
+    });
+  }
+  
+  async createSavedLocation(location: InsertSavedLocation): Promise<SavedLocation> {
+    return await this.executeDbOperation(async () => {
+      // Check if a similar location already exists for this user
+      const [existingLocation] = await db.select().from(savedLocations)
+        .where(and(
+          eq(savedLocations.userId, location.userId),
+          eq(savedLocations.address, location.address)
+        ));
+        
+      // If exists, increment the visit count instead of creating a new one
+      if (existingLocation) {
+        const updated = await this.incrementLocationVisitCount(existingLocation.id);
+        if (!updated) throw new Error("Failed to update existing location");
+        return updated;
+      }
+      
+      // Otherwise create a new location
+      const [newLocation] = await db.insert(savedLocations).values(location).returning();
+      return newLocation;
+    });
+  }
+  
+  async updateSavedLocation(id: number, data: Partial<InsertSavedLocation>): Promise<SavedLocation | undefined> {
+    return await this.executeDbOperation(async () => {
+      const [updatedLocation] = await db
+        .update(savedLocations)
+        .set(data)
+        .where(eq(savedLocations.id, id))
+        .returning();
+      return updatedLocation;
+    });
+  }
+  
+  async incrementLocationVisitCount(id: number): Promise<SavedLocation | undefined> {
+    return await this.executeDbOperation(async () => {
+      const [location] = await db.select().from(savedLocations).where(eq(savedLocations.id, id));
+      if (!location) return undefined;
+      
+      const [updatedLocation] = await db
+        .update(savedLocations)
+        .set({
+          visitCount: location.visitCount + 1,
+          lastVisited: new Date(),
+        })
+        .where(eq(savedLocations.id, id))
+        .returning();
+      return updatedLocation;
+    });
+  }
+  
+  async deleteSavedLocation(id: number): Promise<boolean> {
+    return await this.executeDbOperation(async () => {
+      const result = await db.delete(savedLocations).where(eq(savedLocations.id, id));
+      return true;
+    }, 1, false);
   }
   
   // Driver Assignment methods
