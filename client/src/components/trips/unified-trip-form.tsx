@@ -421,6 +421,61 @@ export function UnifiedTripForm({
                   </FormItem>
                 )}
               />
+              
+              <FormField
+                control={form.control}
+                name="isRecurring"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between space-x-3 space-y-0 rounded-md border p-4">
+                    <div className="space-y-1">
+                      <FormLabel className="text-base">
+                        Recurring {tripType === 'event' ? 'Event' : 'Schedule'}
+                      </FormLabel>
+                      <FormDescription>
+                        Enable to set up a repeating {tripType}
+                      </FormDescription>
+                    </div>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              
+              {form.watch("isRecurring") && (
+                <FormField
+                  control={form.control}
+                  name="recurrencePattern"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Recurrence Pattern</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select frequency" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="daily">Daily</SelectItem>
+                          <SelectItem value="weekly">Weekly</SelectItem>
+                          <SelectItem value="monthly">Monthly</SelectItem>
+                          <SelectItem value="custom">Custom</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>
+                        How often should this {tripType} repeat?
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
             </div>
           </Card>
           
