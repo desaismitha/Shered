@@ -1,5 +1,5 @@
-import { users, groups, groupMembers, trips, itineraryItems, expenses, messages, vehicles, tripVehicles, tripCheckIns, children, tripModificationRequests } from "@shared/schema";
-import type { User, InsertUser, Group, InsertGroup, GroupMember, InsertGroupMember, Trip, InsertTrip, ItineraryItem, InsertItineraryItem, Expense, InsertExpense, Message, InsertMessage, Vehicle, InsertVehicle, TripVehicle, InsertTripVehicle, TripCheckIn, InsertTripCheckIn, Child, InsertChild, TripModificationRequest, InsertTripModificationRequest } from "@shared/schema";
+import { users, groups, groupMembers, trips, itineraryItems, expenses, messages, vehicles, tripVehicles, tripCheckIns, children, tripModificationRequests, tripDriverAssignments } from "@shared/schema";
+import type { User, InsertUser, Group, InsertGroup, GroupMember, InsertGroupMember, Trip, InsertTrip, ItineraryItem, InsertItineraryItem, Expense, InsertExpense, Message, InsertMessage, Vehicle, InsertVehicle, TripVehicle, InsertTripVehicle, TripCheckIn, InsertTripCheckIn, Child, InsertChild, TripModificationRequest, InsertTripModificationRequest, TripDriverAssignment, InsertTripDriverAssignment } from "@shared/schema";
 import session from "express-session";
 import { eq, ne, and, inArray, gt } from "drizzle-orm";
 import { db, pool, attemptReconnect, checkDbConnection } from "./db";
@@ -17,12 +17,19 @@ class DatabaseConnectionError extends Error {
 const PostgresSessionStore = connectPg(session);
 
 export interface IStorage {
+  // Driver Assignment methods
+  createDriverAssignment(assignment: InsertTripDriverAssignment): Promise<TripDriverAssignment>;
+  getDriverAssignments(tripId: number): Promise<TripDriverAssignment[]>;
+  getDriverAssignment(id: number): Promise<TripDriverAssignment | undefined>;
+  updateDriverAssignment(id: number, data: Partial<InsertTripDriverAssignment>): Promise<TripDriverAssignment | undefined>;
+  deleteDriverAssignment(id: number): Promise<boolean>;
   // User methods
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   getAllUsers(): Promise<User[]>;
+  getEligibleDrivers(): Promise<User[]>;
   createPasswordResetToken(userId: number, token: string, expiry: Date): Promise<boolean>;
   getUserByResetToken(token: string): Promise<User | undefined>;
   updateUserPassword(userId: number, newPassword: string): Promise<boolean>;

@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
-import { ArrowLeft, MapPin, FileText } from "lucide-react";
+import { ArrowLeft, MapPin, FileText, Users } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { Trip, ItineraryItem } from "@shared/schema";
 import { UnifiedTripForm } from "@/components/trips/unified-trip-form";
@@ -16,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ScheduleDetailsSkeleton } from "@/components/ui/loading-fallback";
 import { useAuth } from "@/hooks/use-auth";
 import { ModificationRequestsTab } from "@/components/trips/modification-requests-tab";
+import { DriverAssignmentsTab } from "@/components/trips/driver-assignments-tab";
 
 export default function ScheduleDetailsPage() {
   // Show initial content immediately to prevent blank screen
@@ -38,7 +39,7 @@ export default function ScheduleDetailsPage() {
     const tabParam = urlParams.get('tab');
     
     // Valid tab specified in URL
-    if (tabParam && ["form", "preview", "check-in", "tracking"].includes(tabParam)) {
+    if (tabParam && ["form", "preview", "check-in", "tracking", "drivers", "requests"].includes(tabParam)) {
       return tabParam;
     }
     
@@ -158,7 +159,7 @@ export default function ScheduleDetailsPage() {
                 onValueChange={handleTabChange} 
                 className="w-full"
               >
-                <TabsList className={`grid ${isAdmin() ? "w-[1000px] grid-cols-5" : "w-[800px] grid-cols-4"} mx-auto mb-4`}>
+                <TabsList className={`grid ${isAdmin() ? "w-[1000px] grid-cols-6" : "w-[800px] grid-cols-5"} mx-auto mb-4`}>
                   <TabsTrigger 
                     value="preview" 
                     data-active={activeTab === "preview"}
@@ -190,6 +191,16 @@ export default function ScheduleDetailsPage() {
                     <div className="flex items-center gap-1">
                       <MapPin className="h-4 w-4" />
                       Track Location
+                    </div>
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="drivers" 
+                    data-active={activeTab === "drivers"}
+                    className={activeTab === "drivers" ? "data-[state=active]:bg-primary-500" : ""}
+                  >
+                    <div className="flex items-center gap-1">
+                      <Users className="h-4 w-4" />
+                      Drivers
                     </div>
                   </TabsTrigger>
                   {isAdmin() && (
@@ -373,6 +384,15 @@ export default function ScheduleDetailsPage() {
                       </div>
                     )}
                   </div>
+                </TabsContent>
+                
+                <TabsContent value="drivers" className="space-y-4">
+                  <DriverAssignmentsTab 
+                    tripId={parseInt(scheduleId || "0")} 
+                    tripName={tripData?.name || ""} 
+                    startDate={tripData?.startDate} 
+                    endDate={tripData?.endDate}
+                  />
                 </TabsContent>
                 
                 {isAdmin() && (
