@@ -239,8 +239,8 @@ export function TripCard({ trip }: TripCardProps) {
                   // Use scheduleId instead of tripId in URL parameter
                   const url = `/schedules/${trip.id}?tab=preview`;
                   console.log("View details clicked, navigating to:", url);
-                  // Direct page reload to force component refresh with correct tab
-                  window.location.href = url;
+                  // Use navigate function to use proper routing
+                  navigate(url);
                 }}
               >
                 <span className="text-xs font-medium">View Details</span>
