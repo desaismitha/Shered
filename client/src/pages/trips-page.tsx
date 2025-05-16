@@ -138,22 +138,22 @@ export default function TripsPage() { // Using as SchedulesPage
               variant="ghost" 
               size="icon"
               onClick={() => {
-                console.log("Manually refreshing trips data");
+                console.log("Manually refreshing schedules data");
                 refetch();
               }}
               className="h-9 w-9 text-lg font-bold"
-              title="Refresh trips"
+              title="Refresh schedules"
             >
               ↻
             </Button>
           </div>
           <div className="flex gap-2 mt-2 sm:mt-0">
             <Button 
-              onClick={() => navigate("/trips/new")}
+              onClick={() => navigate("/schedules/new")}
               className="inline-flex items-center"
             >
               <PlusIcon className="h-4 w-4 mr-2" />
-              Create New Trip
+              Create New Schedule
             </Button>
           </div>
         </div>
@@ -206,10 +206,10 @@ export default function TripsPage() { // Using as SchedulesPage
                   </div>
                 ))}
               </div>
-            ) : upcomingTrips && upcomingTrips.length > 0 ? (
+            ) : upcomingSchedules && upcomingSchedules.length > 0 ? (
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {upcomingTrips.map((trip) => (
-                  <TripCard key={trip.id} trip={trip} />
+                {upcomingSchedules.map((schedule) => (
+                  <TripCard key={schedule.id} trip={schedule} />
                 ))}
               </div>
             ) : (
