@@ -325,54 +325,59 @@ export default function DriversPage() {
     { value: "sun", label: "Sunday" },
   ];
 
-  // Filter assignments based on the selected date and tab
-  const filteredAssignments = assignments?.filter(assignment => {
-    if (!selectedDate) return false;
+  // Get today's assignments for initial view
+  const getAssignmentsForDate = (date: Date | undefined, allAssignments: DriverAssignment[] = []) => {
+    if (!date) return [];
     
-    const start = new Date(assignment.startDate);
-    const end = new Date(assignment.endDate);
-    
-    // Basic date filter
-    const dateMatch = selectedDate >= start && selectedDate <= end;
-    
-    // Check recurrence pattern if applicable
-    let recurrenceMatch = true;
-    if (dateMatch && assignment.isRecurring) {
-      const dayOfWeek = format(selectedDate, "EEE").toLowerCase();
+    return allAssignments.filter(assignment => {
+      const start = new Date(assignment.startDate);
+      const end = new Date(assignment.endDate);
       
-      switch (assignment.recurrencePattern) {
-        case "daily":
-          recurrenceMatch = true;
-          break;
-        case "weekdays":
-          recurrenceMatch = ["mon", "tue", "wed", "thu", "fri"].includes(dayOfWeek);
-          break;
-        case "weekends":
-          recurrenceMatch = ["sat", "sun"].includes(dayOfWeek);
-          break;
-        case "specific-days":
-          if (assignment.recurrenceDays) {
-            const days = JSON.parse(assignment.recurrenceDays);
-            recurrenceMatch = days.includes(dayOfWeek);
-          } else {
+      // Basic date filter
+      const dateMatch = date >= start && date <= end;
+      
+      // Check recurrence pattern if applicable
+      let recurrenceMatch = true;
+      if (dateMatch && assignment.isRecurring) {
+        const dayOfWeek = format(date, "EEE").toLowerCase();
+        
+        switch (assignment.recurrencePattern) {
+          case "daily":
+            recurrenceMatch = true;
+            break;
+          case "weekdays":
+            recurrenceMatch = ["mon", "tue", "wed", "thu", "fri"].includes(dayOfWeek);
+            break;
+          case "weekends":
+            recurrenceMatch = ["sat", "sun"].includes(dayOfWeek);
+            break;
+          case "specific-days":
+            if (assignment.recurrenceDays) {
+              const days = JSON.parse(assignment.recurrenceDays);
+              recurrenceMatch = days.includes(dayOfWeek);
+            } else {
+              recurrenceMatch = false;
+            }
+            break;
+          default:
             recurrenceMatch = false;
-          }
-          break;
-        default:
-          recurrenceMatch = false;
+        }
       }
-    }
-    
-    // Apply tab filter
-    const statusMatch = 
-      activeTab === "all" ? true :
-      activeTab === "scheduled" ? assignment.status === "scheduled" :
-      activeTab === "completed" ? assignment.status === "completed" :
-      activeTab === "cancelled" ? assignment.status === "cancelled" :
-      true;
-    
-    return dateMatch && recurrenceMatch && statusMatch;
-  });
+      
+      // Apply tab filter
+      const statusMatch = 
+        activeTab === "all" ? true :
+        activeTab === "scheduled" ? assignment.status === "scheduled" :
+        activeTab === "completed" ? assignment.status === "completed" :
+        activeTab === "cancelled" ? assignment.status === "cancelled" :
+        true;
+      
+      return dateMatch && recurrenceMatch && statusMatch;
+    });
+  };
+  
+  // Filter assignments based on the selected date and tab
+  const filteredAssignments = getAssignmentsForDate(selectedDate, assignments);
 
   if (isLoadingAssignments || isLoadingDrivers || isLoadingVehicles || isLoadingTrips) {
     return <LoadingFallback />;
@@ -398,10 +403,10 @@ export default function DriversPage() {
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Left column - Calendar */}
-          <div className="md:col-span-1">
-            <Card>
+        <div className="space-y-6">
+          {/* Top section - Calendar and tabs */}
+          <div className="flex flex-col md:flex-row gap-6 items-start">
+            <Card className="w-full md:w-auto">
               <CardHeader>
                 <CardTitle>Select Date</CardTitle>
                 <CardDescription>View assignments by date</CardDescription>
@@ -415,13 +420,10 @@ export default function DriversPage() {
                 />
               </CardContent>
             </Card>
-          </div>
-
-          {/* Right column - Assignments list */}
-          <div className="md:col-span-2">
-            <Card>
+          
+            <Card className="w-full md:flex-1">
               <CardHeader>
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                   <div>
                     <CardTitle>Driver Assignments</CardTitle>
                     <CardDescription>
@@ -439,119 +441,139 @@ export default function DriversPage() {
                   </Tabs>
                 </div>
               </CardHeader>
-              <CardContent>
-                {filteredAssignments && filteredAssignments.length > 0 ? (
-                  <div className="space-y-4">
-                    {filteredAssignments.map((assignment) => {
-                      const driver = eligibleDrivers?.find(d => d.id === assignment.driverId);
-                      const vehicle = vehicles?.find(v => v.id === assignment.vehicleId);
-                      const trip = trips?.find((t: any) => t.id === assignment.tripId);
-                      
-                      return (
-                        <Card key={assignment.id} className="border border-muted">
-                          <CardHeader className="pb-2">
-                            <div className="flex justify-between items-start">
-                              <div>
-                                <CardTitle className="text-lg mb-1">
-                                  {driver?.displayName || `Driver #${assignment.driverId}`}
-                                  {vehicle && (
-                                    <span className="ml-2 text-sm font-normal text-neutral-500">
-                                      ({vehicle.make} {vehicle.model})
-                                    </span>
-                                  )}
-                                </CardTitle>
-                                <CardDescription>
-                                  {trip ? trip.name : `Schedule #${assignment.tripId}`}
-                                </CardDescription>
-                              </div>
-                              <div className="flex space-x-2">
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm"
-                                  onClick={() => handleEditAssignment(assignment)}
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm"
-                                  onClick={() => handleDeleteAssignment(assignment)}
-                                >
-                                  <Trash2 className="h-4 w-4 text-red-500" />
-                                </Button>
-                              </div>
-                            </div>
-                          </CardHeader>
-                          <CardContent className="py-2">
-                            <div className="flex items-center justify-between text-sm">
-                              <div className="text-neutral-500">
-                                <Calendar className="h-4 w-4 inline-block mr-1" />
-                                <span>
-                                  {format(new Date(assignment.startDate), "PPP")} to {format(new Date(assignment.endDate), "PPP")}
-                                </span>
-                              </div>
-                              <div>
-                                <span 
-                                  className={
-                                    assignment.status === "scheduled" ? "text-blue-500" :
-                                    assignment.status === "completed" ? "text-green-500" :
-                                    "text-red-500"
-                                  }
-                                >
-                                  {assignment.status.charAt(0).toUpperCase() + assignment.status.slice(1)}
-                                </span>
-                              </div>
-                            </div>
-
-                            {assignment.isRecurring && (
-                              <div className="text-sm text-neutral-500 mt-2">
-                                <span className="font-medium">Recurring:</span>{" "}
-                                {assignment.recurrencePattern === "daily" && "Daily"}
-                                {assignment.recurrencePattern === "weekdays" && "Weekdays (Mon-Fri)"}
-                                {assignment.recurrencePattern === "weekends" && "Weekends (Sat-Sun)"}
-                                {assignment.recurrencePattern === "specific-days" && 
-                                  `${JSON.parse(assignment.recurrenceDays || "[]")
-                                    .map((day: string) => day.charAt(0).toUpperCase() + day.slice(1))
-                                    .join(", ")}`
-                                }
-                              </div>
-                            )}
-
-                            {assignment.notes && (
-                              <div className="text-sm text-neutral-500 mt-2">
-                                <span className="font-medium">Notes:</span> {assignment.notes}
-                              </div>
-                            )}
-                          </CardContent>
-                        </Card>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="text-center py-12">
-                    <CarTaxiFront className="h-12 w-12 mx-auto text-neutral-300 mb-4" />
-                    <h3 className="text-lg font-medium text-neutral-900 mb-1">No driver assignments found</h3>
-                    <p className="text-neutral-500 mb-4">
-                      {selectedDate 
-                        ? `There are no driver assignments for ${format(selectedDate, "PPP")}`
-                        : "Select a date to view driver assignments"
-                      }
-                    </p>
-                    <Button 
-                      onClick={() => {
-                        setSelectedAssignment(null);
-                        resetForm();
-                        setIsDriverDialogOpen(true);
-                      }}
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Driver Assignment
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
             </Card>
           </div>
+
+          {/* Bottom section - Assignments list */}
+          <Card>
+            <CardHeader className="pb-0">
+              <div className="flex justify-between items-center">
+                <CardTitle className="text-lg">Current Assignments</CardTitle>
+                <Button
+                  onClick={() => {
+                    setSelectedAssignment(null);
+                    resetForm();
+                    setIsDriverDialogOpen(true);
+                  }}
+                  size="sm"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Assignment
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-6">
+              {filteredAssignments && filteredAssignments.length > 0 ? (
+                <div className="space-y-4">
+                  {filteredAssignments.map((assignment) => {
+                    const driver = eligibleDrivers?.find(d => d.id === assignment.driverId);
+                    const vehicle = vehicles?.find(v => v.id === assignment.vehicleId);
+                    const trip = trips?.find((t: any) => t.id === assignment.tripId);
+                    
+                    return (
+                      <Card key={assignment.id} className="border border-muted">
+                        <CardHeader className="pb-2">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <CardTitle className="text-lg mb-1">
+                                {driver?.displayName || `Driver #${assignment.driverId}`}
+                                {vehicle && (
+                                  <span className="ml-2 text-sm font-normal text-neutral-500">
+                                    ({vehicle.make} {vehicle.model})
+                                  </span>
+                                )}
+                              </CardTitle>
+                              <CardDescription>
+                                {trip ? trip.name : `Schedule #${assignment.tripId}`}
+                              </CardDescription>
+                            </div>
+                            <div className="flex space-x-2">
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => handleEditAssignment(assignment)}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => handleDeleteAssignment(assignment)}
+                              >
+                                <Trash2 className="h-4 w-4 text-red-500" />
+                              </Button>
+                            </div>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="py-2">
+                          <div className="flex items-center justify-between text-sm">
+                            <div className="text-neutral-500">
+                              <Calendar className="h-4 w-4 inline-block mr-1" />
+                              <span>
+                                {format(new Date(assignment.startDate), "PPP")} to {format(new Date(assignment.endDate), "PPP")}
+                              </span>
+                            </div>
+                            <div>
+                              <span 
+                                className={
+                                  assignment.status === "scheduled" ? "text-blue-500" :
+                                  assignment.status === "completed" ? "text-green-500" :
+                                  "text-red-500"
+                                }
+                              >
+                                {assignment.status.charAt(0).toUpperCase() + assignment.status.slice(1)}
+                              </span>
+                            </div>
+                          </div>
+
+                          {assignment.isRecurring && (
+                            <div className="text-sm text-neutral-500 mt-2">
+                              <span className="font-medium">Recurring:</span>{" "}
+                              {assignment.recurrencePattern === "daily" && "Daily"}
+                              {assignment.recurrencePattern === "weekdays" && "Weekdays (Mon-Fri)"}
+                              {assignment.recurrencePattern === "weekends" && "Weekends (Sat-Sun)"}
+                              {assignment.recurrencePattern === "specific-days" && 
+                                `${JSON.parse(assignment.recurrenceDays || "[]")
+                                  .map((day: string) => day.charAt(0).toUpperCase() + day.slice(1))
+                                  .join(", ")}`
+                              }
+                            </div>
+                          )}
+
+                          {assignment.notes && (
+                            <div className="text-sm text-neutral-500 mt-2">
+                              <span className="font-medium">Notes:</span> {assignment.notes}
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <CarTaxiFront className="h-12 w-12 mx-auto text-neutral-300 mb-4" />
+                  <h3 className="text-lg font-medium text-neutral-900 mb-1">No driver assignments found</h3>
+                  <p className="text-neutral-500 mb-4">
+                    {selectedDate 
+                      ? `There are no driver assignments for ${format(selectedDate, "PPP")}`
+                      : "Select a date to view driver assignments"
+                    }
+                  </p>
+                  <Button 
+                    onClick={() => {
+                      setSelectedAssignment(null);
+                      resetForm();
+                      setIsDriverDialogOpen(true);
+                    }}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Driver Assignment
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
 
