@@ -3382,7 +3382,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/groups/:id/trips", async (req, res, next) => {
+  // Function to handle group schedules retrieval
+  const handleGroupSchedulesRequest = async (req: Request, res: Response, next: NextFunction) => {
     try {
       if (!req.isAuthenticated()) return res.sendStatus(401);
       
@@ -3401,36 +3402,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Not a member of this group" });
       }
       
-      // Get trips for this group
-      const trips = await storage.getTripsByGroupId(groupId);
-      console.log(`Trips for group ${groupId}:`, JSON.stringify(trips));
+      // Get schedules for this group
+      const schedules = await storage.getTripsByGroupId(groupId);
+      console.log(`Schedules for group ${groupId}:`, JSON.stringify(schedules));
       
-      // Make sure we're returning Trip objects and not Group objects
-      if (trips.length > 0 && !trips[0].destination) {
-        console.error("ERROR: Trips data doesn't have destination field:", trips);
+      // Make sure we're returning proper objects with destination field
+      if (schedules.length > 0 && !schedules[0].destination) {
+        console.error("ERROR: Schedules data doesn't have destination field:", schedules);
       }
       
-      // Enhance each trip with access level information and display-friendly location data
-      const tripsWithAccessLevels = trips.map(trip => {
+      // Enhance each schedule with access level information and display-friendly location data
+      const schedulesWithAccessLevels = schedules.map(schedule => {
         // If user is the creator, they're the owner, otherwise they're a member
-        const isOwner = String(trip.createdBy) === String(req.user.id);
+        const isOwner = String(schedule.createdBy) === String(req.user.id);
         
         // Add display-friendly location data
-        const enhancedTrip = cleanTripLocationData(trip);
+        const enhancedSchedule = cleanTripLocationData(schedule);
         
         return {
-          ...enhancedTrip,
+          ...enhancedSchedule,
           _accessLevel: isOwner ? 'owner' : 'member'
         };
       });
       
-      res.json(tripsWithAccessLevels);
+      res.json(schedulesWithAccessLevels);
+    } catch (err) {
+      next(err);
+    }
+  };
+  
+  // Setup routes for group schedules
+  app.get("/api/groups/:id/schedules", handleGroupSchedulesRequest);
+  
+  // Also handle the old /trips endpoint for backward compatibility
+  app.get("/api/groups/:id/trips", handleGroupSchedulesRequest);
+
+  // Itinerary Items
+  // Add the new schedules route
+  app.post("/api/schedules/:id/itinerary", async (req, res, next) => {
+    try {
+      const tripId = parseInt(req.params.id);
+      
+      // Use our reusable trip access check function with improved logging
+      const accessLevel = await checkTripAccess(req, tripId, res, next, "[ITINERARY_ADD] ");
+      
+      // Both owners and members can add itinerary items
+      if (accessLevel === null) {
+        return; // Response already sent by checkTripAccess
+      }
+      
+      // If we have access, create the itinerary item
+      const validatedData = insertItineraryItemSchema.parse({
+        ...req.body,
+        tripId,
+        createdBy: req.user!.id
+      });
+      
+      const item = await storage.createItineraryItem(validatedData);
+      res.status(201).json(item);
     } catch (err) {
       next(err);
     }
   });
-
-  // Itinerary Items
+  
+  // Keep the old route for backward compatibility
   app.post("/api/trips/:id/itinerary", async (req, res, next) => {
     try {
       const tripId = parseInt(req.params.id);
@@ -3457,6 +3492,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Add the new schedules route for itinerary retrieval
+  app.get("/api/schedules/:id/itinerary", async (req, res, next) => {
+    try {
+      const tripId = parseInt(req.params.id);
+      
+      // Use our reusable trip access check function with improved logging
+      const accessLevel = await checkTripAccess(req, tripId, res, next, "[ITINERARY_VIEW] ");
+      
+      if (accessLevel === null) {
+        return; // Response already sent by checkTripAccess
+      }
+      
+      const items = await storage.getItineraryItemsByTripId(tripId);
+      
+      // Add display-friendly location data
+      const enhancedItems = items.map(item => cleanItineraryLocationData(item));
+      
+      res.json(enhancedItems);
+    } catch (err) {
+      next(err);
+    }
+  });
+  
+  // Keep the old route for backward compatibility
   app.get("/api/trips/:id/itinerary", async (req, res, next) => {
     try {
       const tripId = parseInt(req.params.id);
