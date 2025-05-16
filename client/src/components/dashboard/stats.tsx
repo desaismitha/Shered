@@ -98,9 +98,19 @@ export function DashboardStats() {
   });
   
   // Only count messages not created by the current user as unread
+  // Debug message counts
+  console.log("Messages data:", messages);
+  console.log("Current user ID:", user?.id);
+  
   const unreadMessagesCount = !messagesLoading && messages && user
-    ? messages.filter(message => message.userId !== user.id).length
+    ? messages.filter(message => {
+        // Debug each message filtering
+        console.log(`Message ${message.id} - userId: ${message.userId}, current user: ${user.id}, match: ${message.userId === user.id}`);
+        return message.userId !== user.id;
+      }).length
     : 0;
+    
+  console.log("Calculated unread messages:", unreadMessagesCount);
 
   const stats: Stat[] = [
     {
