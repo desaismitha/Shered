@@ -35,6 +35,12 @@ export interface IStorage {
   }): Promise<boolean>;
   verifyUserEmail(token: string): Promise<boolean>;
   verifyUserOtp(userId: number, otp: string): Promise<boolean>;
+  updateUserDrivingDetails(userId: number, details: {
+    licenseNumber: string | null;
+    licenseState: string | null;
+    licenseExpiry: Date | null;
+    isEligibleDriver: boolean;
+  }): Promise<User | undefined>;
 
   // Group methods
   createGroup(group: InsertGroup): Promise<Group>;
