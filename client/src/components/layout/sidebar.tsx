@@ -25,6 +25,7 @@ export function Sidebar() {
     { icon: Navigation, label: "Active Schedules", href: "/active-schedules" },
     { icon: CheckCircle, label: "Check-in", href: "/check-in" },
     { icon: Car, label: "My Vehicles", href: "/vehicles" },
+    { icon: CarTaxiFront, label: "Drivers", href: "/drivers" },
     { icon: Users, label: "Import Members", href: "/bulk-import" },
     { icon: DollarSign, label: "Expenses", href: "/expenses" },
     { icon: MessageSquare, label: "Messages", href: "/messages" },
