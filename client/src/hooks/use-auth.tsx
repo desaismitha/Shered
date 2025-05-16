@@ -330,5 +330,15 @@ export function useAuth() {
   if (!context) {
     throw new Error("useAuth must be used within an AuthProvider");
   }
-  return context;
+  
+  // Helper function to check if the user is an admin
+  const isAdmin = (): boolean => {
+    return context.user?.role === "Admin";
+  };
+  
+  // Return the context with the additional helper function
+  return {
+    ...context,
+    isAdmin,
+  };
 }

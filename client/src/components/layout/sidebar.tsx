@@ -11,7 +11,7 @@ import { DbResetButton } from "@/components/ui/db-reset-button";
 import { WebSocketIndicator } from "@/components/ui/websocket-indicator";
 
 export function Sidebar() {
-  const { user, logoutMutation } = useAuth();
+  const { user, logoutMutation, isAdmin } = useAuth();
   const [location] = useLocation();
 
   const handleLogout = () => {
@@ -105,39 +105,42 @@ export function Sidebar() {
           })}
         </div>
         
-        <div className="mt-6 px-4">
-          <h3 className="px-2 text-xs font-semibold text-neutral-500 uppercase tracking-wider">
-            Quick Actions
-          </h3>
-          <div className="mt-2 space-y-1">
-            {actionItems.map((item) => {
-              const isActive = location.startsWith(item.href);
-              
-              return (
-                <Link 
-                  key={item.href} 
-                  href={item.href}
-                  className={cn(
-                    "flex items-center px-2 py-2 text-sm font-medium rounded-md group",
-                    isActive 
-                      ? "bg-primary-50 text-primary-700"
-                      : "text-neutral-700 hover:bg-neutral-100 hover:text-neutral-900"
-                  )}
-                >
-                  <item.icon 
+        {/* Only show Quick Actions section if user is an admin */}
+        {isAdmin() && (
+          <div className="mt-6 px-4">
+            <h3 className="px-2 text-xs font-semibold text-neutral-500 uppercase tracking-wider">
+              Quick Actions
+            </h3>
+            <div className="mt-2 space-y-1">
+              {actionItems.map((item) => {
+                const isActive = location.startsWith(item.href);
+                
+                return (
+                  <Link 
+                    key={item.href} 
+                    href={item.href}
                     className={cn(
-                      "text-lg mr-3 h-5 w-5",
+                      "flex items-center px-2 py-2 text-sm font-medium rounded-md group",
                       isActive 
-                        ? "text-primary-500"
-                        : "text-neutral-500 group-hover:text-neutral-700"
-                    )} 
-                  />
-                  {item.label}
-                </Link>
-              );
-            })}
+                        ? "bg-primary-50 text-primary-700"
+                        : "text-neutral-700 hover:bg-neutral-100 hover:text-neutral-900"
+                    )}
+                  >
+                    <item.icon 
+                      className={cn(
+                        "text-lg mr-3 h-5 w-5",
+                        isActive 
+                          ? "text-primary-500"
+                          : "text-neutral-500 group-hover:text-neutral-700"
+                      )} 
+                    />
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
       </nav>
       
       <div className="border-t border-neutral-200 p-4">
