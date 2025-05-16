@@ -60,22 +60,31 @@ export default function ScheduleDetailsPage() {
   // Define extended Trip type with _accessLevel
   type ExtendedTrip = Trip & { _accessLevel?: 'owner' | 'member'; startLocationDisplay?: string; destinationDisplay?: string; };
 
-  // Query for existing trip data
+  // Query for existing trip data with optimized parameters
   const { data: tripData, isLoading: isLoadingTrip } = useQuery<ExtendedTrip | undefined>({
     queryKey: ["/api/schedules", parseInt(scheduleId || "0")],
     enabled: !!scheduleId,
+    staleTime: 60000, // Data stays fresh for 1 minute
+    cacheTime: 300000, // Cache for 5 minutes
+    refetchOnWindowFocus: false, // Don't refetch when window regains focus
   });
   
-  // Query for itinerary items
+  // Query for itinerary items with optimized parameters
   const { data: itineraryItems, isLoading: isLoadingItinerary } = useQuery<ItineraryItem[]>({
     queryKey: ["/api/schedules", parseInt(scheduleId || "0"), "itinerary"],
     enabled: !!scheduleId,
+    staleTime: 60000,
+    cacheTime: 300000,
+    refetchOnWindowFocus: false,
   });
   
   // Query for group members if the schedule belongs to a group
   const { data: groupMembersData } = useQuery({
     queryKey: [`/api/groups/${tripData?.groupId}/members`],
     enabled: !!tripData?.groupId,
+    staleTime: 120000, // Group members change less frequently
+    cacheTime: 300000,
+    refetchOnWindowFocus: false,
   });
   
   // Loading state for the page
