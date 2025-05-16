@@ -8,12 +8,14 @@ import {
 } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
-import { ArrowLeft, MapPin } from "lucide-react";
+import { ArrowLeft, MapPin, FileText } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { Trip, ItineraryItem } from "@shared/schema";
 import { UnifiedTripForm } from "@/components/trips/unified-trip-form";
 import { useToast } from "@/hooks/use-toast";
 import { ScheduleDetailsSkeleton } from "@/components/ui/loading-fallback";
+import { useAuth } from "@/hooks/use-auth";
+import { ModificationRequestsTab } from "@/components/trips/modification-requests-tab";
 
 export default function ScheduleDetailsPage() {
   // Show initial content immediately to prevent blank screen
@@ -27,6 +29,7 @@ export default function ScheduleDetailsPage() {
   const scheduleId = params.scheduleId;
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { user, isAdmin } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Function to determine the active tab from URL parameters

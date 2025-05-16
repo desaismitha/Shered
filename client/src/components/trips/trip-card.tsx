@@ -1,13 +1,7 @@
+import React, { useState } from "react";
 import { Calendar, Users, Edit, CheckSquare, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { Trip as BaseTrip } from "@shared/schema";
-
-// Extend the Trip type to include the _accessLevel property
-// Note: We're keeping the Trip interface name for compatibility with the rest of the codebase
-// but conceptually this represents a Schedule
-interface Trip extends BaseTrip {
-  _accessLevel?: 'owner' | 'member' | null;
-}
 import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { GroupMember, User } from "@shared/schema";
@@ -15,6 +9,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { RequestModificationDialog } from "./request-modification-dialog";
+
+// Extend the Trip type to include the _accessLevel property
+// Note: We're keeping the Trip interface name for compatibility with the rest of the codebase
+// but conceptually this represents a Schedule
+interface Trip extends BaseTrip {
+  _accessLevel?: 'owner' | 'member' | null;
+}
 
 interface TripCardProps {
   trip: Trip;
@@ -100,17 +101,18 @@ export function TripCard({ trip }: TripCardProps) {
   };
 
   return (
-    <div className="bg-white shadow rounded-lg overflow-hidden hover:shadow-md transition-shadow">
-      <div className="h-48 w-full overflow-hidden relative bg-primary-200">
-        {trip.imageUrl ? (
-          <img 
-            src={trip.imageUrl} 
-            alt={trip.destination || 'Trip destination'} 
-            className="w-full h-full object-cover" 
-          />
-        ) : (
-          <div className="w-full h-full bg-gradient-to-r from-primary-400 to-primary-600" />
-        )}
+    <>
+      <div className="bg-white shadow rounded-lg overflow-hidden hover:shadow-md transition-shadow">
+        <div className="h-48 w-full overflow-hidden relative bg-primary-200">
+          {trip.imageUrl ? (
+            <img 
+              src={trip.imageUrl} 
+              alt={trip.destination || 'Trip destination'} 
+              className="w-full h-full object-cover" 
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-r from-primary-400 to-primary-600" />
+          )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end">
           <div className="p-4 text-white">
             <h3 className="font-bold text-lg">{trip.name || 'Unnamed trip'}</h3>
@@ -199,7 +201,7 @@ export function TripCard({ trip }: TripCardProps) {
               <span className="text-xs">Check-in</span>
             </Button>
             
-            {isAdmin() && (
+            {isAdmin() ? (
               <Button
                 variant="ghost"
                 size="sm"
@@ -212,6 +214,19 @@ export function TripCard({ trip }: TripCardProps) {
               >
                 <Edit className="h-3 w-3" />
                 <span className="text-xs">Edit</span>
+              </Button>
+            ) : (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="flex items-center gap-1 text-blue-600 hover:text-blue-700"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setIsModifyDialogOpen(true);
+                }}
+              >
+                <FileText className="h-3 w-3" />
+                <span className="text-xs">Request Changes</span>
               </Button>
             )}
             
@@ -234,5 +249,16 @@ export function TripCard({ trip }: TripCardProps) {
         </div>
       </div>
     </div>
+      
+      {/* Modification Request Dialog */}
+      <RequestModificationDialog
+        tripId={trip.id}
+        tripName={trip.name}
+        isOpen={isModifyDialogOpen}
+        onClose={() => setIsModifyDialogOpen(false)}
+      />
+    </>
   );
 }
+
+// Use the ModificationRequestDialog directly in the TripCard
