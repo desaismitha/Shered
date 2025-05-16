@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useParams, useLocation } from "wouter";
 import {
   Tabs,
@@ -8,13 +8,28 @@ import {
 } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
-import { ArrowLeft, MapPin } from "lucide-react";
+import { ArrowLeft, MapPin, Loader2 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { Trip, ItineraryItem } from "@shared/schema";
 import { UnifiedTripForm } from "@/components/trips/unified-trip-form";
 import { useToast } from "@/hooks/use-toast";
 
+// Lazy loaded component wrapper to prevent blank screens
+const LoadingWrapper = ({ children }: { children: React.ReactNode }) => (
+  <AppShell>
+    <div className="container py-6">
+      {children}
+    </div>
+  </AppShell>
+);
+
 export default function ScheduleDetailsPage() {
+  // Show initial content immediately to prevent blank screen
+  useEffect(() => {
+    // Set a minimal delay to ensure DOM is ready
+    document.body.style.opacity = "1";
+  }, []);
+
   const [location, navigate] = useLocation();
   const params = useParams();
   const scheduleId = params.scheduleId;
