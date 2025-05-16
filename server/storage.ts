@@ -310,6 +310,31 @@ export class DatabaseStorage implements IStorage {
       return result.length > 0;
     });
   }
+  
+  async updateUserDrivingDetails(userId: number, details: {
+    licenseNumber: string | null;
+    licenseState: string | null;
+    licenseExpiry: Date | null;
+    isEligibleDriver: boolean;
+  }): Promise<User | undefined> {
+    return this.executeDbOperation(async () => {
+      console.log("[STORAGE] Updating driving details for user:", userId);
+      
+      // Update the user with driving details
+      const [updatedUser] = await db
+        .update(users)
+        .set({
+          licenseNumber: details.licenseNumber,
+          licenseState: details.licenseState,
+          licenseExpiry: details.licenseExpiry,
+          isEligibleDriver: details.isEligibleDriver
+        })
+        .where(eq(users.id, userId))
+        .returning();
+      
+      return updatedUser;
+    });
+  }
 
   // Group methods
   async createGroup(insertGroup: InsertGroup): Promise<Group> {

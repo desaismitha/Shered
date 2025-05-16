@@ -751,6 +751,36 @@ export function setupAuth(app: Express) {
     res.json(userWithoutPassword);
   });
   
+  // Endpoint to update user driving details
+  app.patch("/api/user/driving-details", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+      
+      console.log("[AUTH] Processing driving details update:", req.body);
+      
+      const { licenseNumber, licenseState, licenseExpiry, isEligibleDriver } = req.body;
+      
+      // Update the user with driving details
+      const updatedUser = await storage.updateUserDrivingDetails(req.user.id, {
+        licenseNumber,
+        licenseState,
+        licenseExpiry: licenseExpiry ? new Date(licenseExpiry) : null,
+        isEligibleDriver: !!isEligibleDriver
+      });
+      
+      if (!updatedUser) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+      
+      // Return the updated user without password
+      const { password, ...userWithoutPassword } = updatedUser;
+      res.json(userWithoutPassword);
+    } catch (error) {
+      console.error('Error updating driving details:', error);
+      res.status(500).json({ error: 'Failed to update driving details' });
+    }
+  });
+  
   // Email verification endpoint
   app.get("/api/verify-email", async (req, res) => {
     try {
