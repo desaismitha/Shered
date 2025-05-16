@@ -10,7 +10,7 @@ import { setupPhoneVerificationRoutes } from "./phone-verification";
 import fileUpload from "express-fileupload";
 import { db, attemptReconnect, checkDbConnection, cleanupConnections } from "./db";
 import { setupAuth, hashPassword, generateOTP } from "./auth";
-import { insertGroupSchema, insertTripSchema, insertItineraryItemSchema, insertExpenseSchema, insertMessageSchema, insertGroupMemberSchema, insertVehicleSchema, insertTripVehicleSchema, insertChildSchema, InsertChild, users, groupMembers, trips, itineraryItems, children } from "@shared/schema";
+import { insertGroupSchema, insertTripSchema, insertItineraryItemSchema, insertExpenseSchema, insertMessageSchema, insertGroupMemberSchema, insertVehicleSchema, insertTripVehicleSchema, insertChildSchema, InsertChild, users, groupMembers, trips, itineraryItems, children, tripDriverAssignments } from "@shared/schema";
 import { z } from "zod";
 import { eq, or, and, asc, desc, sql, isNull, count, between, lt, gte, lte } from "drizzle-orm";
 import { sendGroupInvitation, sendPasswordResetEmail, sendRouteDeviationEmail, sendTripStatusChangeEmail, sendOTPVerificationCode, sendRegistrationConfirmation, sendTripReminderEmail, sendTripEndReminderEmail } from "./email";
@@ -381,12 +381,17 @@ async function checkTripAccess(
           }
           
           // Check for driver assignments to determine if restricted users have access to this trip
-          if (isMember && ['parent', 'guardian', 'caretaker', 'driver', 'kid', 'member'].includes(memberRole)) {
+          if (isMember && ['parent', 'guardian', 'caretaker', 'driver', 'kid', 'member'].includes(memberRole || '')) {
             try {
-              // Check if user is assigned to this trip as driver/runner
-              const driverAssignments = await storage.getDriverAssignmentsByTripId(trip.id);
+              // Get driver assignments from the database
+              const driverAssignments = await db.select().from(tripDriverAssignments)
+                .where(eq(tripDriverAssignments.tripId, trip.id));
+              
+              console.log(`${logPrefix}Driver assignments for trip ${trip.id}:`, JSON.stringify(driverAssignments));
+              
+              // Check if user is assigned to this trip as a driver
               const isAssignedToTrip = driverAssignments.some(assignment => 
-                String(assignment.driverId) === userId || String(assignment.runnerId) === userId
+                String(assignment.driverId) === userId
               );
               
               console.log(`${logPrefix}Is assigned to trip? ${isAssignedToTrip}`);
@@ -403,7 +408,7 @@ async function checkTripAccess(
               }
             } catch (err) {
               console.error(`${logPrefix}Error checking driver assignments:`, err);
-              // Continue with normal access for now to avoid blocking users unnecessarily
+              // Continue with normal access for now to avoid blocking users unnecessarily during error conditions
               console.log(`${logPrefix}ACCESS GRANTED: User is a MEMBER of the trip's group (assignment check failed)`);
               return 'member'; 
             }
