@@ -129,6 +129,13 @@ export default function UnifiedTripPage() {
         return tabParam;
       }
       
+      // When coming from the schedule list view and no specific tab is requested,
+      // default to "preview" tab when viewing a schedule details
+      if (tripId && !tabParam && !editParam) {
+        console.log("Schedule details view detected with no specific tab, defaulting to preview");
+        return "preview";
+      }
+      
       console.log("No valid tab parameter found, defaulting to form");
       return "form";
     } catch (error) {
@@ -561,7 +568,7 @@ export default function UnifiedTripPage() {
             <Button 
               variant="ghost" 
               size="icon" 
-              onClick={() => navigate("/trips")}
+              onClick={() => navigate("/schedules")}
             >
               <ArrowLeft className="h-4 w-4" />
             </Button>
