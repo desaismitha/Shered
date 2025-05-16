@@ -103,146 +103,154 @@ export function TripCard({ trip }: TripCardProps) {
   return (
     <>
       <div className="bg-white shadow rounded-lg overflow-hidden hover:shadow-md transition-shadow">
-        <div className="h-48 w-full overflow-hidden relative bg-primary-200">
-          {trip.imageUrl ? (
-            <img 
-              src={trip.imageUrl} 
-              alt={trip.destination || 'Trip destination'} 
-              className="w-full h-full object-cover" 
-            />
-          ) : (
-            <div className="w-full h-full bg-gradient-to-r from-primary-400 to-primary-600" />
-          )}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end">
-            <div className="p-4 text-white">
-              <h3 className="font-bold text-lg">{trip.name || 'Unnamed trip'}</h3>
-              <div className="flex items-center mt-1">
-                <Calendar className="mr-1 h-4 w-4" />
-                <span className="text-sm">
-                  {formatDateRange(trip.startDate, trip.endDate)}
-                </span>
+        <div className="flex flex-row">
+          {/* Left side - small image/gradient */}
+          <div className="w-24 h-24 min-w-[6rem] overflow-hidden relative bg-primary-200">
+            {trip.imageUrl ? (
+              <img 
+                src={trip.imageUrl} 
+                alt={trip.destination || 'Trip destination'} 
+                className="w-full h-full object-cover" 
+              />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-r from-primary-400 to-primary-600" />
+            )}
+          </div>
+          
+          {/* Right side - content */}
+          <div className="flex-1 p-3">
+            <div className="flex justify-between items-start">
+              {/* Title and date */}
+              <div>
+                <h3 className="font-bold text-lg">{trip.name || 'Unnamed trip'}</h3>
+                <div className="flex items-center text-sm text-neutral-600 mt-1">
+                  <Calendar className="mr-1 h-4 w-4" />
+                  <span>{formatDateRange(trip.startDate, trip.endDate)}</span>
+                </div>
+                
+                {/* Locations */}
+                <div className="text-xs text-neutral-500 mt-1">
+                  {trip.startLocationDisplay || trip.startLocation || 'No start location'} → {trip.destinationDisplay || trip.destination || 'No destination'}
+                </div>
               </div>
+              
+              {/* Status badge */}
+              <Badge className={getStatusColor(trip.status)}>
+                {trip.status ? (trip.status.charAt(0).toUpperCase() + trip.status.slice(1)) : 'Unknown'}
+              </Badge>
             </div>
-          </div>
-        </div>
-        <div className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-neutral-500">
-              <Users className="inline-block mr-1 h-4 w-4" />
-              {trip.name || 'Unnamed trip'} 
-              {trip.groupId ? 
-                `(${groupMembers?.length || 0} members)` : 
-                "(Personal Trip)"
-              }
-            </div>
-            <Badge className={getStatusColor(trip.status)}>
-              {trip.status ? (trip.status.charAt(0).toUpperCase() + trip.status.slice(1)) : 'Unknown'}
-            </Badge>
-          </div>
-          {/* Spacing to replace removed expense section */}
-          <div className="mt-4 pt-2 flex items-center justify-between">
-            <div className="flex -space-x-2">
-              {trip.groupId && groupMembers && users ? (
-                // Group trip with members
-                groupMembers.slice(0, 4).map((member, index) => {
-                  const user = users.find(u => u.id === member.userId);
-                  return (
-                    <div 
-                      key={member.id}
-                      className="w-7 h-7 rounded-full bg-neutral-300 border-2 border-white flex items-center justify-center text-xs text-neutral-600"
-                    >
-                      {user?.displayName?.[0] || user?.username?.[0] || "U"}
-                    </div>
-                  );
-                })
-              ) : (
-                // Personal trip or loading state
-                users ? (
-                  // Find the creator user
-                  (() => {
-                    const creator = users.find(u => u.id === trip.createdBy);
+            
+            {/* People and buttons row */}
+            <div className="mt-3 flex items-center justify-between">
+              <div className="flex -space-x-2">
+                {trip.groupId && groupMembers && users ? (
+                  // Group trip with members
+                  groupMembers.slice(0, 4).map((member, index) => {
+                    const user = users.find(u => u.id === member.userId);
                     return (
                       <div 
-                        key="creator"
+                        key={member.id}
                         className="w-7 h-7 rounded-full bg-neutral-300 border-2 border-white flex items-center justify-center text-xs text-neutral-600"
+                        title={user?.displayName || user?.username || "User"}
                       >
-                        {creator?.displayName?.[0] || creator?.username?.[0] || "U"}
+                        {user?.displayName?.[0] || user?.username?.[0] || "U"}
                       </div>
                     );
-                  })()
+                  })
                 ) : (
-                  // Loading state
-                  <div 
-                    key="loading"
-                    className="w-7 h-7 rounded-full bg-neutral-300 border-2 border-white flex items-center justify-center text-xs text-neutral-600"
-                  />
-                )
-              )}
-              {trip.groupId && groupMembers && groupMembers.length > 4 && (
-                <div className="w-7 h-7 rounded-full bg-neutral-200 border-2 border-white flex items-center justify-center text-xs text-neutral-600">
-                  +{groupMembers.length - 4}
-                </div>
-              )}
-            </div>
-            <div className="flex items-center space-x-2">
-              {/* Check-in button */}
-              <Button
-                variant="ghost"
-                size="sm"
-                className="flex items-center gap-1 text-green-600 hover:text-green-700"
-                onClick={(e) => {
-                  e.preventDefault();
-                  const url = `/schedules/${trip.id}?tab=check-in`;
-                  console.log("Check-in button clicked, navigating to:", url);
-                  navigate(url);
-                }}
-              >
-                <CheckSquare className="h-3 w-3" />
-                <span className="text-xs">Check-in</span>
-              </Button>
+                  // Personal trip or loading state
+                  users ? (
+                    // Find the creator user
+                    (() => {
+                      const creator = users.find(u => u.id === trip.createdBy);
+                      return (
+                        <div 
+                          key="creator"
+                          className="w-7 h-7 rounded-full bg-neutral-300 border-2 border-white flex items-center justify-center text-xs text-neutral-600"
+                          title={creator?.displayName || creator?.username || "Creator"}
+                        >
+                          {creator?.displayName?.[0] || creator?.username?.[0] || "U"}
+                        </div>
+                      );
+                    })()
+                  ) : (
+                    // Loading state
+                    <div 
+                      key="loading"
+                      className="w-7 h-7 rounded-full bg-neutral-300 border-2 border-white flex items-center justify-center text-xs text-neutral-600"
+                    />
+                  )
+                )}
+                {trip.groupId && groupMembers && groupMembers.length > 4 && (
+                  <div className="w-7 h-7 rounded-full bg-neutral-200 border-2 border-white flex items-center justify-center text-xs text-neutral-600">
+                    +{groupMembers.length - 4}
+                  </div>
+                )}
+              </div>
               
-              {isAdmin() ? (
+              {/* Action buttons */}
+              <div className="flex items-center gap-2">
+                {/* Check-in button */}
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="flex items-center gap-1 text-neutral-500 hover:text-primary-600"
+                  className="flex items-center gap-1 text-green-600 hover:text-green-700"
                   onClick={(e) => {
                     e.preventDefault();
-                    console.log("Edit button clicked, navigating to:", `/schedules/${trip.id}?tab=form`);
-                    navigate(`/schedules/${trip.id}?tab=form`);
+                    const url = `/schedules/${trip.id}?tab=check-in`;
+                    console.log("Check-in button clicked, navigating to:", url);
+                    navigate(url);
                   }}
                 >
-                  <Edit className="h-3 w-3" />
-                  <span className="text-xs">Edit</span>
+                  <CheckSquare className="h-3 w-3" />
+                  <span className="text-xs">Check-in</span>
                 </Button>
-              ) : (
+                
+                {/* View Details button */}
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
-                  className="flex items-center gap-1 text-blue-600 hover:text-blue-700"
+                  className="flex items-center gap-1 text-primary-600 border-primary-200"
                   onClick={(e) => {
                     e.preventDefault();
-                    setIsModifyDialogOpen(true);
+                    const url = `/schedules/${trip.id}?tab=preview`;
+                    console.log("View details clicked, navigating to:", url);
+                    window.location.href = url;
                   }}
                 >
-                  <FileText className="h-3 w-3" />
-                  <span className="text-xs">Request Changes</span>
+                  <span className="text-xs font-medium">View Details</span>
                 </Button>
-              )}
-              
-              <Button
-                variant="default"
-                size="sm"
-                className="flex items-center gap-1"
-                onClick={(e) => {
-                  e.preventDefault();
-                  const url = `/schedules/${trip.id}?tab=preview`;
-                  console.log("View details clicked, navigating to:", url);
-                  window.location.href = url;
-                }}
-              >
-                <span className="text-xs font-medium">View Details</span>
-              </Button>
+                
+                {/* Edit or Request Changes button */}
+                {isAdmin() ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="flex items-center gap-1 text-neutral-500 hover:text-primary-600"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      console.log("Edit button clicked, navigating to:", `/schedules/${trip.id}?tab=form`);
+                      navigate(`/schedules/${trip.id}?tab=form`);
+                    }}
+                  >
+                    <Edit className="h-3 w-3" />
+                    <span className="text-xs">Edit</span>
+                  </Button>
+                ) : (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="flex items-center gap-1 text-blue-600 hover:text-blue-700"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setIsModifyDialogOpen(true);
+                    }}
+                  >
+                    <FileText className="h-3 w-3" />
+                    <span className="text-xs">Request Changes</span>
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
         </div>
