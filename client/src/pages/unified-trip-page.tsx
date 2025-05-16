@@ -584,7 +584,6 @@ export default function UnifiedTripPage() {
               value={activeTab} 
               onValueChange={handleTabChange} 
               className="w-full"
-              defaultValue="form"
             >
               <TabsList className="grid w-[800px] grid-cols-4 mx-auto mb-4">
                 <TabsTrigger 
