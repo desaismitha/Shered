@@ -1120,6 +1120,48 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
+  async getAllDriverAssignments(): Promise<TripDriverAssignment[]> {
+    return this.executeDbOperation(async () => {
+      console.log(`[STORAGE] Getting all driver assignments`);
+      const assignments = await db.select().from(tripDriverAssignments)
+        .orderBy(tripDriverAssignments.startDate);
+      
+      // Try to enrich with trip names, driver names, etc.
+      const enrichedAssignments = await Promise.all(assignments.map(async (assignment) => {
+        try {
+          // Get trip details
+          const trip = await this.getTrip(assignment.tripId);
+          
+          // Get driver details
+          const driver = await this.getUser(assignment.driverId);
+          
+          // Get vehicle details if applicable
+          let vehicle = null;
+          if (assignment.vehicleId) {
+            vehicle = await this.getVehicle(assignment.vehicleId);
+          }
+          
+          // Get assigner details
+          const assigner = await this.getUser(assignment.assignedBy);
+          
+          return {
+            ...assignment,
+            tripName: trip?.name,
+            driverName: driver?.displayName || driver?.username,
+            vehicleName: vehicle ? `${vehicle.make} ${vehicle.model}` : null,
+            assignerName: assigner?.displayName || assigner?.username,
+          };
+        } catch (error) {
+          console.error(`[STORAGE] Error enriching driver assignment ${assignment.id}:`, error);
+          return assignment;
+        }
+      }));
+      
+      console.log(`[STORAGE] Found ${enrichedAssignments.length} total driver assignments`);
+      return enrichedAssignments;
+    });
+  }
+
   async getDriverAssignments(tripId: number): Promise<TripDriverAssignment[]> {
     return this.executeDbOperation(async () => {
       console.log(`[STORAGE] Getting driver assignments for trip ${tripId}`);
