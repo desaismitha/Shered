@@ -159,33 +159,39 @@ export default function ScheduleDetailsPage() {
                 onValueChange={handleTabChange} 
                 className="w-full"
               >
-                <TabsList className={`grid ${isAdmin() ? "w-[1000px] grid-cols-6" : "w-[800px] grid-cols-5"} mx-auto mb-4`}>
+                <TabsList className="grid grid-cols-2 w-full max-w-md mx-auto mb-4">
                   <TabsTrigger 
                     value="preview" 
                     data-active={activeTab === "preview"}
                     className={activeTab === "preview" ? "data-[state=active]:bg-primary-500" : ""}
                   >
-                    Preview
+                    <div className="flex items-center gap-1.5">
+                      <MapPin className="h-4 w-4" />
+                      <span>View Details</span>
+                    </div>
                   </TabsTrigger>
+                  
                   <TabsTrigger 
                     value="form" 
                     data-active={activeTab === "form"}
                     className={activeTab === "form" ? "data-[state=active]:bg-primary-500" : ""}
                     disabled={!isAdmin()}
                   >
-                    Edit Schedule
+                    <div className="flex items-center gap-1.5">
+                      <FileText className="h-4 w-4" />
+                      <span>Edit Schedule</span>
+                    </div>
                   </TabsTrigger>
-
 
                   {isAdmin() && (
                     <TabsTrigger 
                       value="requests" 
                       data-active={activeTab === "requests"}
-                      className={activeTab === "requests" ? "data-[state=active]:bg-primary-500" : ""}
+                      className={`col-span-2 mt-2 ${activeTab === "requests" ? "data-[state=active]:bg-primary-500" : ""}`}
                     >
-                      <div className="flex items-center gap-1">
-                        <FileText className="h-4 w-4" />
-                        Modification Requests
+                      <div className="flex items-center gap-1.5">
+                        <Users className="h-4 w-4" />
+                        <span>Modification Requests</span>
                       </div>
                     </TabsTrigger>
                   )}
