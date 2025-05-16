@@ -664,88 +664,90 @@ export default function DriversPage() {
                 </Select>
               </div>
               
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="startDate">Start Date</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className="w-full justify-start text-left font-normal"
-                        id="startDate"
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {assignmentStartDate ? format(assignmentStartDate, "PPP") : "Select date"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <CalendarComponent
-                        mode="single"
-                        selected={assignmentStartDate}
-                        onSelect={setAssignmentStartDate}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="endDate">End Date</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className="w-full justify-start text-left font-normal"
-                        id="endDate"
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {assignmentEndDate ? format(assignmentEndDate, "PPP") : "Select date"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <CalendarComponent
-                        mode="single"
-                        selected={assignmentEndDate}
-                        onSelect={setAssignmentEndDate}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-              </div>
-              
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2 self-end mb-2">
                 <Checkbox
-                  id="isRecurring"
+                  id="recurring"
                   checked={isRecurring}
                   onCheckedChange={(checked) => setIsRecurring(checked === true)}
                 />
-                <Label htmlFor="isRecurring">Recurring Assignment</Label>
+                <Label htmlFor="recurring" className="font-normal">Recurring assignment</Label>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="startDate">Start Date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-left font-normal"
+                      id="startDate"
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {assignmentStartDate ? format(assignmentStartDate, "PPP") : "Select date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <CalendarComponent
+                      mode="single"
+                      selected={assignmentStartDate}
+                      onSelect={setAssignmentStartDate}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="endDate">End Date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-left font-normal"
+                      id="endDate"
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {assignmentEndDate ? format(assignmentEndDate, "PPP") : "Select date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <CalendarComponent
+                      mode="single"
+                      selected={assignmentEndDate}
+                      onSelect={setAssignmentEndDate}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
               
               {isRecurring && (
-                <div className="space-y-2">
-                  <Label htmlFor="recurrencePattern">Recurrence Pattern</Label>
-                  <Select 
-                    value={recurrencePattern} 
-                    onValueChange={setRecurrencePattern}
-                  >
-                    <SelectTrigger id="recurrencePattern">
-                      <SelectValue placeholder="Select recurrence pattern" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="daily">Daily</SelectItem>
-                      <SelectItem value="weekdays">Weekdays (Mon-Fri)</SelectItem>
-                      <SelectItem value="weekends">Weekends (Sat-Sun)</SelectItem>
-                      <SelectItem value="specific-days">Specific Days</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="space-y-3 border-l-2 border-neutral-200 pl-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="recurrencePattern">Recurrence Pattern</Label>
+                    <Select 
+                      value={recurrencePattern} 
+                      onValueChange={setRecurrencePattern}
+                    >
+                      <SelectTrigger id="recurrencePattern">
+                        <SelectValue placeholder="Select pattern" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="daily">Daily</SelectItem>
+                        <SelectItem value="weekdays">Weekdays (Mon-Fri)</SelectItem>
+                        <SelectItem value="weekends">Weekends (Sat-Sun)</SelectItem>
+                        <SelectItem value="specific-days">Specific Days</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                   
                   {recurrencePattern === "specific-days" && (
-                    <div className="space-y-2 mt-2">
+                    <div className="space-y-2">
                       <Label>Select Days</Label>
-                      <div className="flex flex-wrap gap-2">
-                        {days.map((day) => (
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                        {days.map(day => (
                           <div key={day.value} className="flex items-center space-x-2">
                             <Checkbox
                               id={`day-${day.value}`}
