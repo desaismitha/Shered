@@ -158,7 +158,7 @@ export default function ScheduleDetailsPage() {
                 onValueChange={handleTabChange} 
                 className="w-full"
               >
-                <TabsList className="grid w-[800px] grid-cols-4 mx-auto mb-4">
+                <TabsList className={`grid ${isAdmin() ? "w-[1000px] grid-cols-5" : "w-[800px] grid-cols-4"} mx-auto mb-4`}>
                   <TabsTrigger 
                     value="preview" 
                     data-active={activeTab === "preview"}
@@ -170,6 +170,7 @@ export default function ScheduleDetailsPage() {
                     value="form" 
                     data-active={activeTab === "form"}
                     className={activeTab === "form" ? "data-[state=active]:bg-primary-500" : ""}
+                    disabled={!isAdmin()}
                   >
                     Edit Schedule
                   </TabsTrigger>
@@ -191,6 +192,18 @@ export default function ScheduleDetailsPage() {
                       Track Location
                     </div>
                   </TabsTrigger>
+                  {isAdmin() && (
+                    <TabsTrigger 
+                      value="requests" 
+                      data-active={activeTab === "requests"}
+                      className={activeTab === "requests" ? "data-[state=active]:bg-primary-500" : ""}
+                    >
+                      <div className="flex items-center gap-1">
+                        <FileText className="h-4 w-4" />
+                        Modification Requests
+                      </div>
+                    </TabsTrigger>
+                  )}
                 </TabsList>
                 
                 <TabsContent value="preview" className="space-y-4">
