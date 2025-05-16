@@ -7,7 +7,7 @@ import { useParams, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { 
-  Users, PlusIcon, Calendar, Info, ArrowLeft, MessageSquare
+  Users, PlusIcon, Calendar, Info, ArrowLeft, MessageSquare, Trash2Icon
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -18,10 +18,9 @@ import { TripCard } from "@/components/trips/trip-card";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useUserLookup } from "@/hooks/use-user-lookup";
-import { MessageList } from "@/components/messages/message-list";
-import { MessageForm } from "@/components/messages/message-form";
 import { Badge } from "@/components/ui/badge";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -64,12 +63,6 @@ export default function GroupDetailsPage() {
   const { data: allTrips, isLoading: isLoadingTrips } = useQuery<Trip[]>({
     queryKey: ["/api/trips"],
     enabled: !!groupId,
-    onSuccess: (data) => {
-      console.log("All trips data:", data);
-    },
-    onError: (error) => {
-      console.error("Error fetching trips:", error);
-    }
   });
   
   // Filter trips that belong to this group
@@ -104,7 +97,7 @@ export default function GroupDetailsPage() {
   // Add member schemas
   const addMemberSchema = z.object({
     username: z.string().min(3, "Username must be at least 3 characters"),
-    role: z.enum(["member", "admin"]).default("member"),
+    role: z.enum(["admin", "parent", "guardian", "caretaker", "driver", "kid", "member"]).default("member"),
   });
 
   // Schema for inviting a new user (who doesn't have an account yet)
@@ -117,7 +110,7 @@ export default function GroupDetailsPage() {
         { message: "Phone number must be exactly 10 digits" }
       )
       .optional(),
-    role: z.enum(["member", "admin"]).default("member"),
+    role: z.enum(["admin", "parent", "guardian", "caretaker", "driver", "kid", "member"]).default("member"),
   });
 
   type AddMemberValues = z.infer<typeof addMemberSchema>;
@@ -450,269 +443,18 @@ export default function GroupDetailsPage() {
                 {group.name}
               </h1>
               <p className="text-neutral-600">
-                {groupMembers?.length || 0} members • {trips?.length || 0} trips
+                {groupMembers?.length || 0} members • {trips?.length || 0} schedules
               </p>
             </div>
             <div className="mt-4 md:mt-0 flex space-x-3">
-
               {isAdmin && (
-                <Dialog open={isAddMemberOpen} onOpenChange={setIsAddMemberOpen}>
-                  <DialogTrigger asChild>
-                    <Button>
-                      <PlusIcon className="h-4 w-4 mr-2" />
-                      Add Member
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Add Member to Group</DialogTitle>
-                      <DialogDescription>
-                        {isInviteMode 
-                          ? "Invite someone via email to join this group." 
-                          : "Add an existing user to this group."}
-                      </DialogDescription>
-                    </DialogHeader>
-                    
-                    <div className="flex border rounded-md mb-4">
-                      <button
-                        type="button"
-                        className={`flex-1 text-center py-2 px-3 text-sm font-medium rounded-l-md ${!isInviteMode ? 'bg-primary text-white' : 'hover:bg-muted'}`}
-                        onClick={() => setIsInviteMode(false)}
-                      >
-                        Existing User
-                      </button>
-                      <button
-                        type="button"
-                        className={`flex-1 text-center py-2 px-3 text-sm font-medium rounded-r-md ${isInviteMode ? 'bg-primary text-white' : 'hover:bg-muted'}`}
-                        onClick={() => setIsInviteMode(true)}
-                      >
-                        Invite New User
-                      </button>
-                    </div>
-                    
-                    {!isInviteMode ? (
-                      <Form {...addMemberForm}>
-                        <form onSubmit={addMemberForm.handleSubmit(onAddMemberSubmit)} className="space-y-4">
-                          <FormField
-                            control={addMemberForm.control}
-                            name="username"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Username</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="Enter username" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          
-                          <FormField
-                            control={addMemberForm.control}
-                            name="role"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Role</FormLabel>
-                                <div className="flex space-x-4">
-                                  <label className="flex items-center space-x-2 cursor-pointer">
-                                    <input
-                                      type="radio"
-                                      className="form-radio"
-                                      value="member"
-                                      checked={field.value === "member"}
-                                      onChange={() => field.onChange("member")}
-                                    />
-                                    <span>Member</span>
-                                  </label>
-                                  <label className="flex items-center space-x-2 cursor-pointer">
-                                    <input
-                                      type="radio"
-                                      className="form-radio"
-                                      value="admin"
-                                      checked={field.value === "admin"}
-                                      onChange={() => field.onChange("admin")}
-                                    />
-                                    <span>Admin</span>
-                                  </label>
-                                </div>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          
-                          <DialogFooter>
-                            <Button 
-                              type="button" 
-                              variant="outline" 
-                              onClick={() => setIsAddMemberOpen(false)}
-                            >
-                              Cancel
-                            </Button>
-                            <Button 
-                              type="submit" 
-                              disabled={addMemberMutation.isPending}
-                            >
-                              {addMemberMutation.isPending ? "Adding..." : "Add Member"}
-                            </Button>
-                          </DialogFooter>
-                        </form>
-                      </Form>
-                    ) : (
-                      <Form {...inviteUserForm}>
-                        <form 
-                          onSubmit={(e) => {
-                            e.preventDefault();
-                            console.log("Form submit event fired");
-                            // Extract values directly to ensure we have the most current data
-                            const formData = {
-                              email: inviteUserForm.getValues("email"),
-                              phoneNumber: inviteUserForm.getValues("phoneNumber"),
-                              role: inviteUserForm.getValues("role")
-                            };
-                            console.log("Form data extracted directly:", formData);
-                            
-                            // Validate the form data manually
-                            try {
-                              const result = inviteUserSchema.parse(formData);
-                              console.log("Manual validation passed:", result);
-                              onInviteUserSubmit(result);
-                            } catch (error) {
-                              console.error("Manual validation error:", error);
-                              // Show validation errors
-                              if (error instanceof z.ZodError) {
-                                error.errors.forEach(err => {
-                                  inviteUserForm.setError(err.path[0].toString() as any, {
-                                    message: err.message
-                                  });
-                                });
-                              }
-                            }
-                          }} 
-                          className="space-y-4">
-                          <div className="space-y-2">
-                            <label className="text-sm font-medium" htmlFor="invite-email">
-                              Email Address
-                            </label>
-                            <Input
-                              id="invite-email"
-                              placeholder="email@example.com"
-                              value={inviteUserForm.watch("email")}
-                              onChange={(e) => inviteUserForm.setValue("email", e.target.value)}
-                            />
-                            {inviteUserForm.formState.errors.email && (
-                              <p className="text-sm font-medium text-destructive">
-                                {inviteUserForm.formState.errors.email.message}
-                              </p>
-                            )}
-                          </div>
-                          
-                          <div className="space-y-2">
-                            <label className="text-sm font-medium" htmlFor="invite-phone">
-                              Phone Number (Optional)
-                            </label>
-                            <div className="relative">
-                              <Input
-                                id="invite-phone"
-                                placeholder="10 digits only (e.g., 5551234567)"
-                                value={inviteUserForm.watch("phoneNumber") || ""}
-                                maxLength={10}
-                                onKeyPress={(e) => {
-                                  // Only allow number keys
-                                  if (!/[0-9]/.test(e.key)) {
-                                    e.preventDefault();
-                                  }
-                                }}
-                                onChange={(e) => {
-                                  // Only allow digits
-                                  const digitsOnly = e.target.value.replace(/\D/g, '');
-                                  inviteUserForm.setValue("phoneNumber", digitsOnly);
-                                  
-                                  // Clear phone number error when editing
-                                  if (inviteUserForm.formState.errors.phoneNumber) {
-                                    inviteUserForm.clearErrors("phoneNumber");
-                                  }
-                                }}
-                              />
-                              {inviteUserForm.watch("phoneNumber") && (
-                                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs">
-                                  {(inviteUserForm.watch("phoneNumber")?.length || 0)}/10
-                                </div>
-                              )}
-                            </div>
-                            <p className="text-xs text-muted-foreground">
-                              Must be exactly 10 digits (formatting will be handled)
-                            </p>
-                            {inviteUserForm.formState.errors.phoneNumber && (
-                              <p className="text-sm font-medium text-destructive">
-                                {inviteUserForm.formState.errors.phoneNumber.message}
-                              </p>
-                            )}
-                          </div>
-                          
-                          <div className="space-y-2">
-                            <label className="text-sm font-medium" htmlFor="invite-role">
-                              Role
-                            </label>
-                            <div className="flex space-x-4">
-                              <label className="flex items-center space-x-2 cursor-pointer">
-                                <input
-                                  type="radio"
-                                  className="form-radio"
-                                  value="member"
-                                  checked={inviteUserForm.watch("role") === "member"}
-                                  onChange={() => inviteUserForm.setValue("role", "member")}
-                                />
-                                <span>Member</span>
-                              </label>
-                              <label className="flex items-center space-x-2 cursor-pointer">
-                                <input
-                                  type="radio"
-                                  className="form-radio"
-                                  value="admin"
-                                  checked={inviteUserForm.watch("role") === "admin"}
-                                  onChange={() => inviteUserForm.setValue("role", "admin")}
-                                />
-                                <span>Admin</span>
-                              </label>
-                            </div>
-                            {inviteUserForm.formState.errors.role && (
-                              <p className="text-sm font-medium text-destructive">
-                                {inviteUserForm.formState.errors.role.message}
-                              </p>
-                            )}
-                          </div>
-                          
-                          <DialogFooter>
-                            <Button 
-                              type="button" 
-                              variant="outline" 
-                              onClick={() => setIsAddMemberOpen(false)}
-                            >
-                              Cancel
-                            </Button>
-                            <Button 
-                              type="button" 
-                              disabled={inviteUserMutation.isPending}
-                              onClick={(e) => {
-                                console.log("Send Invitation button clicked");
-                                // Use a normal submit to trigger the onSubmit handler
-                                const form = e.currentTarget.closest('form');
-                                if (form) {
-                                  console.log("Form found, submitting");
-                                  form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
-                                } else {
-                                  console.error("Form not found");
-                                }
-                              }}
-                            >
-                              {inviteUserMutation.isPending ? "Sending..." : "Send Invitation"}
-                            </Button>
-                          </DialogFooter>
-                        </form>
-                      </Form>
-                    )}
-                  </DialogContent>
-                </Dialog>
+                <Button 
+                  variant="outline" 
+                  onClick={() => navigate(`/schedules/new?groupId=${groupId}`)}
+                >
+                  <PlusIcon className="h-4 w-4 mr-2" />
+                  Create Schedule
+                </Button>
               )}
             </div>
           </div>
@@ -727,7 +469,7 @@ export default function GroupDetailsPage() {
         
         {/* Group content */}
         <div className="grid grid-cols-1 gap-6">
-          {/* Main content - Trips and messages */}
+          {/* Main content - Trips and members */}
           <div>
             <Tabs defaultValue="schedules">
               <TabsList>
@@ -743,46 +485,39 @@ export default function GroupDetailsPage() {
                   </CardHeader>
                   <CardContent>
                     {isLoadingTrips ? (
-                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                        {[...Array(2)].map((_, i) => (
-                          <div key={i} className="bg-white shadow rounded-lg overflow-hidden">
-                            <Skeleton className="h-48 w-full" />
-                            <div className="p-4">
-                              <Skeleton className="h-6 w-3/4 mb-2" />
-                              <Skeleton className="h-4 w-1/2 mb-4" />
-                              <div className="flex justify-between items-center">
-                                <div className="flex space-x-1">
-                                  <Skeleton className="h-7 w-7 rounded-full" />
-                                  <Skeleton className="h-7 w-7 rounded-full" />
-                                  <Skeleton className="h-7 w-7 rounded-full" />
-                                </div>
-                                <Skeleton className="h-8 w-24" />
-                              </div>
+                      <div className="space-y-4">
+                        {[...Array(3)].map((_, i) => (
+                          <div key={i} className="bg-white rounded-lg shadow p-4">
+                            <Skeleton className="h-6 w-3/4 mb-2" />
+                            <div className="flex justify-between">
+                              <Skeleton className="h-4 w-1/3" />
+                              <Skeleton className="h-4 w-1/4" />
                             </div>
                           </div>
                         ))}
                       </div>
-                    ) : trips && trips.length > 0 ? (
-                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                        {trips.map((trip) => {
-                          console.log("Rendering trip:", trip);
-                          if (!trip.destination) {
-                            // This isn't a valid trip object, it's likely a group object
-                            console.warn("Invalid trip data:", trip);
-                            return null;
-                          }
-                          return <TripCard key={trip.id} trip={trip} />;
-                        })}
+                    ) : trips?.length ? (
+                      <div className="space-y-4">
+                        {trips.map(trip => (
+                          <TripCard 
+                            key={trip.id} 
+                            trip={trip} 
+                            showStatus 
+                            showGroupName={false}
+                          />
+                        ))}
                       </div>
                     ) : (
-                      <div className="text-center py-8">
-                        <Calendar className="h-12 w-12 text-neutral-300 mx-auto mb-3" />
-                        <h3 className="text-lg font-medium text-neutral-700 mb-1">No trips planned yet</h3>
-                        <p className="text-neutral-500 mb-6">Start planning your next adventure with this group</p>
-                        <Button onClick={() => navigate(`/schedules/new?groupId=${groupId}`)}>
-                          <PlusIcon className="h-4 w-4 mr-2" />
-                          Create First Schedule
-                        </Button>
+                      <div className="text-center py-6">
+                        <p className="text-neutral-600 mb-4">No schedules in this group yet</p>
+                        {isAdmin && (
+                          <Button 
+                            onClick={() => navigate(`/schedules/new?groupId=${groupId}`)}
+                          >
+                            <PlusIcon className="h-4 w-4 mr-2" />
+                            Create Schedule
+                          </Button>
+                        )}
                       </div>
                     )}
                   </CardContent>
@@ -833,13 +568,32 @@ export default function GroupDetailsPage() {
                                     {memberUser?.displayName || memberUser?.username || 'Unknown User'}
                                   </p>
                                   <p className="text-xs text-neutral-500">
-                                    {member.role === 'admin' ? 'Admin' : 'Member'}
+                                    {member.role === 'admin' ? 'Admin' : 
+                                     member.role === 'parent' ? 'Parent' :
+                                     member.role === 'guardian' ? 'Guardian' :
+                                     member.role === 'caretaker' ? 'Caretaker' :
+                                     member.role === 'driver' ? 'Driver' :
+                                     member.role === 'kid' ? 'Kid' : 'Member'}
                                   </p>
                                 </div>
                               </div>
-                              <Badge variant="default" className="capitalize">
-                                {member.role}
-                              </Badge>
+                              
+                              {/* Admin can remove members except themselves */}
+                              {isAdmin && memberUser?.id !== user?.id && (
+                                <Button 
+                                  size="icon" 
+                                  variant="ghost"
+                                  className="h-8 w-8 text-neutral-500 hover:text-red-500"
+                                  onClick={() => {
+                                    toast({
+                                      title: "Feature coming soon",
+                                      description: "Removing members will be available in a future update",
+                                    });
+                                  }}
+                                >
+                                  <Trash2Icon className="h-4 w-4" />
+                                </Button>
+                              )}
                             </div>
                           );
                         })}
@@ -855,9 +609,204 @@ export default function GroupDetailsPage() {
               </TabsContent>
             </Tabs>
           </div>
-          
         </div>
       </div>
+
+      {/* Add Member Dialog */}
+      <Dialog open={isAddMemberOpen} onOpenChange={setIsAddMemberOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Member to Group</DialogTitle>
+            <DialogDescription>
+              {isInviteMode 
+                ? "Invite someone via email to join this group." 
+                : "Add an existing user to this group."}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {/* Toggle between add/invite modes */}
+          <div className="flex space-x-2 mb-4">
+            <Button
+              type="button"
+              variant={isInviteMode ? "outline" : "default"}
+              onClick={() => setIsInviteMode(false)}
+              className="flex-1"
+              size="sm"
+            >
+              Existing User
+            </Button>
+            <Button
+              type="button"
+              variant={isInviteMode ? "default" : "outline"}
+              onClick={() => setIsInviteMode(true)}
+              className="flex-1"
+              size="sm"
+            >
+              Invite New
+            </Button>
+          </div>
+
+          {/* Add existing user form */}
+          {!isInviteMode ? (
+            <div className="space-y-4">
+              <form onSubmit={addMemberForm.handleSubmit(onAddMemberSubmit)}>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium" htmlFor="username">
+                      Username
+                    </label>
+                    <Input
+                      id="username"
+                      placeholder="Enter username"
+                      value={addMemberForm.watch("username")}
+                      onChange={(e) => addMemberForm.setValue("username", e.target.value)}
+                    />
+                    {addMemberForm.formState.errors.username && (
+                      <p className="text-sm font-medium text-destructive">
+                        {addMemberForm.formState.errors.username.message}
+                      </p>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium" htmlFor="add-role">
+                      Role
+                    </label>
+                    <select
+                      id="add-role"
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      value={addMemberForm.watch("role")}
+                      onChange={(e) => addMemberForm.setValue("role", e.target.value as any)}
+                    >
+                      <option value="admin">Admin</option>
+                      <option value="parent">Parent</option>
+                      <option value="guardian">Guardian</option>
+                      <option value="caretaker">Caretaker</option>
+                      <option value="driver">Driver</option>
+                      <option value="kid">Kid</option>
+                      <option value="member">Member</option>
+                    </select>
+                    {addMemberForm.formState.errors.role && (
+                      <p className="text-sm font-medium text-destructive">
+                        {addMemberForm.formState.errors.role.message}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <DialogFooter className="mt-6">
+                  <Button 
+                    type="submit"
+                    disabled={addMemberMutation.isPending}
+                  >
+                    {addMemberMutation.isPending ? "Adding..." : "Add Member"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <form onSubmit={inviteUserForm.handleSubmit(onInviteUserSubmit)}>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium" htmlFor="invite-email">
+                      Email Address
+                    </label>
+                    <Input
+                      id="invite-email"
+                      placeholder="email@example.com"
+                      value={inviteUserForm.watch("email")}
+                      onChange={(e) => inviteUserForm.setValue("email", e.target.value)}
+                    />
+                    {inviteUserForm.formState.errors.email && (
+                      <p className="text-sm font-medium text-destructive">
+                        {inviteUserForm.formState.errors.email.message}
+                      </p>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium" htmlFor="invite-phone">
+                      Phone Number (Optional)
+                    </label>
+                    <div className="relative">
+                      <Input
+                        id="invite-phone"
+                        placeholder="10 digits only (e.g., 5551234567)"
+                        value={inviteUserForm.watch("phoneNumber") || ""}
+                        maxLength={10}
+                        onKeyPress={(e) => {
+                          // Only allow number keys
+                          if (!/[0-9]/.test(e.key)) {
+                            e.preventDefault();
+                          }
+                        }}
+                        onChange={(e) => {
+                          // Only allow digits
+                          const digitsOnly = e.target.value.replace(/\D/g, '');
+                          inviteUserForm.setValue("phoneNumber", digitsOnly);
+                          
+                          // Clear phone number error when editing
+                          if (inviteUserForm.formState.errors.phoneNumber) {
+                            inviteUserForm.clearErrors("phoneNumber");
+                          }
+                        }}
+                      />
+                      {inviteUserForm.watch("phoneNumber") && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs">
+                          {(inviteUserForm.watch("phoneNumber")?.length || 0)}/10
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Must be exactly 10 digits (formatting will be handled)
+                    </p>
+                    {inviteUserForm.formState.errors.phoneNumber && (
+                      <p className="text-sm font-medium text-destructive">
+                        {inviteUserForm.formState.errors.phoneNumber.message}
+                      </p>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium" htmlFor="invite-role">
+                      Role
+                    </label>
+                    <select
+                      id="invite-role"
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      value={inviteUserForm.watch("role")}
+                      onChange={(e) => inviteUserForm.setValue("role", e.target.value as any)}
+                    >
+                      <option value="admin">Admin</option>
+                      <option value="parent">Parent</option>
+                      <option value="guardian">Guardian</option>
+                      <option value="caretaker">Caretaker</option>
+                      <option value="driver">Driver</option>
+                      <option value="kid">Kid</option>
+                      <option value="member">Member</option>
+                    </select>
+                    {inviteUserForm.formState.errors.role && (
+                      <p className="text-sm font-medium text-destructive">
+                        {inviteUserForm.formState.errors.role.message}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <DialogFooter className="mt-6">
+                  <Button 
+                    type="submit"
+                    disabled={inviteUserMutation.isPending}
+                  >
+                    {inviteUserMutation.isPending ? "Sending..." : "Send Invitation"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 }
