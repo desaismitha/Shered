@@ -40,8 +40,8 @@ export function RecentlyVisitedLocations() {
 
   // Get map utility functions
   const { 
-    getAddressWithCoordinates, 
-    cleanAddressString, 
+    reverseGeocode, 
+    cleanAddress, 
     extractCoordinatesFromAddress 
   } = useMapUtils();
 

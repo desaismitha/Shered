@@ -1,31 +1,36 @@
-import { useState } from 'react';
-import { useToast } from '@/hooks/use-toast';
+import { useState, useCallback } from 'react';
+import { apiRequest } from '@/lib/queryClient';
+
+type Coordinates = {
+  lat: number;
+  lng: number;
+};
 
 export function useMapUtils() {
-  const { toast } = useToast();
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   /**
    * Format an address string with coordinates appended in the format: "Address [lat, lng]"
    * If the address already has coordinates, it will return it unchanged
    */
-  const formatAddressWithCoordinates = (address: string, lat: number, lng: number): string => {
+  const formatAddressWithCoordinates = useCallback((address: string, coordinates: Coordinates): string => {
     // Check if the address already has coordinates
     if (address.includes('[') && address.includes(']')) {
       return address;
     }
-    return `${address} [${lat.toFixed(6)}, ${lng.toFixed(6)}]`;
-  };
+    return `${address} [${coordinates.lat}, ${coordinates.lng}]`;
+  }, []);
 
   /**
    * Extract coordinates from an address string in the format: "Address [lat, lng]"
    * Returns null if no coordinates are found
    */
-  const extractCoordinatesFromAddress = (address: string): { lat: number, lng: number } | null => {
-    const regex = /\[([-+]?\d+\.\d+),\s*([-+]?\d+\.\d+)\]/;
-    const match = address.match(regex);
+  const extractCoordinatesFromAddress = useCallback((address: string): Coordinates | null => {
+    const coordRegex = /\[(-?\d+\.?\d*),\s*(-?\d+\.?\d*)\]/;
+    const match = address.match(coordRegex);
     
-    if (match && match.length >= 3) {
+    if (match && match.length === 3) {
       const lat = parseFloat(match[1]);
       const lng = parseFloat(match[2]);
       
@@ -33,46 +38,95 @@ export function useMapUtils() {
         return { lat, lng };
       }
     }
+    
     return null;
-  };
+  }, []);
 
   /**
    * Clean an address by removing coordinates in brackets
    */
-  const cleanAddressString = (address: string): string => {
-    return address.replace(/\s*\[[-+]?\d+\.\d+,\s*[-+]?\d+\.\d+\]\s*$/, '').trim();
-  };
+  const cleanAddress = useCallback((address: string): string => {
+    return address.replace(/\s*\[(-?\d+\.?\d*),\s*(-?\d+\.?\d*)\]\s*$/, '').trim();
+  }, []);
 
   /**
    * Get a formatted address with coordinates based on user's current location
    */
-  const getAddressWithCoordinates = async (latitude: number, longitude: number): Promise<string> => {
-    setIsProcessing(true);
+  const getCurrentLocationAddress = useCallback(async (): Promise<string> => {
+    setIsLoading(true);
+    setError(null);
+    
     try {
-      // Try to get the address from the coordinates using reverse geocoding
-      const response = await fetch(`/api/geocode/reverse?lat=${latitude}&lng=${longitude}`);
-      
-      if (response.ok) {
-        const data = await response.json();
-        const address = data.address || 'Unknown location';
-        return formatAddressWithCoordinates(address, latitude, longitude);
-      } else {
-        // If we can't get an address, just return the coordinates
-        return `Location at [${latitude.toFixed(6)}, ${longitude.toFixed(6)}]`;
-      }
-    } catch (error) {
-      console.error('Error getting address:', error);
-      return `Location at [${latitude.toFixed(6)}, ${longitude.toFixed(6)}]`;
-    } finally {
-      setIsProcessing(false);
+      return new Promise((resolve, reject) => {
+        if (!navigator.geolocation) {
+          setError('Geolocation is not supported by your browser');
+          setIsLoading(false);
+          reject('Geolocation is not supported by your browser');
+          return;
+        }
+        
+        navigator.geolocation.getCurrentPosition(
+          async (position) => {
+            try {
+              const { latitude, longitude } = position.coords;
+              
+              // Call our reverse geocoding API endpoint
+              const response = await apiRequest(
+                'GET', 
+                `/api/geocode/reverse?lat=${latitude}&lng=${longitude}`
+              );
+              
+              const data = await response.json();
+              setIsLoading(false);
+              
+              // Return formatted address with coordinates
+              resolve(data.address);
+            } catch (err) {
+              setError('Failed to get address from coordinates');
+              setIsLoading(false);
+              reject('Failed to get address from coordinates');
+            }
+          },
+          (err) => {
+            setError(`Error getting location: ${err.message}`);
+            setIsLoading(false);
+            reject(`Error getting location: ${err.message}`);
+          }
+        );
+      });
+    } catch (err) {
+      setError('An unexpected error occurred');
+      setIsLoading(false);
+      throw err;
     }
-  };
+  }, []);
+  
+  /**
+   * Try to reverse-geocode coordinates to get a readable address
+   */
+  const reverseGeocode = useCallback(async (lat: number, lng: number): Promise<string> => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const response = await apiRequest('GET', `/api/geocode/reverse?lat=${lat}&lng=${lng}`);
+      const data = await response.json();
+      setIsLoading(false);
+      return data.address;
+    } catch (err) {
+      setError('Failed to reverse geocode coordinates');
+      setIsLoading(false);
+      return `Location at [${lat}, ${lng}]`;
+    }
+  }, []);
 
   return {
-    isProcessing,
     formatAddressWithCoordinates,
     extractCoordinatesFromAddress,
-    cleanAddressString,
-    getAddressWithCoordinates
+    cleanAddress,
+    getCurrentLocationAddress,
+    reverseGeocode,
+    isLoading,
+    error
   };
 }

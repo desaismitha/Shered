@@ -1406,6 +1406,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  /**
+   * Geocoding API endpoints
+   */
+  // Reverse geocoding (coordinates to address)
+  app.get('/api/geocode/reverse', async (req: Request, res: Response) => {
+    try {
+      const lat = parseFloat(req.query.lat as string);
+      const lng = parseFloat(req.query.lng as string);
+
+      if (isNaN(lat) || isNaN(lng)) {
+        return res.status(400).send("Invalid coordinates. Please provide valid lat and lng parameters.");
+      }
+
+      // Simple validation for coordinate ranges
+      if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+        return res.status(400).send("Coordinates out of range");
+      }
+
+      // For now, return a simple formatted address with the coordinates
+      // In a production app, you would use a geocoding service like Google Maps, Mapbox, etc.
+      const result = {
+        address: `Location at [${lat}, ${lng}]`,
+        coordinates: { lat, lng }
+      };
+
+      res.status(200).json(result);
+    } catch (error) {
+      console.error("Error in reverse geocoding:", error);
+      res.status(500).send("Geocoding service error");
+    }
+  });
+  
   // Set up children profile endpoints
   app.get('/api/children', async (req: Request, res: Response) => {
     if (!req.isAuthenticated()) {
