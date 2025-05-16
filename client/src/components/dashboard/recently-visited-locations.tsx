@@ -6,7 +6,7 @@ import { MapPinIcon, PlusIcon, ClockIcon } from "lucide-react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { useMapUtils } from "@/hooks/use-map-utils";
+import { useMapUtils } from "../../hooks/use-map-utils";
 import {
   Dialog,
   DialogContent,
@@ -115,7 +115,7 @@ export function RecentlyVisitedLocations() {
           try {
             const { latitude, longitude } = position.coords;
             // Get address from coordinates using reverse geocoding
-            const address = await getAddressWithCoordinates(latitude, longitude);
+            const address = await reverseGeocode(latitude, longitude);
             
             setNewLocation({
               ...newLocation,
@@ -199,7 +199,7 @@ export function RecentlyVisitedLocations() {
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent group-hover:from-black/80 transition-colors duration-300 flex flex-col justify-end p-3">
                 <h3 className="font-medium text-sm text-white">{location.name}</h3>
                 <p className="text-xs text-gray-300 truncate">
-                  {cleanAddressString(location.address)}
+                  {cleanAddress(location.address)}
                 </p>
                 <div className="flex items-center mt-1 text-xs text-gray-300">
                   <MapPinIcon className="h-3 w-3 mr-1" />
