@@ -11,7 +11,8 @@ import AuthPage from "@/pages/auth-page";
 import DashboardPage from "@/pages/dashboard-page";
 import TripsPage from "@/pages/trips-page"; // Using as SchedulesPage 
 // Using unified schedule page instead of separate pages
-import UnifiedTripPage from "@/pages/unified-trip-page"; // Using as UnifiedSchedulePage
+import UnifiedTripPage from "@/pages/unified-trip-page"; // For creating new schedules
+import ScheduleDetailsPage from "@/pages/schedule-details-page"; // For viewing/editing existing schedules
 import EventPage from "@/pages/event-page";
 import TripsDebugPage from "@/pages/trips-debug-page"; // Using as SchedulesDebugPage
 import ActiveTripsDebug from "@/pages/active-trips-debug"; // Using as ActiveSchedulesDebug
@@ -37,7 +38,7 @@ function Router() {
       <ProtectedRoute path="/" component={DashboardPage} />
       <ProtectedRoute path="/schedules" component={TripsPage} />
       <ProtectedRoute path="/schedules/new" component={UnifiedTripPage} />
-      <ProtectedRoute path="/schedules/:scheduleId" component={UnifiedTripPage} />
+      <ProtectedRoute path="/schedules/:scheduleId" component={ScheduleDetailsPage} />
       <ProtectedRoute path="/events/new" component={EventPage} />
       <ProtectedRoute path="/events/:eventId" component={EventPage} />
       <ProtectedRoute path="/active-schedules" component={ActiveTripsPage} />
