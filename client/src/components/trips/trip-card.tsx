@@ -113,8 +113,16 @@ export function TripCard({ trip }: TripCardProps) {
             'bg-gray-300'
           }`} title={trip.status || 'Unknown'} />
 
-          {/* Schedule name */}
-          <h3 className="ml-3 font-medium text-sm truncate max-w-[12rem]">{trip.name || 'Unnamed schedule'}</h3>
+          {/* Schedule name - clickable */}
+          <h3 
+            className="ml-3 font-medium text-sm truncate max-w-[12rem] cursor-pointer hover:text-primary-600 transition-colors"
+            onClick={(e) => {
+              e.preventDefault();
+              window.location.href = `/schedules/${trip.id}?tab=preview`;
+            }}
+          >
+            {trip.name || 'Unnamed schedule'}
+          </h3>
           
           {/* Date/time info */}
           <span className="ml-4 text-xs text-gray-500 flex-shrink-0">
@@ -187,18 +195,7 @@ export function TripCard({ trip }: TripCardProps) {
               <CheckSquare className="h-3 w-3" />
             </Button>
             
-            {/* View Details */}
-            <Button
-              variant="outline"
-              size="xs"
-              className="flex h-7 items-center text-primary-600 border-primary-200"
-              onClick={(e) => {
-                e.preventDefault();
-                window.location.href = `/schedules/${trip.id}?tab=preview`;
-              }}
-            >
-              <span className="text-xs">Details</span>
-            </Button>
+
             
             {/* Edit or Request Changes */}
             {isAdmin() ? (
