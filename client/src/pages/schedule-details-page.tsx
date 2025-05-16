@@ -175,24 +175,7 @@ export default function ScheduleDetailsPage() {
                   >
                     Edit Schedule
                   </TabsTrigger>
-                  <TabsTrigger 
-                    value="check-in" 
-                    data-active={activeTab === "check-in"}
-                    className={activeTab === "check-in" ? "data-[state=active]:bg-primary-500" : ""}
-                  >
-                    Check-In
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="tracking" 
-                    data-active={activeTab === "tracking"}
-                    className={activeTab === "tracking" ? "data-[state=active]:bg-primary-500" : ""}
-                    disabled={tripData?.status !== "in-progress"}
-                  >
-                    <div className="flex items-center gap-1">
-                      <MapPin className="h-4 w-4" />
-                      Track Location
-                    </div>
-                  </TabsTrigger>
+
 
                   {isAdmin() && (
                     <TabsTrigger 
@@ -328,54 +311,7 @@ export default function ScheduleDetailsPage() {
                   />
                 </TabsContent>
                 
-                <TabsContent value="check-in" className="space-y-4">
-                  <div className="bg-white p-6 rounded-lg shadow-sm border">
-                    <h2 className="text-xl font-bold mb-4">Schedule Check-In</h2>
-                    <p className="mb-6">Use this page to check in for your schedule.</p>
-                    
-                    <div className="bg-green-50 p-4 rounded-md mb-6">
-                      <h3 className="font-semibold mb-2">Meeting Point</h3>
-                      <p>{tripData.startLocationDisplay || tripData.startLocation}</p>
-                    </div>
-                    
-                    <Button 
-                      className="w-full" 
-                      onClick={() => {
-                        navigate(`/check-in?tripId=${scheduleId}`);
-                      }}
-                    >
-                      Go to Check-In Page
-                    </Button>
-                  </div>
-                </TabsContent>
-                
-                <TabsContent value="tracking" className="space-y-4">
-                  <div className="bg-white p-6 rounded-lg shadow-sm border">
-                    <h2 className="text-xl font-bold mb-4">Schedule Tracking</h2>
-                    <p className="mb-6">This feature allows you to track the progress of your active schedule.</p>
-                    
-                    {tripData.status === "in-progress" ? (
-                      <div>
-                        <div className="mb-4">
-                          <p className="text-sm text-gray-500">Current Status</p>
-                          <p className="font-medium capitalize">{tripData.status}</p>
-                        </div>
-                        <div className="mb-4">
-                          <p className="text-sm text-gray-500">From</p>
-                          <p className="font-medium">{tripData.startLocationDisplay || tripData.startLocation}</p>
-                        </div>
-                        <div className="mb-4">
-                          <p className="text-sm text-gray-500">To</p>
-                          <p className="font-medium">{tripData.destinationDisplay || tripData.destination}</p>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="text-amber-600 p-4 bg-amber-50 rounded-md">
-                        This schedule is not currently in progress. Tracking is only available for schedules that are in progress.
-                      </div>
-                    )}
-                  </div>
-                </TabsContent>
+
                 
 
                 
