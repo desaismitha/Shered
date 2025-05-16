@@ -6,6 +6,7 @@ import { MapPinIcon, PlusIcon, ClockIcon } from "lucide-react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useMapUtils } from "@/hooks/use-map-utils";
 import {
   Dialog,
   DialogContent,
@@ -36,6 +37,13 @@ export function RecentlyVisitedLocations() {
     name: "",
     address: ""
   });
+
+  // Get map utility functions
+  const { 
+    getAddressWithCoordinates, 
+    cleanAddressString, 
+    extractCoordinatesFromAddress 
+  } = useMapUtils();
 
   // Fetch saved locations
   const { data: locations = [], isLoading } = useQuery<SavedLocation[]>({
@@ -95,9 +103,7 @@ export function RecentlyVisitedLocations() {
   const resetForm = () => {
     setNewLocation({
       name: "",
-      address: "",
-      latitude: 0,
-      longitude: 0
+      address: ""
     });
   };
 
@@ -105,16 +111,28 @@ export function RecentlyVisitedLocations() {
   const getCurrentLocation = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setNewLocation({
-            ...newLocation,
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude
-          });
-          toast({
-            title: "Location detected",
-            description: `Lat: ${position.coords.latitude.toFixed(6)}, Lng: ${position.coords.longitude.toFixed(6)}`,
-          });
+        async (position) => {
+          try {
+            const { latitude, longitude } = position.coords;
+            // Get address from coordinates using reverse geocoding
+            const address = await getAddressWithCoordinates(latitude, longitude);
+            
+            setNewLocation({
+              ...newLocation,
+              address: address
+            });
+            
+            toast({
+              title: "Location detected",
+              description: "Your current location has been added to the form",
+            });
+          } catch (error) {
+            toast({
+              title: "Could not get address",
+              description: "Unable to convert your coordinates to an address",
+              variant: "destructive",
+            });
+          }
         },
         (error) => {
           toast({
@@ -180,7 +198,9 @@ export function RecentlyVisitedLocations() {
             >
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent group-hover:from-black/80 transition-colors duration-300 flex flex-col justify-end p-3">
                 <h3 className="font-medium text-sm text-white">{location.name}</h3>
-                <p className="text-xs text-gray-300 truncate">{location.address}</p>
+                <p className="text-xs text-gray-300 truncate">
+                  {useMapUtils().cleanAddressString(location.address)}
+                </p>
                 <div className="flex items-center mt-1 text-xs text-gray-300">
                   <ClockIcon className="h-3 w-3 mr-1" />
                   <span>Visited {location.visitCount} times</span>
@@ -222,32 +242,7 @@ export function RecentlyVisitedLocations() {
                   required
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="latitude">Latitude</Label>
-                  <Input
-                    id="latitude"
-                    type="number"
-                    step="0.000001"
-                    placeholder="47.6062"
-                    value={newLocation.latitude || ""}
-                    onChange={(e) => setNewLocation({ ...newLocation, latitude: parseFloat(e.target.value) })}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="longitude">Longitude</Label>
-                  <Input
-                    id="longitude"
-                    type="number"
-                    step="0.000001"
-                    placeholder="-122.3321"
-                    value={newLocation.longitude || ""}
-                    onChange={(e) => setNewLocation({ ...newLocation, longitude: parseFloat(e.target.value) })}
-                    required
-                  />
-                </div>
-              </div>
+              {/* No separate latitude/longitude fields, just address with embedded coordinates */}
               <Button 
                 type="button" 
                 variant="outline" 
