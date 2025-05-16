@@ -12,12 +12,15 @@ import { ArrowLeft, MapPin } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { Trip, ItineraryItem } from "@shared/schema";
 import { UnifiedTripForm } from "@/components/trips/unified-trip-form";
+import { useToast } from "@/hooks/use-toast";
 
 export default function ScheduleDetailsPage() {
   const [location, navigate] = useLocation();
   const params = useParams();
   const scheduleId = params.scheduleId;
   const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Function to determine the active tab from URL parameters
   const getTabFromUrl = () => {
@@ -212,13 +215,81 @@ export default function ScheduleDetailsPage() {
                   startLocation: tripData?.startLocation || "",
                   endLocation: tripData?.destination || "",
                   status: (tripData?.status as any) || "planning",
-                  enableMobileNotifications: tripData?.enableMobileNotifications || false
+                  enableMobileNotifications: tripData?.enableMobileNotifications || false,
+                  startTime: tripData?.startDate 
+                    ? new Date(tripData.startDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false})
+                    : "09:00",
+                  endTime: tripData?.endDate
+                    ? new Date(tripData.endDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false})
+                    : "17:00"
                 }}
                 isEditing={true}
+                isLoading={isSubmitting}
                 onSubmit={(data) => {
                   console.log("Form submitted with data:", data);
-                  // We'll implement a proper form submission later
-                  alert("Edit functionality is not fully implemented yet");
+                  
+                  setIsSubmitting(true);
+                  
+                  // Format dates combining the date and time
+                  const startDate = new Date(data.startDate);
+                  const endDate = new Date(data.endDate);
+                  
+                  const [startHours, startMinutes] = data.startTime.split(':').map(Number);
+                  const [endHours, endMinutes] = data.endTime.split(':').map(Number);
+                  
+                  startDate.setHours(startHours, startMinutes);
+                  endDate.setHours(endHours, endMinutes);
+                  
+                  // Prepare the data to update
+                  const updateData = {
+                    name: data.name,
+                    description: data.description,
+                    startLocation: data.startLocation,
+                    destination: data.endLocation,
+                    startDate: startDate.toISOString(),
+                    endDate: endDate.toISOString(),
+                    status: data.status,
+                    groupId: data.groupId || null,
+                    enableMobileNotifications: data.enableMobileNotifications
+                  };
+                  
+                  // Make the API request to update the schedule
+                  fetch(`/api/schedules/${scheduleId}`, {
+                    method: 'PATCH',
+                    headers: {
+                      'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(updateData)
+                  })
+                    .then(response => {
+                      if (!response.ok) {
+                        throw new Error('Failed to update schedule');
+                      }
+                      return response.json();
+                    })
+                    .then(updatedTrip => {
+                      toast({
+                        title: "Schedule updated",
+                        description: "Your schedule has been updated successfully.",
+                        variant: "default"
+                      });
+                      
+                      // Refresh the data
+                      setActiveTab("preview");
+                      queryClient.invalidateQueries({ queryKey: [`/api/schedules/${scheduleId}`] });
+                      queryClient.invalidateQueries({ queryKey: ['/api/schedules'] });
+                    })
+                    .catch(error => {
+                      console.error('Error updating schedule:', error);
+                      toast({
+                        title: "Error",
+                        description: "Failed to update schedule. Please try again.",
+                        variant: "destructive"
+                      });
+                    })
+                    .finally(() => {
+                      setIsSubmitting(false);
+                    });
                 }}
               />
             </TabsContent>
