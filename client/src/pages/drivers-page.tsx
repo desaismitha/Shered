@@ -267,7 +267,7 @@ export default function DriversPage() {
 
     const data = {
       driverId: parseInt(selectedDriverId),
-      vehicleId: selectedVehicleId ? parseInt(selectedVehicleId) : null,
+      vehicleId: selectedVehicleId && selectedVehicleId !== "none" ? parseInt(selectedVehicleId) : null,
       startDate: assignmentStartDate.toISOString(),
       endDate: assignmentEndDate.toISOString(),
       isRecurring,
