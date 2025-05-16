@@ -390,8 +390,8 @@ export default function ScheduleDetailsPage() {
                   <DriverAssignmentsTab 
                     tripId={parseInt(scheduleId || "0")} 
                     tripName={tripData?.name || ""} 
-                    startDate={tripData?.startDate} 
-                    endDate={tripData?.endDate}
+                    startDate={tripData?.startDate ? tripData.startDate.toString() : undefined} 
+                    endDate={tripData?.endDate ? tripData.endDate.toString() : undefined}
                   />
                 </TabsContent>
                 
