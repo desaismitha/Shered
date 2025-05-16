@@ -221,6 +221,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   tripCheckIns: many(tripCheckIns, { relationName: "user_check_ins" }),
   children: many(children, { relationName: "user_children" }),
   driverAssignments: many(tripDriverAssignments, { relationName: "driver_assignments" }),
+  savedLocations: many(savedLocations, { relationName: "user_locations" }),
 }));
 
 export const groupsRelations = relations(groups, ({ one, many }) => ({
@@ -501,3 +502,32 @@ export const tripDriverAssignmentsRelations = relations(tripDriverAssignments, (
 
 export type TripDriverAssignment = typeof tripDriverAssignments.$inferSelect;
 export type InsertTripDriverAssignment = z.infer<typeof insertTripDriverAssignmentSchema>;
+
+// Saved locations schema for frequently used/recently visited locations
+export const savedLocations = pgTable("saved_locations", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  name: text("name").notNull(),
+  address: text("address").notNull(),
+  latitude: doublePrecision("latitude"),
+  longitude: doublePrecision("longitude"),
+  visitCount: integer("visit_count").default(1).notNull(),
+  lastVisited: timestamp("last_visited").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertSavedLocationSchema = createInsertSchema(savedLocations).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const savedLocationsRelations = relations(savedLocations, ({ one }) => ({
+  user: one(users, {
+    fields: [savedLocations.userId],
+    references: [users.id],
+    relationName: "user_locations"
+  }),
+}));
+
+export type SavedLocation = typeof savedLocations.$inferSelect;
+export type InsertSavedLocation = z.infer<typeof insertSavedLocationSchema>;
