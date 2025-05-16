@@ -566,7 +566,7 @@ export default function UnifiedTripPage() {
               <ArrowLeft className="h-4 w-4" />
             </Button>
             <h1 className="text-2xl font-bold">
-              {tripId ? "Edit Trip" : "Create New Trip"}
+              {tripId ? "Edit Schedule" : "Create New Schedule"}
             </h1>
           </div>
         </div>
@@ -585,7 +585,7 @@ export default function UnifiedTripPage() {
                   data-active={activeTab === "form"}
                   className={activeTab === "form" ? "data-[state=active]:bg-primary-500" : ""}
                 >
-                  Edit Trip
+                  Edit Schedule
                 </TabsTrigger>
                 <TabsTrigger 
                   value="preview" 
@@ -709,7 +709,7 @@ export default function UnifiedTripPage() {
                 <div className="bg-muted p-6 rounded-lg">
                   <div className="flex items-center gap-2 mb-4">
                     <CheckCircle2 className="h-5 w-5 text-green-600" />
-                    <h2 className="text-xl font-medium">Trip Check-In</h2>
+                    <h2 className="text-xl font-medium">Schedule Check-In</h2>
                   </div>
                   
                   {isLoading ? (
