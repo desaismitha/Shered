@@ -367,13 +367,46 @@ async function checkTripAccess(
           const groupMembers = await storage.getGroupMembers(trip.groupId);
           console.log(`${logPrefix}Group members:`, JSON.stringify(groupMembers));
           
-          // Use string comparison for consistent behavior
-          const isMember = groupMembers.some(member => String(member.userId) === userId);
-          console.log(`${logPrefix}Is member of group? ${isMember}`);
+          // Find the user's membership and role in the group
+          const memberInfo = groupMembers.find(member => String(member.userId) === userId);
+          const isMember = !!memberInfo;
+          const memberRole = memberInfo?.role || null;
           
-          if (isMember) {
-            console.log(`${logPrefix}ACCESS GRANTED: User is a MEMBER of the trip's group`);
-            return 'member'; // User is a member of the group, they have view/add access
+          console.log(`${logPrefix}Is member of group? ${isMember}, Role: ${memberRole}`);
+          
+          // If the user is an Admin role, they have full access regardless
+          if (isMember && (memberRole === 'admin' || req.user.role === 'Admin')) {
+            console.log(`${logPrefix}ACCESS GRANTED: User is an ADMIN of the trip's group`);
+            return 'owner'; // Admin users have full access like owners
+          }
+          
+          // Check for driver assignments to determine if restricted users have access to this trip
+          if (isMember && ['parent', 'guardian', 'caretaker', 'driver', 'kid', 'member'].includes(memberRole)) {
+            try {
+              // Check if user is assigned to this trip as driver/runner
+              const driverAssignments = await storage.getDriverAssignmentsByTripId(trip.id);
+              const isAssignedToTrip = driverAssignments.some(assignment => 
+                String(assignment.driverId) === userId || String(assignment.runnerId) === userId
+              );
+              
+              console.log(`${logPrefix}Is assigned to trip? ${isAssignedToTrip}`);
+              
+              if (isAssignedToTrip) {
+                console.log(`${logPrefix}ACCESS GRANTED: User is ASSIGNED to this trip`);
+                return 'member'; // User is assigned to this trip, they have access
+              } else {
+                console.log(`${logPrefix}ACCESS DENIED: User is not assigned to this trip`);
+                res.status(403).json({ 
+                  message: "You don't have access to this schedule because you are not assigned to it"
+                });
+                return null;
+              }
+            } catch (err) {
+              console.error(`${logPrefix}Error checking driver assignments:`, err);
+              // Continue with normal access for now to avoid blocking users unnecessarily
+              console.log(`${logPrefix}ACCESS GRANTED: User is a MEMBER of the trip's group (assignment check failed)`);
+              return 'member'; 
+            }
           }
         } catch (groupErr) {
           console.error(`${logPrefix}Error checking group membership:`, groupErr);
@@ -2552,7 +2585,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const inviteSchema = z.object({
         email: z.string().email("Invalid email address"),
         phoneNumber: z.string().optional(),
-        role: z.enum(["member", "admin"]).default("member"),
+        role: z.enum(["admin", "parent", "guardian", "caretaker", "driver", "kid", "member"]).default("member"),
       });
       
       console.log("[INVITE] Validating request body:", req.body);
