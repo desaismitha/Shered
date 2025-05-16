@@ -108,23 +108,23 @@ export default function TripsPage() { // Using as SchedulesPage
       
       return isCompleted || isPastEndDate || isOverdueInProgress;
     } catch (e) {
-      console.error("Error parsing date:", trip.endDate);
+      console.error("Error parsing date:", schedule.endDate);
       return false;
     }
   });
   
-  console.log("Past trips:", pastTrips);
+  console.log("Past schedules:", pastSchedules);
 
-  const cancelledTrips = filteredTrips?.filter(trip => 
-    trip.status === "cancelled"
+  const cancelledSchedules = filteredSchedules?.filter(schedule => 
+    schedule.status === "cancelled"
   );
   
-  console.log("Cancelled trips:", cancelledTrips);
+  console.log("Cancelled schedules:", cancelledSchedules);
 
-  // Get trip IDs for each category
-  const upcomingTripIds = upcomingTrips?.map(trip => trip.id) || [];
-  const pastTripIds = pastTrips?.map(trip => trip.id) || [];
-  const cancelledTripIds = cancelledTrips?.map(trip => trip.id) || [];
+  // Get schedule IDs for each category
+  const upcomingScheduleIds = upcomingSchedules?.map(schedule => schedule.id) || [];
+  const pastScheduleIds = pastSchedules?.map(schedule => schedule.id) || [];
+  const cancelledScheduleIds = cancelledSchedules?.map(schedule => schedule.id) || [];
 
   return (
     <AppShell>
