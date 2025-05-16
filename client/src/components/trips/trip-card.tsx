@@ -3,6 +3,8 @@ import { format } from "date-fns";
 import { Trip as BaseTrip } from "@shared/schema";
 
 // Extend the Trip type to include the _accessLevel property
+// Note: We're keeping the Trip interface name for compatibility with the rest of the codebase
+// but conceptually this represents a Schedule
 interface Trip extends BaseTrip {
   _accessLevel?: 'owner' | 'member' | null;
 }
