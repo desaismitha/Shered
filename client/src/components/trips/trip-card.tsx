@@ -1,4 +1,4 @@
-import { Calendar, Users, Edit, CheckSquare } from "lucide-react";
+import { Calendar, Users, Edit, CheckSquare, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { Trip as BaseTrip } from "@shared/schema";
 
@@ -14,6 +14,7 @@ import { GroupMember, User } from "@shared/schema";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
+import { RequestModificationDialog } from "./request-modification-dialog";
 
 interface TripCardProps {
   trip: Trip;
@@ -44,6 +45,9 @@ export function TripCard({ trip }: TripCardProps) {
   
   // Log access level for debugging
   console.log("Trip access level:", trip._accessLevel);
+  
+  // State for modification request dialog
+  const [isModifyDialogOpen, setIsModifyDialogOpen] = useState(false);
   
   const formatDateRange = (startDate: Date | string | null, endDate: Date | string | null) => {
     // Handle missing or invalid dates
