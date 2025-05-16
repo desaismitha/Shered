@@ -11,6 +11,8 @@ export const users = pgTable("users", {
   displayName: text("display_name").notNull(),
   email: text("email").notNull().unique(),
   phoneNumber: text("phone_number"),
+  // User role: Admin, Parent/Guardian, Nanny/Driver, School/Organization
+  role: text("role").default("Parent/Guardian"),
   createdAt: timestamp("created_at").defaultNow(),
   resetToken: text("reset_token"),
   resetTokenExpiry: timestamp("reset_token_expiry"),

@@ -44,6 +44,9 @@ const loginSchema = z.object({
 const registerSchema = z.object({
   displayName: z.string().min(2, "Display name must be at least 2 characters"),
   email: z.string().email("Please enter a valid email address"),
+  role: z.enum(["Admin", "Parent/Guardian", "Nanny/Driver", "School/Organization"], {
+    required_error: "Please select a role",
+  }),
   password: z.string().min(6, "Password must be at least 6 characters"),
   confirmPassword: z.string(),
 }).refine(data => data.password === data.confirmPassword, {
@@ -131,6 +134,7 @@ export default function AuthPage() {
     defaultValues: {
       displayName: "",
       email: "",
+      role: "Parent/Guardian", // Default role
       password: "",
       confirmPassword: "",
     }
