@@ -12,8 +12,6 @@ async function main() {
         id SERIAL PRIMARY KEY,
         name TEXT NOT NULL,
         address TEXT NOT NULL,
-        latitude DOUBLE PRECISION NOT NULL,
-        longitude DOUBLE PRECISION NOT NULL,
         visit_count INTEGER NOT NULL DEFAULT 1,
         last_visited TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
         user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

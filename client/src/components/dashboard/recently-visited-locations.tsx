@@ -21,9 +21,7 @@ import { Textarea } from "@/components/ui/textarea";
 interface SavedLocation {
   id: number;
   name: string;
-  address: string;
-  latitude: number;
-  longitude: number;
+  address: string; // Contains both address and coordinates in format "Address [lat, lng]"
   visitCount: number;
   lastVisited: Date;
   userId: number;
@@ -36,9 +34,7 @@ export function RecentlyVisitedLocations() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [newLocation, setNewLocation] = useState({
     name: "",
-    address: "",
-    latitude: 0,
-    longitude: 0
+    address: ""
   });
 
   // Fetch saved locations

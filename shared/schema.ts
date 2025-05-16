@@ -508,9 +508,7 @@ export const savedLocations = pgTable("saved_locations", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
   name: text("name").notNull(),
-  address: text("address").notNull(),
-  latitude: doublePrecision("latitude"),
-  longitude: doublePrecision("longitude"),
+  address: text("address").notNull(), // Will store address with coordinates in format "Address [lat, lng]"
   visitCount: integer("visit_count").default(1).notNull(),
   lastVisited: timestamp("last_visited").defaultNow().notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
