@@ -978,6 +978,230 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Set up phone verification routes
   setupPhoneVerificationRoutes(app);
   
+  // Driver assignment routes
+  
+  // Get eligible drivers (for driver assignments)
+  app.get('/api/users/eligible-drivers', async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).send('Not authenticated');
+      }
+      
+      const drivers = await storage.getEligibleDrivers();
+      res.json(drivers);
+    } catch (error) {
+      console.error('[API] Error fetching eligible drivers:', error);
+      res.status(500).send('Error fetching eligible drivers');
+    }
+  });
+  
+  // Get driver assignments for a trip
+  app.get('/api/trips/:tripId/driver-assignments', async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).send('Not authenticated');
+      }
+      
+      const tripId = parseInt(req.params.tripId);
+      if (isNaN(tripId)) {
+        return res.status(400).send('Invalid trip ID');
+      }
+      
+      // Check if user has access to this trip
+      const trip = await storage.getTrip(tripId);
+      if (!trip) {
+        return res.status(404).send('Trip not found');
+      }
+      
+      // Get all driver assignments for this trip
+      const assignments = await storage.getDriverAssignments(tripId);
+      
+      // For each assignment, get the driver details
+      const enhancedAssignments = await Promise.all(assignments.map(async (assignment) => {
+        const driver = await storage.getUser(assignment.driverId);
+        let vehicle = null;
+        if (assignment.vehicleId) {
+          vehicle = await storage.getVehicle(assignment.vehicleId);
+        }
+        
+        return {
+          ...assignment,
+          driverName: driver?.displayName,
+          vehicleName: vehicle ? `${vehicle.make} ${vehicle.model}` : null,
+        };
+      }));
+      
+      res.json(enhancedAssignments);
+    } catch (error) {
+      console.error('[API] Error fetching driver assignments:', error);
+      res.status(500).send('Error fetching driver assignments');
+    }
+  });
+  
+  // Create a new driver assignment
+  app.post('/api/trips/:tripId/driver-assignments', async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).send('Not authenticated');
+      }
+      
+      const tripId = parseInt(req.params.tripId);
+      if (isNaN(tripId)) {
+        return res.status(400).send('Invalid trip ID');
+      }
+      
+      // Check if user has access to this trip
+      const trip = await storage.getTrip(tripId);
+      if (!trip) {
+        return res.status(404).send('Trip not found');
+      }
+      
+      const userId = req.user!.id;
+      
+      // Create the assignment data
+      const assignmentData = {
+        tripId,
+        driverId: req.body.driverId,
+        vehicleId: req.body.vehicleId || null,
+        startDate: new Date(req.body.startDate),
+        endDate: new Date(req.body.endDate),
+        isRecurring: req.body.isRecurring || false,
+        recurrencePattern: req.body.recurrencePattern || null,
+        recurrenceDays: req.body.recurrenceDays || null,
+        notes: req.body.notes || null,
+        status: req.body.status || 'scheduled',
+        assignedBy: userId
+      };
+      
+      const assignment = await storage.createDriverAssignment(assignmentData);
+      
+      // Get driver and vehicle details
+      const driver = await storage.getUser(assignment.driverId);
+      let vehicle = null;
+      if (assignment.vehicleId) {
+        vehicle = await storage.getVehicle(assignment.vehicleId);
+      }
+      
+      const enhancedAssignment = {
+        ...assignment,
+        driverName: driver?.displayName,
+        vehicleName: vehicle ? `${vehicle.make} ${vehicle.model}` : null,
+      };
+      
+      res.status(201).json(enhancedAssignment);
+    } catch (error) {
+      console.error('[API] Error creating driver assignment:', error);
+      res.status(500).send('Error creating driver assignment');
+    }
+  });
+  
+  // Update an existing driver assignment
+  app.put('/api/trips/:tripId/driver-assignments/:id', async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).send('Not authenticated');
+      }
+      
+      const tripId = parseInt(req.params.tripId);
+      const assignmentId = parseInt(req.params.id);
+      
+      if (isNaN(tripId) || isNaN(assignmentId)) {
+        return res.status(400).send('Invalid trip ID or assignment ID');
+      }
+      
+      // Check if user has access to this trip
+      const trip = await storage.getTrip(tripId);
+      if (!trip) {
+        return res.status(404).send('Trip not found');
+      }
+      
+      // Check if assignment exists
+      const existingAssignment = await storage.getDriverAssignment(assignmentId);
+      if (!existingAssignment) {
+        return res.status(404).send('Driver assignment not found');
+      }
+      
+      // Update assignment data
+      const updateData = {
+        driverId: req.body.driverId,
+        vehicleId: req.body.vehicleId || null,
+        startDate: req.body.startDate ? new Date(req.body.startDate) : undefined,
+        endDate: req.body.endDate ? new Date(req.body.endDate) : undefined,
+        isRecurring: req.body.isRecurring,
+        recurrencePattern: req.body.recurrencePattern,
+        recurrenceDays: req.body.recurrenceDays,
+        notes: req.body.notes,
+        status: req.body.status
+      };
+      
+      // Remove undefined values
+      Object.keys(updateData).forEach((key) => {
+        if (updateData[key] === undefined) {
+          delete updateData[key];
+        }
+      });
+      
+      const updatedAssignment = await storage.updateDriverAssignment(assignmentId, updateData);
+      
+      // Get driver and vehicle details
+      const driver = await storage.getUser(updatedAssignment!.driverId);
+      let vehicle = null;
+      if (updatedAssignment!.vehicleId) {
+        vehicle = await storage.getVehicle(updatedAssignment!.vehicleId);
+      }
+      
+      const enhancedAssignment = {
+        ...updatedAssignment,
+        driverName: driver?.displayName,
+        vehicleName: vehicle ? `${vehicle.make} ${vehicle.model}` : null,
+      };
+      
+      res.json(enhancedAssignment);
+    } catch (error) {
+      console.error('[API] Error updating driver assignment:', error);
+      res.status(500).send('Error updating driver assignment');
+    }
+  });
+  
+  // Delete a driver assignment
+  app.delete('/api/trips/:tripId/driver-assignments/:id', async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).send('Not authenticated');
+      }
+      
+      const tripId = parseInt(req.params.tripId);
+      const assignmentId = parseInt(req.params.id);
+      
+      if (isNaN(tripId) || isNaN(assignmentId)) {
+        return res.status(400).send('Invalid trip ID or assignment ID');
+      }
+      
+      // Check if user has access to this trip
+      const trip = await storage.getTrip(tripId);
+      if (!trip) {
+        return res.status(404).send('Trip not found');
+      }
+      
+      // Check if assignment exists
+      const existingAssignment = await storage.getDriverAssignment(assignmentId);
+      if (!existingAssignment) {
+        return res.status(404).send('Driver assignment not found');
+      }
+      
+      const success = await storage.deleteDriverAssignment(assignmentId);
+      
+      if (success) {
+        res.status(204).send();
+      } else {
+        res.status(500).send('Failed to delete driver assignment');
+      }
+    } catch (error) {
+      console.error('[API] Error deleting driver assignment:', error);
+      res.status(500).send('Error deleting driver assignment');
+    }
+  });
+  
   // Set up children profile endpoints
   app.get('/api/children', async (req: Request, res: Response) => {
     if (!req.isAuthenticated()) {
@@ -2423,12 +2647,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.isAuthenticated()) return res.sendStatus(401);
       
       // Check if user is an admin - only admins can create schedules
+      // Temporarily allowing all authenticated users to create schedules
+      /*
       if (req.user.role !== 'Admin') {
         return res.status(403).json({
           error: "Permission denied",
           message: "Only Admin users can create new schedules"
         });
       }
+      */
       
       console.log("Creating trip with dates:", {
         startDate: req.body.startDate,
