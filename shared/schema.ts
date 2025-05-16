@@ -218,6 +218,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   vehicles: many(vehicles, { relationName: "user_vehicles" }),
   tripCheckIns: many(tripCheckIns, { relationName: "user_check_ins" }),
   children: many(children, { relationName: "user_children" }),
+  driverAssignments: many(tripDriverAssignments, { relationName: "driver_assignments" }),
 }));
 
 export const groupsRelations = relations(groups, ({ one, many }) => ({
@@ -259,6 +260,7 @@ export const tripsRelations = relations(trips, ({ one, many }) => ({
   expenses: many(expenses, { relationName: "trip_expenses" }),
   vehicles: many(tripVehicles, { relationName: "trip_vehicles" }),
   checkIns: many(tripCheckIns, { relationName: "trip_check_ins" }),
+  driverAssignments: many(tripDriverAssignments, { relationName: "trip_driver_assignments" }),
 }));
 
 export const itineraryItemsRelations = relations(itineraryItems, ({ one }) => ({
@@ -447,3 +449,53 @@ export const tripModificationRequestsRelations = relations(tripModificationReque
 
 export type TripModificationRequest = typeof tripModificationRequests.$inferSelect;
 export type InsertTripModificationRequest = z.infer<typeof insertTripModificationRequestSchema>;
+
+// Trip driver assignment schema
+export const tripDriverAssignments = pgTable("trip_driver_assignments", {
+  id: serial("id").primaryKey(),
+  tripId: integer("trip_id").notNull().references(() => trips.id, { onDelete: "cascade" }),
+  driverId: integer("driver_id").notNull().references(() => users.id),
+  vehicleId: integer("vehicle_id").references(() => vehicles.id),
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date").notNull(),
+  isRecurring: boolean("is_recurring").default(false),
+  recurrencePattern: text("recurrence_pattern"), // daily, weekdays, weekends, specific-days
+  recurrenceDays: text("recurrence_days"), // JSON array of days (e.g., ["mon","tue","wed"])
+  notes: text("notes"),
+  status: text("status").default("scheduled"), // scheduled, completed, cancelled
+  assignedBy: integer("assigned_by").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertTripDriverAssignmentSchema = createInsertSchema(tripDriverAssignments).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const tripDriverAssignmentsRelations = relations(tripDriverAssignments, ({ one }) => ({
+  trip: one(trips, {
+    fields: [tripDriverAssignments.tripId],
+    references: [trips.id],
+    relationName: "trip_driver_assignments",
+  }),
+  driver: one(users, {
+    fields: [tripDriverAssignments.driverId],
+    references: [users.id],
+    relationName: "driver_assignments",
+  }),
+  vehicle: one(vehicles, {
+    fields: [tripDriverAssignments.vehicleId],
+    references: [vehicles.id],
+    relationName: "vehicle_assignments",
+  }),
+  assigner: one(users, {
+    fields: [tripDriverAssignments.assignedBy],
+    references: [users.id],
+    relationName: "assigned_drivers",
+  }),
+}));
+
+// We'll update the existing relation definitions later
+
+export type TripDriverAssignment = typeof tripDriverAssignments.$inferSelect;
+export type InsertTripDriverAssignment = z.infer<typeof insertTripDriverAssignmentSchema>;
