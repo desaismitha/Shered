@@ -1,4 +1,4 @@
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useLocation } from "wouter";
 import {
   Tabs,
@@ -8,20 +8,12 @@ import {
 } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
-import { ArrowLeft, MapPin, Loader2 } from "lucide-react";
+import { ArrowLeft, MapPin } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { Trip, ItineraryItem } from "@shared/schema";
 import { UnifiedTripForm } from "@/components/trips/unified-trip-form";
 import { useToast } from "@/hooks/use-toast";
-
-// Lazy loaded component wrapper to prevent blank screens
-const LoadingWrapper = ({ children }: { children: React.ReactNode }) => (
-  <AppShell>
-    <div className="container py-6">
-      {children}
-    </div>
-  </AppShell>
-);
+import { ScheduleDetailsSkeleton } from "@/components/ui/loading-fallback";
 
 export default function ScheduleDetailsPage() {
   // Show initial content immediately to prevent blank screen
@@ -113,25 +105,24 @@ export default function ScheduleDetailsPage() {
     }
   };
 
-  // Render the full component
+// Render the full component
+  if (isLoadingTrip) {
+    return (
+      <AppShell>
+        <div className="container py-6">
+          <div className="flex flex-col items-center justify-center space-y-4 py-12">
+            <div className="h-10 w-10 rounded-full border-4 border-primary border-t-transparent animate-spin"></div>
+            <h2 className="text-xl font-medium">Loading Schedule Details...</h2>
+          </div>
+        </div>
+      </AppShell>
+    );
+  }
+  
   return (
     <AppShell>
       <div className="container py-6">
-        {isLoadingTrip ? (
-          // Loading state - show a skeleton UI instead of blank page
-          <>
-            <div className="flex items-center gap-2 mb-6">
-              <div className="h-8 w-8 rounded-full bg-gray-200 animate-pulse"></div>
-              <div className="h-8 w-64 bg-gray-200 rounded animate-pulse"></div>
-            </div>
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="h-8 w-1/2 bg-gray-200 rounded animate-pulse mb-4"></div>
-              <div className="h-4 w-full bg-gray-200 rounded animate-pulse mb-2"></div>
-              <div className="h-4 w-full bg-gray-200 rounded animate-pulse mb-2"></div>
-              <div className="h-4 w-3/4 bg-gray-200 rounded animate-pulse"></div>
-            </div>
-          </>
-        ) : !tripData ? (
+        {!tripData ? (
           // Error state if trip data isn't found
           <>
             <h1 className="text-2xl font-bold mb-6">Schedule Not Found</h1>
