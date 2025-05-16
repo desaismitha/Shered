@@ -194,7 +194,7 @@ export function TripCard({ trip }: TripCardProps) {
                   e.preventDefault();
                   const url = `/schedules/${trip.id}?tab=check-in`;
                   console.log("Check-in button clicked, navigating to:", url);
-                  window.location.href = url;
+                  navigate(url);
                 }}
               >
                 <CheckSquare className="h-3 w-3" />
@@ -236,10 +236,8 @@ export function TripCard({ trip }: TripCardProps) {
                 className="flex items-center gap-1 text-primary-600 hover:text-primary-700"
                 onClick={(e) => {
                   e.preventDefault();
-                  // Use scheduleId instead of tripId in URL parameter
                   const url = `/schedules/${trip.id}?tab=preview`;
                   console.log("View details clicked, navigating to:", url);
-                  // Use navigate function to use proper routing
                   navigate(url);
                 }}
               >
