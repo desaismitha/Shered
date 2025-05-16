@@ -590,7 +590,7 @@ export function DriverAssignmentsTab({ tripId, tripName, startDate, endDate }: D
                 <SelectContent>
                   <SelectGroup>
                     <SelectLabel>Available Vehicles</SelectLabel>
-                    <SelectItem value="">No vehicle</SelectItem>
+                    <SelectItem value="none">No vehicle</SelectItem>
                     {vehicles?.map(vehicle => (
                       <SelectItem key={vehicle.id} value={vehicle.id.toString()}>
                         {vehicle.make} {vehicle.model} {vehicle.year} {vehicle.color && `(${vehicle.color})`}
