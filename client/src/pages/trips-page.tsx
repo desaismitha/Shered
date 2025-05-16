@@ -217,7 +217,7 @@ export default function TripsPage() { // Using as SchedulesPage
                 <h3 className="text-lg font-medium text-neutral-900 mb-1">No upcoming schedules</h3>
                 <p className="text-neutral-500 mb-4">Start planning your next adventure!</p>
                 <Button 
-                  onClick={() => navigate("/trips/new")}
+                  onClick={() => navigate("/schedules/new")}
                   className="inline-flex items-center"
                 >
                   <PlusIcon className="h-4 w-4 mr-2" />
@@ -250,10 +250,10 @@ export default function TripsPage() { // Using as SchedulesPage
                   </div>
                 ))}
               </div>
-            ) : pastTrips && pastTrips.length > 0 ? (
+            ) : pastSchedules && pastSchedules.length > 0 ? (
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {pastTrips.map((trip) => (
-                  <TripCard key={trip.id} trip={trip} />
+                {pastSchedules.map((schedule) => (
+                  <TripCard key={schedule.id} trip={schedule} />
                 ))}
               </div>
             ) : (
@@ -285,10 +285,10 @@ export default function TripsPage() { // Using as SchedulesPage
                   </div>
                 ))}
               </div>
-            ) : cancelledTrips && cancelledTrips.length > 0 ? (
+            ) : cancelledSchedules && cancelledSchedules.length > 0 ? (
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {cancelledTrips.map((trip) => (
-                  <TripCard key={trip.id} trip={trip} />
+                {cancelledSchedules.map((schedule) => (
+                  <TripCard key={schedule.id} trip={schedule} />
                 ))}
               </div>
             ) : (
