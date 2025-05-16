@@ -117,9 +117,14 @@ export function RecentlyVisitedLocations() {
             // Get address from coordinates using reverse geocoding
             const address = await reverseGeocode(latitude, longitude);
             
+            // Make sure address includes coordinates in the required format
+            const formattedAddress = address.includes('[') && address.includes(']') 
+              ? address 
+              : `${address} [${latitude}, ${longitude}]`;
+            
             setNewLocation({
               ...newLocation,
-              address: address
+              address: formattedAddress
             });
             
             toast({
@@ -127,10 +132,17 @@ export function RecentlyVisitedLocations() {
               description: "Your current location has been added to the form",
             });
           } catch (error) {
+            // If geocoding fails, just use coordinates directly
+            const formattedAddress = `Location at [${position.coords.latitude}, ${position.coords.longitude}]`;
+            
+            setNewLocation({
+              ...newLocation,
+              address: formattedAddress
+            });
+            
             toast({
-              title: "Could not get address",
-              description: "Unable to convert your coordinates to an address",
-              variant: "destructive",
+              title: "Location detected",
+              description: "Using coordinates only (geocoding failed)",
             });
           }
         },
@@ -245,22 +257,89 @@ export function RecentlyVisitedLocations() {
                 <Label htmlFor="address">Address</Label>
                 <Textarea
                   id="address"
-                  placeholder="Full address"
+                  placeholder="Full address with coordinates, e.g., '123 Main St [47.123, -122.456]'"
                   value={newLocation.address}
                   onChange={(e) => setNewLocation({ ...newLocation, address: e.target.value })}
                   required
+                  className="mb-2"
                 />
+                {newLocation.address && (
+                  <div className="text-xs text-muted-foreground">
+                    {(() => {
+                      const coords = extractCoordinatesFromAddress(newLocation.address);
+                      if (coords) {
+                        return (
+                          <div className="p-2 bg-muted rounded-md">
+                            <span className="font-medium">Extracted coordinates:</span> {coords.lat.toFixed(6)}, {coords.lng.toFixed(6)}
+                          </div>
+                        );
+                      } else {
+                        return (
+                          <div className="p-2 bg-yellow-50 text-yellow-800 rounded-md">
+                            <span className="font-medium">Warning:</span> No coordinates detected. Add coordinates in [lat, lng] format.
+                          </div>
+                        );
+                      }
+                    })()}
+                  </div>
+                )}
               </div>
-              {/* No separate latitude/longitude fields, just address with embedded coordinates */}
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={getCurrentLocation}
-                className="w-full"
-              >
-                <MapPinIcon className="h-4 w-4 mr-2" />
-                Use My Current Location
-              </Button>
+              {/* Use integrated address with coordinates format */}
+              <div className="space-y-2">
+                <Label>Quick Options</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={getCurrentLocation}
+                    className="w-full"
+                  >
+                    <MapPinIcon className="h-4 w-4 mr-2" />
+                    Use My Current Location
+                  </Button>
+                  
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => setNewLocation({
+                      ...newLocation,
+                      name: "Home",
+                      address: "Home [47.6161, -122.3435]"
+                    })}
+                    className="w-full"
+                  >
+                    Home
+                  </Button>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-2">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => setNewLocation({
+                      ...newLocation,
+                      name: "Work",
+                      address: "Office [47.6149, -122.1941]"
+                    })}
+                    className="w-full"
+                  >
+                    Work
+                  </Button>
+                  
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => setNewLocation({
+                      ...newLocation,
+                      name: "School",
+                      address: "School [47.6734, -122.1215]"
+                    })}
+                    className="w-full"
+                  >
+                    School
+                  </Button>
+                </div>
+              </div>
             </div>
             <DialogFooter className="mt-4">
               <Button 

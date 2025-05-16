@@ -1304,13 +1304,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     try {
       const userId = req.user!.id;
+      const { address } = req.body;
+      
+      // Extract coordinates from address string in format "Address [lat, lng]"
+      const coordRegex = /\[(-?\d+\.?\d*),\s*(-?\d+\.?\d*)\]/;
+      const match = address.match(coordRegex);
+      
+      let latitude = 0;
+      let longitude = 0;
+      
+      if (match && match.length === 3) {
+        latitude = parseFloat(match[1]);
+        longitude = parseFloat(match[2]);
+      } else {
+        // If no coordinates found, use default values
+        console.warn('No coordinates found in address, using default values');
+      }
+      
+      // Ensure we have valid coordinate values
+      if (isNaN(latitude) || isNaN(longitude)) {
+        latitude = 0;
+        longitude = 0;
+      }
+      
       const locationData = {
         ...req.body,
         userId,
+        latitude,
+        longitude,
         visitCount: 1,
         lastVisited: new Date()
       };
       
+      console.log('Creating saved location with data:', locationData);
       const newLocation = await storage.createSavedLocation(locationData);
       res.status(201).json(newLocation);
     } catch (error) {
