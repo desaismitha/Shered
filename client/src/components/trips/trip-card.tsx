@@ -231,14 +231,14 @@ export function TripCard({ trip }: TripCardProps) {
               )}
               
               <Button
-                variant="ghost"
+                variant="default"
                 size="sm"
-                className="flex items-center gap-1 text-primary-600 hover:text-primary-700"
+                className="flex items-center gap-1"
                 onClick={(e) => {
                   e.preventDefault();
                   const url = `/schedules/${trip.id}?tab=preview`;
                   console.log("View details clicked, navigating to:", url);
-                  navigate(url);
+                  window.location.href = url;
                 }}
               >
                 <span className="text-xs font-medium">View Details</span>
