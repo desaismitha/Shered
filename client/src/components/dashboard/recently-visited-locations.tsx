@@ -37,6 +37,10 @@ export function RecentlyVisitedLocations() {
     name: "",
     address: ""
   });
+  
+  // Add suggestions state for address input
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   // Get map utility functions
   const { 

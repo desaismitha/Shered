@@ -120,12 +120,36 @@ export function useMapUtils() {
     }
   }, []);
 
+  /**
+   * Get address suggestions based on a search query (forward geocoding)
+   */
+  const getAddressSuggestions = useCallback(async (query: string): Promise<string[]> => {
+    if (!query || query.length < 3) {
+      return [];
+    }
+    
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const response = await apiRequest('GET', `/api/geocode/search?q=${encodeURIComponent(query)}`);
+      const data = await response.json();
+      setIsLoading(false);
+      return data.results || [];
+    } catch (err) {
+      setError('Failed to get address suggestions');
+      setIsLoading(false);
+      return [];
+    }
+  }, []);
+
   return {
     formatAddressWithCoordinates,
     extractCoordinatesFromAddress,
     cleanAddress,
     getCurrentLocationAddress,
     reverseGeocode,
+    getAddressSuggestions,
     isLoading,
     error
   };
