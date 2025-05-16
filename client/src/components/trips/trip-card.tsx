@@ -216,8 +216,11 @@ export function TripCard({ trip }: TripCardProps) {
               className="flex items-center gap-1 text-primary-600 hover:text-primary-700"
               onClick={(e) => {
                 e.preventDefault();
-                console.log("View details clicked, navigating to:", `/schedules/${trip.id}?tab=preview`);
-                navigate(`/schedules/${trip.id}?tab=preview`);
+                // Use scheduleId instead of tripId in URL parameter
+                const url = `/schedules/${trip.id}?tab=preview`;
+                console.log("View details clicked, navigating to:", url);
+                // Direct page reload to force component refresh with correct tab
+                window.location.href = url;
               }}
             >
               <span className="text-xs font-medium">View Details</span>

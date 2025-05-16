@@ -573,7 +573,13 @@ export default function UnifiedTripPage() {
               <ArrowLeft className="h-4 w-4" />
             </Button>
             <h1 className="text-2xl font-bold">
-              {tripId ? "Edit Schedule" : "Create New Schedule"}
+              {tripId ? 
+                (activeTab === "form" ? "Edit Schedule" : 
+                 activeTab === "preview" ? "Schedule Details" : 
+                 activeTab === "check-in" ? "Schedule Check-In" : 
+                 activeTab === "tracking" ? "Schedule Tracking" : 
+                 "Schedule Details") 
+                : "Create New Schedule"}
             </h1>
           </div>
         </div>
