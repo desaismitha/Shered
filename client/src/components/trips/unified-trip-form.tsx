@@ -446,35 +446,75 @@ export function UnifiedTripForm({
               />
               
               {form.watch("isRecurring") && (
-                <FormField
-                  control={form.control}
-                  name="recurrencePattern"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Recurrence Pattern</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select frequency" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="daily">Daily</SelectItem>
-                          <SelectItem value="weekly">Weekly</SelectItem>
-                          <SelectItem value="monthly">Monthly</SelectItem>
-                          <SelectItem value="custom">Custom</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormDescription>
-                        How often should this {tripType} repeat?
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
+                <>
+                  <FormField
+                    control={form.control}
+                    name="recurrencePattern"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Recurrence Pattern</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select frequency" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="daily">Daily</SelectItem>
+                            <SelectItem value="weekly">Weekly</SelectItem>
+                            <SelectItem value="monthly">Monthly</SelectItem>
+                            <SelectItem value="custom">Custom</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormDescription>
+                          How often should this {tripType} repeat?
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  {form.watch("recurrencePattern") === "custom" && (
+                    <FormField
+                      control={form.control}
+                      name="recurrenceDays"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Select Days</FormLabel>
+                          <div className="flex flex-wrap gap-2">
+                            {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map((day) => (
+                              <Button
+                                key={day}
+                                type="button"
+                                variant={(field.value || []).includes(day.toLowerCase()) ? "default" : "outline"}
+                                className="px-3 py-1 h-auto"
+                                onClick={() => {
+                                  const currentValues = field.value || [];
+                                  const dayLower = day.toLowerCase();
+                                  
+                                  if (currentValues.includes(dayLower)) {
+                                    field.onChange(currentValues.filter(d => d !== dayLower));
+                                  } else {
+                                    field.onChange([...currentValues, dayLower]);
+                                  }
+                                }}
+                              >
+                                {day.substring(0, 3)}
+                              </Button>
+                            ))}
+                          </div>
+                          <FormDescription>
+                            Select the days when this {tripType} should occur
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   )}
-                />
+                </>
               )}
             </div>
           </Card>
