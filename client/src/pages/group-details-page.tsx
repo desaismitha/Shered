@@ -454,13 +454,7 @@ export default function GroupDetailsPage() {
               </p>
             </div>
             <div className="mt-4 md:mt-0 flex space-x-3">
-              <Button 
-                variant="outline"
-                onClick={() => navigate(`/trips/new?groupId=${groupId}`)}
-              >
-                <Calendar className="h-4 w-4 mr-2" />
-                New Trip
-              </Button>
+
               {isAdmin && (
                 <Dialog open={isAddMemberOpen} onOpenChange={setIsAddMemberOpen}>
                   <DialogTrigger asChild>
@@ -749,10 +743,10 @@ export default function GroupDetailsPage() {
                     <CardTitle>Group Trips</CardTitle>
                     <Button 
                       size="sm"
-                      onClick={() => navigate(`/trips/new?groupId=${groupId}`)}
+                      onClick={() => navigate(`/schedules/new?groupId=${groupId}`)}
                     >
                       <PlusIcon className="h-4 w-4 mr-2" />
-                      New Trip
+                      Create Schedule
                     </Button>
                   </CardHeader>
                   <CardContent>
@@ -793,9 +787,9 @@ export default function GroupDetailsPage() {
                         <Calendar className="h-12 w-12 text-neutral-300 mx-auto mb-3" />
                         <h3 className="text-lg font-medium text-neutral-700 mb-1">No trips planned yet</h3>
                         <p className="text-neutral-500 mb-6">Start planning your next adventure with this group</p>
-                        <Button onClick={() => navigate(`/trips/new?groupId=${groupId}`)}>
+                        <Button onClick={() => navigate(`/schedules/new?groupId=${groupId}`)}>
                           <PlusIcon className="h-4 w-4 mr-2" />
-                          Create First Trip
+                          Create First Schedule
                         </Button>
                       </div>
                     )}
