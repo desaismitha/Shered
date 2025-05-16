@@ -102,7 +102,7 @@ export function TripCard({ trip }: TripCardProps) {
 
   return (
     <>
-      <div className="bg-white border-b hover:bg-gray-50 transition-colors py-2">
+      <div className="bg-white border-b hover:bg-gray-50 transition-colors py-2 w-full">
         <div className="flex items-center px-3">
           {/* Status indicator dot */}
           <div className={`h-3 w-3 rounded-full flex-shrink-0 ${
@@ -113,30 +113,29 @@ export function TripCard({ trip }: TripCardProps) {
             'bg-gray-300'
           }`} title={trip.status || 'Unknown'} />
 
-          {/* Schedule name and time */}
-          <div className="ml-3 flex-grow">
-            <div className="flex items-center">
-              <h3 className="font-medium text-sm">{trip.name || 'Unnamed schedule'}</h3>
-              <span className="mx-2 text-gray-400 text-xs">•</span>
-              <span className="text-xs text-gray-500">
-                <Calendar className="inline-block mr-1 h-3 w-3" />
-                {formatDateRange(trip.startDate, trip.endDate)}
-              </span>
-            </div>
-            
-            {/* Locations as subtitle */}
-            <div className="text-xs text-gray-500 mt-0.5 truncate max-w-xs">
-              {trip.startLocationDisplay || trip.startLocation || 'No start location'} 
+          {/* Schedule name */}
+          <h3 className="ml-3 font-medium text-sm truncate max-w-[12rem]">{trip.name || 'Unnamed schedule'}</h3>
+          
+          {/* Date/time info */}
+          <span className="ml-4 text-xs text-gray-500 flex-shrink-0">
+            <Calendar className="inline-block mr-1 h-3 w-3" />
+            {formatDateRange(trip.startDate, trip.endDate)}
+          </span>
+
+          {/* Quick summary (From → To) */}
+          <div className="flex-1 text-xs text-gray-500 ml-4 truncate overflow-hidden">
+            <span className="truncate">
+              {trip.startLocationDisplay?.split('[')[0] || trip.startLocation?.split('[')[0] || 'Start'} 
               <span className="mx-1">→</span> 
-              {trip.destinationDisplay || trip.destination || 'No destination'}
-            </div>
+              {trip.destinationDisplay?.split('[')[0] || trip.destination?.split('[')[0] || 'End'}
+            </span>
           </div>
 
-          {/* Participants */}
-          <div className="flex -space-x-1 mr-3">
+          {/* Participants (up to 2) */}
+          <div className="flex -space-x-1 ml-auto mr-3">
             {trip.groupId && groupMembers && users ? (
-              // Group trip with members
-              groupMembers.slice(0, 3).map((member, index) => {
+              // Group trip with members - show only 2
+              groupMembers.slice(0, 2).map((member, index) => {
                 const user = users.find(u => u.id === member.userId);
                 return (
                   <div 
@@ -166,73 +165,65 @@ export function TripCard({ trip }: TripCardProps) {
                 <div key="loading" className="w-6 h-6 rounded-full bg-neutral-300 border border-white" />
               )
             )}
-            {trip.groupId && groupMembers && groupMembers.length > 3 && (
+            {trip.groupId && groupMembers && groupMembers.length > 2 && (
               <div className="w-6 h-6 rounded-full bg-neutral-200 border border-white flex items-center justify-center text-xs text-neutral-600">
-                +{groupMembers.length - 3}
+                +{groupMembers.length - 2}
               </div>
             )}
           </div>
           
           {/* Action buttons */}
-          <div className="flex items-center space-x-1">
-            {/* Check-in button */}
+          <div className="flex items-center space-x-1 flex-shrink-0">
+            {/* Check-in */}
             <Button
               variant="ghost"
               size="xs"
-              className="flex h-7 items-center gap-1 text-green-600 hover:text-green-700"
+              className="flex h-7 items-center text-green-600 hover:text-green-700"
               onClick={(e) => {
                 e.preventDefault();
-                const url = `/schedules/${trip.id}?tab=check-in`;
-                console.log("Check-in button clicked, navigating to:", url);
-                window.location.href = url;
+                window.location.href = `/schedules/${trip.id}?tab=check-in`;
               }}
             >
               <CheckSquare className="h-3 w-3" />
-              <span className="text-xs">Check-in</span>
             </Button>
             
-            {/* View Details button */}
+            {/* View Details */}
             <Button
               variant="outline"
               size="xs"
-              className="flex h-7 items-center gap-1 text-primary-600 border-primary-200"
+              className="flex h-7 items-center text-primary-600 border-primary-200"
               onClick={(e) => {
                 e.preventDefault();
-                const url = `/schedules/${trip.id}?tab=preview`;
-                console.log("View details clicked, navigating to:", url);
-                window.location.href = url;
+                window.location.href = `/schedules/${trip.id}?tab=preview`;
               }}
             >
-              <span className="text-xs font-medium">Details</span>
+              <span className="text-xs">Details</span>
             </Button>
             
-            {/* Edit or Request Changes button */}
+            {/* Edit or Request Changes */}
             {isAdmin() ? (
               <Button
                 variant="ghost"
                 size="xs"
-                className="flex h-7 items-center gap-1 text-neutral-500 hover:text-primary-600"
+                className="flex h-7 items-center text-neutral-500 hover:text-primary-600"
                 onClick={(e) => {
                   e.preventDefault();
-                  console.log("Edit button clicked, navigating to:", `/schedules/${trip.id}?tab=form`);
                   window.location.href = `/schedules/${trip.id}?tab=form`;
                 }}
               >
                 <Edit className="h-3 w-3" />
-                <span className="text-xs">Edit</span>
               </Button>
             ) : (
               <Button
                 variant="ghost"
                 size="xs"
-                className="flex h-7 items-center gap-1 text-blue-600 hover:text-blue-700"
+                className="flex h-7 items-center text-blue-600 hover:text-blue-700"
                 onClick={(e) => {
                   e.preventDefault();
                   setIsModifyDialogOpen(true);
                 }}
               >
                 <FileText className="h-3 w-3" />
-                <span className="text-xs">Request</span>
               </Button>
             )}
           </div>
