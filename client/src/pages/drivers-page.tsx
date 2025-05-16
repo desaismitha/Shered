@@ -404,12 +404,16 @@ export default function DriversPage() {
         </div>
 
         <div className="space-y-6">
-          {/* Top section - Calendar and tabs */}
+          {/* Top section - Calendar and filter tabs */}
           <div className="flex flex-col md:flex-row gap-6 items-start">
             <Card className="w-full md:w-auto">
               <CardHeader>
-                <CardTitle>Select Date</CardTitle>
-                <CardDescription>View assignments by date</CardDescription>
+                <div className="flex flex-col md:flex-row items-start justify-between">
+                  <div>
+                    <CardTitle>Select Date</CardTitle>
+                    <CardDescription>View assignments by date</CardDescription>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
                 <CalendarComponent
@@ -420,28 +424,22 @@ export default function DriversPage() {
                 />
               </CardContent>
             </Card>
+          </div>
           
-            <Card className="w-full md:flex-1">
-              <CardHeader>
-                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                  <div>
-                    <CardTitle>Driver Assignments</CardTitle>
-                    <CardDescription>
-                      {selectedDate ? `For ${format(selectedDate, "PPP")}` : "Select a date"}
-                    </CardDescription>
-                  </div>
-                  
-                  <Tabs defaultValue="all" onValueChange={setActiveTab} value={activeTab}>
-                    <TabsList>
-                      <TabsTrigger value="all">All</TabsTrigger>
-                      <TabsTrigger value="scheduled">Scheduled</TabsTrigger>
-                      <TabsTrigger value="completed">Completed</TabsTrigger>
-                      <TabsTrigger value="cancelled">Cancelled</TabsTrigger>
-                    </TabsList>
-                  </Tabs>
-                </div>
-              </CardHeader>
-            </Card>
+          {/* Filter tabs */}
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-medium">
+              {selectedDate ? `Assignments for ${format(selectedDate, "PPP")}` : "Select a date to view assignments"}
+            </h3>
+            
+            <Tabs defaultValue="all" onValueChange={setActiveTab} value={activeTab}>
+              <TabsList>
+                <TabsTrigger value="all">All</TabsTrigger>
+                <TabsTrigger value="scheduled">Scheduled</TabsTrigger>
+                <TabsTrigger value="completed">Completed</TabsTrigger>
+                <TabsTrigger value="cancelled">Cancelled</TabsTrigger>
+              </TabsList>
+            </Tabs>
           </div>
 
           {/* Bottom section - Assignments list */}
