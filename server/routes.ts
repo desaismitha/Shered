@@ -4718,6 +4718,229 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Trip modification request endpoints for non-admin users
+  app.post("/api/trips/:id/request-modification", async (req: Request, res: Response) => {
+    console.log("\n==== POST /api/trips/:id/request-modification - REQUEST TRIP MODIFICATION ====");
+    
+    try {
+      // Authentication check
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const tripId = parseInt(req.params.id);
+      const userId = req.user!.id;
+      
+      // Check if the trip exists
+      const trip = await storage.getTrip(tripId);
+      if (!trip) {
+        return res.status(404).json({ error: "Schedule not found" });
+      }
+      
+      // Check if user has access to the trip
+      const accessLevel = await checkTripAccess(req, tripId, res, (req as any).next);
+      if (!accessLevel) {
+        return res.status(403).json({ error: "You don't have access to this schedule" });
+      }
+      
+      // Create the modification request
+      const requestData = {
+        tripId,
+        requestedBy: userId,
+        requestData: req.body.changes || {},
+        adminNotes: req.body.notes || null
+      };
+      
+      console.log(`Creating modification request for trip ${tripId} by user ${userId}`);
+      console.log(`Request data: ${JSON.stringify(requestData)}`);
+      
+      const modificationRequest = await storage.createTripModificationRequest(requestData);
+      
+      return res.status(201).json({
+        message: "Modification request submitted successfully",
+        requestId: modificationRequest.id,
+        status: modificationRequest.status
+      });
+    } catch (error: any) {
+      console.error("Error creating trip modification request:", error);
+      return res.status(500).json({ error: "Failed to submit modification request" });
+    }
+  });
+  
+  // Get all modification requests for a trip
+  app.get("/api/trips/:id/modification-requests", async (req: Request, res: Response) => {
+    console.log("\n==== GET /api/trips/:id/modification-requests - GET TRIP MODIFICATION REQUESTS ====");
+    
+    try {
+      // Authentication check
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const tripId = parseInt(req.params.id);
+      const trip = await storage.getTrip(tripId);
+      
+      if (!trip) {
+        return res.status(404).json({ error: "Schedule not found" });
+      }
+      
+      // Check if user has access to the trip
+      const accessLevel = await checkTripAccess(req, tripId, res, (req as any).next);
+      if (!accessLevel) {
+        return res.status(403).json({ error: "You don't have access to this schedule" });
+      }
+      
+      // Only allow admins to see all requests
+      let requests;
+      if (req.user!.role === 'Admin') {
+        requests = await storage.getTripModificationRequestsByTripId(tripId);
+      } else {
+        // Non-admin users can only see their own requests
+        const allRequests = await storage.getTripModificationRequestsByTripId(tripId);
+        requests = allRequests.filter(request => request.requestedBy === req.user!.id);
+      }
+      
+      return res.status(200).json(requests);
+    } catch (error: any) {
+      console.error("Error fetching modification requests:", error);
+      return res.status(500).json({ error: "Failed to fetch modification requests" });
+    }
+  });
+  
+  // Get pending modification requests (admin only)
+  app.get("/api/modification-requests/pending", async (req: Request, res: Response) => {
+    console.log("\n==== GET /api/modification-requests/pending - GET PENDING MODIFICATIONS ====");
+    
+    try {
+      // Authentication check
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      // Admin-only validation - only admins can view all pending requests
+      if (req.user!.role !== 'Admin') {
+        console.log(`GET /api/modification-requests/pending - 403 Forbidden - Not an admin user`);
+        return res.status(403).json({
+          error: "Permission denied",
+          message: "Only Admin users can view all pending requests"
+        });
+      }
+      
+      const pendingRequests = await storage.getPendingTripModificationRequests();
+      return res.status(200).json(pendingRequests);
+    } catch (error: any) {
+      console.error("Error fetching pending modification requests:", error);
+      return res.status(500).json({ error: "Failed to fetch pending modification requests" });
+    }
+  });
+  
+  // Approve a modification request (admin only)
+  app.post("/api/modification-requests/:id/approve", async (req: Request, res: Response) => {
+    console.log("\n==== POST /api/modification-requests/:id/approve - APPROVE MODIFICATION ====");
+    
+    try {
+      // Authentication check
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      // Admin-only validation
+      if (req.user!.role !== 'Admin') {
+        console.log(`POST /api/modification-requests/:id/approve - 403 Forbidden - Not an admin user`);
+        return res.status(403).json({
+          error: "Permission denied",
+          message: "Only Admin users can approve modification requests"
+        });
+      }
+      
+      const requestId = parseInt(req.params.id);
+      const adminId = req.user!.id;
+      const notes = req.body.notes;
+      
+      // Get the modification request
+      const modRequest = await storage.getTripModificationRequestById(requestId);
+      if (!modRequest) {
+        return res.status(404).json({ error: "Modification request not found" });
+      }
+      
+      if (modRequest.status !== 'pending') {
+        return res.status(400).json({ 
+          error: "Request already processed",
+          currentStatus: modRequest.status
+        });
+      }
+      
+      // Apply the requested changes to the trip
+      const tripId = modRequest.tripId;
+      const changes = modRequest.requestData;
+      
+      // Update the trip with the requested changes
+      await storage.updateTrip(tripId, changes);
+      
+      // Mark the request as approved
+      const updatedRequest = await storage.approveTripModificationRequest(requestId, adminId, notes);
+      
+      return res.status(200).json({
+        message: "Modification request approved and changes applied",
+        requestId: updatedRequest?.id,
+        status: updatedRequest?.status
+      });
+    } catch (error: any) {
+      console.error("Error approving modification request:", error);
+      return res.status(500).json({ error: "Failed to approve modification request" });
+    }
+  });
+  
+  // Reject a modification request (admin only)
+  app.post("/api/modification-requests/:id/reject", async (req: Request, res: Response) => {
+    console.log("\n==== POST /api/modification-requests/:id/reject - REJECT MODIFICATION ====");
+    
+    try {
+      // Authentication check
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      // Admin-only validation
+      if (req.user!.role !== 'Admin') {
+        console.log(`POST /api/modification-requests/:id/reject - 403 Forbidden - Not an admin user`);
+        return res.status(403).json({
+          error: "Permission denied",
+          message: "Only Admin users can reject modification requests"
+        });
+      }
+      
+      const requestId = parseInt(req.params.id);
+      const adminId = req.user!.id;
+      const notes = req.body.notes;
+      
+      // Get the modification request
+      const modRequest = await storage.getTripModificationRequestById(requestId);
+      if (!modRequest) {
+        return res.status(404).json({ error: "Modification request not found" });
+      }
+      
+      if (modRequest.status !== 'pending') {
+        return res.status(400).json({ 
+          error: "Request already processed",
+          currentStatus: modRequest.status
+        });
+      }
+      
+      // Mark the request as rejected
+      const updatedRequest = await storage.rejectTripModificationRequest(requestId, adminId, notes);
+      
+      return res.status(200).json({
+        message: "Modification request rejected",
+        requestId: updatedRequest?.id,
+        status: updatedRequest?.status
+      });
+    } catch (error: any) {
+      console.error("Error rejecting modification request:", error);
+      return res.status(500).json({ error: "Failed to reject modification request" });
+    }
+  });
+  
   // Direct test endpoint to see all trips (debugging only)
   app.get("/api/debug/all-trips", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
