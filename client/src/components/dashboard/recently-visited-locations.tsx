@@ -199,8 +199,17 @@ export function RecentlyVisitedLocations() {
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent group-hover:from-black/80 transition-colors duration-300 flex flex-col justify-end p-3">
                 <h3 className="font-medium text-sm text-white">{location.name}</h3>
                 <p className="text-xs text-gray-300 truncate">
-                  {useMapUtils().cleanAddressString(location.address)}
+                  {cleanAddressString(location.address)}
                 </p>
+                <div className="flex items-center mt-1 text-xs text-gray-300">
+                  <MapPinIcon className="h-3 w-3 mr-1" />
+                  {(() => {
+                    const coords = extractCoordinatesFromAddress(location.address);
+                    return coords ? 
+                      `${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}` : 
+                      'No coordinates';
+                  })()}
+                </div>
                 <div className="flex items-center mt-1 text-xs text-gray-300">
                   <ClockIcon className="h-3 w-3 mr-1" />
                   <span>Visited {location.visitCount} times</span>
