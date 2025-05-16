@@ -193,16 +193,7 @@ export default function ScheduleDetailsPage() {
                       Track Location
                     </div>
                   </TabsTrigger>
-                  <TabsTrigger 
-                    value="drivers" 
-                    data-active={activeTab === "drivers"}
-                    className={activeTab === "drivers" ? "data-[state=active]:bg-primary-500" : ""}
-                  >
-                    <div className="flex items-center gap-1">
-                      <Users className="h-4 w-4" />
-                      Drivers
-                    </div>
-                  </TabsTrigger>
+
                   {isAdmin() && (
                     <TabsTrigger 
                       value="requests" 
@@ -386,14 +377,7 @@ export default function ScheduleDetailsPage() {
                   </div>
                 </TabsContent>
                 
-                <TabsContent value="drivers" className="space-y-4">
-                  <DriverAssignmentsTab 
-                    tripId={parseInt(scheduleId || "0")} 
-                    tripName={tripData?.name || ""} 
-                    startDate={tripData?.startDate ? tripData.startDate.toString() : undefined} 
-                    endDate={tripData?.endDate ? tripData.endDate.toString() : undefined}
-                  />
-                </TabsContent>
+
                 
                 {isAdmin() && (
                   <TabsContent value="requests" className="space-y-4">
