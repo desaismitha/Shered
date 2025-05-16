@@ -41,14 +41,20 @@ export function DashboardStats() {
     staleTime: 1000 * 60, // 1 minute
   });
 
-  // Calculate upcoming trips count based on actual user's trips
-  // Get the upcoming trips (future start date)
-  const upcomingTrips = !tripsLoading && trips
-    ? trips.filter(trip => new Date(trip.startDate) > new Date())
+  // Calculate trips count - include both upcoming and in-progress trips
+  const activeTrips = !tripsLoading && trips
+    ? trips.filter(trip => 
+        // Include upcoming trips (future start date)
+        new Date(trip.startDate) > new Date() || 
+        // Include in-progress trips
+        trip.status === 'in-progress')
     : [];
   
-  // Use the actual count from the user's trips
-  const upcomingTripsCount = upcomingTrips.length;
+  // Use the actual count of active trips (upcoming + in-progress)
+  const upcomingTripsCount = activeTrips.length;
+  
+  // For debugging
+  console.log("Active trips (upcoming + in-progress):", activeTrips);
   
   // For debugging
   console.log("All trips:", trips);
@@ -98,7 +104,7 @@ export function DashboardStats() {
 
   const stats: Stat[] = [
     {
-      title: "Upcoming Trips",
+      title: "Active Trips",
       value: tripsLoading ? "..." : upcomingTripsCount,
       icon: Calendar,
       iconBgColor: "bg-primary-100",
