@@ -1,9 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Calendar, Users, Edit, CheckSquare, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { Trip as BaseTrip } from "@shared/schema";
 import { Link, useLocation } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { GroupMember, User } from "@shared/schema";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,11 +22,13 @@ interface TripCardProps {
 }
 
 export function TripCard({ trip }: TripCardProps) {
-  // Debug output
-  console.log("TripCard received trip data:", trip);
-
   const { user, isAdmin } = useAuth();
   const [, navigate] = useLocation();
+  const queryClient = useQueryClient();
+  
+  // States
+  const [isHovering, setIsHovering] = useState(false);
+  const [isModifyDialogOpen, setIsModifyDialogOpen] = useState(false);
 
   // Get group members to display avatars - only fetch if groupId is not null
   const { data: groupMembers } = useQuery<GroupMember[]>({
@@ -41,15 +43,36 @@ export function TripCard({ trip }: TripCardProps) {
   });
 
   // Check if user is the creator or admin - use the _accessLevel now
-  // Use the _accessLevel from API response or fall back to direct ID comparison
-  const isCreator =
-    trip._accessLevel === "owner" || user?.id === trip.createdBy;
-
-  // Log access level for debugging
-  console.log("Trip access level:", trip._accessLevel);
-
-  // State for modification request dialog
-  const [isModifyDialogOpen, setIsModifyDialogOpen] = useState(false);
+  const isCreator = trip._accessLevel === "owner" || user?.id === trip.createdBy;
+  
+  // Navigate to details page with better performance
+  const goToDetails = (e: React.MouseEvent, tab: string = "preview") => {
+    e.preventDefault();
+    
+    // Cache the trip data in the query client for immediate access
+    queryClient.setQueryData(["/api/schedules", trip.id], trip);
+    
+    // Navigate to the trip details page
+    navigate(`/schedules/${trip.id}?tab=${tab}`);
+  };
+  
+  // Prefetch data when hovering over a trip card
+  useEffect(() => {
+    if (isHovering) {
+      // Prefetch trip details for faster navigation
+      queryClient.prefetchQuery({
+        queryKey: ["/api/schedules", trip.id],
+        staleTime: 60000, // Cache for 1 minute
+      });
+      
+      // Cache in localStorage for even faster access
+      try {
+        localStorage.setItem(`schedule_${trip.id}`, JSON.stringify(trip));
+      } catch (e) {
+        // Silently fail if localStorage is not available
+      }
+    }
+  }, [isHovering, trip, trip.id, queryClient]);
 
   const formatDateRange = (
     startDate: Date | string | null,
@@ -109,7 +132,11 @@ export function TripCard({ trip }: TripCardProps) {
 
   return (
     <>
-      <div className="bg-white border-b hover:bg-gray-50 transition-colors py-3 w-full">
+      <div 
+        onMouseEnter={() => setIsHovering(true)}
+        onMouseLeave={() => setIsHovering(false)}
+        className={`bg-white border-b hover:bg-gray-50 transition-colors py-3 w-full ${isHovering ? 'bg-gray-50' : ''}`}
+      >
         <div className="grid grid-cols-12 items-center px-3 gap-1">
           {/* Left side with status and name - 6 columns */}
           <div className="col-span-6 flex items-start">
@@ -141,10 +168,7 @@ export function TripCard({ trip }: TripCardProps) {
                   wordBreak: "break-word",
                   lineHeight: "1.1",
                 }}
-                onClick={(e) => {
-                  e.preventDefault();
-                  window.location.href = `/schedules/${trip.id}?tab=preview`;
-                }}
+                onClick={(e) => goToDetails(e, "preview")}
               >
                 {trip.name || "Unnamed schedule"}
               </h3>
@@ -229,10 +253,7 @@ export function TripCard({ trip }: TripCardProps) {
                 variant="ghost"
                 size="sm"
                 className="flex h-7 items-center text-green-600 hover:text-green-700"
-                onClick={(e) => {
-                  e.preventDefault();
-                  window.location.href = `/schedules/${trip.id}?tab=check-in`;
-                }}
+                onClick={(e) => goToDetails(e, "check-in")}
               >
                 <CheckSquare className="h-3 w-3" />
               </Button>
@@ -243,10 +264,7 @@ export function TripCard({ trip }: TripCardProps) {
                   variant="ghost"
                   size="sm"
                   className="flex h-7 items-center text-neutral-500 hover:text-primary-600"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    window.location.href = `/schedules/${trip.id}?tab=form`;
-                  }}
+                  onClick={(e) => goToDetails(e, "form")}
                 >
                   <Edit className="h-3 w-3" />
                 </Button>
