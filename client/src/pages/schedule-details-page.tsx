@@ -29,7 +29,28 @@ const DriverAssignmentsTab = React.lazy(() =>
   })),
 );
 
+// Create a minimal shell component that renders immediately
+// This prevents the white screen during initial load
+function ShellLoading() {
+  return (
+    <AppShell>
+      <div className="container py-6">
+        <div className="flex items-center mb-6">
+          <div className="w-8 h-8"></div>
+          <h1 className="text-2xl font-bold ml-2">Loading...</h1>
+        </div>
+        <div className="max-w-5xl mx-auto min-h-[300px] flex items-center justify-center">
+          <div className="text-gray-500">Loading schedule details...</div>
+        </div>
+      </div>
+    </AppShell>
+  );
+}
+
 export default function ScheduleDetailsPage() {
+  // Force immediate rendering to avoid white screen
+  const [renderStarted] = useState(Date.now());
+  
   // Use refs to avoid unnecessary re-renders
   const firstRender = useRef(true);
   const [location, navigate] = useLocation();
@@ -41,7 +62,7 @@ export default function ScheduleDetailsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("preview");
 
-  // Check for cached data first (fast render path)
+  // Check both specific and list cached data (fast render path)
   const cachedData =
     queryClient.getQueryData<Trip>([
       "/api/schedules",
@@ -50,6 +71,24 @@ export default function ScheduleDetailsPage() {
     queryClient
       .getQueryData<Trip[]>(["/api/schedules"])
       ?.find((s) => s.id === parseInt(scheduleId || "0"));
+  
+  // Also try to get data from localStorage as a fallback
+  useEffect(() => {
+    if (!cachedData && scheduleId) {
+      try {
+        const storedData = localStorage.getItem(`schedule_${scheduleId}`);
+        if (storedData) {
+          const parsedData = JSON.parse(storedData);
+          queryClient.setQueryData(
+            ["/api/schedules", parseInt(scheduleId)],
+            parsedData
+          );
+        }
+      } catch (e) {
+        console.log('No localStorage fallback available');
+      }
+    }
+  }, [scheduleId]);
 
   // If we have cached data, we can skip the loading state (instant render)
   const skipLoadingState = !!cachedData;
@@ -266,8 +305,18 @@ export default function ScheduleDetailsPage() {
     );
   };
 
-  // Ultra-optimized loading state for better LCP (Largest Contentful Paint)
-  // This provides an instant visual response to user interaction
+  // Forced initial rendering - prevents white screen flicker
+  // Measure render time to detect slow initial loads
+  const renderTime = Date.now() - renderStarted;
+  const isInitialRender = renderTime < 100; // First frame render check
+  
+  // Return an immediate shell if we're in the first few milliseconds of rendering
+  // This eliminates the white screen during navigation and React initialization
+  if (isInitialRender && !cachedData) {
+    return <ShellLoading />;
+  }
+  
+  // Standard loading state for subsequent frames with optimized LCP
   if (isLoadingTrip && !cachedData) {
     return (
       <AppShell>
