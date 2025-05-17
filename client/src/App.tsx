@@ -17,6 +17,7 @@ import UnifiedTripPage from "@/pages/unified-trip-page"; // For creating new sch
 // Use the simplified schedule details page instead of the complex one
 import ScheduleDetailsPage from "@/pages/schedule-details-simple";
 import EventPage from "@/pages/event-page";
+import IntroductionPage from "@/pages/introduction-page";
 import TripsDebugPage from "@/pages/trips-debug-page"; // Using as SchedulesDebugPage
 import ActiveTripsDebug from "@/pages/active-trips-debug"; // Using as ActiveSchedulesDebug
 import GroupsPage from "@/pages/groups-page";
@@ -40,6 +41,22 @@ import { Route } from "wouter";
 function Router() {
   return (
     <Switch>
+      <Route path="/intro">
+        <IntroductionPage />
+      </Route>
+      <Route path="/auth">
+        <AuthPage />
+      </Route>
+      <Route path="/forgot-password">
+        <ForgotPasswordPage />
+      </Route>
+      <Route path="/reset-password">
+        <ResetPasswordPage />
+      </Route>
+      <Route path="/verify-email">
+        <VerifyEmailPage />
+      </Route>
+      
       <ProtectedRoute path="/" component={DashboardPage} />
       <ProtectedRoute path="/schedules" component={TripsPage} />
       <ProtectedRoute path="/schedules/new" component={UnifiedTripPage} />
