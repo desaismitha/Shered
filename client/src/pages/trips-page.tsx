@@ -241,9 +241,11 @@ export default function TripsPage() { // Using as SchedulesPage
           </TabsList>
           
           <TabsContent value="upcoming">
-            {/* Expenses section removed */}
-
-            {isLoading ? (
+            {/* Error notification if applicable */}
+            {ErrorNotice}
+            
+            {/* Ultra-fast loading UI - simple skeleton that appears instantly */}
+            {(isLoading && !trips) || showingInstantUI ? (
               <div className="space-y-1 border rounded overflow-hidden">
                 {[...Array(3)].map((_, i) => (
                   <div key={i} className="bg-white border-b overflow-hidden">
@@ -254,12 +256,9 @@ export default function TripsPage() { // Using as SchedulesPage
                         <div className="flex space-x-1">
                           <Skeleton className="h-6 w-6 rounded-full" />
                           <Skeleton className="h-6 w-6 rounded-full" />
-                          <Skeleton className="h-6 w-6 rounded-full" />
                         </div>
                         <div className="flex space-x-1">
-                          <Skeleton className="h-7 w-7" />
                           <Skeleton className="h-7 w-16" />
-                          <Skeleton className="h-7 w-7" />
                         </div>
                       </div>
                     </div>
@@ -288,11 +287,13 @@ export default function TripsPage() { // Using as SchedulesPage
           </TabsContent>
           
           <TabsContent value="past">
-            {/* Expenses section removed */}
+            {/* Error notification if applicable */}
+            {ErrorNotice}
             
-            {isLoading ? (
+            {/* Ultra-fast loading UI - simple skeleton */}
+            {(isLoading && !trips) || showingInstantUI ? (
               <div className="space-y-1 border rounded overflow-hidden">
-                {[...Array(3)].map((_, i) => (
+                {[...Array(2)].map((_, i) => (
                   <div key={i} className="bg-white border-b overflow-hidden">
                     <div className="p-4">
                       <Skeleton className="h-6 w-3/4 mb-2" />
@@ -301,12 +302,9 @@ export default function TripsPage() { // Using as SchedulesPage
                         <div className="flex space-x-1">
                           <Skeleton className="h-6 w-6 rounded-full" />
                           <Skeleton className="h-6 w-6 rounded-full" />
-                          <Skeleton className="h-6 w-6 rounded-full" />
                         </div>
                         <div className="flex space-x-1">
-                          <Skeleton className="h-7 w-7" />
                           <Skeleton className="h-7 w-16" />
-                          <Skeleton className="h-7 w-7" />
                         </div>
                       </div>
                     </div>
@@ -328,9 +326,13 @@ export default function TripsPage() { // Using as SchedulesPage
           </TabsContent>
           
           <TabsContent value="cancelled">
-            {isLoading ? (
+            {/* Error notification if applicable */}
+            {ErrorNotice}
+            
+            {/* Ultra-fast loading UI - simple skeleton */}
+            {(isLoading && !trips) || showingInstantUI ? (
               <div className="space-y-1 border rounded overflow-hidden">
-                {[...Array(2)].map((_, i) => (
+                {[...Array(1)].map((_, i) => (
                   <div key={i} className="bg-white border-b overflow-hidden">
                     <div className="p-4">
                       <Skeleton className="h-6 w-3/4 mb-2" />
@@ -338,13 +340,9 @@ export default function TripsPage() { // Using as SchedulesPage
                       <div className="flex justify-between items-center">
                         <div className="flex space-x-1">
                           <Skeleton className="h-6 w-6 rounded-full" />
-                          <Skeleton className="h-6 w-6 rounded-full" />
-                          <Skeleton className="h-6 w-6 rounded-full" />
                         </div>
                         <div className="flex space-x-1">
-                          <Skeleton className="h-7 w-7" />
                           <Skeleton className="h-7 w-16" />
-                          <Skeleton className="h-7 w-7" />
                         </div>
                       </div>
                     </div>
