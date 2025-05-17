@@ -34,7 +34,6 @@ export function Sidebar() {
     { icon: Users, label: "Import Members", href: "/bulk-import" },
     { icon: DollarSign, label: "Expenses", href: "/expenses" },
     { icon: MessageSquare, label: "Messages", href: "/messages" },
-    { icon: MessageSquare, label: "Share Feedback", href: "/feedback" },
   ];
   
   const actionItems = [
@@ -44,7 +43,7 @@ export function Sidebar() {
 
   const footerItems = [
     { icon: User, label: "My Profile", href: "/profile" },
-    { icon: Settings, label: "Settings", href: "/settings" },
+    { icon: MessageSquare, label: "Share Feedback", href: "/feedback" },
     { icon: LogOut, label: "Logout", onClick: handleLogout },
   ];
 
