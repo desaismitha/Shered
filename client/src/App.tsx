@@ -10,7 +10,7 @@ import { WebSocketProvider } from "@/components/providers/websocket-provider";
 import { ProtectedRoute } from "@/lib/protected-route";
 import AuthPage from "@/pages/auth-page";
 import DashboardPage from "@/pages/dashboard-page";
-import TripsPage from "@/pages/trips-page"; // Using as SchedulesPage 
+import TripsPage from "@/pages/trips-page-new"; // Using as SchedulesPage 
 // Using unified schedule page instead of separate pages
 import UnifiedTripPage from "@/pages/unified-trip-page"; // For creating new schedules
 
