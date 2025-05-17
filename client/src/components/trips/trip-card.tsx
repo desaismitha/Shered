@@ -10,11 +10,11 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { RequestModificationDialog } from "./request-modification-dialog";
 
-// Extend the Trip type to include the _accessLevel property
-// Note: We're keeping the Trip interface name for compatibility with the rest of the codebase
-// but conceptually this represents a Schedule
+// Extend the Trip type to include the _accessLevel property and location display properties
 interface Trip extends BaseTrip {
   _accessLevel?: 'owner' | 'member' | null;
+  startLocationDisplay?: string;
+  destinationDisplay?: string;
 }
 
 interface TripCardProps {
@@ -102,134 +102,143 @@ export function TripCard({ trip }: TripCardProps) {
 
   return (
     <>
-      <div className="bg-white border-b hover:bg-gray-50 transition-colors py-2 w-full">
-        <div className="flex items-center px-3">
-          {/* Status indicator dot */}
-          <div className={`h-3 w-3 rounded-full flex-shrink-0 ${
-            trip.status === 'in-progress' ? 'bg-green-500' : 
-            trip.status === 'confirmed' ? 'bg-blue-500' :
-            trip.status === 'planning' ? 'bg-orange-500' :
-            trip.status === 'completed' ? 'bg-gray-400' :
-            'bg-gray-300'
-          }`} title={trip.status || 'Unknown'} />
+      <div className="bg-white border-b hover:bg-gray-50 transition-colors py-3 w-full">
+        <div className="flex flex-wrap items-start px-3">
+          {/* Left side with status and name */}
+          <div className="flex items-start flex-grow mr-2 min-w-[150px]">
+            {/* Status indicator dot */}
+            <div className={`h-3 w-3 rounded-full flex-shrink-0 mt-1.5 ${
+              trip.status === 'in-progress' ? 'bg-green-500' : 
+              trip.status === 'confirmed' ? 'bg-blue-500' :
+              trip.status === 'planning' ? 'bg-orange-500' :
+              trip.status === 'completed' ? 'bg-gray-400' :
+              'bg-gray-300'
+            }`} title={trip.status || 'Unknown'} />
 
-          {/* Schedule name - clickable on two lines instead of one */}
-          <h3 
-            className="ml-3 font-medium text-sm leading-tight max-w-[12rem] cursor-pointer hover:text-primary-600 transition-colors line-clamp-2"
-            style={{ 
-              display: '-webkit-box',
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: 'vertical',
-              overflow: 'hidden',
-              height: 'auto'
-            }}
-            onClick={(e) => {
-              e.preventDefault();
-              window.location.href = `/schedules/${trip.id}?tab=preview`;
-            }}
-          >
-            {trip.name || 'Unnamed schedule'}
-          </h3>
-          
-          {/* Date/time info */}
-          <span className="ml-4 text-xs text-gray-500 flex-shrink-0">
-            <Calendar className="inline-block mr-1 h-3 w-3" />
-            {formatDateRange(trip.startDate, trip.endDate)}
-          </span>
-
-          {/* Quick summary (From → To) */}
-          <div className="flex-1 text-xs text-gray-500 ml-4 truncate overflow-hidden">
-            <span className="truncate">
-              {trip.startLocationDisplay?.split('[')[0] || trip.startLocation?.split('[')[0] || 'Start'} 
-              <span className="mx-1">→</span> 
-              {trip.destinationDisplay?.split('[')[0] || trip.destination?.split('[')[0] || 'End'}
-            </span>
+            {/* Schedule name in its own container with more space */}
+            <div className="ml-3 flex flex-col min-h-[2.5rem] justify-center flex-grow">
+              <h3 
+                className="font-medium text-sm cursor-pointer hover:text-primary-600 transition-colors"
+                style={{
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
+                  wordBreak: 'break-word',
+                  lineHeight: '1.3'
+                }}
+                onClick={(e) => {
+                  e.preventDefault();
+                  window.location.href = `/schedules/${trip.id}?tab=preview`;
+                }}
+              >
+                {trip.name || 'Unnamed schedule'}
+              </h3>
+            </div>
           </div>
+          
+          {/* Right side with all the metadata */}
+          <div className="flex items-center ml-auto">
+            {/* Date/time info */}
+            <div className="flex flex-col mr-3">
+              <span className="text-xs text-gray-500 flex-shrink-0">
+                <Calendar className="inline-block mr-1 h-3 w-3" />
+                {formatDateRange(trip.startDate, trip.endDate)}
+              </span>
 
-          {/* Participants (up to 2) */}
-          <div className="flex -space-x-1 ml-auto mr-3">
-            {trip.groupId && groupMembers && users ? (
-              // Group trip with members - show only 2
-              groupMembers.slice(0, 2).map((member, index) => {
-                const user = users.find(u => u.id === member.userId);
-                return (
-                  <div 
-                    key={member.id}
-                    className="w-6 h-6 rounded-full bg-neutral-300 border border-white flex items-center justify-center text-xs text-neutral-600"
-                    title={user?.displayName || user?.username || "User"}
-                  >
-                    {user?.displayName?.[0] || user?.username?.[0] || "U"}
-                  </div>
-                );
-              })
-            ) : (
-              users ? (
-                (() => {
-                  const creator = users.find(u => u.id === trip.createdBy);
+              {/* Quick summary (From → To) */}
+              <div className="flex-1 text-xs text-gray-500 truncate overflow-hidden mt-1 max-w-[180px]">
+                <span className="truncate">
+                  {trip.startLocationDisplay?.split('[')[0] || trip.startLocation?.split('[')[0] || 'Start'} 
+                  <span className="mx-1">→</span> 
+                  {trip.destinationDisplay?.split('[')[0] || trip.destination?.split('[')[0] || 'End'}
+                </span>
+              </div>
+            </div>
+
+            {/* Participants (up to 2) */}
+            <div className="flex -space-x-1 mr-3 flex-shrink-0">
+              {trip.groupId && groupMembers && users ? (
+                // Group trip with members - show only 2
+                groupMembers.slice(0, 2).map((member, index) => {
+                  const user = users.find(u => u.id === member.userId);
                   return (
                     <div 
-                      key="creator"
+                      key={member.id}
                       className="w-6 h-6 rounded-full bg-neutral-300 border border-white flex items-center justify-center text-xs text-neutral-600"
-                      title={creator?.displayName || creator?.username || "Creator"}
+                      title={user?.displayName || user?.username || "User"}
                     >
-                      {creator?.displayName?.[0] || creator?.username?.[0] || "U"}
+                      {user?.displayName?.[0] || user?.username?.[0] || "U"}
                     </div>
                   );
-                })()
+                })
               ) : (
-                <div key="loading" className="w-6 h-6 rounded-full bg-neutral-300 border border-white" />
-              )
-            )}
-            {trip.groupId && groupMembers && groupMembers.length > 2 && (
-              <div className="w-6 h-6 rounded-full bg-neutral-200 border border-white flex items-center justify-center text-xs text-neutral-600">
-                +{groupMembers.length - 2}
-              </div>
-            )}
-          </div>
-          
-          {/* Action buttons */}
-          <div className="flex items-center space-x-1 flex-shrink-0">
-            {/* Check-in */}
-            <Button
-              variant="ghost"
-              size="xs"
-              className="flex h-7 items-center text-green-600 hover:text-green-700"
-              onClick={(e) => {
-                e.preventDefault();
-                window.location.href = `/schedules/${trip.id}?tab=check-in`;
-              }}
-            >
-              <CheckSquare className="h-3 w-3" />
-            </Button>
+                users ? (
+                  (() => {
+                    const creator = users.find(u => u.id === trip.createdBy);
+                    return (
+                      <div 
+                        key="creator"
+                        className="w-6 h-6 rounded-full bg-neutral-300 border border-white flex items-center justify-center text-xs text-neutral-600"
+                        title={creator?.displayName || creator?.username || "Creator"}
+                      >
+                        {creator?.displayName?.[0] || creator?.username?.[0] || "U"}
+                      </div>
+                    );
+                  })()
+                ) : (
+                  <div key="loading" className="w-6 h-6 rounded-full bg-neutral-300 border border-white" />
+                )
+              )}
+              {trip.groupId && groupMembers && groupMembers.length > 2 && (
+                <div className="w-6 h-6 rounded-full bg-neutral-200 border border-white flex items-center justify-center text-xs text-neutral-600">
+                  +{groupMembers.length - 2}
+                </div>
+              )}
+            </div>
             
-
-            
-            {/* Edit or Request Changes */}
-            {isAdmin() ? (
+            {/* Action buttons */}
+            <div className="flex items-center space-x-1 flex-shrink-0">
+              {/* Check-in */}
               <Button
                 variant="ghost"
-                size="xs"
-                className="flex h-7 items-center text-neutral-500 hover:text-primary-600"
+                size="sm"
+                className="flex h-7 items-center text-green-600 hover:text-green-700"
                 onClick={(e) => {
                   e.preventDefault();
-                  window.location.href = `/schedules/${trip.id}?tab=form`;
+                  window.location.href = `/schedules/${trip.id}?tab=check-in`;
                 }}
               >
-                <Edit className="h-3 w-3" />
+                <CheckSquare className="h-3 w-3" />
               </Button>
-            ) : (
-              <Button
-                variant="ghost"
-                size="xs"
-                className="flex h-7 items-center text-blue-600 hover:text-blue-700"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setIsModifyDialogOpen(true);
-                }}
-              >
-                <FileText className="h-3 w-3" />
-              </Button>
-            )}
+              
+              {/* Edit or Request Changes */}
+              {isAdmin() ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="flex h-7 items-center text-neutral-500 hover:text-primary-600"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    window.location.href = `/schedules/${trip.id}?tab=form`;
+                  }}
+                >
+                  <Edit className="h-3 w-3" />
+                </Button>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="flex h-7 items-center text-blue-600 hover:text-blue-700"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setIsModifyDialogOpen(true);
+                  }}
+                >
+                  <FileText className="h-3 w-3" />
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </div>

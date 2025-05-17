@@ -15,6 +15,8 @@ import { RequestModificationDialog } from "./request-modification-dialog";
 // but conceptually this represents a Schedule
 interface Trip extends BaseTrip {
   _accessLevel?: 'owner' | 'member' | null;
+  startLocationDisplay?: string;
+  destinationDisplay?: string;
 }
 
 interface TripCardProps {
@@ -102,149 +104,142 @@ export function TripCard({ trip }: TripCardProps) {
 
   return (
     <>
-      <div className="bg-white shadow rounded-lg overflow-hidden hover:shadow-md transition-shadow">
-        <div className="h-48 w-full overflow-hidden relative bg-primary-200">
-          {trip.imageUrl ? (
-            <img 
-              src={trip.imageUrl} 
-              alt={trip.destination || 'Trip destination'} 
-              className="w-full h-full object-cover" 
-            />
-          ) : (
-            <div className="w-full h-full bg-gradient-to-r from-primary-400 to-primary-600" />
-          )}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end">
-            <div className="p-4 text-white">
-              <h3 className="font-bold text-lg">{trip.name || 'Unnamed trip'}</h3>
-              <div className="flex items-center mt-1">
-                <Calendar className="mr-1 h-4 w-4" />
-                <span className="text-sm">
-                  {formatDateRange(trip.startDate, trip.endDate)}
+      <div className="bg-white border-b hover:bg-gray-50 transition-colors py-3 w-full">
+        <div className="flex flex-wrap items-start px-3">
+          {/* Left side with status and name */}
+          <div className="flex items-start flex-grow mr-2 min-w-[150px]">
+            {/* Status indicator dot */}
+            <div className={`h-3 w-3 rounded-full flex-shrink-0 mt-1.5 ${
+              trip.status === 'in-progress' ? 'bg-green-500' : 
+              trip.status === 'confirmed' ? 'bg-blue-500' :
+              trip.status === 'planning' ? 'bg-orange-500' :
+              trip.status === 'completed' ? 'bg-gray-400' :
+              'bg-gray-300'
+            }`} title={trip.status || 'Unknown'} />
+
+            {/* Schedule name in its own container with more space */}
+            <div className="ml-3 flex flex-col min-h-[2.5rem] justify-center flex-grow">
+              <h3 
+                className="font-medium text-sm cursor-pointer hover:text-primary-600 transition-colors"
+                style={{
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
+                  wordBreak: 'break-word',
+                  lineHeight: '1.3'
+                }}
+                onClick={(e) => {
+                  e.preventDefault();
+                  window.location.href = `/schedules/${trip.id}?tab=preview`;
+                }}
+              >
+                {trip.name || 'Unnamed schedule'}
+              </h3>
+            </div>
+          </div>
+          
+          {/* Right side with all the metadata */}
+          <div className="flex items-center ml-auto">
+            {/* Date/time info */}
+            <div className="flex flex-col mr-3">
+              <span className="text-xs text-gray-500 flex-shrink-0">
+                <Calendar className="inline-block mr-1 h-3 w-3" />
+                {formatDateRange(trip.startDate, trip.endDate)}
+              </span>
+
+              {/* Quick summary (From → To) */}
+              <div className="flex-1 text-xs text-gray-500 truncate overflow-hidden mt-1 max-w-[180px]">
+                <span className="truncate">
+                  {trip.startLocationDisplay?.split('[')[0] || trip.startLocation?.split('[')[0] || 'Start'} 
+                  <span className="mx-1">→</span> 
+                  {trip.destinationDisplay?.split('[')[0] || trip.destination?.split('[')[0] || 'End'}
                 </span>
               </div>
             </div>
-          </div>
-        </div>
-        <div className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-neutral-500">
-              <Users className="inline-block mr-1 h-4 w-4" />
-              {trip.name || 'Unnamed trip'} 
-              {trip.groupId ? 
-                `(${groupMembers?.length || 0} members)` : 
-                "(Personal Trip)"
-              }
-            </div>
-            <Badge className={getStatusColor(trip.status)}>
-              {trip.status ? (trip.status.charAt(0).toUpperCase() + trip.status.slice(1)) : 'Unknown'}
-            </Badge>
-          </div>
-          {/* Spacing to replace removed expense section */}
-          <div className="mt-4 pt-2 flex items-center justify-between">
-            <div className="flex -space-x-2">
+
+            {/* Participants (up to 2) */}
+            <div className="flex -space-x-1 mr-3 flex-shrink-0">
               {trip.groupId && groupMembers && users ? (
-                // Group trip with members
-                groupMembers.slice(0, 4).map((member, index) => {
+                // Group trip with members - show only 2
+                groupMembers.slice(0, 2).map((member, index) => {
                   const user = users.find(u => u.id === member.userId);
                   return (
                     <div 
                       key={member.id}
-                      className="w-7 h-7 rounded-full bg-neutral-300 border-2 border-white flex items-center justify-center text-xs text-neutral-600"
+                      className="w-6 h-6 rounded-full bg-neutral-300 border border-white flex items-center justify-center text-xs text-neutral-600"
+                      title={user?.displayName || user?.username || "User"}
                     >
                       {user?.displayName?.[0] || user?.username?.[0] || "U"}
                     </div>
                   );
                 })
               ) : (
-                // Personal trip or loading state
                 users ? (
-                  // Find the creator user
                   (() => {
                     const creator = users.find(u => u.id === trip.createdBy);
                     return (
                       <div 
                         key="creator"
-                        className="w-7 h-7 rounded-full bg-neutral-300 border-2 border-white flex items-center justify-center text-xs text-neutral-600"
+                        className="w-6 h-6 rounded-full bg-neutral-300 border border-white flex items-center justify-center text-xs text-neutral-600"
+                        title={creator?.displayName || creator?.username || "Creator"}
                       >
                         {creator?.displayName?.[0] || creator?.username?.[0] || "U"}
                       </div>
                     );
                   })()
                 ) : (
-                  // Loading state
-                  <div 
-                    key="loading"
-                    className="w-7 h-7 rounded-full bg-neutral-300 border-2 border-white flex items-center justify-center text-xs text-neutral-600"
-                  />
+                  <div key="loading" className="w-6 h-6 rounded-full bg-neutral-300 border border-white" />
                 )
               )}
-              {trip.groupId && groupMembers && groupMembers.length > 4 && (
-                <div className="w-7 h-7 rounded-full bg-neutral-200 border-2 border-white flex items-center justify-center text-xs text-neutral-600">
-                  +{groupMembers.length - 4}
+              {trip.groupId && groupMembers && groupMembers.length > 2 && (
+                <div className="w-6 h-6 rounded-full bg-neutral-200 border border-white flex items-center justify-center text-xs text-neutral-600">
+                  +{groupMembers.length - 2}
                 </div>
               )}
             </div>
-            <div className="flex items-center space-x-2">
-              {/* Check-in button */}
+            
+            {/* Action buttons */}
+            <div className="flex items-center space-x-1 flex-shrink-0">
+              {/* Check-in */}
               <Button
                 variant="ghost"
                 size="sm"
-                className="flex items-center gap-1 text-green-600 hover:text-green-700"
+                className="flex h-7 items-center text-green-600 hover:text-green-700"
                 onClick={(e) => {
                   e.preventDefault();
-                  const url = `/schedules/${trip.id}?tab=check-in`;
-                  console.log("Check-in button clicked, navigating to:", url);
-                  window.location.href = url;
+                  window.location.href = `/schedules/${trip.id}?tab=check-in`;
                 }}
               >
                 <CheckSquare className="h-3 w-3" />
-                <span className="text-xs">Check-in</span>
               </Button>
               
+              {/* Edit or Request Changes */}
               {isAdmin() ? (
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="flex items-center gap-1 text-neutral-500 hover:text-primary-600"
+                  className="flex h-7 items-center text-neutral-500 hover:text-primary-600"
                   onClick={(e) => {
                     e.preventDefault();
-                    console.log("Edit button clicked, navigating to:", `/schedules/${trip.id}?tab=form`);
-                    navigate(`/schedules/${trip.id}?tab=form`);
+                    window.location.href = `/schedules/${trip.id}?tab=form`;
                   }}
                 >
                   <Edit className="h-3 w-3" />
-                  <span className="text-xs">Edit</span>
                 </Button>
               ) : (
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="flex items-center gap-1 text-blue-600 hover:text-blue-700"
+                  className="flex h-7 items-center text-blue-600 hover:text-blue-700"
                   onClick={(e) => {
                     e.preventDefault();
                     setIsModifyDialogOpen(true);
                   }}
                 >
                   <FileText className="h-3 w-3" />
-                  <span className="text-xs">Request Changes</span>
                 </Button>
               )}
-              
-              <Button
-                variant="ghost"
-                size="sm"
-                className="flex items-center gap-1 text-primary-600 hover:text-primary-700"
-                onClick={(e) => {
-                  e.preventDefault();
-                  // Use scheduleId instead of tripId in URL parameter
-                  const url = `/schedules/${trip.id}?tab=preview`;
-                  console.log("View details clicked, navigating to:", url);
-                  // Direct page reload to force component refresh with correct tab
-                  window.location.href = url;
-                }}
-              >
-                <span className="text-xs font-medium">View Details</span>
-              </Button>
             </div>
           </div>
         </div>
