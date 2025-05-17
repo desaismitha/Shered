@@ -4,7 +4,7 @@ import {
   Plane, LayoutDashboard, Users, Calendar, DollarSign, 
   MessageSquare, Settings, LogOut, Car, MapPin,
   Navigation, PlusCircle, CalendarPlus, CheckCircle,
-  User, CarTaxiFront
+  User, CarTaxiFront, MessageCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DbResetButton } from "@/components/ui/db-reset-button";
@@ -39,6 +39,7 @@ export function Sidebar() {
   const footerItems = [
     { icon: User, label: "My Profile", href: "/profile" },
     { icon: Settings, label: "Settings", href: "/settings" },
+    { icon: MessageCircle, label: "Share Feedback", href: "/feedback" },
     { icon: LogOut, label: "Logout", onClick: handleLogout },
   ];
 
