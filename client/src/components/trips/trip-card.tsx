@@ -110,9 +110,9 @@ export function TripCard({ trip }: TripCardProps) {
   return (
     <>
       <div className="bg-white border-b hover:bg-gray-50 transition-colors py-3 w-full">
-        <div className="flex flex-wrap items-center px-3">
-          {/* Left side with status and name */}
-          <div className="flex items-start flex-grow min-w-[120px] pr-1">
+        <div className="grid grid-cols-12 items-center px-3">
+          {/* Left side with status and name - 5 columns */}
+          <div className="col-span-5 flex items-start">
             {/* Status indicator dot */}
             <div
               className={`h-3 w-3 rounded-full flex-shrink-0 mt-1.5 ${
@@ -130,7 +130,7 @@ export function TripCard({ trip }: TripCardProps) {
             />
 
             {/* Schedule name in its own container with more space */}
-            <div className="ml-2 flex flex-col min-h-[2.5rem] justify-left flex-grow">
+            <div className="ml-2 flex flex-col min-h-[2.5rem] justify-center flex-grow">
               <h3
                 className="font-medium text-sm cursor-pointer hover:text-primary-600 transition-colors"
                 style={{
@@ -151,10 +151,9 @@ export function TripCard({ trip }: TripCardProps) {
             </div>
           </div>
 
-          {/* Right side with all the metadata */}
-          <div className="flex items-center ml-0 pl-1">
-            {/* Date/time info */}
-            <div className="flex flex-col mr-3 justify-center items-start">
+          {/* Center with date/time info - 4 columns */}
+          <div className="col-span-4 flex justify-center">
+            <div className="flex flex-col text-center">
               <span className="text-xs text-gray-500 flex-shrink-0">
                 <Calendar className="inline-block mr-1 h-3 w-3" />
                 {formatDateRange(trip.startDate, trip.endDate)}
@@ -163,55 +162,49 @@ export function TripCard({ trip }: TripCardProps) {
               {/* Quick summary (From → To) */}
               <div className="flex-1 text-xs text-gray-500 truncate overflow-hidden mt-1 max-w-[180px]">
                 <span className="truncate">
-                  {trip.startLocationDisplay?.split("[")[0] ||
-                    trip.startLocation?.split("[")[0] ||
-                    "Start"}
-                  <span className="mx-1">→</span>
-                  {trip.destinationDisplay?.split("[")[0] ||
-                    trip.destination?.split("[")[0] ||
-                    "End"}
+                  {trip.startLocationDisplay?.split('[')[0] || trip.startLocation?.split('[')[0] || 'Start'} 
+                  <span className="mx-1">→</span> 
+                  {trip.destinationDisplay?.split('[')[0] || trip.destination?.split('[')[0] || 'End'}
                 </span>
               </div>
             </div>
+          </div>
 
+          {/* Right side with participants and actions - 3 columns */}
+          <div className="col-span-3 flex justify-end">
             {/* Participants (up to 2) */}
             <div className="flex -space-x-1 mr-3 flex-shrink-0">
               {trip.groupId && groupMembers && users ? (
                 // Group trip with members - show only 2
                 groupMembers.slice(0, 2).map((member, index) => {
-                  const user = users.find((u) => u.id === member.userId);
+                  const user = users.find(u => u.id === member.userId);
                   return (
-                    <div
+                    <div 
                       key={member.id}
-                      className="w-6 h-6 rounded-full bg-neutral-300 border border-white flex items-center justify-left text-xs text-neutral-600"
+                      className="w-6 h-6 rounded-full bg-neutral-300 border border-white flex items-center justify-center text-xs text-neutral-600"
                       title={user?.displayName || user?.username || "User"}
                     >
                       {user?.displayName?.[0] || user?.username?.[0] || "U"}
                     </div>
                   );
                 })
-              ) : users ? (
-                (() => {
-                  const creator = users.find((u) => u.id === trip.createdBy);
-                  return (
-                    <div
-                      key="creator"
-                      className="w-6 h-6 rounded-full bg-neutral-300 border border-white flex items-center justify-center text-xs text-neutral-600"
-                      title={
-                        creator?.displayName || creator?.username || "Creator"
-                      }
-                    >
-                      {creator?.displayName?.[0] ||
-                        creator?.username?.[0] ||
-                        "U"}
-                    </div>
-                  );
-                })()
               ) : (
-                <div
-                  key="loading"
-                  className="w-6 h-6 rounded-full bg-neutral-300 border border-white"
-                />
+                users ? (
+                  (() => {
+                    const creator = users.find(u => u.id === trip.createdBy);
+                    return (
+                      <div 
+                        key="creator"
+                        className="w-6 h-6 rounded-full bg-neutral-300 border border-white flex items-center justify-center text-xs text-neutral-600"
+                        title={creator?.displayName || creator?.username || "Creator"}
+                      >
+                        {creator?.displayName?.[0] || creator?.username?.[0] || "U"}
+                      </div>
+                    );
+                  })()
+                ) : (
+                  <div key="loading" className="w-6 h-6 rounded-full bg-neutral-300 border border-white" />
+                )
               )}
               {trip.groupId && groupMembers && groupMembers.length > 2 && (
                 <div className="w-6 h-6 rounded-full bg-neutral-200 border border-white flex items-center justify-center text-xs text-neutral-600">
@@ -219,9 +212,9 @@ export function TripCard({ trip }: TripCardProps) {
                 </div>
               )}
             </div>
-
+            
             {/* Action buttons */}
-            <div className="flex items-center space-x-1 flex-shrink-0 self-center">
+            <div className="flex items-center space-x-1 flex-shrink-0">
               {/* Check-in */}
               <Button
                 variant="ghost"
@@ -234,7 +227,7 @@ export function TripCard({ trip }: TripCardProps) {
               >
                 <CheckSquare className="h-3 w-3" />
               </Button>
-
+              
               {/* Edit or Request Changes */}
               {isAdmin() ? (
                 <Button
@@ -265,7 +258,7 @@ export function TripCard({ trip }: TripCardProps) {
           </div>
         </div>
       </div>
-
+      
       {/* Modification Request Dialog */}
       <RequestModificationDialog
         tripId={trip.id}
