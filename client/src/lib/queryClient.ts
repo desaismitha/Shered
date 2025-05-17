@@ -70,33 +70,73 @@ export const getQueryFn: <T>(options: {
     
     console.log(`[Query] Fetching: ${url}`);
     
-    const res = await fetch(url, {
-      credentials: "include",
-    });
-
-    if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-      console.log(`[Query] Got 401 for ${url}, returning null as requested`);
-      return null;
-    }
-
-    await throwIfResNotOk(res);
-    const data = await res.json();
-    
-    // For trip queries, ensure access level is preserved and add a fallback
-    if (baseUrl === '/api/trips' && queryKey.length > 1) {
-      const userId = localStorage.getItem('userId'); // We'll use this as a fallback
-      
-      // If it's a trip detail query (has an ID), modify the response to include access level
-      if (typeof data === 'object' && data && !data._accessLevel) {
-        console.log(`[Query] Enhancing trip response with access level info`);
-        // If user is the creator, mark as owner
-        const isOwner = data.createdBy?.toString() === userId?.toString();
-        data._accessLevel = isOwner ? 'owner' : 'member';
+    // First check if we have this in the cache - for schedule details pages
+    // Important optimization to prevent blank screens during loading
+    if (url.startsWith('/api/schedules/') && queryClient) {
+      // Check if we already have data for this schedule in the all schedules query
+      const allSchedulesData = queryClient.getQueryData(['/api/schedules']);
+      if (Array.isArray(allSchedulesData)) {
+        const scheduleId = url.split('/').pop();
+        const cachedSchedule = allSchedulesData.find(
+          (schedule: any) => schedule.id === parseInt(scheduleId || '0')
+        );
+        
+        if (cachedSchedule) {
+          console.log(`[Query] Using cached data for quick rendering: ${url}`);
+          return cachedSchedule;
+        }
       }
     }
     
-    console.log(`[Query] Response for ${url}:`, data);
-    return data;
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
+      
+      const res = await fetch(url, {
+        credentials: "include",
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (unauthorizedBehavior === "returnNull" && res.status === 401) {
+        console.log(`[Query] Got 401 for ${url}, returning null as requested`);
+        return null;
+      }
+  
+      await throwIfResNotOk(res);
+      const data = await res.json();
+      
+      // Enhance response for schedule/trip queries
+      if ((baseUrl === '/api/trips' || baseUrl === '/api/schedules') && queryKey.length > 1) {
+        const userId = localStorage.getItem('userId'); // We'll use this as a fallback
+        
+        // If it's a trip detail query (has an ID), modify the response to include access level
+        if (typeof data === 'object' && data && !data._accessLevel) {
+          // If user is the creator, mark as owner
+          const isOwner = data.createdBy?.toString() === userId?.toString();
+          data._accessLevel = isOwner ? 'owner' : 'member';
+          
+          // Add display-friendly versions of locations if not present
+          if (data.startLocation && !data.startLocationDisplay) {
+            data.startLocationDisplay = data.startLocation.split('[')[0].trim();
+          }
+          if (data.destination && !data.destinationDisplay) {
+            data.destinationDisplay = data.destination.split('[')[0].trim();
+          }
+        }
+      }
+      
+      console.log(`[Query] Response for ${url}:`, data);
+      return data;
+    } catch (error: any) {
+      // Handle timeout or network errors gracefully
+      if (error.name === 'AbortError') {
+        console.error(`[Query] Request timeout for ${url}`);
+        throw new Error('Request timed out. Please try again.');
+      }
+      throw error;
+    }
   };
 
 export const queryClient = new QueryClient({

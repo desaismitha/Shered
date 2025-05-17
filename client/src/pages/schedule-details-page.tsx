@@ -1,14 +1,15 @@
-// Use React.lazy for dynamic imports
-import React, { useEffect, useState, Suspense } from "react";
+// Optimized imports
+import React, { useEffect, useState, Suspense, useRef } from "react";
 import { useParams, useLocation } from "wouter";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { useQueryClient, useQuery } from "@tanstack/react-query";
+import { useQueryClient, useQuery, UseQueryResult } from "@tanstack/react-query";
 import { ArrowLeft, MapPin, FileText, Users } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { Trip, ItineraryItem } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
+import { apiRequest } from "@/lib/queryClient";
 
 // Lazy load heavy components to improve initial page load
 const UnifiedTripForm = React.lazy(() => 
@@ -22,7 +23,8 @@ const DriverAssignmentsTab = React.lazy(() =>
 );
 
 export default function ScheduleDetailsPage() {
-  // Initialize basic state immediately
+  // Use refs to avoid unnecessary re-renders 
+  const firstRender = useRef(true);
   const [location, navigate] = useLocation();
   const params = useParams();
   const scheduleId = params.scheduleId;
@@ -32,48 +34,58 @@ export default function ScheduleDetailsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("preview");
   
-  // Parse URL parameters for active tab
+  // Check for cached data first (fast render path)
+  const cachedData = queryClient.getQueryData<Trip>(["/api/schedules", parseInt(scheduleId || "0")]) || 
+                    (queryClient.getQueryData<Trip[]>(["/api/schedules"])?.find(s => 
+                      s.id === parseInt(scheduleId || "0")));
+                      
+  // If we have cached data, we can skip the loading state (instant render)
+  const skipLoadingState = !!cachedData;
+  
+  // Directly fetch data without using React Query hooks initially 
+  // to avoid the component rendering twice when data changes
+  if (firstRender.current && !cachedData && scheduleId) {
+    firstRender.current = false;
+    // Make a direct fetch and update the cache
+    fetch(`/api/schedules/${scheduleId}`, { credentials: "include" })
+      .then(res => res.json())
+      .then(data => {
+        queryClient.setQueryData(["/api/schedules", parseInt(scheduleId)], data);
+      })
+      .catch(err => console.error("Error prefetching data:", err));
+  }
+                      
+  // Parse URL parameters for active tab (only once on mount)
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const tabParam = urlParams.get('tab');
     if (tabParam && ["form", "preview", "check-in", "tracking", "drivers", "requests"].includes(tabParam)) {
       setActiveTab(tabParam);
     }
-  }, [window.location.search]);
+  }, []);
   
-  // Function to handle tab changes from the UI
+  // Function to handle tab changes from the UI (minimized)
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
     const newUrl = `/schedules/${scheduleId}?tab=${tab}`;
     navigate(newUrl, { replace: true });
   };
   
-  // Get schedule data with optimized query settings - added placeholderData for instant rendering
-  const { data: tripData, isLoading: isLoadingTrip } = useQuery<Trip & { _accessLevel?: 'owner' | 'member'; startLocationDisplay?: string; destinationDisplay?: string; }>({
+  // Get schedule data - with background loading strategy and instant cached data
+  const { data: tripData, isLoading: isLoadingTrip } = useQuery<
+    Trip & { _accessLevel?: 'owner' | 'member'; startLocationDisplay?: string; destinationDisplay?: string; }
+  >({
     queryKey: ["/api/schedules", parseInt(scheduleId || "0")],
     enabled: !!scheduleId,
     staleTime: 600000, // 10 minutes
-    gcTime: 900000, // 15 minutes
+    gcTime: 1800000, // 30 minutes 
     refetchOnWindowFocus: false,
+    refetchOnMount: false, // Don't refetch on mount to prevent flicker
     networkMode: 'offlineFirst', // Use cached data first
-    retry: false, // Don't retry failed requests for faster initial load
-    // Use optimistic UI with placeholder data from query cache if available
-    placeholderData: () => {
-      // Try to get all schedules query data
-      const allSchedules = queryClient.getQueryData<Trip[]>(["/api/schedules"]);
-      if (allSchedules) {
-        // Find this specific schedule in the cache
-        const cachedSchedule = allSchedules.find(s => s.id === parseInt(scheduleId || "0"));
-        if (cachedSchedule) {
-          console.log("Using cached schedule data for immediate render");
-          return cachedSchedule;
-        }
-      }
-      return undefined;
-    }
+    initialData: cachedData, // Use cached data immediately
   });
 
-  // Only load itinerary when explicitly needed - we'll skip this for initial load
+  // Skip itinerary loading for better performance
   const { data: itineraryItems } = useQuery<ItineraryItem[]>({
     queryKey: ["/api/schedules", parseInt(scheduleId || "0"), "itinerary"],
     enabled: false, // Disable automatic loading
