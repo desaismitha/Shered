@@ -12,18 +12,18 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-// Optimized connection pool configuration to reduce delays and handle intermittent issues
+// Highly optimized connection pool configuration to eliminate delays
 export const pool = new Pool({ 
   connectionString: process.env.DATABASE_URL,
-  max: 10, // increased max connections for better concurrency
-  min: 5, // higher minimum to avoid connection startup delays
-  idleTimeoutMillis: 60000, // reduced idle timeout to 1 minute for quicker recycling
-  connectionTimeoutMillis: 5000, // reduced connection timeout to fail faster
+  max: 20, // increased max connections for better concurrency
+  min: 10, // much higher minimum to ensure connections are always ready
+  idleTimeoutMillis: 30000, // reduced idle timeout for faster recycling
+  connectionTimeoutMillis: 3000, // reduced connection timeout to fail faster
   allowExitOnIdle: false, // don't close idle connections on app exit
   keepAlive: true, // enable TCP keepalive
-  keepAliveInitialDelayMillis: 15000, // reduced keepalive probe delay
+  keepAliveInitialDelayMillis: 10000, // reduced keepalive probe delay
   // Retry logic for transient connection issues
-  maxUses: 1000 // recycle connections after 1000 queries
+  maxUses: 500 // recycle connections more frequently to prevent stale connections
 });
 
 // Add event handlers for connection issues, but only log in development
