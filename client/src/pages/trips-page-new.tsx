@@ -5,63 +5,47 @@ import { TripCard } from "@/components/trips/trip-card";
 import { Button } from "@/components/ui/button";
 import { PlusIcon, Search, RefreshCw } from "lucide-react";
 import { useLocation } from "wouter";
-import { useState, useRef, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 
-export default function TripsPage() { // Using as SchedulesPage
+export default function TripsPage() {
   const [, navigate] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const { user, isAdmin } = useAuth();
+  const { isAdmin } = useAuth();
   const { toast } = useToast();
   
-  // Loading state tracking
-  const [loadError, setLoadError] = useState(false);
+  // Loading states
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showSkeleton, setShowSkeleton] = useState(true);
   
-  // Type definition for schedules
-  type ScheduleQueryResponse = Trip[];
-  
-  // Get schedules with optimized settings
+  // Get schedules with tanstack query
   const { 
-    data: trips, 
+    data: schedules = [], 
     isLoading, 
     refetch, 
-    error 
-  } = useQuery<ScheduleQueryResponse>({
+    error,
+    isError
+  } = useQuery<Trip[]>({
     queryKey: ["/api/schedules"],
     staleTime: 30000,
-    gcTime: 300000,
-    refetchOnWindowFocus: false,
-    refetchOnMount: true,
-    refetchInterval: 60000,
-    retry: 3,
-    retryDelay: 1000
+    refetchOnWindowFocus: false
   });
-  
-  // Handle load errors and skeleton state
+
+  // After initial load, hide skeletons with a slight delay for smoothness
   useEffect(() => {
-    // Set error state if query failed
-    if (error) {
-      setLoadError(true);
-    }
-    
-    // Hide skeleton after initial load or if error
-    if (!isLoading || error) {
-      // Slightly delay hiding skeleton for smoother UX
+    if (!isLoading || schedules.length > 0) {
       const timer = setTimeout(() => {
         setShowSkeleton(false);
-      }, 500);
-      
+      }, 300);
       return () => clearTimeout(timer);
     }
-  }, [isLoading, error]);
-  
+  }, [isLoading, schedules]);
+
   // Manual refresh with user feedback
   const refreshData = async () => {
     try {
@@ -69,129 +53,85 @@ export default function TripsPage() { // Using as SchedulesPage
       await refetch();
       toast({
         title: "Schedules updated",
-        description: "Latest schedule data loaded successfully",
+        description: "Latest data loaded successfully"
       });
-      setLoadError(false);
     } catch (err) {
       toast({
-        title: "Error refreshing schedules",
-        description: "Unable to fetch the latest data. Try again later.",
+        title: "Update failed",
+        description: "Unable to fetch the latest data",
         variant: "destructive"
       });
-      setLoadError(true);
     } finally {
       setIsRefreshing(false);
     }
   };
 
-  // Type guard for Schedule objects
-  const hasScheduleDisplayFields = (trip: Trip): trip is Trip & { 
-    startLocationDisplay?: string; 
-    destinationDisplay?: string;
-  } => {
-    return typeof trip === 'object' && trip !== null;
-  };
-
-  // Add error state UI element
-  const ErrorNotice = loadError && (!trips || trips.length === 0) && (
-    <div className="bg-amber-50 border border-amber-200 p-4 rounded-md mb-6">
-      <p className="text-amber-800">
-        <strong>Note:</strong> There was an issue loading the latest schedule data. 
-        {!trips || trips.length === 0 ? " Please try refreshing." : " Showing cached data."}
-      </p>
-    </div>
-  );
-
-  // Add effect to handle errors from fetch
-  useEffect(() => {
-    // Set error state if trips query failed
-    const handleQueryError = () => {
-      if (!trips && !isLoading) {
-        setLoadError(true);
-      }
-    };
-    handleQueryError();
-  }, [trips, isLoading]);
-
-  // Simplified and optimized filtering logic
+  // Filter schedules by search, status, and categorize them
   const { upcomingSchedules, pastSchedules, cancelledSchedules } = useMemo(() => {
-    // Default empty arrays for a clean UI if no data
-    if (!trips || trips.length === 0) {
-      return { 
-        upcomingSchedules: [], 
-        pastSchedules: [], 
-        cancelledSchedules: [] 
+    // Skip filtering if no data
+    if (!schedules || schedules.length === 0) {
+      return {
+        upcomingSchedules: [],
+        pastSchedules: [],
+        cancelledSchedules: []
       };
     }
-    
-    // Get current time once for all comparisons
+
     const now = new Date();
+    const lowercaseQuery = searchQuery.toLowerCase();
     
-    // Prepare sorted containers
+    // Prepare filtered arrays
     const upcoming: Trip[] = [];
     const past: Trip[] = [];
     const cancelled: Trip[] = [];
     
-    // Optimize search with lowercase query
-    const query = searchQuery.toLowerCase();
-    
-    // Single pass through the data for better performance
-    for (const schedule of trips) {
-      // Skip invalid entries
-      if (!schedule || !schedule.name) continue;
-      
-      // Search filter
-      const nameMatch = !query || schedule.name.toLowerCase().includes(query);
-      const destinationMatch = schedule.destination && 
-        schedule.destination.toLowerCase().includes(query);
-      const locationMatch = schedule.startLocation && 
-        schedule.startLocation.toLowerCase().includes(query);
+    // Single pass through data
+    for (const schedule of schedules) {
+      // Filter by search
+      if (lowercaseQuery) {
+        const matchesName = schedule.name?.toLowerCase().includes(lowercaseQuery);
+        const matchesDestination = schedule.destination?.toLowerCase().includes(lowercaseQuery);
+        const matchesLocation = schedule.startLocation?.toLowerCase().includes(lowercaseQuery);
         
-      const matchesSearch = nameMatch || destinationMatch || locationMatch;
+        if (!matchesName && !matchesDestination && !matchesLocation) {
+          continue;
+        }
+      }
       
-      // Status filter - skip if doesn't match
-      if (!matchesSearch) continue;
-      if (statusFilter !== "all" && schedule.status !== statusFilter) continue;
+      // Filter by status
+      if (statusFilter !== "all" && schedule.status !== statusFilter) {
+        continue;
+      }
       
-      // Categorize the schedule
+      // Categorize
       if (schedule.status === "cancelled") {
         cancelled.push(schedule);
-      }
-      // Check if it's a past trip - completed or has past end date
-      else if (
-        schedule.status === "completed" || 
-        (schedule.endDate && new Date(schedule.endDate) < now && schedule.status !== "cancelled")
-      ) {
+      } else if (schedule.status === "completed" || 
+                (schedule.endDate && new Date(schedule.endDate) < now)) {
         past.push(schedule);
-      } 
-      // Otherwise it's an upcoming trip
-      else if (
-        schedule.status === "planning" || 
-        schedule.status === "confirmed" || 
-        schedule.status === "in-progress"
-      ) {
+      } else {
+        // Planning, confirmed, or in-progress
         upcoming.push(schedule);
       }
     }
     
-    // Sort the arrays (ascending start date for upcoming, descending end date for past)
-    upcoming.sort((a, b) => 
-      new Date(a.startDate || 0).getTime() - new Date(b.startDate || 0).getTime()
-    );
-    
-    past.sort((a, b) => 
-      new Date(b.endDate || 0).getTime() - new Date(a.endDate || 0).getTime()
-    );
-    
+    // Sort
+    upcoming.sort((a, b) => new Date(a.startDate || 0).getTime() - new Date(b.startDate || 0).getTime());
+    past.sort((a, b) => new Date(b.endDate || 0).getTime() - new Date(a.endDate || 0).getTime());
     cancelled.sort((a, b) => a.name.localeCompare(b.name));
     
     return { upcomingSchedules, pastSchedules, cancelledSchedules };
-  }, [trips, searchQuery, statusFilter]);
+  }, [schedules, searchQuery, statusFilter]);
 
-  // Get schedule IDs for each category
-  const upcomingScheduleIds = upcomingSchedules?.map(schedule => schedule.id) || [];
-  const pastScheduleIds = pastSchedules?.map(schedule => schedule.id) || [];
-  const cancelledScheduleIds = cancelledSchedules?.map(schedule => schedule.id) || [];
+  // Error notification
+  const ErrorNotice = isError && (
+    <div className="bg-amber-50 border border-amber-200 p-4 rounded-md mb-6">
+      <p className="text-amber-800">
+        <strong>Note:</strong> There was an issue loading the schedule data. 
+        {schedules.length > 0 ? " Showing cached data." : " Please try refreshing."}
+      </p>
+    </div>
+  );
 
   return (
     <AppShell>
@@ -204,14 +144,12 @@ export default function TripsPage() { // Using as SchedulesPage
             <Button 
               variant="ghost" 
               size="icon"
-              onClick={() => {
-                console.log("Manually refreshing schedules data");
-                refetch();
-              }}
-              className="h-9 w-9 text-lg font-bold"
+              onClick={refreshData}
+              disabled={isRefreshing}
+              className="h-9 w-9"
               title="Refresh schedules"
             >
-              ↻
+              <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
             </Button>
           </div>
           <div className="flex gap-2 mt-2 sm:mt-0">
@@ -252,12 +190,11 @@ export default function TripsPage() { // Using as SchedulesPage
             </TabsTrigger>
           </TabsList>
           
+          {/* Show error notice if applicable */}
+          {ErrorNotice}
+          
           <TabsContent value="upcoming">
-            {/* Error notification if applicable */}
-            {ErrorNotice}
-            
-            {/* Ultra-fast loading UI - simple skeleton that appears instantly */}
-            {(isLoading && !trips) || showingInstantUI ? (
+            {showSkeleton || isLoading ? (
               <div className="space-y-1 border rounded overflow-hidden">
                 {[...Array(3)].map((_, i) => (
                   <div key={i} className="bg-white border-b overflow-hidden">
@@ -277,7 +214,7 @@ export default function TripsPage() { // Using as SchedulesPage
                   </div>
                 ))}
               </div>
-            ) : upcomingSchedules && upcomingSchedules.length > 0 ? (
+            ) : upcomingSchedules.length > 0 ? (
               <div className="border rounded-md overflow-hidden">
                 {upcomingSchedules.map((schedule) => (
                   <TripCard key={schedule.id} trip={schedule} />
@@ -287,23 +224,21 @@ export default function TripsPage() { // Using as SchedulesPage
               <div className="text-center py-12 bg-white rounded-lg shadow">
                 <h3 className="text-lg font-medium text-neutral-900 mb-1">No upcoming schedules</h3>
                 <p className="text-neutral-500 mb-4">Start planning your next adventure!</p>
-                <Button 
-                  onClick={() => navigate("/schedules/new")}
-                  className="inline-flex items-center"
-                >
-                  <PlusIcon className="h-4 w-4 mr-2" />
-                  Create New Schedule
-                </Button>
+                {isAdmin() && (
+                  <Button 
+                    onClick={() => navigate("/schedules/new")}
+                    className="inline-flex items-center"
+                  >
+                    <PlusIcon className="h-4 w-4 mr-2" />
+                    Create New Schedule
+                  </Button>
+                )}
               </div>
             )}
           </TabsContent>
           
           <TabsContent value="past">
-            {/* Error notification if applicable */}
-            {ErrorNotice}
-            
-            {/* Ultra-fast loading UI - simple skeleton */}
-            {(isLoading && !trips) || showingInstantUI ? (
+            {showSkeleton || isLoading ? (
               <div className="space-y-1 border rounded overflow-hidden">
                 {[...Array(2)].map((_, i) => (
                   <div key={i} className="bg-white border-b overflow-hidden">
@@ -323,7 +258,7 @@ export default function TripsPage() { // Using as SchedulesPage
                   </div>
                 ))}
               </div>
-            ) : pastSchedules && pastSchedules.length > 0 ? (
+            ) : pastSchedules.length > 0 ? (
               <div className="border rounded-md overflow-hidden">
                 {pastSchedules.map((schedule) => (
                   <TripCard key={schedule.id} trip={schedule} />
@@ -338,11 +273,7 @@ export default function TripsPage() { // Using as SchedulesPage
           </TabsContent>
           
           <TabsContent value="cancelled">
-            {/* Error notification if applicable */}
-            {ErrorNotice}
-            
-            {/* Ultra-fast loading UI - simple skeleton */}
-            {(isLoading && !trips) || showingInstantUI ? (
+            {showSkeleton || isLoading ? (
               <div className="space-y-1 border rounded overflow-hidden">
                 {[...Array(1)].map((_, i) => (
                   <div key={i} className="bg-white border-b overflow-hidden">
@@ -361,7 +292,7 @@ export default function TripsPage() { // Using as SchedulesPage
                   </div>
                 ))}
               </div>
-            ) : cancelledSchedules && cancelledSchedules.length > 0 ? (
+            ) : cancelledSchedules.length > 0 ? (
               <div className="border rounded-md overflow-hidden">
                 {cancelledSchedules.map((schedule) => (
                   <TripCard key={schedule.id} trip={schedule} />
@@ -376,9 +307,6 @@ export default function TripsPage() { // Using as SchedulesPage
           </TabsContent>
         </Tabs>
       </div>
-
-      {/* Expense Dialog */}
-      {/* Expense dialog removed */}
     </AppShell>
   );
 }
