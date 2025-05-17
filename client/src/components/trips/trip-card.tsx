@@ -105,7 +105,7 @@ export function TripCard({ trip }: TripCardProps) {
       <div className="bg-white border-b hover:bg-gray-50 transition-colors py-3 w-full">
         <div className="flex flex-wrap items-start px-3">
           {/* Left side with status and name */}
-          <div className="flex items-start flex-grow mr-2 min-w-[150px]">
+          <div className="flex items-start flex-grow mr-0 min-w-[150px]">
             {/* Status indicator dot */}
             <div className={`h-3 w-3 rounded-full flex-shrink-0 mt-1.5 ${
               trip.status === 'in-progress' ? 'bg-green-500' : 
@@ -116,16 +116,16 @@ export function TripCard({ trip }: TripCardProps) {
             }`} title={trip.status || 'Unknown'} />
 
             {/* Schedule name in its own container with more space */}
-            <div className="ml-3 flex flex-col min-h-[2.5rem] justify-center flex-grow">
+            <div className="ml-2 flex flex-col min-h-[2.5rem] justify-center flex-grow">
               <h3 
-                className="font-medium text-sm cursor-pointer hover:text-primary-600 transition-colors"
+                className="font-medium text-sm cursor-pointer hover:text-primary-600 transition-colors mb-0.5"
                 style={{
                   display: '-webkit-box',
                   WebkitLineClamp: 2,
                   WebkitBoxOrient: 'vertical',
                   overflow: 'hidden',
                   wordBreak: 'break-word',
-                  lineHeight: '1.3'
+                  lineHeight: '1.2'
                 }}
                 onClick={(e) => {
                   e.preventDefault();
