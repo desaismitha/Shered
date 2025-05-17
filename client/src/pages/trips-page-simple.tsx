@@ -34,6 +34,9 @@ export default function TripsPage() {
 
   // Filter schedules based on active tab and search query
   const filteredSchedules = data.filter(schedule => {
+    // Skip invalid entries
+    if (!schedule || !schedule.status) return false;
+    
     // Search filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
@@ -50,13 +53,8 @@ export default function TripsPage() {
     const now = new Date();
     
     if (activeTab === "upcoming") {
-      return (
-        (schedule.status === "planning" || 
-         schedule.status === "confirmed" || 
-         schedule.status === "in-progress") &&
-        schedule.status !== "cancelled" && 
-        schedule.status !== "completed"
-      );
+      const activeStatuses = ["planning", "confirmed", "in-progress"];
+      return activeStatuses.includes(schedule.status);
     } 
     else if (activeTab === "past") {
       return (
