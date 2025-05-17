@@ -110,9 +110,9 @@ export function TripCard({ trip }: TripCardProps) {
   return (
     <>
       <div className="bg-white border-b hover:bg-gray-50 transition-colors py-3 w-full">
-        <div className="grid grid-cols-12 items-center px-3">
-          {/* Left side with status and name - 5 columns */}
-          <div className="col-span-5 flex items-start">
+        <div className="grid grid-cols-12 items-center px-3 gap-1">
+          {/* Left side with status and name - 6 columns */}
+          <div className="col-span-6 flex items-start">
             {/* Status indicator dot */}
             <div
               className={`h-3 w-3 rounded-full flex-shrink-0 mt-1.5 ${
@@ -130,7 +130,7 @@ export function TripCard({ trip }: TripCardProps) {
             />
 
             {/* Schedule name in its own container with more space */}
-            <div className="ml-2 flex flex-col min-h-[2.5rem] justify-center flex-grow">
+            <div className="ml-2 flex flex-col min-h-[2.5rem] justify-center flex-grow pr-2">
               <h3
                 className="font-medium text-sm cursor-pointer hover:text-primary-600 transition-colors"
                 style={{
@@ -151,8 +151,8 @@ export function TripCard({ trip }: TripCardProps) {
             </div>
           </div>
 
-          {/* Center with date/time info - 4 columns */}
-          <div className="col-span-4 flex justify-center">
+          {/* Center with date/time info - 3 columns */}
+          <div className="col-span-3 flex justify-center">
             <div className="flex flex-col text-center">
               <span className="text-xs text-gray-500 flex-shrink-0">
                 <Calendar className="inline-block mr-1 h-3 w-3" />
@@ -171,7 +171,7 @@ export function TripCard({ trip }: TripCardProps) {
           </div>
 
           {/* Right side with participants and actions - 3 columns */}
-          <div className="col-span-3 flex justify-end">
+          <div className="col-span-3 flex justify-end pl-1">
             {/* Participants (up to 2) */}
             <div className="flex -space-x-1 mr-3 flex-shrink-0">
               {trip.groupId && groupMembers && users ? (
