@@ -12,18 +12,13 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-// Highly optimized connection pool configuration to eliminate delays
+// Standard connection pool configuration that's compatible with Neon
 export const pool = new Pool({ 
   connectionString: process.env.DATABASE_URL,
-  max: 20, // increased max connections for better concurrency
-  min: 10, // much higher minimum to ensure connections are always ready
-  idleTimeoutMillis: 30000, // reduced idle timeout for faster recycling
-  connectionTimeoutMillis: 3000, // reduced connection timeout to fail faster
-  allowExitOnIdle: false, // don't close idle connections on app exit
-  keepAlive: true, // enable TCP keepalive
-  keepAliveInitialDelayMillis: 10000, // reduced keepalive probe delay
-  // Retry logic for transient connection issues
-  maxUses: 500 // recycle connections more frequently to prevent stale connections
+  max: 20, // reasonable maximum
+  idleTimeoutMillis: 30000, // standard idle timeout
+  connectionTimeoutMillis: 5000, // standard connection timeout
+  allowExitOnIdle: false // don't close idle connections
 });
 
 // Add event handlers for connection issues, but only log in development
@@ -59,34 +54,19 @@ pool.on('error', (err, client) => {
 // Create drizzle instance with the pool
 export const db = drizzle({ client: pool, schema });
 
-// Set up a health check to periodically test database connections
-// This will help prevent the delays we're seeing between calls
+// Set up a health check to periodically test database connection
+// but make it quieter to avoid logging noise
 setInterval(async () => {
   try {
     const isConnected = await checkDbConnection();
     if (!isConnected) {
       console.log('Periodic health check detected database issue, resetting connections...');
       await attemptReconnect(2, 500);
-    } else {
-      // Even if connected, pre-warm a few connections to avoid startup delay
-      // This creates a small pool of ready connections
-      console.log('Pre-warming database connection pool...');
-      try {
-        // Get 3 connections in parallel to ensure pool is filled
-        const preWarmPromises = [...Array(3)].map(async () => {
-          const client = await pool.connect();
-          await client.query('SELECT 1'); // Minimal query to keep connection alive
-          client.release(); // Release immediately back to the pool
-        });
-        await Promise.all(preWarmPromises);
-      } catch (warmError) {
-        console.error('Error pre-warming connections:', warmError);
-      }
     }
   } catch (error) {
     console.error('Error during periodic database health check:', error);
   }
-}, 30000); // Check every 30 seconds for quicker response
+}, 60000); // Check every minute
 
 // Also pre-warm connections on startup for faster initial responses
 (async function preWarmPoolOnStartup() {

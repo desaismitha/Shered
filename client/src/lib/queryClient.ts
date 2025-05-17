@@ -90,14 +90,22 @@ export const getQueryFn: <T>(options: {
     
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000); // Reduced timeout to 5 seconds
+      const timeoutId = setTimeout(() => controller.abort(), 3000); // Reduced timeout to 3 seconds
       
-      // Improved fetch to handle connection delays better
-      const res = await fetch(url, {
+      // Performance optimizations with proper typing for fetch
+      const fetchOptions: RequestInit = {
         credentials: "include",
         signal: controller.signal,
-        cache: 'no-cache' // Prevent browser caching stale responses
-      });
+        cache: "no-cache" as RequestCache,
+        keepalive: true,
+        headers: {
+          'Connection': 'keep-alive',
+          'X-Request-Time': Date.now().toString()
+        }
+      };
+      
+      // Execute fetch with properly typed options
+      const res = await fetch(url, fetchOptions);
       
       clearTimeout(timeoutId);
       
