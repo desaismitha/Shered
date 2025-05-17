@@ -105,17 +105,25 @@ export const queryClient = new QueryClient({
       queryFn: getQueryFn({ on401: "throw" }),
       refetchInterval: false,
       refetchOnWindowFocus: true, // Refresh on window focus
-      staleTime: 0, // Always treat data as stale
-      retry: false,
-      // For trips, be even more aggressive about fetching fresh data
-      ...(window.location.pathname.includes('/trips') && {
+      staleTime: 30000, // Keep data fresh for 30 seconds
+      retry: 1, // Retry once
+      networkMode: 'offlineFirst', // Use cache while fetching
+      // Apply optimizations for details pages
+      ...(window.location.pathname.includes('/schedules/') && {
+        refetchOnMount: true,
+        refetchOnWindowFocus: true,
+        staleTime: 60000, // Cache for 1 minute for details pages
+        cacheTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
+      }),
+      // For active trips list, be more aggressive about fetching fresh data
+      ...(window.location.pathname.includes('/schedules') && !window.location.pathname.includes('/schedules/') && {
         refetchOnMount: 'always',
         refetchOnWindowFocus: 'always',
-        refetchInterval: 5000, // 5 seconds
+        refetchInterval: 10000, // 10 seconds
       }),
     },
     mutations: {
-      retry: false,
+      retry: 1,
     },
   },
 });
