@@ -39,7 +39,7 @@ export function Sidebar() {
   const footerItems = [
     { icon: User, label: "My Profile", href: "/profile" },
     { icon: Settings, label: "Settings", href: "/settings" },
-    { icon: MessageSquare, label: "Share Feedback", href: "/feedback" },
+    { icon: MessageCircle, label: "Share Feedback", href: "/feedback" },
     { icon: LogOut, label: "Logout", onClick: handleLogout },
   ];
 
