@@ -15,18 +15,20 @@ if (!process.env.DATABASE_URL) {
 // Enhanced connection pool configuration with timeout and error handling
 export const pool = new Pool({ 
   connectionString: process.env.DATABASE_URL,
-  max: 10, // maximum number of clients in the pool (reduced to prevent connection limits)
-  min: 1, // maintain at least one connection
-  idleTimeoutMillis: 60000, // increased idle timeout to 60s
-  connectionTimeoutMillis: 5000, // increased connection timeout to 5s
+  max: 5, // reduced maximum number of clients for better management
+  min: 2, // maintain a higher minimum to reduce new connection overhead
+  idleTimeoutMillis: 120000, // increased idle timeout to 2 minutes
+  connectionTimeoutMillis: 8000, // increased connection timeout
   allowExitOnIdle: false, // don't close idle connections on app exit
   keepAlive: true, // enable TCP keepalive
   keepAliveInitialDelayMillis: 30000, // keepalive probe delay in ms
 });
 
-// Add event handlers for connection issues
+// Add event handlers for connection issues, but only log in development
 pool.on('connect', (client) => {
-  console.log('New database connection established');
+  if (process.env.NODE_ENV === 'development' && process.env.DEBUG_DB_CONNECTIONS === 'true') {
+    console.log('New database connection established');
+  }
 });
 
 pool.on('error', (err, client) => {
