@@ -105,7 +105,7 @@ export function TripCard({ trip }: TripCardProps) {
       <div className="bg-white border-b hover:bg-gray-50 transition-colors py-3 w-full">
         <div className="flex flex-wrap items-start px-3">
           {/* Left side with status and name */}
-          <div className="flex items-start flex-grow mr-0 min-w-[150px]">
+          <div className="flex items-start flex-grow min-w-[120px] pr-1">
             {/* Status indicator dot */}
             <div className={`h-3 w-3 rounded-full flex-shrink-0 mt-1.5 ${
               trip.status === 'in-progress' ? 'bg-green-500' : 
@@ -118,14 +118,14 @@ export function TripCard({ trip }: TripCardProps) {
             {/* Schedule name in its own container with more space */}
             <div className="ml-2 flex flex-col min-h-[2.5rem] justify-center flex-grow">
               <h3 
-                className="font-medium text-sm cursor-pointer hover:text-primary-600 transition-colors mb-0.5"
+                className="font-medium text-sm cursor-pointer hover:text-primary-600 transition-colors"
                 style={{
                   display: '-webkit-box',
                   WebkitLineClamp: 2,
                   WebkitBoxOrient: 'vertical',
                   overflow: 'hidden',
                   wordBreak: 'break-word',
-                  lineHeight: '1.2'
+                  lineHeight: '1.15'
                 }}
                 onClick={(e) => {
                   e.preventDefault();
@@ -138,7 +138,7 @@ export function TripCard({ trip }: TripCardProps) {
           </div>
           
           {/* Right side with all the metadata */}
-          <div className="flex items-center ml-auto">
+          <div className="flex items-center ml-0">
             {/* Date/time info */}
             <div className="flex flex-col mr-3">
               <span className="text-xs text-gray-500 flex-shrink-0">
