@@ -60,18 +60,56 @@ pool.on('error', (err, client) => {
 export const db = drizzle({ client: pool, schema });
 
 // Set up a health check to periodically test database connections
-// This will help prevent the 6-second delays we're seeing between calls
+// This will help prevent the delays we're seeing between calls
 setInterval(async () => {
   try {
     const isConnected = await checkDbConnection();
     if (!isConnected) {
       console.log('Periodic health check detected database issue, resetting connections...');
       await attemptReconnect(2, 500);
+    } else {
+      // Even if connected, pre-warm a few connections to avoid startup delay
+      // This creates a small pool of ready connections
+      console.log('Pre-warming database connection pool...');
+      try {
+        // Get 3 connections in parallel to ensure pool is filled
+        const preWarmPromises = [...Array(3)].map(async () => {
+          const client = await pool.connect();
+          await client.query('SELECT 1'); // Minimal query to keep connection alive
+          client.release(); // Release immediately back to the pool
+        });
+        await Promise.all(preWarmPromises);
+      } catch (warmError) {
+        console.error('Error pre-warming connections:', warmError);
+      }
     }
   } catch (error) {
     console.error('Error during periodic database health check:', error);
   }
-}, 120000); // Check every 2 minutes
+}, 30000); // Check every 30 seconds for quicker response
+
+// Also pre-warm connections on startup for faster initial responses
+(async function preWarmPoolOnStartup() {
+  console.log('Pre-warming connection pool on startup...');
+  try {
+    // Create multiple connections in parallel to fill the pool
+    const preWarmPromises = [...Array(5)].map(async (_, i) => {
+      try {
+        const client = await pool.connect();
+        await client.query('SELECT 1');
+        console.log(`Initial connection ${i+1} established successfully`);
+        client.release(true); // true = connection is OK
+      } catch (err) {
+        console.error(`Failed to establish initial connection ${i+1}:`, err);
+      }
+    });
+    
+    await Promise.all(preWarmPromises);
+    console.log('Connection pool pre-warming complete');
+  } catch (error) {
+    console.error('Error during startup pool pre-warming:', error);
+  }
+})();
 
 // Helper function to check connection
 export async function checkDbConnection() {
