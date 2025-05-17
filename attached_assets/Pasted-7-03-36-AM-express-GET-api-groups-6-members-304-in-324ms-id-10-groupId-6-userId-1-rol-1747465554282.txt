@@ -1,0 +1,41 @@
+7:03:36 AM [express] GET /api/groups/6/members 304 in 324ms :: [{"id":10,"groupId":6,"userId":1,"rol…
+[STARTUP] Running initial trip status check
+[AUTO-UPDATE] Checking trips for status updates...
+[AUTO-UPDATE] Current time: 2025-05-17T07:03:38.018Z
+[AUTO-UPDATE] End time buffer calculation for Trip 50:
+  - Original end time: 2025-05-23T07:00:00.000Z
+  - Buffered end time: 2025-05-23T07:30:00.000Z
+  - Buffer amount: 30 minutes (1800000ms)
+[AUTO-UPDATE] Active Trip 50 (Schedule sharing):
+  - Original end time: 2025-05-23T07:00:00.000Z
+  - Buffered end time: 2025-05-23T07:30:00.000Z
+  - Current time: 2025-05-17T07:03:38.018Z
+  - Should complete? false
+  - Comparison: End time is in the future
+[AUTO-UPDATE] End time buffer calculation for Trip 47:
+  - Original end time: 2025-05-21T07:00:00.000Z
+  - Buffered end time: 2025-05-21T07:30:00.000Z
+  - Buffer amount: 30 minutes (1800000ms)
+[AUTO-UPDATE] Active Trip 47 (First Trip -1 ):
+  - Original end time: 2025-05-21T07:00:00.000Z
+  - Buffered end time: 2025-05-21T07:30:00.000Z
+  - Current time: 2025-05-17T07:03:38.018Z
+  - Should complete? false
+  - Comparison: End time is in the future
+[AUTO-UPDATE] Found 0 trips that missed the in-progress state and need to be directly completed
+[AUTO-UPDATE] Completed checking trips. Started 0 trips, completed 0 trips (including 0 missed trips).
+[STARTUP] Checking for upcoming trips that need start reminders
+[REMINDERS] Checking for trips starting in 15 minutes...
+[REMINDERS] Looking for trips starting between 2025-05-17T07:18:08.079Z and 2025-05-17T07:19:08.079Z
+[REMINDERS] Found 0 trips starting in about 15 minutes
+[REMINDERS] Checking for trips starting in 5 minutes...
+[REMINDERS] Looking for trips starting between 2025-05-17T07:08:08.138Z and 2025-05-17T07:09:08.138Z
+[REMINDERS] Found 0 trips starting in about 5 minutes
+[STARTUP] Checking for in-progress trips that need end reminders
+[REMINDERS] Checking for trips ending in 15 minutes...
+[REMINDERS] Looking for trips ending between 2025-05-17T07:18:08.198Z and 2025-05-17T07:19:08.198Z
+[REMINDERS] Found 0 trips ending in about 15 minutes
+[REMINDERS] Checking for trips ending in 5 minutes...
+[REMINDERS] Looking for trips ending between 2025-05-17T07:08:08.258Z and 2025-05-17T07:09:08.258Z
+[REMINDERS] Found 0 trips ending in about 5 minutes
+7:03:38 AM [express] GET /api/users 304 in 2425ms :: [{"id":1,"username":"desaismitha9@gmail.com","d…

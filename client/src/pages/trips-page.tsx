@@ -5,7 +5,7 @@ import { TripCard } from "@/components/trips/trip-card";
 import { Button } from "@/components/ui/button";
 import { PlusIcon, Search } from "lucide-react";
 import { useLocation } from "wouter";
-import { useState } from "react";
+import { useState, useRef, useMemo, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -17,18 +17,62 @@ export default function TripsPage() { // Using as SchedulesPage
   const [statusFilter, setStatusFilter] = useState("all");
   const { user, isAdmin } = useAuth();
   
-  // Get all schedules
-  const { data: trips, isLoading, refetch } = useQuery<Trip[]>({
+  // First render flag to optimize initial load
+  const firstRender = useRef(true);
+  
+  // Reference to last fetch time to avoid too frequent refreshes
+  const lastRefreshTime = useRef(Date.now());
+  const [loadError, setLoadError] = useState(false);
+  
+  // Track if we've shown the instant UI
+  const [showingInstantUI, setShowingInstantUI] = useState(false);
+  
+  // Add type for useQuery response
+  type ScheduleQueryResponse = Trip[];
+  
+  // Get all schedules with optimized settings for better performance
+  const { data: trips, isLoading, refetch, isStale } = useQuery<ScheduleQueryResponse>({
     queryKey: ["/api/schedules"],
-    staleTime: 0,
-    gcTime: 0, // Don't keep old data in cache at all
-    refetchOnMount: "always", // Always refetch on mount
-    refetchOnWindowFocus: true,
-    refetchInterval: 10000, // Refetch every 10 seconds
+    staleTime: 30000, // Data considered fresh for 30 seconds
+    gcTime: 300000, // Keep old data in cache for 5 minutes
+    refetchOnMount: false, // We'll handle this manually
+    refetchOnWindowFocus: false, // Don't automatically refetch on window focus
+    refetchInterval: 60000, // Reduced from 10s to 60s to lower server load
+    retry: 2, // Retry twice if request fails
+    retryDelay: 1000, // Wait 1s between retries
+    // Use a networkMode that prefers cached data for immediate display
+    networkMode: 'offlineFirst',
+    // Start with enabled false, we'll trigger manually for better UX
+    enabled: false
   });
+  
+  // On first mount, trigger a load but show UI immediately
+  useEffect(() => {
+    if (firstRender.current) {
+      firstRender.current = false;
+      
+      // Set instant UI
+      setShowingInstantUI(true);
+      
+      // Delay the actual data fetch slightly for better initial render
+      setTimeout(() => {
+        refetch();
+      }, 200);
+    }
+  }, [refetch]);
 
-  // Debug logging for schedules data
-  console.log("Schedules data from API:", trips);
+  // Manual refresh function with throttling to prevent excessive API calls
+  const refreshData = () => {
+    const now = Date.now();
+    // Only allow refresh if at least 5 seconds have passed since last refresh
+    if (now - lastRefreshTime.current > 5000) {
+      console.log("Manually refreshing schedules data");
+      lastRefreshTime.current = now;
+      refetch();
+    } else {
+      console.log("Refresh throttled - please wait before refreshing again");
+    }
+  };
 
   // Type guard for Schedule objects
   const hasScheduleDisplayFields = (trip: Trip): trip is Trip & { 
@@ -38,88 +82,99 @@ export default function TripsPage() { // Using as SchedulesPage
     return typeof trip === 'object' && trip !== null;
   };
 
-  // Filter schedules based on search query and status
-  const filteredSchedules = trips?.filter(schedule => {
-    const matchesSearch = 
-      searchQuery === "" || 
-      (schedule.name?.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (schedule.destination && schedule.destination.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (schedule.startLocation && schedule.startLocation.toLowerCase().includes(searchQuery.toLowerCase()));
-    
-    const matchesStatus = statusFilter === "all" || schedule.status === statusFilter;
-    
-    return matchesSearch && matchesStatus;
-  });
-  
-  // Debug logging for filtered schedules
-  console.log("Filtered schedules:", filteredSchedules);
-
-  // Group schedules by status
-  const upcomingSchedules = filteredSchedules?.filter(schedule => {
-    if (!schedule.startDate) return false;
-    try {
-      const now = new Date();
-      const startDate = new Date(schedule.startDate);
-      const endDate = new Date(schedule.endDate);
-
-      // Schedule has a current status that indicates it's upcoming or in progress
-      const hasActiveStatus = schedule.status === "planning" || schedule.status === "confirmed" || schedule.status === "in-progress";
-      
-      // Schedule is not marked as cancelled or completed
-      const isNotFinished = schedule.status !== "cancelled" && schedule.status !== "completed";
-      
-      // A schedule is "upcoming" if it is planning/confirmed regardless of start date
-      // (The auto-update system will take care of changing status when start time is reached)
-      const isUpcoming = (schedule.status === "planning" || schedule.status === "confirmed");
-      
-      // A schedule is "in progress" if it has that status regardless of start/end times
-      // We used to check: schedule.status === "in-progress" && startDate <= now && endDate > now
-      // But this was causing issues with schedules not showing up when they should
-      const isActiveNow = schedule.status === "in-progress";
-      
-      // For debugging
-      console.log(`Schedule ${schedule.id} (${schedule.name}): isUpcoming=${isUpcoming}, isActiveNow=${isActiveNow}, status=${schedule.status}`);
-      
-      return (isUpcoming || isActiveNow) && isNotFinished && hasActiveStatus;
-    } catch (e) {
-      console.error("Error parsing date:", schedule.startDate);
-      return false;
-    }
-  });
-  
-  console.log("Upcoming schedules count:", upcomingSchedules?.length || 0);
-  
-  const pastSchedules = filteredSchedules?.filter(schedule => {
-    if (!schedule.endDate) return false;
-    try {
-      const now = new Date();
-      const endDate = new Date(schedule.endDate);
-      
-      // A schedule is considered "past" if it's completed (by status)
-      // OR if its end date is in the past AND it's not cancelled
-      const isCompleted = schedule.status === "completed";
-      const isPastEndDate = endDate < now && schedule.status !== "cancelled";
-      
-      // Also mark in-progress schedules whose end date has passed as "past"
-      const isOverdueInProgress = schedule.status === "in-progress" && endDate < now;
-      
-      // For debugging
-      console.log(`Schedule ${schedule.id} (${schedule.name}): isCompleted=${isCompleted}, isPastEndDate=${isPastEndDate}, isOverdueInProgress=${isOverdueInProgress}`);
-      
-      return isCompleted || isPastEndDate || isOverdueInProgress;
-    } catch (e) {
-      console.error("Error parsing date:", schedule.endDate);
-      return false;
-    }
-  });
-  
-  console.log("Past schedules:", pastSchedules);
-
-  const cancelledSchedules = filteredSchedules?.filter(schedule => 
-    schedule.status === "cancelled"
+  // Add error state UI element
+  const ErrorNotice = loadError && (!trips || trips.length === 0) && (
+    <div className="bg-amber-50 border border-amber-200 p-4 rounded-md mb-6">
+      <p className="text-amber-800">
+        <strong>Note:</strong> There was an issue loading the latest schedule data. 
+        {!trips || trips.length === 0 ? " Please try refreshing." : " Showing cached data."}
+      </p>
+    </div>
   );
-  
-  console.log("Cancelled schedules:", cancelledSchedules);
+
+  // Add effect to handle errors from fetch
+  useEffect(() => {
+    // Set error state if trips query failed
+    const handleQueryError = () => {
+      if (!trips && !isLoading) {
+        setLoadError(true);
+      }
+    };
+    handleQueryError();
+  }, [trips, isLoading]);
+
+  // Memoize filtering logic to avoid recomputing on every render
+  const { filteredSchedules, upcomingSchedules, pastSchedules, cancelledSchedules } = useMemo(() => {
+    // Start by filtering for search and status
+    const filtered = trips?.filter(schedule => {
+      // Skip null/undefined schedules
+      if (!schedule) return false;
+      
+      // Optimize search by only doing toLowerCase once per field
+      const query = searchQuery.toLowerCase();
+      const matchesSearch = 
+        searchQuery === "" || 
+        (schedule.name?.toLowerCase().includes(query)) ||
+        (schedule.destination?.toLowerCase().includes(query)) ||
+        (schedule.startLocation?.toLowerCase().includes(query));
+      
+      const matchesStatus = statusFilter === "all" || schedule.status === statusFilter;
+      
+      return matchesSearch && matchesStatus;
+    }) || [];
+    
+    // Get current time once for all comparisons
+    const now = new Date();
+    
+    // Pre-define status check functions for better readability
+    const isUpcoming = (s: Trip) => {
+      // First check if status is one of the active types
+      const hasActiveStatus = (s.status === "planning" || s.status === "confirmed" || 
+                               s.status === "in-progress");
+      // Then ensure it's not in any of the completed statuses                         
+      const isNotFinished = (s.status !== "cancelled" && s.status !== "completed");
+      
+      return hasActiveStatus && isNotFinished;
+    };
+      
+    const isPast = (s: Trip) => {
+      if (!s.endDate) return false;
+      try {
+        const endDate = new Date(s.endDate);
+        const isCompleted = s.status === "completed";
+        const isPastEndDate = endDate < now && s.status !== "cancelled";
+        const isOverdueInProgress = s.status === "in-progress" && endDate < now;
+        
+        return isCompleted || isPastEndDate || isOverdueInProgress;
+      } catch (e) {
+        return false;
+      }
+    };
+    
+    const isCancelled = (s: Trip) => s.status === "cancelled";
+    
+    // Categorize schedules in one pass through the data
+    const upcoming: Trip[] = [];
+    const past: Trip[] = [];
+    const cancelled: Trip[] = [];
+    
+    filtered.forEach(schedule => {
+      if (isCancelled(schedule)) {
+        cancelled.push(schedule);
+      } else if (isPast(schedule)) {
+        past.push(schedule);
+      } else if (isUpcoming(schedule)) {
+        upcoming.push(schedule);
+      }
+    });
+    
+    return {
+      filteredSchedules: filtered,
+      upcomingSchedules: upcoming,
+      pastSchedules: past,
+      cancelledSchedules: cancelled
+    };
+  }, [trips, searchQuery, statusFilter]);
 
   // Get schedule IDs for each category
   const upcomingScheduleIds = upcomingSchedules?.map(schedule => schedule.id) || [];
