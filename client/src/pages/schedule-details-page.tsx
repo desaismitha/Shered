@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, lazy, Suspense } from "react";
 import { useParams, useLocation } from "wouter";
 import {
   Tabs,
@@ -11,12 +11,13 @@ import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { ArrowLeft, MapPin, FileText, Users } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { Trip, ItineraryItem } from "@shared/schema";
-import { UnifiedTripForm } from "@/components/trips/unified-trip-form";
 import { useToast } from "@/hooks/use-toast";
-import { ScheduleDetailsSkeleton } from "@/components/ui/loading-fallback";
 import { useAuth } from "@/hooks/use-auth";
-import { ModificationRequestsTab } from "@/components/trips/modification-requests-tab";
-import { DriverAssignmentsTab } from "@/components/trips/driver-assignments-tab";
+
+// Lazy load components for better initial load performance
+const UnifiedTripForm = lazy(() => import("@/components/trips/unified-trip-form").then(module => ({ default: module.UnifiedTripForm })));
+const ModificationRequestsTab = lazy(() => import("@/components/trips/modification-requests-tab").then(module => ({ default: module.ModificationRequestsTab })));
+const DriverAssignmentsTab = lazy(() => import("@/components/trips/driver-assignments-tab").then(module => ({ default: module.DriverAssignmentsTab })));
 
 export default function ScheduleDetailsPage() {
   // Show initial content immediately to prevent blank screen
@@ -270,26 +271,36 @@ export default function ScheduleDetailsPage() {
                 </TabsContent>
                 
                 <TabsContent value="form" className="space-y-4">
-                  <UnifiedTripForm 
-                    defaultValues={{
-                      name: tripData.name || "",
-                      description: tripData.description || "",
-                      startDate: tripData.startDate ? new Date(tripData.startDate) : new Date(),
-                      endDate: tripData.endDate ? new Date(tripData.endDate) : new Date(),
-                      groupId: tripData.groupId || undefined,
-                      startLocation: tripData.startLocation || "",
-                      endLocation: tripData.destination || "",
-                      status: (tripData.status as any) || "planning",
-                      enableMobileNotifications: tripData.enableMobileNotifications || false,
-                      startTime: tripData.startDate 
-                        ? new Date(tripData.startDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false})
-                        : "09:00",
-                      endTime: tripData.endDate
-                        ? new Date(tripData.endDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false})
-                        : "17:00"
-                    }}
-                    isEditing={true}
-                    isLoading={isSubmitting}
+                  <Suspense fallback={
+                    <div className="p-8 bg-white rounded-lg shadow-sm animate-pulse">
+                      <div className="h-8 w-1/3 bg-gray-200 rounded mb-6"></div>
+                      <div className="space-y-4">
+                        <div className="h-10 bg-gray-200 rounded"></div>
+                        <div className="h-10 bg-gray-200 rounded"></div>
+                        <div className="h-10 bg-gray-200 rounded"></div>
+                      </div>
+                    </div>
+                  }>
+                    <UnifiedTripForm 
+                      defaultValues={{
+                        name: tripData.name || "",
+                        description: tripData.description || "",
+                        startDate: tripData.startDate ? new Date(tripData.startDate) : new Date(),
+                        endDate: tripData.endDate ? new Date(tripData.endDate) : new Date(),
+                        groupId: tripData.groupId || undefined,
+                        startLocation: tripData.startLocation || "",
+                        endLocation: tripData.destination || "",
+                        status: (tripData.status as any) || "planning",
+                        enableMobileNotifications: tripData.enableMobileNotifications || false,
+                        startTime: tripData.startDate 
+                          ? new Date(tripData.startDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false})
+                          : "09:00",
+                        endTime: tripData.endDate
+                          ? new Date(tripData.endDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false})
+                          : "17:00"
+                      }}
+                      isEditing={true}
+                      isLoading={isSubmitting}
                     onSubmit={async (data) => {
                       console.log("Form submitted with data:", data);
                       
@@ -369,7 +380,17 @@ export default function ScheduleDetailsPage() {
                 
                 {isAdmin() && (
                   <TabsContent value="requests" className="space-y-4">
-                    <ModificationRequestsTab tripId={parseInt(scheduleId || "0")} tripName={tripData?.name || ""} />
+                    <Suspense fallback={
+                      <div className="p-6 bg-white rounded-lg shadow-sm animate-pulse">
+                        <div className="h-7 w-2/3 bg-gray-200 rounded mb-4"></div>
+                        <div className="space-y-3">
+                          <div className="h-12 bg-gray-200 rounded"></div>
+                          <div className="h-12 bg-gray-200 rounded"></div>
+                        </div>
+                      </div>
+                    }>
+                      <ModificationRequestsTab tripId={parseInt(scheduleId || "0")} tripName={tripData?.name || ""} />
+                    </Suspense>
                   </TabsContent>
                 )}
               </Tabs>
