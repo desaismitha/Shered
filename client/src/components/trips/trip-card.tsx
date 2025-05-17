@@ -113,9 +113,16 @@ export function TripCard({ trip }: TripCardProps) {
             'bg-gray-300'
           }`} title={trip.status || 'Unknown'} />
 
-          {/* Schedule name - clickable */}
+          {/* Schedule name - clickable on two lines instead of one */}
           <h3 
-            className="ml-3 font-medium text-sm truncate max-w-[12rem] cursor-pointer hover:text-primary-600 transition-colors"
+            className="ml-3 font-medium text-sm leading-tight max-w-[12rem] cursor-pointer hover:text-primary-600 transition-colors line-clamp-2"
+            style={{ 
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+              height: 'auto'
+            }}
             onClick={(e) => {
               e.preventDefault();
               window.location.href = `/schedules/${trip.id}?tab=preview`;
