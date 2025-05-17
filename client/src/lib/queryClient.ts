@@ -164,9 +164,9 @@ export const queryClient = new QueryClient({
       queryFn: getQueryFn({ on401: "throw" }),
       refetchInterval: false,
       refetchOnWindowFocus: true, // Refresh on window focus
-      staleTime: 30000, // Keep data fresh for 30 seconds
-      retry: 2, // Retry twice with exponential backoff
-      retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 10000), // Exponential backoff with 10s max
+      staleTime: 60000, // Keep data fresh for 60 seconds to reduce requests
+      retry: 1, // Reduce retry count to minimize connection attempts
+      retryDelay: attemptIndex => Math.min(1000 * (attemptIndex + 1), 3000), // Linear backoff with faster 3s max
       networkMode: 'offlineFirst', // Use cache while fetching
       // Apply optimizations for details pages
       ...(window.location.pathname.includes('/schedules/') && {

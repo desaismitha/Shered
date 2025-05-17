@@ -68,26 +68,36 @@ setInterval(async () => {
   }
 }, 60000); // Check every minute
 
-// Also pre-warm connections on startup for faster initial responses
+// Improved connection pool pre-warming on startup
 (async function preWarmPoolOnStartup() {
   console.log('Pre-warming connection pool on startup...');
+  
+  // Optimized sequential connection setup to avoid overloading 
+  // the database with simultaneous connection attempts
   try {
-    // Create multiple connections in parallel to fill the pool
-    const preWarmPromises = [...Array(5)].map(async (_, i) => {
+    // First establish a primary connection
+    const primaryClient = await pool.connect();
+    await primaryClient.query('SELECT 1');
+    console.log('Primary connection established successfully');
+    primaryClient.release();
+    
+    // Then establish remaining connections with small delays
+    for (let i = 0; i < 4; i++) {
       try {
+        // Small stagger between connection attempts
+        await new Promise(resolve => setTimeout(resolve, 50 * i));
         const client = await pool.connect();
         await client.query('SELECT 1');
-        console.log(`Initial connection ${i+1} established successfully`);
-        client.release(true); // true = connection is OK
+        client.release();
+        console.log(`Additional connection ${i+1} ready`);
       } catch (err) {
-        console.error(`Failed to establish initial connection ${i+1}:`, err);
+        console.error(`Connection ${i+1} failed:`, err);
       }
-    });
+    }
     
-    await Promise.all(preWarmPromises);
-    console.log('Connection pool pre-warming complete');
+    console.log('Connection pool ready for use');
   } catch (error) {
-    console.error('Error during startup pool pre-warming:', error);
+    console.error('Connection initialization error:', error);
   }
 })();
 
