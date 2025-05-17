@@ -12,16 +12,18 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-// Enhanced connection pool configuration with timeout and error handling
+// Optimized connection pool configuration to reduce delays and handle intermittent issues
 export const pool = new Pool({ 
   connectionString: process.env.DATABASE_URL,
-  max: 5, // reduced maximum number of clients for better management
-  min: 2, // maintain a higher minimum to reduce new connection overhead
-  idleTimeoutMillis: 120000, // increased idle timeout to 2 minutes
-  connectionTimeoutMillis: 8000, // increased connection timeout
+  max: 10, // increased max connections for better concurrency
+  min: 5, // higher minimum to avoid connection startup delays
+  idleTimeoutMillis: 60000, // reduced idle timeout to 1 minute for quicker recycling
+  connectionTimeoutMillis: 5000, // reduced connection timeout to fail faster
   allowExitOnIdle: false, // don't close idle connections on app exit
   keepAlive: true, // enable TCP keepalive
-  keepAliveInitialDelayMillis: 30000, // keepalive probe delay in ms
+  keepAliveInitialDelayMillis: 15000, // reduced keepalive probe delay
+  // Retry logic for transient connection issues
+  maxUses: 1000 // recycle connections after 1000 queries
 });
 
 // Add event handlers for connection issues, but only log in development
@@ -35,24 +37,41 @@ pool.on('error', (err, client) => {
   console.error('Unexpected error on idle database client', err);
   
   // Check for specific termination errors
-  if ((err as any).code === '57P01' || err.message.includes('terminating connection')) {
+  if ((err as any).code === '57P01' || 
+      (err as any).code === '57P02' || 
+      (err as any).code === '57P03' ||
+      err.message.includes('terminating connection') || 
+      err.message.includes('connection reset')) {
+      
     console.log('Detected connection termination, attempting to reconnect...');
-    // Attempt to reconnect in the background
+    
+    // Attempt to reconnect immediately in the background
     setTimeout(async () => {
       try {
         await attemptReconnect(3, 1000);
       } catch (reconnectError) {
         console.error('Error during reconnection attempt:', reconnectError);
       }
-    }, 500);
+    }, 100); // Reduced delay before reconnect attempt
   }
-  
-  // Do not terminate the process, allow for recovery
-  // process.exit(-1);
 });
 
 // Create drizzle instance with the pool
 export const db = drizzle({ client: pool, schema });
+
+// Set up a health check to periodically test database connections
+// This will help prevent the 6-second delays we're seeing between calls
+setInterval(async () => {
+  try {
+    const isConnected = await checkDbConnection();
+    if (!isConnected) {
+      console.log('Periodic health check detected database issue, resetting connections...');
+      await attemptReconnect(2, 500);
+    }
+  } catch (error) {
+    console.error('Error during periodic database health check:', error);
+  }
+}, 120000); // Check every 2 minutes
 
 // Helper function to check connection
 export async function checkDbConnection() {
@@ -105,19 +124,40 @@ export async function cleanupConnections() {
   }
 }
 
-// Export a function to attempt reconnection
-export async function attemptReconnect(maxRetries = 5, retryDelay = 2000) {
+// Improved connection recovery function with faster reconnect strategy
+export async function attemptReconnect(maxRetries = 3, retryDelay = 1000) {
   let retries = 0;
+  let success = false;
   
-  // First try the simple reconnection approach
-  while (retries < maxRetries) {
+  // Try multiple reconnection strategies with reduced delays
+  while (retries < maxRetries && !success) {
     try {
       console.log(`Attempting database reconnection (${retries + 1}/${maxRetries})...`);
-      const connected = await checkDbConnection();
       
-      if (connected) {
+      // First try: Simple connection test
+      success = await checkDbConnection();
+      
+      // If basic connection check succeeded
+      if (success) {
         console.log('Successfully reconnected to the database');
         return true;
+      }
+      
+      // If first try failed and we're on first retry, try a faster approach immediately
+      if (retries === 0) {
+        // Try to grab a new connection right away
+        const client = await pool.connect();
+        client.release(); // Release it immediately
+        console.log('Successfully established new connection');
+        success = true;
+        return true;
+      }
+      
+      // If we're on second retry, reset the connection pool
+      if (retries === 1) {
+        console.log('Resetting the connection pool...');
+        success = await cleanupConnections();
+        if (success) return true;
       }
     } catch (error) {
       console.error(`Reconnection attempt ${retries + 1} failed:`, error);
@@ -125,20 +165,16 @@ export async function attemptReconnect(maxRetries = 5, retryDelay = 2000) {
     
     retries++;
     
-    // If we've tried a few times, try a more aggressive approach by resetting the pool
-    if (retries === Math.floor(maxRetries / 2)) {
-      console.log('Trying to reset the connection pool...');
-      await cleanupConnections();
-    }
-    
-    if (retries < maxRetries) {
-      // Exponential backoff - increase delay with each retry
-      const backoffDelay = retryDelay * Math.pow(1.5, retries - 1);
-      console.log(`Waiting ${backoffDelay}ms before next retry`);
+    if (retries < maxRetries && !success) {
+      // Short fixed delay between retries - we want to recover quickly
+      const backoffDelay = retryDelay;
       await new Promise(resolve => setTimeout(resolve, backoffDelay));
     }
   }
   
-  console.error('All database reconnection attempts failed');
-  return false;
+  if (!success) {
+    console.error('All database reconnection attempts failed');
+  }
+  
+  return success;
 }

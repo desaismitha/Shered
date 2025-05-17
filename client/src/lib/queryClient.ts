@@ -90,11 +90,13 @@ export const getQueryFn: <T>(options: {
     
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // Reduced timeout to 5 seconds
       
+      // Improved fetch to handle connection delays better
       const res = await fetch(url, {
         credentials: "include",
-        signal: controller.signal
+        signal: controller.signal,
+        cache: 'no-cache' // Prevent browser caching stale responses
       });
       
       clearTimeout(timeoutId);
@@ -102,6 +104,15 @@ export const getQueryFn: <T>(options: {
       if (unauthorizedBehavior === "returnNull" && res.status === 401) {
         console.log(`[Query] Got 401 for ${url}, returning null as requested`);
         return null;
+      }
+      
+      // Database error handling for specific error codes
+      if (res.status === 500) {
+        const errorText = await res.text();
+        if (errorText.includes('database connection') || errorText.includes('terminating connection')) {
+          console.error(`[Query] Database connection error for ${url}`);
+          throw new Error('Database connection interrupted. Using cached data if available.');
+        }
       }
   
       await throwIfResNotOk(res);
@@ -146,7 +157,8 @@ export const queryClient = new QueryClient({
       refetchInterval: false,
       refetchOnWindowFocus: true, // Refresh on window focus
       staleTime: 30000, // Keep data fresh for 30 seconds
-      retry: 1, // Retry once
+      retry: 2, // Retry twice with exponential backoff
+      retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 10000), // Exponential backoff with 10s max
       networkMode: 'offlineFirst', // Use cache while fetching
       // Apply optimizations for details pages
       ...(window.location.pathname.includes('/schedules/') && {
@@ -159,11 +171,12 @@ export const queryClient = new QueryClient({
       ...(window.location.pathname.includes('/schedules') && !window.location.pathname.includes('/schedules/') && {
         refetchOnMount: 'always',
         refetchOnWindowFocus: 'always',
-        refetchInterval: 10000, // 10 seconds
+        refetchInterval: 30000, // 30 seconds - reduced frequency to avoid overloading
       }),
     },
     mutations: {
-      retry: 1,
+      retry: 2,
+      retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 5000), // Faster retry for mutations
     },
   },
 });
