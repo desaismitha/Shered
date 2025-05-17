@@ -103,7 +103,7 @@ export function TripCard({ trip }: TripCardProps) {
   return (
     <>
       <div className="bg-white border-b hover:bg-gray-50 transition-colors py-3 w-full">
-        <div className="flex flex-wrap items-start px-3">
+        <div className="flex flex-wrap items-center px-3">
           {/* Left side with status and name */}
           <div className="flex items-start flex-grow min-w-[120px] pr-1">
             {/* Status indicator dot */}
@@ -140,7 +140,7 @@ export function TripCard({ trip }: TripCardProps) {
           {/* Right side with all the metadata */}
           <div className="flex items-center ml-0">
             {/* Date/time info */}
-            <div className="flex flex-col mr-3">
+            <div className="flex flex-col mr-3 justify-center">
               <span className="text-xs text-gray-500 flex-shrink-0">
                 <Calendar className="inline-block mr-1 h-3 w-3" />
                 {formatDateRange(trip.startDate, trip.endDate)}
@@ -198,7 +198,7 @@ export function TripCard({ trip }: TripCardProps) {
             </div>
             
             {/* Action buttons */}
-            <div className="flex items-center space-x-1 flex-shrink-0">
+            <div className="flex items-center space-x-1 flex-shrink-0 self-center">
               {/* Check-in */}
               <Button
                 variant="ghost"
