@@ -48,7 +48,7 @@ export default function ScheduleDetailsPage() {
     navigate(newUrl, { replace: true });
   };
   
-  // Get schedule data with optimized query settings
+  // Get schedule data with optimized query settings - added placeholderData for instant rendering
   const { data: tripData, isLoading: isLoadingTrip } = useQuery<Trip & { _accessLevel?: 'owner' | 'member'; startLocationDisplay?: string; destinationDisplay?: string; }>({
     queryKey: ["/api/schedules", parseInt(scheduleId || "0")],
     enabled: !!scheduleId,
@@ -57,6 +57,20 @@ export default function ScheduleDetailsPage() {
     refetchOnWindowFocus: false,
     networkMode: 'offlineFirst', // Use cached data first
     retry: false, // Don't retry failed requests for faster initial load
+    // Use optimistic UI with placeholder data from query cache if available
+    placeholderData: () => {
+      // Try to get all schedules query data
+      const allSchedules = queryClient.getQueryData<Trip[]>(["/api/schedules"]);
+      if (allSchedules) {
+        // Find this specific schedule in the cache
+        const cachedSchedule = allSchedules.find(s => s.id === parseInt(scheduleId || "0"));
+        if (cachedSchedule) {
+          console.log("Using cached schedule data for immediate render");
+          return cachedSchedule;
+        }
+      }
+      return undefined;
+    }
   });
 
   // Only load itinerary when explicitly needed - we'll skip this for initial load
@@ -80,7 +94,7 @@ export default function ScheduleDetailsPage() {
     }
   };
 
-  // Show loading state
+  // Enhanced loading state with better visual feedback to prevent blank page
   if (isLoadingTrip) {
     return (
       <AppShell>
@@ -97,17 +111,57 @@ export default function ScheduleDetailsPage() {
           </div>
           
           <div className="max-w-5xl mx-auto">
-            <div className="bg-white p-6 rounded-lg shadow-sm border animate-pulse">
-              <div className="h-7 w-1/3 bg-gray-200 rounded mb-6"></div>
-              <div className="grid grid-cols-2 gap-6">
-                <div>
-                  <div className="h-4 w-20 bg-gray-200 rounded mb-2"></div>
-                  <div className="h-5 w-2/3 bg-gray-200 rounded"></div>
+            {/* Main content skeleton */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+              <div className="md:col-span-2">
+                {/* Schedule details skeleton */}
+                <div className="bg-white p-6 rounded-lg shadow-sm border animate-pulse">
+                  <div className="h-7 w-1/3 bg-gray-200 rounded mb-6"></div>
+                  <div className="grid grid-cols-2 gap-6">
+                    <div>
+                      <div className="h-4 w-20 bg-gray-200 rounded mb-2"></div>
+                      <div className="h-5 w-2/3 bg-gray-200 rounded"></div>
+                    </div>
+                    <div>
+                      <div className="h-4 w-20 bg-gray-200 rounded mb-2"></div>
+                      <div className="h-5 w-2/3 bg-gray-200 rounded"></div>
+                    </div>
+                    <div>
+                      <div className="h-4 w-20 bg-gray-200 rounded mb-2"></div>
+                      <div className="h-5 w-2/3 bg-gray-200 rounded"></div>
+                    </div>
+                    <div>
+                      <div className="h-4 w-20 bg-gray-200 rounded mb-2"></div>
+                      <div className="h-5 w-2/3 bg-gray-200 rounded"></div>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <div className="h-4 w-20 bg-gray-200 rounded mb-2"></div>
-                  <div className="h-5 w-2/3 bg-gray-200 rounded"></div>
+              </div>
+              
+              <div className="md:col-span-1">
+                {/* Sidebar skeleton */}
+                <div className="bg-white p-6 rounded-lg shadow-sm border animate-pulse">
+                  <div className="h-6 w-2/3 bg-gray-200 rounded mb-4"></div>
+                  <div className="h-28 bg-gray-200 rounded mb-4"></div>
+                  <div className="h-6 w-1/2 bg-gray-200 rounded mb-3"></div>
+                  <div className="h-4 w-full bg-gray-200 rounded mb-2"></div>
+                  <div className="h-4 w-3/4 bg-gray-200 rounded"></div>
                 </div>
+              </div>
+            </div>
+            
+            {/* Tabs skeleton */}
+            <div className="bg-white p-4 rounded-lg shadow-sm border">
+              <div className="flex space-x-4 border-b pb-4">
+                <div className="h-10 w-28 bg-gray-200 rounded"></div>
+                <div className="h-10 w-28 bg-gray-200 rounded opacity-60"></div>
+                <div className="h-10 w-28 bg-gray-200 rounded opacity-40"></div>
+              </div>
+              
+              <div className="pt-4 space-y-3">
+                <div className="h-16 bg-gray-200 rounded"></div>
+                <div className="h-16 bg-gray-200 rounded"></div>
+                <div className="h-16 bg-gray-200 rounded"></div>
               </div>
             </div>
           </div>

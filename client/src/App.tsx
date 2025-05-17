@@ -46,9 +46,14 @@ function Router() {
         path="/schedules/:scheduleId" 
         component={() => (
           <Suspense fallback={
-            <div className="flex h-screen w-full items-center justify-center">
-              <div className="h-12 w-12 rounded-full border-4 border-primary border-t-transparent animate-spin"></div>
-              <span className="ml-3 text-lg font-medium">Loading schedule details...</span>
+            <div className="flex flex-col h-screen w-full items-center justify-center bg-background">
+              <div className="flex items-center mb-4">
+                <div className="h-12 w-12 rounded-full border-4 border-primary border-t-transparent animate-spin"></div>
+                <span className="ml-3 text-xl font-medium">Loading schedule details...</span>
+              </div>
+              <div className="max-w-md text-center text-muted-foreground">
+                Preparing your schedule information and optimizing display for the best experience
+              </div>
             </div>
           }>
             <ScheduleDetailsPage />
