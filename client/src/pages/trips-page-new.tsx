@@ -67,7 +67,7 @@ export default function TripsPage() {
   };
 
   // Filter schedules by search, status, and categorize them
-  const { upcomingSchedules, pastSchedules, cancelledSchedules } = useMemo(() => {
+  const filter = useMemo(() => {
     // Skip filtering if no data
     if (!schedules || schedules.length === 0) {
       return {
@@ -122,6 +122,9 @@ export default function TripsPage() {
     
     return { upcomingSchedules, pastSchedules, cancelledSchedules };
   }, [schedules, searchQuery, statusFilter]);
+
+  // Extract the filtered lists
+  const { upcomingSchedules, pastSchedules, cancelledSchedules } = filter;
 
   // Error notification
   const ErrorNotice = isError && (
