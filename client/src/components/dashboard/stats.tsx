@@ -1,8 +1,8 @@
-import { Calendar, Users, DollarSign, MessageSquare } from "lucide-react";
+import { Calendar, Users } from "lucide-react";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { Trip, Group, Expense, Message } from "@shared/schema";
+import { Trip, Group } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface Stat {
@@ -29,17 +29,7 @@ export function DashboardStats() {
     staleTime: 1000 * 60, // 1 minute
   });
 
-  // Fetch expenses data
-  const { data: expenses, isLoading: expensesLoading } = useQuery<Expense[]>({
-    queryKey: ["/api/expenses"],
-    staleTime: 1000 * 60, // 1 minute
-  });
-
-  // Fetch messages data
-  const { data: messages, isLoading: messagesLoading } = useQuery<Message[]>({
-    queryKey: ["/api/messages"],
-    staleTime: 1000 * 60, // 1 minute
-  });
+  // Expenses and messages removed
 
   // Calculate trips count - include both upcoming and in-progress trips
   const activeTrips = !tripsLoading && trips
@@ -63,44 +53,11 @@ export function DashboardStats() {
   // Calculate active groups count
   const activeGroupsCount = !groupsLoading && groups ? groups.length : 0;
 
-  // Calculate expenses - should add up to $32.97
-  const totalExpenses = !expensesLoading && expenses
-    ? expenses.reduce((total, expense) => {
-        // Make sure expense.amount is a valid number
-        if (expense.amount === null || expense.amount === undefined) {
-          return total;
-        }
-        
-        // Convert to numeric value
-        let amount = typeof expense.amount === 'number' 
-          ? expense.amount 
-          : parseFloat(String(expense.amount));
-        
-        // Always divide by 100 to convert cents to dollars
-        return isNaN(amount) ? total : total + (amount / 100);
-      }, 0)
-    : 0;
-  
-  // For debugging
-  console.log("All expenses:", expenses);
-  console.log("Total expenses calculated:", totalExpenses);
-  
-  // Format the expense amount as currency
-  const formattedExpenses = new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(totalExpenses);
-
-  // Calculate unread messages count for current user only
+  // User information for profile display
   const { data: user } = useQuery<any>({
     queryKey: ["/api/user"],
     staleTime: 1000 * 60, // 1 minute
   });
-  
-  // Only count messages not created by the current user as unread
-  const unreadMessagesCount = !messagesLoading && messages && user
-    ? messages.filter(message => message.userId !== user.id).length
-    : 0;
 
   const stats: Stat[] = [
     {
@@ -122,21 +79,11 @@ export function DashboardStats() {
       href: "/groups",
       linkText: "View all groups",
       isLoading: groupsLoading
-    },
-    {
-      title: "Unread Messages",
-      value: messagesLoading ? "..." : unreadMessagesCount,
-      icon: MessageSquare,
-      iconBgColor: "bg-primary-100",
-      iconColor: "text-primary-600",
-      href: "/messages",
-      linkText: "View messages",
-      isLoading: messagesLoading
-    },
+    }
   ];
   
   return (
-    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-2 mb-8">
       {stats.map((stat, index) => (
         <Card key={index} className="overflow-hidden">
           <CardContent className="pt-6">

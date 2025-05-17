@@ -5,7 +5,6 @@ import { PlusIcon } from "lucide-react";
 import { useLocation } from "wouter";
 import { DashboardStats } from "@/components/dashboard/stats";
 import { RecentlyVisitedLocations } from "@/components/dashboard/recently-visited-locations";
-import { GroupActivities } from "@/components/dashboard/group-activities";
 import { TravelTips } from "@/components/dashboard/travel-tips";
 
 export default function DashboardPage() {
@@ -40,9 +39,6 @@ export default function DashboardPage() {
         
         {/* Recently Visited Locations */}
         <RecentlyVisitedLocations />
-        
-        {/* Group Activities */}
-        <GroupActivities />
         
         {/* Travel Planning Tips */}
         <TravelTips />
