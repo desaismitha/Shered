@@ -19,6 +19,29 @@ const UnifiedTripForm = lazy(() => import("@/components/trips/unified-trip-form"
 const ModificationRequestsTab = lazy(() => import("@/components/trips/modification-requests-tab").then(module => ({ default: module.ModificationRequestsTab })));
 const DriverAssignmentsTab = lazy(() => import("@/components/trips/driver-assignments-tab").then(module => ({ default: module.DriverAssignmentsTab })));
 
+// Skeleton loading component for the form tab
+const FormSkeleton = () => (
+  <div className="p-8 bg-white rounded-lg shadow-sm animate-pulse">
+    <div className="h-8 w-1/3 bg-gray-200 rounded mb-6"></div>
+    <div className="space-y-4">
+      <div className="h-10 bg-gray-200 rounded"></div>
+      <div className="h-10 bg-gray-200 rounded"></div>
+      <div className="h-10 bg-gray-200 rounded"></div>
+    </div>
+  </div>
+);
+
+// Skeleton loading component for the modification requests tab
+const RequestsSkeleton = () => (
+  <div className="p-6 bg-white rounded-lg shadow-sm animate-pulse">
+    <div className="h-7 w-2/3 bg-gray-200 rounded mb-4"></div>
+    <div className="space-y-3">
+      <div className="h-12 bg-gray-200 rounded"></div>
+      <div className="h-12 bg-gray-200 rounded"></div>
+    </div>
+  </div>
+);
+
 export default function ScheduleDetailsPage() {
   // Show initial content immediately to prevent blank screen
   useEffect(() => {
@@ -54,18 +77,15 @@ export default function ScheduleDetailsPage() {
   // Update tab when URL changes
   useEffect(() => {
     const newTab = getTabFromUrl();
-    console.log(`Setting active tab to: ${newTab} (from URL)`); 
     setActiveTab(newTab);
   }, [window.location.search]);
   
   // Function to handle tab changes from the UI
   const handleTabChange = (tab: string) => {
-    console.log(`Tab changed to: ${tab} (from UI interaction)`);
     setActiveTab(tab);
     
     // Update the URL to reflect the tab change
     const newUrl = `/schedules/${scheduleId}?tab=${tab}`;
-    console.log(`Updating URL to: ${newUrl}`);
     navigate(newUrl, { replace: true });
   };
   
@@ -118,7 +138,7 @@ export default function ScheduleDetailsPage() {
     }
   };
 
-// Pre-render the basic layout structure while data is loading
+  // Pre-render the basic layout structure while data is loading
   if (isLoadingTrip) {
     return (
       <AppShell>
@@ -271,16 +291,7 @@ export default function ScheduleDetailsPage() {
                 </TabsContent>
                 
                 <TabsContent value="form" className="space-y-4">
-                  <Suspense fallback={
-                    <div className="p-8 bg-white rounded-lg shadow-sm animate-pulse">
-                      <div className="h-8 w-1/3 bg-gray-200 rounded mb-6"></div>
-                      <div className="space-y-4">
-                        <div className="h-10 bg-gray-200 rounded"></div>
-                        <div className="h-10 bg-gray-200 rounded"></div>
-                        <div className="h-10 bg-gray-200 rounded"></div>
-                      </div>
-                    </div>
-                  }>
+                  <Suspense fallback={<FormSkeleton />}>
                     <UnifiedTripForm 
                       defaultValues={{
                         name: tripData.name || "",
@@ -301,94 +312,83 @@ export default function ScheduleDetailsPage() {
                       }}
                       isEditing={true}
                       isLoading={isSubmitting}
-                    onSubmit={async (data) => {
-                      console.log("Form submitted with data:", data);
-                      
-                      setIsSubmitting(true);
-                      
-                      try {
-                        // Format dates combining the date and time
-                        const startDate = new Date(data.startDate);
-                        const endDate = new Date(data.endDate);
+                      onSubmit={async (data) => {
+                        console.log("Form submitted with data:", data);
                         
-                        const [startHours, startMinutes] = data.startTime.split(':').map(Number);
-                        const [endHours, endMinutes] = data.endTime.split(':').map(Number);
+                        setIsSubmitting(true);
                         
-                        startDate.setHours(startHours, startMinutes);
-                        endDate.setHours(endHours, endMinutes);
-                        
-                        // Prepare the data to update
-                        const updateData = {
-                          name: data.name,
-                          description: data.description,
-                          startLocation: data.startLocation,
-                          destination: data.endLocation,
-                          startDate: startDate.toISOString(),
-                          endDate: endDate.toISOString(),
-                          status: data.status,
-                          groupId: data.groupId || null,
-                          enableMobileNotifications: data.enableMobileNotifications
-                        };
-                        
-                        // Make the API request to update the schedule
-                        const response = await fetch(`/api/schedules/${scheduleId}`, {
-                          method: 'PATCH',
-                          headers: {
-                            'Content-Type': 'application/json'
-                          },
-                          body: JSON.stringify(updateData)
-                        });
-                        
-                        if (!response.ok) {
-                          const errorText = await response.text();
-                          throw new Error(errorText || 'Failed to update schedule');
+                        try {
+                          // Format dates combining the date and time
+                          const startDate = new Date(data.startDate);
+                          const endDate = new Date(data.endDate);
+                          
+                          const [startHours, startMinutes] = data.startTime.split(':').map(Number);
+                          const [endHours, endMinutes] = data.endTime.split(':').map(Number);
+                          
+                          startDate.setHours(startHours, startMinutes);
+                          endDate.setHours(endHours, endMinutes);
+                          
+                          // Prepare the data to update
+                          const updateData = {
+                            name: data.name,
+                            description: data.description,
+                            startLocation: data.startLocation,
+                            destination: data.endLocation,
+                            startDate: startDate.toISOString(),
+                            endDate: endDate.toISOString(),
+                            status: data.status,
+                            groupId: data.groupId || null,
+                            enableMobileNotifications: data.enableMobileNotifications
+                          };
+                          
+                          // Make the API request to update the schedule
+                          const response = await fetch(`/api/schedules/${scheduleId}`, {
+                            method: 'PATCH',
+                            headers: {
+                              'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(updateData)
+                          });
+                          
+                          if (!response.ok) {
+                            const errorText = await response.text();
+                            throw new Error(errorText || 'Failed to update schedule');
+                          }
+                          
+                          // Show success notification immediately for better perceived performance
+                          toast({
+                            title: "Schedule updated",
+                            description: "Your schedule has been updated successfully.",
+                            variant: "default"
+                          });
+                          
+                          // Switch to preview tab first for immediate feedback
+                          setActiveTab("preview");
+                          
+                          // Then update data in the background
+                          setTimeout(() => {
+                            queryClient.invalidateQueries({ queryKey: ["/api/schedules", parseInt(scheduleId || "0")] });
+                            queryClient.invalidateQueries({ queryKey: ["/api/schedules"] });
+                          }, 100);
+                          
+                        } catch (error: any) {
+                          console.error('Error updating schedule:', error);
+                          toast({
+                            title: "Error",
+                            description: error.message || "Failed to update schedule. Please try again.",
+                            variant: "destructive"
+                          });
+                        } finally {
+                          setIsSubmitting(false);
                         }
-                        
-                        // Show success notification immediately for better perceived performance
-                        toast({
-                          title: "Schedule updated",
-                          description: "Your schedule has been updated successfully.",
-                          variant: "default"
-                        });
-                        
-                        // Switch to preview tab first for immediate feedback
-                        setActiveTab("preview");
-                        
-                        // Then update data in the background
-                        setTimeout(() => {
-                          queryClient.invalidateQueries({ queryKey: ["/api/schedules", parseInt(scheduleId || "0")] });
-                          queryClient.invalidateQueries({ queryKey: ["/api/schedules"] });
-                        }, 100);
-                        
-                      } catch (error: any) {
-                        console.error('Error updating schedule:', error);
-                        toast({
-                          title: "Error",
-                          description: error.message || "Failed to update schedule. Please try again.",
-                          variant: "destructive"
-                        });
-                      } finally {
-                        setIsSubmitting(false);
-                      }
-                    }}
-                  />
+                      }}
+                    />
+                  </Suspense>
                 </TabsContent>
-                
 
-                
-
-                
                 {isAdmin() && (
                   <TabsContent value="requests" className="space-y-4">
-                    <Suspense fallback={
-                      <div className="p-6 bg-white rounded-lg shadow-sm animate-pulse">
-                        <div className="h-7 w-2/3 bg-gray-200 rounded mb-4"></div>
-                        <div className="space-y-3">
-                          <div className="h-12 bg-gray-200 rounded"></div>
-                          <div className="h-12 bg-gray-200 rounded"></div>
-                        </div>
-                      </div>
-                    }>
+                    <Suspense fallback={<RequestsSkeleton />}>
                       <ModificationRequestsTab tripId={parseInt(scheduleId || "0")} tripName={tripData?.name || ""} />
                     </Suspense>
                   </TabsContent>
