@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+// Use React.lazy for dynamic imports
+import React, { useEffect, useState, Suspense } from "react";
 import { useParams, useLocation } from "wouter";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -6,11 +7,19 @@ import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { ArrowLeft, MapPin, FileText, Users } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { Trip, ItineraryItem } from "@shared/schema";
-import { UnifiedTripForm } from "@/components/trips/unified-trip-form";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
-import { ModificationRequestsTab } from "@/components/trips/modification-requests-tab";
-import { DriverAssignmentsTab } from "@/components/trips/driver-assignments-tab";
+
+// Lazy load heavy components to improve initial page load
+const UnifiedTripForm = React.lazy(() => 
+  import("@/components/trips/unified-trip-form").then(mod => ({ default: mod.UnifiedTripForm }))
+);
+const ModificationRequestsTab = React.lazy(() => 
+  import("@/components/trips/modification-requests-tab").then(mod => ({ default: mod.ModificationRequestsTab }))
+);
+const DriverAssignmentsTab = React.lazy(() => 
+  import("@/components/trips/driver-assignments-tab").then(mod => ({ default: mod.DriverAssignmentsTab }))
+);
 
 export default function ScheduleDetailsPage() {
   // Initialize basic state immediately
@@ -43,15 +52,17 @@ export default function ScheduleDetailsPage() {
   const { data: tripData, isLoading: isLoadingTrip } = useQuery<Trip & { _accessLevel?: 'owner' | 'member'; startLocationDisplay?: string; destinationDisplay?: string; }>({
     queryKey: ["/api/schedules", parseInt(scheduleId || "0")],
     enabled: !!scheduleId,
-    staleTime: 300000, // 5 minutes
-    gcTime: 600000, // 10 minutes
+    staleTime: 600000, // 10 minutes
+    gcTime: 900000, // 15 minutes
     refetchOnWindowFocus: false,
+    networkMode: 'offlineFirst', // Use cached data first
+    retry: false, // Don't retry failed requests for faster initial load
   });
 
-  // Only load itinerary if needed and after trip data is loaded
+  // Only load itinerary when explicitly needed - we'll skip this for initial load
   const { data: itineraryItems } = useQuery<ItineraryItem[]>({
     queryKey: ["/api/schedules", parseInt(scheduleId || "0"), "itinerary"],
-    enabled: !!scheduleId && !!tripData && (activeTab === "preview" || activeTab === "tracking"),
+    enabled: false, // Disable automatic loading
     staleTime: 300000,
     gcTime: 600000,
     refetchOnWindowFocus: false,
@@ -273,38 +284,59 @@ export default function ScheduleDetailsPage() {
               </div>
             </TabsContent>
             
-            {activeTab === "form" && (
-              <TabsContent value="form" className="space-y-4">
-                <UnifiedTripForm 
-                  defaultValues={{
-                    name: tripData.name || "",
-                    description: tripData.description || "",
-                    startDate: tripData.startDate ? new Date(tripData.startDate) : new Date(),
-                    endDate: tripData.endDate ? new Date(tripData.endDate) : new Date(),
-                    groupId: tripData.groupId || undefined,
-                    startLocation: tripData.startLocation || "",
-                    endLocation: tripData.destination || "",
-                    status: (tripData.status as any) || "planning",
-                    enableMobileNotifications: tripData.enableMobileNotifications || false,
-                    startTime: tripData.startDate 
-                      ? new Date(tripData.startDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false})
-                      : "09:00",
-                    endTime: tripData.endDate
-                      ? new Date(tripData.endDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false})
-                      : "17:00"
-                  }}
-                  isEditing={true}
-                  isLoading={isSubmitting}
-                  onSubmit={handleFormSubmit}
-                />
-              </TabsContent>
-            )}
+            <TabsContent value="form" className="space-y-4">
+              {activeTab === "form" && (
+                <Suspense fallback={
+                  <div className="p-6 bg-white rounded-lg shadow-sm animate-pulse">
+                    <div className="h-8 w-1/3 bg-gray-200 rounded mb-6"></div>
+                    <div className="space-y-4">
+                      <div className="h-10 bg-gray-200 rounded"></div>
+                      <div className="h-10 bg-gray-200 rounded"></div>
+                      <div className="h-10 bg-gray-200 rounded"></div>
+                    </div>
+                  </div>
+                }>
+                  <UnifiedTripForm 
+                    defaultValues={{
+                      name: tripData.name || "",
+                      description: tripData.description || "",
+                      startDate: tripData.startDate ? new Date(tripData.startDate) : new Date(),
+                      endDate: tripData.endDate ? new Date(tripData.endDate) : new Date(),
+                      groupId: tripData.groupId || undefined,
+                      startLocation: tripData.startLocation || "",
+                      endLocation: tripData.destination || "",
+                      status: (tripData.status as any) || "planning",
+                      enableMobileNotifications: tripData.enableMobileNotifications || false,
+                      startTime: tripData.startDate 
+                        ? new Date(tripData.startDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false})
+                        : "09:00",
+                      endTime: tripData.endDate
+                        ? new Date(tripData.endDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false})
+                        : "17:00"
+                    }}
+                    isEditing={true}
+                    isLoading={isSubmitting}
+                    onSubmit={handleFormSubmit}
+                  />
+                </Suspense>
+              )}
+            </TabsContent>
 
-            {activeTab === "requests" && isAdmin() && (
-              <TabsContent value="requests" className="space-y-4">
-                <ModificationRequestsTab tripId={parseInt(scheduleId || "0")} tripName={tripData?.name || ""} />
-              </TabsContent>
-            )}
+            <TabsContent value="requests" className="space-y-4">
+              {activeTab === "requests" && isAdmin() && (
+                <Suspense fallback={
+                  <div className="p-6 bg-white rounded-lg shadow-sm animate-pulse">
+                    <div className="h-7 w-2/3 bg-gray-200 rounded mb-4"></div>
+                    <div className="space-y-3">
+                      <div className="h-12 bg-gray-200 rounded"></div>
+                      <div className="h-12 bg-gray-200 rounded"></div>
+                    </div>
+                  </div>
+                }>
+                  <ModificationRequestsTab tripId={parseInt(scheduleId || "0")} tripName={tripData?.name || ""} />
+                </Suspense>
+              )}
+            </TabsContent>
           </Tabs>
         </div>
       </div>
