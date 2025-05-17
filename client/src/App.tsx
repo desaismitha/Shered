@@ -1,4 +1,4 @@
-import { Switch, Redirect } from "wouter";
+import { Switch } from "wouter";
 import { Suspense, lazy } from "react";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -36,8 +36,9 @@ import VerifyEmailPage from "@/pages/verify-email-page";
 import BulkImportPage from "@/pages/bulk-import-page";
 import FeedbackPage from "@/pages/feedback-page"; // Feedback page
 import { DbResetFloatingButton } from "@/components/ui/db-reset-floating-button";
-import { Route } from "wouter";
+import { Route, Redirect } from "wouter";
 
+// Make intro page the default landing page for non-authenticated users
 function Router() {
   return (
     <Switch>
@@ -57,6 +58,7 @@ function Router() {
         <VerifyEmailPage />
       </Route>
       
+      {/* Protected dashboard route */}
       <ProtectedRoute path="/" component={DashboardPage} />
       <ProtectedRoute path="/schedules" component={TripsPage} />
       <ProtectedRoute path="/schedules/new" component={UnifiedTripPage} />
