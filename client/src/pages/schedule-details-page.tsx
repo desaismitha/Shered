@@ -106,8 +106,42 @@ export default function ScheduleDetailsPage() {
     }
   };
 
-  // Enhanced loading state with better visual feedback to prevent blank page
-  if (isLoadingTrip) {
+  // Function to render simplified schedule details based on minimal data
+  // This is a fast path that doesn't use any heavy components or nested data
+  const renderSimplifiedDetails = (scheduleData: any) => {
+    return (
+      <div className="bg-white p-6 rounded-lg shadow-sm border mb-6">
+        <h2 className="text-xl font-semibold mb-4">{scheduleData?.name || "Loading..."}</h2>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <p className="text-sm text-gray-500">Start Location</p>
+            <p className="font-medium">{scheduleData?.startLocationDisplay || scheduleData?.startLocation?.split('[')[0].trim() || "..."}</p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-500">Destination</p>
+            <p className="font-medium">{scheduleData?.destinationDisplay || scheduleData?.destination?.split('[')[0].trim() || "..."}</p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-500">Status</p>
+            <p className="font-medium capitalize">{scheduleData?.status || "..."}</p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-500">Group</p>
+            <p className="font-medium">{scheduleData?.groupId ? "Group Schedule" : "Personal Schedule"}</p>
+          </div>
+        </div>
+        {scheduleData?.description && (
+          <div className="mt-4">
+            <p className="text-sm text-gray-500">Description</p>
+            <p className="mt-1">{scheduleData.description}</p>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Ultra-fast loading state that appears immediately
+  if (isLoadingTrip && !cachedData) {
     return (
       <AppShell>
         <div className="container py-6">
@@ -123,58 +157,46 @@ export default function ScheduleDetailsPage() {
           </div>
           
           <div className="max-w-5xl mx-auto">
-            {/* Main content skeleton */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-              <div className="md:col-span-2">
-                {/* Schedule details skeleton */}
-                <div className="bg-white p-6 rounded-lg shadow-sm border animate-pulse">
-                  <div className="h-7 w-1/3 bg-gray-200 rounded mb-6"></div>
-                  <div className="grid grid-cols-2 gap-6">
-                    <div>
-                      <div className="h-4 w-20 bg-gray-200 rounded mb-2"></div>
-                      <div className="h-5 w-2/3 bg-gray-200 rounded"></div>
-                    </div>
-                    <div>
-                      <div className="h-4 w-20 bg-gray-200 rounded mb-2"></div>
-                      <div className="h-5 w-2/3 bg-gray-200 rounded"></div>
-                    </div>
-                    <div>
-                      <div className="h-4 w-20 bg-gray-200 rounded mb-2"></div>
-                      <div className="h-5 w-2/3 bg-gray-200 rounded"></div>
-                    </div>
-                    <div>
-                      <div className="h-4 w-20 bg-gray-200 rounded mb-2"></div>
-                      <div className="h-5 w-2/3 bg-gray-200 rounded"></div>
-                    </div>
-                  </div>
+            {/* Main content skeleton - simplified for faster rendering */}
+            <div className="bg-white p-6 rounded-lg shadow-sm border animate-pulse">
+              <div className="h-7 w-1/3 bg-gray-200 rounded mb-6"></div>
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <div className="h-4 w-20 bg-gray-200 rounded mb-2"></div>
+                  <div className="h-5 w-2/3 bg-gray-200 rounded"></div>
                 </div>
-              </div>
-              
-              <div className="md:col-span-1">
-                {/* Sidebar skeleton */}
-                <div className="bg-white p-6 rounded-lg shadow-sm border animate-pulse">
-                  <div className="h-6 w-2/3 bg-gray-200 rounded mb-4"></div>
-                  <div className="h-28 bg-gray-200 rounded mb-4"></div>
-                  <div className="h-6 w-1/2 bg-gray-200 rounded mb-3"></div>
-                  <div className="h-4 w-full bg-gray-200 rounded mb-2"></div>
-                  <div className="h-4 w-3/4 bg-gray-200 rounded"></div>
+                <div>
+                  <div className="h-4 w-20 bg-gray-200 rounded mb-2"></div>
+                  <div className="h-5 w-2/3 bg-gray-200 rounded"></div>
                 </div>
               </div>
             </div>
-            
-            {/* Tabs skeleton */}
-            <div className="bg-white p-4 rounded-lg shadow-sm border">
-              <div className="flex space-x-4 border-b pb-4">
-                <div className="h-10 w-28 bg-gray-200 rounded"></div>
-                <div className="h-10 w-28 bg-gray-200 rounded opacity-60"></div>
-                <div className="h-10 w-28 bg-gray-200 rounded opacity-40"></div>
-              </div>
-              
-              <div className="pt-4 space-y-3">
-                <div className="h-16 bg-gray-200 rounded"></div>
-                <div className="h-16 bg-gray-200 rounded"></div>
-                <div className="h-16 bg-gray-200 rounded"></div>
-              </div>
+          </div>
+        </div>
+      </AppShell>
+    );
+  }
+  
+  // Fast path for cached data to show immediately while full data loads
+  if (isLoadingTrip && cachedData) {
+    return (
+      <AppShell>
+        <div className="container py-6">
+          <div className="flex items-center mb-6">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => navigate("/schedules")}
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <h1 className="text-2xl font-bold ml-2">Schedule Details</h1>
+          </div>
+          
+          <div className="max-w-5xl mx-auto">
+            {renderSimplifiedDetails(cachedData)}
+            <div className="text-center text-sm text-muted-foreground">
+              Loading complete details...
             </div>
           </div>
         </div>
