@@ -14,8 +14,8 @@ import TripsPage from "@/pages/trips-page-simple"; // Using as SchedulesPage
 // Using unified schedule page instead of separate pages
 import UnifiedTripPage from "@/pages/unified-trip-page"; // For creating new schedules
 
-// Lazy-load the Schedule Details page to prevent blank screen issues
-const ScheduleDetailsPage = lazy(() => import("@/pages/schedule-details-page"));
+// Use the simplified schedule details page instead of the complex one
+import ScheduleDetailsPage from "@/pages/schedule-details-simple";
 import EventPage from "@/pages/event-page";
 import TripsDebugPage from "@/pages/trips-debug-page"; // Using as SchedulesDebugPage
 import ActiveTripsDebug from "@/pages/active-trips-debug"; // Using as ActiveSchedulesDebug
@@ -44,21 +44,7 @@ function Router() {
       <ProtectedRoute path="/schedules/new" component={UnifiedTripPage} />
       <ProtectedRoute 
         path="/schedules/:scheduleId" 
-        component={() => (
-          <Suspense fallback={
-            <div className="flex flex-col h-screen w-full items-center justify-center bg-background">
-              <div className="flex items-center mb-4">
-                <div className="h-12 w-12 rounded-full border-4 border-primary border-t-transparent animate-spin"></div>
-                <span className="ml-3 text-xl font-medium">Loading schedule details...</span>
-              </div>
-              <div className="max-w-md text-center text-muted-foreground">
-                Preparing your schedule information and optimizing display for the best experience
-              </div>
-            </div>
-          }>
-            <ScheduleDetailsPage />
-          </Suspense>
-        )} 
+        component={ScheduleDetailsPage}
       />
       <ProtectedRoute path="/events/new" component={EventPage} />
       <ProtectedRoute path="/events/:eventId" component={EventPage} />
