@@ -71,10 +71,19 @@ export default function ScheduleDetailsPage() {
     navigate(newUrl, { replace: true });
   };
   
-  // Get schedule data - with background loading strategy and instant cached data
-  const { data: tripData, isLoading: isLoadingTrip } = useQuery<
-    Trip & { _accessLevel?: 'owner' | 'member'; startLocationDisplay?: string; destinationDisplay?: string; }
-  >({
+  // Store error state for more reliable UI
+  const [hasError, setHasError] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+  
+  // Safely type our trip data to avoid TypeScript errors
+  type TripDataType = Trip & { 
+    _accessLevel?: 'owner' | 'member'; 
+    startLocationDisplay?: string; 
+    destinationDisplay?: string; 
+  };
+  
+  // Get schedule data with robust error handling
+  const { data: tripData, isLoading: isLoadingTrip, error } = useQuery<TripDataType>({
     queryKey: ["/api/schedules", parseInt(scheduleId || "0")],
     enabled: !!scheduleId,
     staleTime: 600000, // 10 minutes
@@ -82,8 +91,18 @@ export default function ScheduleDetailsPage() {
     refetchOnWindowFocus: false,
     refetchOnMount: false, // Don't refetch on mount to prevent flicker
     networkMode: 'offlineFirst', // Use cached data first
-    initialData: cachedData, // Use cached data immediately
+    initialData: cachedData as TripDataType, // Use cached data immediately
+    retry: 2 // Retry twice on failure
   });
+  
+  // Handle errors through the useEffect pattern instead of callback
+  useEffect(() => {
+    if (error) {
+      console.error("Error loading schedule details:", error);
+      setHasError(true);
+      setErrorMsg((error as Error)?.message || "Database connection issue. Using cached data if available.");
+    }
+  }, [error]);
 
   // Skip itinerary loading for better performance
   const { data: itineraryItems } = useQuery<ItineraryItem[]>({
@@ -204,8 +223,8 @@ export default function ScheduleDetailsPage() {
     );
   }
   
-  // Show error state if data isn't found
-  if (!tripData) {
+  // Show error state if data isn't found - but only if we don't have cached data
+  if (!tripData && !cachedData) {
     return (
       <AppShell>
         <div className="container py-6">
@@ -218,9 +237,47 @@ export default function ScheduleDetailsPage() {
       </AppShell>
     );
   }
+  
+  // Show cached data with error message if DB connection failed but we have cached data
+  if (hasError && cachedData) {
+    return (
+      <AppShell>
+        <div className="container py-6">
+          <div className="flex items-center mb-6">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => navigate("/schedules")}
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <h1 className="text-2xl font-bold ml-2">Schedule Details</h1>
+          </div>
+          
+          <div className="max-w-5xl mx-auto">
+            <div className="bg-amber-50 border border-amber-200 p-4 rounded-md mb-6">
+              <p className="text-amber-800">
+                <strong>Note:</strong> {errorMsg} Showing cached data instead.
+              </p>
+            </div>
+            
+            {renderSimplifiedDetails(cachedData)}
+            
+            <div className="flex justify-center mt-6">
+              <Button onClick={() => navigate("/schedules")}>
+                Return to Schedules List
+              </Button>
+            </div>
+          </div>
+        </div>
+      </AppShell>
+    );
+  }
 
-  // Handle form submission
+  // Handle form submission with built-in error handling
   const handleFormSubmit = async (data: any) => {
+    if (!scheduleId) return;
+    
     try {
       setIsSubmitting(true);
       
@@ -247,17 +304,8 @@ export default function ScheduleDetailsPage() {
         enableMobileNotifications: data.enableMobileNotifications
       };
       
-      // Make the API request to update the schedule
-      const response = await fetch(`/api/schedules/${scheduleId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updateData)
-      });
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || 'Failed to update schedule');
-      }
+      // Use the apiRequest helper for better error handling
+      await apiRequest('PATCH', `/api/schedules/${scheduleId}`, updateData);
       
       // Show success notification
       toast({
@@ -271,7 +319,7 @@ export default function ScheduleDetailsPage() {
       
       // Refresh data in the background after a short delay
       setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ["/api/schedules", parseInt(scheduleId || "0")] });
+        queryClient.invalidateQueries({ queryKey: ["/api/schedules", parseInt(scheduleId)] });
         queryClient.invalidateQueries({ queryKey: ["/api/schedules"] });
       }, 100);
     } catch (error: any) {
