@@ -26,7 +26,7 @@ export function MobileHeader() {
             <Menu className="h-6 w-6" />
           </button>
           <div className="flex items-center">
-            <Plane className="h-5 w-5 text-primary mr-2" />
+            <img src="/images/trustloopz-logo.png" alt="TrustLoopz Logo" className="h-8 w-auto mr-2" />
             <h1 className="text-xl font-bold text-neutral-800">TrustLoopz</h1>
           </div>
         </div>
@@ -83,7 +83,7 @@ export function MobileMenu({ isOpen, onClose }: { isOpen: boolean; onClose: () =
         
         <div className="flex-1 h-0 pt-5 pb-4 overflow-y-auto">
           <div className="flex-shrink-0 flex items-center px-4">
-            <Plane className="h-5 w-5 text-primary mr-2" />
+            <img src="/images/trustloopz-logo.png" alt="TrustLoopz Logo" className="h-8 w-auto mr-2" />
             <span className="text-xl font-bold text-neutral-800">TrustLoopz</span>
           </div>
           <nav className="mt-5 px-2 space-y-1">
