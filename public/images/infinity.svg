@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
+  <!-- Shield background -->
+  <path
+    d="M50 5 L90 22 C93 23 95 26 95 29 L95 50 C95 76 75 95 50 95 C25 95 5 76 5 50 L5 29 C5 26 7 23 10 22 L50 5Z"
+    fill="#0066FF"
+  />
+  
+  <!-- Classic infinity symbol -->
+  <path
+    d="M30,50 C30,42 37,36 46,36 C55,36 60,44 65,50 C70,56 75,64 84,64 C93,64 100,58 100,50 C100,42 93,36 84,36 C75,36 70,44 65,50 C60,56 55,64 46,64 C37,64 30,58 30,50 Z"
+    stroke="white"
+    stroke-width="6"
+    fill="none"
+  />
+</svg>
