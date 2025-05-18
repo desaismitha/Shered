@@ -24,9 +24,9 @@ export function TrustLoopzLogo({ className = "h-8 w-8 mr-2" }: { className?: str
           fill="none"
         />
         
-        {/* Single infinity symbol path */}
+        {/* Single infinity symbol path - larger size */}
         <path
-          d="M35,50 C35,43 38,40 44,40 C50,40 52,45 50,50 C48,55 50,60 56,60 C62,60 65,55 65,50 C65,45 62,40 56,40 C50,40 48,45 50,50 C52,55 50,60 44,60 C38,60 35,57 35,50"
+          d="M30,50 C30,40 34,35 42,35 C50,35 52,42 50,50 C48,58 50,65 58,65 C66,65 70,58 70,50 C70,42 66,35 58,35 C50,35 48,42 50,50 C52,58 50,65 42,65 C34,65 30,60 30,50"
           stroke="white"
           strokeWidth="7"
           strokeLinecap="round"
