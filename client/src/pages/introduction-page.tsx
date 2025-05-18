@@ -17,7 +17,7 @@ export default function IntroductionPage() {
               <div className="flex items-center justify-between w-full mb-4">
                 <div className="flex items-center">
                   <Plane className="h-8 w-8 text-primary mr-2" />
-                  <h1 className="text-3xl font-bold text-primary">Shered</h1>
+                  <h1 className="text-3xl font-bold text-primary">TrustLoopz</h1>
                 </div>
                 <Link href="/auth">
                   <Button variant="outline" className="bg-white hover:bg-gray-50">
@@ -127,9 +127,9 @@ export default function IntroductionPage() {
       <section className="py-16 bg-white" id="video-tutorial">
         <div className="container mx-auto px-4 md:px-6">
           <div className="max-w-3xl mx-auto text-center mb-8">
-            <h2 className="text-3xl font-bold mb-4">See Shered in Action</h2>
+            <h2 className="text-3xl font-bold mb-4">See TrustLoopz in Action</h2>
             <p className="text-lg text-gray-600">
-              Watch this short video to learn how Shered makes transportation coordination simple and stress-free.
+              Watch this short video to learn how TrustLoopz makes transportation coordination simple and stress-free.
             </p>
           </div>
           <div className="max-w-3xl mx-auto rounded-xl overflow-hidden shadow-xl bg-white p-2">
@@ -158,7 +158,7 @@ export default function IntroductionPage() {
       <section className="py-16 bg-gray-50" id="how-it-works">
         <div className="container mx-auto px-4 md:px-6">
           <div className="max-w-3xl mx-auto text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">How Shered Makes It Easy</h2>
+            <h2 className="text-3xl font-bold mb-4">How TrustLoopz Makes It Easy</h2>
             <p className="text-lg text-gray-600">
               Our platform simplifies transportation coordination with powerful yet easy-to-use features.
             </p>
@@ -232,9 +232,9 @@ export default function IntroductionPage() {
           <div className="max-w-6xl mx-auto">
             <div className="grid md:grid-cols-2 gap-8 items-center">
               <div>
-                <h2 className="text-3xl font-bold mb-4">Shered Mobile and Watch Apps <span className="inline-block bg-primary/10 text-primary text-sm font-semibold px-3 py-1 rounded-full">Coming Soon</span></h2>
+                <h2 className="text-3xl font-bold mb-4">TrustLoopz Mobile and Watch Apps <span className="inline-block bg-primary/10 text-primary text-sm font-semibold px-3 py-1 rounded-full">Coming Soon</span></h2>
                 <p className="text-lg text-gray-700 mb-6">
-                  Take the power of Shered with you wherever you go. Our upcoming mobile app and watch app will make coordination even easier.
+                  Take the power of TrustLoopz with you wherever you go. Our upcoming mobile app and watch app will make coordination even easier.
                 </p>
                 <div className="space-y-4 mb-6">
                   <div className="flex items-start gap-3">
@@ -287,7 +287,7 @@ export default function IntroductionPage() {
                           <div className="w-12 h-12 bg-primary rounded-full mb-3 flex items-center justify-center">
                             <Plane className="h-6 w-6 text-white" />
                           </div>
-                          <h3 className="text-xl font-bold text-gray-800">Shered</h3>
+                          <h3 className="text-xl font-bold text-gray-800">TrustLoopz</h3>
                           <p className="text-gray-600 text-sm mb-4">Mobile App</p>
                           <div className="w-full p-3 bg-white rounded-lg shadow-md mb-3">
                             <div className="flex items-center">
@@ -324,7 +324,7 @@ export default function IntroductionPage() {
         <div className="container mx-auto px-4 md:px-6 text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-4">Ready to simplify your transportation coordination?</h2>
           <p className="text-xl mb-8 max-w-2xl mx-auto">
-            Join Shered today and spend less time managing logistics and more time with your family.
+            Join TrustLoopz today and spend less time managing logistics and more time with your family.
           </p>
           <Link href={user ? "/" : "/auth"}>
             <Button className="bg-white text-primary hover:bg-gray-100 px-8 py-4 text-lg">
@@ -340,10 +340,10 @@ export default function IntroductionPage() {
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="flex items-center mb-4 md:mb-0">
               <Plane className="h-6 w-6 text-primary mr-2" />
-              <span className="text-lg font-bold text-primary">Shered</span>
+              <span className="text-lg font-bold text-primary">TrustLoopz</span>
             </div>
             <div className="text-gray-600 text-sm">
-              © {new Date().getFullYear()} Shered. All rights reserved.
+              © {new Date().getFullYear()} TrustLoopz. All rights reserved.
             </div>
           </div>
         </div>
