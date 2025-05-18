@@ -42,9 +42,18 @@ import { Route, Redirect } from "wouter";
 function Router() {
   return (
     <Switch>
+      {/* Root path will redirect based on authentication status */}
+      <Route path="/">
+        {() => {
+          // Redirect to dashboard if authenticated, otherwise to intro page
+          return <Redirect to="/intro" />;
+        }}
+      </Route>
+      
       <Route path="/intro">
         <IntroductionPage />
       </Route>
+      
       <Route path="/auth">
         <AuthPage />
       </Route>
@@ -59,7 +68,7 @@ function Router() {
       </Route>
       
       {/* Protected dashboard route */}
-      <ProtectedRoute path="/" component={DashboardPage} />
+      <ProtectedRoute path="/dashboard" component={DashboardPage} />
       <ProtectedRoute path="/schedules" component={TripsPage} />
       <ProtectedRoute path="/schedules/new" component={UnifiedTripPage} />
       <ProtectedRoute 
