@@ -135,7 +135,7 @@ export async function sendGroupInvitation(
     console.warn('[GROUP_INVITATION] SendGrid verified sender is not configured, using fallback');
   }
   
-  const fromEmail = process.env.SENDGRID_VERIFIED_SENDER || 'noreply@shered.com';
+  const fromEmail = process.env.SENDGRID_VERIFIED_SENDER || 'noreply@trustloopz.com';
   const subject = isExistingUser 
     ? `You've been added to ${groupName} on TrustLoopz` 
     : `You've been invited to join ${groupName} on TrustLoopz`;
@@ -222,7 +222,7 @@ export async function sendPasswordResetEmail(
   username: string,
   resetLink: string
 ): Promise<boolean> {
-  const fromEmail = process.env.SENDGRID_VERIFIED_SENDER || 'noreply@travelgroupr.com';
+  const fromEmail = process.env.SENDGRID_VERIFIED_SENDER || 'noreply@trustloopz.com';
   const subject = 'Password Reset for TrustLoopz';
   
   const text = `
@@ -271,7 +271,7 @@ export async function sendEmailVerification(
   username: string,
   verificationLink: string
 ): Promise<boolean> {
-  const fromEmail = process.env.SENDGRID_VERIFIED_SENDER || 'noreply@travelgroupr.com';
+  const fromEmail = process.env.SENDGRID_VERIFIED_SENDER || 'noreply@trustloopz.com';
   const subject = 'Welcome to TrustLoopz!';
   
   const text = `
@@ -330,7 +330,7 @@ export async function sendOTPVerificationCode(
 ): Promise<boolean> {
   console.log(`[OTP-EMAIL] Attempting to send OTP code ${otp} to ${email} for user ${username}`);
   
-  const fromEmail = process.env.SENDGRID_VERIFIED_SENDER || 'noreply@shered.com';
+  const fromEmail = process.env.SENDGRID_VERIFIED_SENDER || 'noreply@trustloopz.com';
   // Include the code in the subject line for quick reference, even if the email is not opened
   const subject = `Your TrustLoopz Verification Code: ${otp}`;
   
@@ -405,7 +405,7 @@ export async function sendRouteDeviationEmail(
   console.log(`[DEVIATION_EMAIL] Preparing route deviation email to ${email} for trip ${tripName}`);
   
   // Use consistent shered.com domain
-  const fromEmail = process.env.SENDGRID_VERIFIED_SENDER || 'noreply@shered.com';
+  const fromEmail = process.env.SENDGRID_VERIFIED_SENDER || 'noreply@trustloopz.com';
   const subject = `🚨 Route Deviation Alert: ${tripName}`;
   
   // Format the distance to 2 decimal places
@@ -496,7 +496,7 @@ export async function sendRegistrationConfirmation(
 ): Promise<boolean> {
   console.log(`[REGISTRATION_CONFIRMATION] Sending confirmation email to ${email}`);
   
-  const fromEmail = process.env.SENDGRID_VERIFIED_SENDER || 'noreply@shered.com';
+  const fromEmail = process.env.SENDGRID_VERIFIED_SENDER || 'noreply@trustloopz.com';
   const subject = 'Welcome to TrustLoopz - Registration Confirmed';
   
   const text = `
@@ -555,7 +555,7 @@ export async function sendTripReminderEmail(
 ): Promise<boolean> {
   console.log(`[REMINDER_EMAIL] Sending ${minutesUntilStart}-minute reminder to ${email} for trip "${tripName}"`);
   
-  const fromEmail = process.env.SENDGRID_VERIFIED_SENDER || 'noreply@shered.com';
+  const fromEmail = process.env.SENDGRID_VERIFIED_SENDER || 'noreply@trustloopz.com';
   const subject = `🕒 Trip Reminder: "${tripName}" starts in ${minutesUntilStart} minute${minutesUntilStart === 1 ? '' : 's'}`;
   
   // Format the start date/time
@@ -634,7 +634,7 @@ export async function sendTripEndReminderEmail(
 ): Promise<boolean> {
   console.log(`[END_REMINDER_EMAIL] Sending ${minutesUntilEnd}-minute end reminder to ${email} for trip "${tripName}"`);
   
-  const fromEmail = process.env.SENDGRID_VERIFIED_SENDER || 'noreply@shered.com';
+  const fromEmail = process.env.SENDGRID_VERIFIED_SENDER || 'noreply@trustloopz.com';
   const subject = `🔔 Trip End Reminder: "${tripName}" ends in ${minutesUntilEnd} minute${minutesUntilEnd === 1 ? '' : 's'}`;
   
   // Format the end date/time
@@ -678,7 +678,7 @@ export async function sendTripEndReminderEmail(
       </div>
       
       <p>Please make sure to wrap up your activities and be ready to conclude the trip.</p>
-      <p>Thank you for using Shered!<br>The TrustLoopz Team</p>
+      <p>Thank you for using TrustLoopz!<br>The TrustLoopz Team</p>
     </div>
   `;
   
@@ -703,7 +703,7 @@ export async function sendTripStatusChangeEmail(
 ): Promise<boolean> {
   console.log(`[STATUS_EMAIL] Preparing trip status change email to ${email} for trip ${tripName}, new status: ${newStatus}`);
   
-  const fromEmail = process.env.SENDGRID_VERIFIED_SENDER || 'noreply@shered.com';
+  const fromEmail = process.env.SENDGRID_VERIFIED_SENDER || 'noreply@trustloopz.com';
   
   // Format the status for display
   const statusDisplay = newStatus === 'in-progress' ? 'In Progress' : 

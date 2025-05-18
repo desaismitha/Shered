@@ -1886,7 +1886,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const success = await sendEmail({
         to: email,
-        from: process.env.SENDGRID_VERIFIED_SENDER || 'noreply@travelgroupr.com',
+        from: process.env.SENDGRID_VERIFIED_SENDER || 'noreply@trustloopz.com',
         subject,
         text: message,
         html: `
@@ -1896,7 +1896,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             <p><strong>Sent at:</strong> ${new Date().toISOString()}</p>
             <div style="margin-top: 30px; padding: 15px; background-color: #f5f5f5; border-radius: 5px;">
               <p style="margin: 0; font-size: 12px; color: #666;">
-                This is an automated message from Shered. Please do not reply to this email.
+                This is an automated message from TrustLoopz. Please do not reply to this email.
               </p>
             </div>
           </div>
@@ -5938,7 +5938,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Send a welcome message
       ws.send(JSON.stringify({
         type: 'connection',
-        message: 'Connected to Shered WebSocket server',
+        message: 'Connected to TrustLoopz WebSocket server',
         userId: userId,
         timestamp: new Date().toISOString()
       }));
