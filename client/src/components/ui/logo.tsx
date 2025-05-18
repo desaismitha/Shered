@@ -10,33 +10,20 @@ export function TrustLoopzLogo({ className = "h-8 w-8 mr-2" }: { className?: str
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
       >
-        {/* Shield background */}
+        {/* Shield background with rounded corners */}
         <path
-          d="M50 5 L95 20 L95 50 C95 75 75 95 50 95 C25 95 5 75 5 50 L5 20 L50 5Z"
+          d="M50 5 L90 22 C93 23 95 26 95 29 L95 50 C95 76 75 95 50 95 C25 95 5 76 5 50 L5 29 C5 26 7 23 10 22 L50 5Z"
           fill="#0066FF"
+          stroke="#0055DD"
+          strokeWidth="1"
         />
         
-        {/* Infinity symbol */}
+        {/* Improved infinity symbol - more elegant */}
         <path
-          d="M35 50 C35 42 42 35 50 35 C58 35 65 42 65 50 C65 58 58 65 50 65 C42 65 35 58 35 50 Z"
+          d="M34 50 C34 43 40 38 47 38 C54 38 57 43 60 48 C63 53 66 58 73 58 C80 58 86 53 86 46 C86 39 80 34 73 34 C66 34 63 39 60 44 C57 49 54 54 47 54 C40 54 34 49 34 42"
           stroke="white"
-          strokeWidth="6"
-          fill="none"
-        />
-        
-        {/* Left loop of infinity */}
-        <path
-          d="M20 50 C20 42 27 35 35 35 C43 35 50 42 50 50 C50 58 43 65 35 65 C27 65 20 58 20 50 Z"
-          stroke="white"
-          strokeWidth="6"
-          fill="none"
-        />
-        
-        {/* Right loop of infinity */}
-        <path
-          d="M50 50 C50 42 57 35 65 35 C73 35 80 42 80 50 C80 58 73 65 65 65 C57 65 50 58 50 50 Z"
-          stroke="white"
-          strokeWidth="6"
+          strokeWidth="5"
+          strokeLinecap="round"
           fill="none"
         />
       </svg>
