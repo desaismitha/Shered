@@ -9,6 +9,7 @@ import {
 import { cn } from "@/lib/utils";
 import { DbResetButton } from "@/components/ui/db-reset-button";
 import { WebSocketIndicator } from "@/components/ui/websocket-indicator";
+import { TrustLoopzLogo } from "@/components/ui/logo";
 
 export function MobileHeader() {
   const [isOpen, setIsOpen] = useState(false);
@@ -26,7 +27,7 @@ export function MobileHeader() {
             <Menu className="h-6 w-6" />
           </button>
           <div className="flex items-center">
-            <img src="/images/trustloopz-logo.png" alt="TrustLoopz Logo" className="h-8 w-8 mr-2" />
+            <TrustLoopzLogo />
             <h1 className="text-xl font-bold text-neutral-800">TrustLoopz</h1>
           </div>
         </div>
@@ -83,7 +84,7 @@ export function MobileMenu({ isOpen, onClose }: { isOpen: boolean; onClose: () =
         
         <div className="flex-1 h-0 pt-5 pb-4 overflow-y-auto">
           <div className="flex-shrink-0 flex items-center px-4">
-            <img src="/images/trustloopz-logo.png" alt="TrustLoopz Logo" className="h-8 w-8 mr-2" />
+            <TrustLoopzLogo />
             <span className="text-xl font-bold text-neutral-800">TrustLoopz</span>
           </div>
           <nav className="mt-5 px-2 space-y-1">
