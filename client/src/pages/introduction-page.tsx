@@ -123,6 +123,37 @@ export default function IntroductionPage() {
         </div>
       </section>
 
+      {/* Video Tutorial Section */}
+      <section className="py-16 bg-white" id="video-tutorial">
+        <div className="container mx-auto px-4 md:px-6">
+          <div className="max-w-3xl mx-auto text-center mb-8">
+            <h2 className="text-3xl font-bold mb-4">See Shered in Action</h2>
+            <p className="text-lg text-gray-600">
+              Watch this short video to learn how Shered makes transportation coordination simple and stress-free.
+            </p>
+          </div>
+          <div className="max-w-3xl mx-auto rounded-xl overflow-hidden shadow-xl bg-white p-2">
+            <div className="relative pb-[56.25%] h-0">
+              <div className="absolute inset-0 flex items-center justify-center bg-gray-100 rounded-lg">
+                <div className="text-center p-6">
+                  <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-medium mb-2">Demo Video Coming Soon</h3>
+                  <p className="text-gray-500 text-sm mb-4">Our tutorial video is being produced and will be available shortly.</p>
+                  <Button variant="outline" className="bg-white">
+                    Notify Me When Available
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+      
       {/* Solution Section */}
       <section className="py-16 bg-gray-50" id="how-it-works">
         <div className="container mx-auto px-4 md:px-6">
