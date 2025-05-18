@@ -272,12 +272,12 @@ export async function sendEmailVerification(
   verificationLink: string
 ): Promise<boolean> {
   const fromEmail = process.env.SENDGRID_VERIFIED_SENDER || 'noreply@travelgroupr.com';
-  const subject = 'Welcome to Shered!';
+  const subject = 'Welcome to TrustLoopz!';
   
   const text = `
     Hi ${username},
     
-    Thank you for signing up with Shered! Your account has been successfully created.
+    Thank you for signing up with TrustLoopz! Your account has been successfully created.
     
     Your account is already active since you verified it with the one-time code during registration.
     
@@ -294,9 +294,9 @@ export async function sendEmailVerification(
   
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <h2>Welcome to Shered!</h2>
+      <h2>Welcome to TrustLoopz!</h2>
       <p>Hi <strong>${username}</strong>,</p>
-      <p>Thank you for signing up with Shered. Your account has been successfully created!</p>
+      <p>Thank you for signing up with TrustLoopz. Your account has been successfully created!</p>
       
       <p style="background-color: #d1e7dd; padding: 10px; border-radius: 4px; border-left: 4px solid #198754;">
         <strong>Your account is already active</strong> since you verified it with the one-time code during registration.
@@ -332,7 +332,7 @@ export async function sendOTPVerificationCode(
   
   const fromEmail = process.env.SENDGRID_VERIFIED_SENDER || 'noreply@shered.com';
   // Include the code in the subject line for quick reference, even if the email is not opened
-  const subject = `Your Shered Verification Code: ${otp}`;
+  const subject = `Your TrustLoopz Verification Code: ${otp}`;
   
   const text = `
     Hi ${username},
