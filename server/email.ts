@@ -137,8 +137,8 @@ export async function sendGroupInvitation(
   
   const fromEmail = process.env.SENDGRID_VERIFIED_SENDER || 'noreply@shered.com';
   const subject = isExistingUser 
-    ? `You've been added to ${groupName} on Shered` 
-    : `You've been invited to join ${groupName} on Shered`;
+    ? `You've been added to ${groupName} on TrustLoopz` 
+    : `You've been invited to join ${groupName} on TrustLoopz`;
   
   let text, html;
   
@@ -147,7 +147,7 @@ export async function sendGroupInvitation(
     text = `
       Hi there!
       
-      ${inviterName} has added you to the travel group "${groupName}" on Shered.
+      ${inviterName} has added you to the travel group "${groupName}" on TrustLoopz.
       
       To view the group and plan trips, please visit:
       ${inviteLink}
@@ -223,7 +223,7 @@ export async function sendPasswordResetEmail(
   resetLink: string
 ): Promise<boolean> {
   const fromEmail = process.env.SENDGRID_VERIFIED_SENDER || 'noreply@travelgroupr.com';
-  const subject = 'Password Reset for Shered';
+  const subject = 'Password Reset for TrustLoopz';
   
   const text = `
     Hi ${username},

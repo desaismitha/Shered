@@ -75,7 +75,7 @@ export default function FeedbackPage() {
               </div>
               <p className="text-lg text-center mb-2">Your feedback has been received</p>
               <p className="text-sm text-center text-muted-foreground">
-                We value your input and will use it to improve the Shered platform.
+                We value your input and will use it to improve the TrustLoopz platform.
               </p>
             </CardContent>
             <CardFooter className="flex justify-center">
@@ -102,7 +102,7 @@ export default function FeedbackPage() {
               Share Your Feedback
             </CardTitle>
             <CardDescription>
-              Help us improve Shered by sharing your thoughts, suggestions, or reporting issues
+              Help us improve TrustLoopz by sharing your thoughts, suggestions, or reporting issues
             </CardDescription>
           </CardHeader>
           <form onSubmit={handleSubmit}>
