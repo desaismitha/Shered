@@ -550,7 +550,7 @@ export default function AuthPage() {
           <div className="max-w-md mx-auto">
             <div className="flex items-center mb-3">
               <Plane className="h-6 w-6 mr-2" />
-              <h1 className="text-2xl font-bold">Shered</h1>
+              <h1 className="text-2xl font-bold">TrustLoopz</h1>
             </div>
             <h2 className="text-xl md:text-3xl font-bold mb-3">
               Plan trips together, effortlessly
