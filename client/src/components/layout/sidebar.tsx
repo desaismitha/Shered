@@ -25,7 +25,7 @@ export function Sidebar() {
   };
 
   const navItems = [
-    { icon: LayoutDashboard, label: "Dashboard", href: "/" },
+    { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
     { icon: Users, label: "My Groups", href: "/groups" },
     { icon: Calendar, label: "Upcoming Schedules", href: "/schedules" },
     { icon: Navigation, label: "Active Schedules", href: "/active-schedules" },

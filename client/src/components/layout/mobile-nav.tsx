@@ -56,7 +56,7 @@ export function MobileMenu({ isOpen, onClose }: { isOpen: boolean; onClose: () =
   };
 
   const navItems = [
-    { icon: LayoutDashboard, label: "Dashboard", href: "/" },
+    { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
     { icon: Users, label: "My Groups", href: "/groups" },
     { icon: Calendar, label: "Upcoming Trips", href: "/trips" },
     { icon: Navigation, label: "Active Trips", href: "/active-trips" },
