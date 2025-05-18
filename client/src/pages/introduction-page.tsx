@@ -9,22 +9,25 @@ export default function IntroductionPage() {
   const { user } = useAuth();
   
   return (
-    <div className="min-h-screen bg-white">
-      {/* Hero Section */}
-      <section className="bg-gradient-to-r from-primary-50 via-primary-100 to-primary-50 py-16 md:py-24">
-        <div className="container mx-auto px-4 md:px-6">
-          {/* Added top navigation bar with logo on left and login button on right */}
-          <div className="flex items-center justify-between w-full mb-8">
-            <div className="flex items-center">
-              <TrustLoopzLogo className="h-8 w-8 mr-2" />
-              <h1 className="text-3xl font-bold text-primary">TrustLoopz</h1>
-            </div>
-            <Link href="/auth">
-              <Button className="bg-primary text-white hover:bg-primary/90">
-                Login / Sign Up
-              </Button>
-            </Link>
+    <div className="min-h-screen bg-white relative">
+      {/* Fixed top navigation bar */}
+      <div className="absolute top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-sm border-b">
+        <div className="container mx-auto px-4 md:px-6 py-3 flex items-center justify-between">
+          <div className="flex items-center">
+            <TrustLoopzLogo className="h-8 w-8 mr-2" />
+            <h1 className="text-2xl font-bold text-primary">TrustLoopz</h1>
           </div>
+          <Link href="/auth">
+            <Button className="bg-primary text-white hover:bg-primary/90">
+              Login / Sign Up
+            </Button>
+          </Link>
+        </div>
+      </div>
+      
+      {/* Hero Section - adjusted padding to account for fixed nav */}
+      <section className="bg-gradient-to-r from-primary-50 via-primary-100 to-primary-50 pt-28 pb-16 md:pb-24">
+        <div className="container mx-auto px-4 md:px-6">
           
           <div className="flex flex-col md:flex-row items-center gap-8">
             <div className="md:w-1/2 space-y-4">
