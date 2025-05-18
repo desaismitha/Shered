@@ -345,6 +345,11 @@ export default function AuthPage() {
         <div className="flex items-start md:items-center justify-center p-4 pt-0 md:p-8 md:w-1/2 order-last md:order-first">
           <Card className="w-full max-w-md">
             <CardHeader className="space-y-1">
+              <div className="flex justify-between items-center mb-2">
+                <Link href="/intro" className="text-sm text-primary hover:underline">
+                  ← Back to Introduction
+                </Link>
+              </div>
               <CardTitle className="text-2xl font-bold text-center">
                 {inviteToken 
                   ? "Join Group Invitation" 
