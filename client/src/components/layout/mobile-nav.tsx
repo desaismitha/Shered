@@ -26,7 +26,9 @@ export function MobileHeader() {
             <Menu className="h-6 w-6" />
           </button>
           <div className="flex items-center">
-            <img src="/images/trustloopz-logo.png" alt="TrustLoopz Logo" className="h-8 w-auto mr-2" />
+            <div className="bg-blue-500 h-8 w-8 flex items-center justify-center rounded-md mr-2">
+              <span className="text-white text-lg font-bold">T</span>
+            </div>
             <h1 className="text-xl font-bold text-neutral-800">TrustLoopz</h1>
           </div>
         </div>
