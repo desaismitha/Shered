@@ -226,6 +226,99 @@ export default function IntroductionPage() {
         </div>
       </section>
 
+      {/* Mobile App Section */}
+      <section className="py-16 bg-white">
+        <div className="container mx-auto px-4 md:px-6">
+          <div className="max-w-6xl mx-auto">
+            <div className="grid md:grid-cols-2 gap-8 items-center">
+              <div>
+                <h2 className="text-3xl font-bold mb-4">Shered Mobile and Watch Apps <span className="inline-block bg-primary/10 text-primary text-sm font-semibold px-3 py-1 rounded-full">Coming Soon</span></h2>
+                <p className="text-lg text-gray-700 mb-6">
+                  Take the power of Shered with you wherever you go. Our upcoming mobile app and watch app will make coordination even easier.
+                </p>
+                <div className="space-y-4 mb-6">
+                  <div className="flex items-start gap-3">
+                    <div className="bg-primary-100 p-2 rounded-full">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="font-semibold">Real-time Location Updates</h3>
+                      <p className="text-gray-600">Share your location in real-time with your transportation group.</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="bg-primary-100 p-2 rounded-full">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="font-semibold">Smart Notifications</h3>
+                      <p className="text-gray-600">Get timely alerts for pickups, drop-offs, and schedule changes.</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="bg-primary-100 p-2 rounded-full">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="font-semibold">Quick Check-ins</h3>
+                      <p className="text-gray-600">Tap to check in for scheduled trips with automatic location verification.</p>
+                    </div>
+                  </div>
+                </div>
+                <Button className="mb-2 mr-2">
+                  Notify Me When Available
+                </Button>
+                <p className="text-sm text-gray-500">Be the first to know when our mobile apps launch.</p>
+              </div>
+              <div className="order-first md:order-last">
+                <div className="relative">
+                  <div className="absolute -top-6 -right-6 w-32 h-32 bg-primary/10 rounded-full"></div>
+                  <div className="bg-gray-100 rounded-xl p-8 relative z-10 text-center">
+                    <div className="flex justify-center mb-6">
+                      <div className="bg-white w-64 h-[500px] rounded-[32px] shadow-lg flex flex-col overflow-hidden border-4 border-gray-200 relative">
+                        <div className="absolute w-32 h-6 bg-gray-800 rounded-b-xl top-0 left-1/2 transform -translate-x-1/2"></div>
+                        <div className="p-3 flex-1 flex flex-col items-center justify-center bg-gradient-to-b from-primary-50 to-white">
+                          <div className="w-12 h-12 bg-primary rounded-full mb-3 flex items-center justify-center">
+                            <Plane className="h-6 w-6 text-white" />
+                          </div>
+                          <h3 className="text-xl font-bold text-gray-800">Shered</h3>
+                          <p className="text-gray-600 text-sm mb-4">Mobile App</p>
+                          <div className="w-full p-3 bg-white rounded-lg shadow-md mb-3">
+                            <div className="flex items-center">
+                              <Car className="h-5 w-5 text-primary mr-2" />
+                              <div className="text-left">
+                                <p className="font-medium text-sm">School Pickup</p>
+                                <p className="text-xs text-gray-500">3:15 PM - In Progress</p>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="w-full p-3 bg-white rounded-lg shadow-md">
+                            <div className="flex items-center">
+                              <Calendar className="h-5 w-5 text-primary mr-2" />
+                              <div className="text-left">
+                                <p className="font-medium text-sm">Soccer Practice</p>
+                                <p className="text-xs text-gray-500">5:00 PM - Upcoming</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-sm font-medium text-gray-500">Mobile App Preview</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* CTA Section */}
       <section className="py-16 bg-primary-600 text-white">
         <div className="container mx-auto px-4 md:px-6 text-center">
