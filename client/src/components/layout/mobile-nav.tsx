@@ -83,9 +83,7 @@ export function MobileMenu({ isOpen, onClose }: { isOpen: boolean; onClose: () =
         
         <div className="flex-1 h-0 pt-5 pb-4 overflow-y-auto">
           <div className="flex-shrink-0 flex items-center px-4">
-            <div className="bg-blue-500 h-8 w-8 flex items-center justify-center rounded-md mr-2">
-              <span className="text-white text-lg font-bold">T</span>
-            </div>
+            <img src="/trustloopz-logo.png" alt="TrustLoopz Logo" className="h-8 w-8 mr-2" />
             <span className="text-xl font-bold text-neutral-800">TrustLoopz</span>
           </div>
           <nav className="mt-5 px-2 space-y-1">
