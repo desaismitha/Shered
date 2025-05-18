@@ -14,9 +14,16 @@ export default function IntroductionPage() {
         <div className="container mx-auto px-4 md:px-6">
           <div className="flex flex-col md:flex-row items-center gap-8">
             <div className="md:w-1/2 space-y-4">
-              <div className="flex items-center mb-4">
-                <Plane className="h-8 w-8 text-primary mr-2" />
-                <h1 className="text-3xl font-bold text-primary">Shered</h1>
+              <div className="flex items-center justify-between w-full mb-4">
+                <div className="flex items-center">
+                  <Plane className="h-8 w-8 text-primary mr-2" />
+                  <h1 className="text-3xl font-bold text-primary">Shered</h1>
+                </div>
+                <Link href="/auth">
+                  <Button variant="outline" className="bg-white hover:bg-gray-50">
+                    Login / Sign Up
+                  </Button>
+                </Link>
               </div>
               <h2 className="text-4xl md:text-5xl font-extrabold text-gray-900 leading-tight">
                 Simplify your kids' transportation coordination

@@ -296,6 +296,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       toast({
         title: "Logged out successfully",
       });
+      
+      // Redirect to introduction page
+      window.location.href = '/intro';
     },
     onError: (error) => {
       console.error("Logout error in onError handler:", error);
