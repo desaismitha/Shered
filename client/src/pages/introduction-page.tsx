@@ -180,7 +180,7 @@ export default function IntroductionPage() {
                 
                 <div className="bg-primary-50 p-4 rounded-lg">
                   <h4 className="font-bold text-lg mb-2">✓ Role-based Access</h4>
-                  <p className="text-gray-600">Control who can view, edit, or manage transportation schedules based on their role.</p>
+                  <p className="text-gray-600">Our powerful permission system lets you assign specific roles like Admin, Parent/Guardian, or Driver, each with appropriate access levels. Admins can create and edit all schedules, while others can request modifications when needed.</p>
                 </div>
               </div>
             </div>
