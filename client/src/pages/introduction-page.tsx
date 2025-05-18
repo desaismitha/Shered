@@ -1,290 +1,222 @@
-import { AppShell } from "@/components/layout/app-shell";
-import { Button } from "@/components/ui/button";
-import { Link } from "wouter";
-import { 
-  Car, 
-  Clock, 
-  CalendarCheck, 
-  Users, 
-  MessageSquare, 
-  Bell, 
-  MapPin,
-  ArrowRight
-} from "lucide-react";
+import React from 'react';
+import { Plane, Car, Clock, Calendar, Users, MapPin, CheckCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Link } from 'wouter';
+import { useAuth } from '@/hooks/use-auth';
 
 export default function IntroductionPage() {
+  const { user } = useAuth();
+  
   return (
-    <AppShell>
+    <div className="min-h-screen bg-white">
       {/* Hero Section */}
-      <div className="relative bg-gradient-to-r from-primary-600 to-primary-800 text-white">
-        <div className="container max-w-6xl mx-auto py-16 px-4 sm:px-6 lg:px-8">
-          <div className="max-w-3xl">
-            <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl mb-6">
-              Simplify Your Family's Transportation Challenges
-            </h1>
-            <p className="text-xl max-w-xl">
-              Coordinating kids' pick-ups and drop-offs shouldn't be complicated. 
-              Shered helps you manage schedules, coordinate with other parents, and keep everyone safe.
-            </p>
-            <div className="mt-10">
-              <Link href="/auth">
-                <Button size="lg" className="px-8 py-6 text-lg rounded-lg mr-4">
-                  Get Started <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
-              </Link>
-              <Link href="/schedules">
-                <Button variant="outline" size="lg" className="px-8 py-6 text-lg rounded-lg border-white text-white hover:bg-white hover:text-primary-800">
-                  Learn More
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-        <div className="absolute bottom-0 right-0 w-full lg:w-1/2 h-1/3 lg:h-full opacity-10">
-          <div className="w-full h-full bg-repeat-space" style={{ backgroundImage: "url('data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"white\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"1\" y=\"3\" width=\"15\" height=\"13\"></rect><polygon points=\"16 8 20 8 23 11 23 16 16 16 16 8\"></polygon><circle cx=\"5.5\" cy=\"18.5\" r=\"2.5\"></circle><circle cx=\"18.5\" cy=\"18.5\" r=\"2.5\"></circle></svg>')" }}></div>
-        </div>
-      </div>
-
-      {/* Challenges Section */}
-      <div className="py-16 bg-gray-50">
-        <div className="container max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl">
-              The Daily Challenges Parents Face
-            </h2>
-            <p className="mt-4 text-lg text-gray-600 max-w-2xl mx-auto">
-              Managing children's transportation to school, sports, and activities 
-              creates significant challenges for families everywhere.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <div className="inline-flex items-center justify-center rounded-md bg-primary-50 p-3 text-primary-700 mb-4">
-                <Clock className="h-6 w-6" />
+      <section className="bg-gradient-to-r from-primary-50 via-primary-100 to-primary-50 py-16 md:py-24">
+        <div className="container mx-auto px-4 md:px-6">
+          <div className="flex flex-col md:flex-row items-center gap-8">
+            <div className="md:w-1/2 space-y-4">
+              <div className="flex items-center mb-4">
+                <Plane className="h-8 w-8 text-primary mr-2" />
+                <h1 className="text-3xl font-bold text-primary">Shered</h1>
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Scheduling Conflicts</h3>
-              <p className="text-gray-600">
-                Juggling work schedules, multiple pick-ups and drop-offs at different locations,
-                and last-minute changes can create overwhelming logistical challenges.
-              </p>
-            </div>
-
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <div className="inline-flex items-center justify-center rounded-md bg-primary-50 p-3 text-primary-700 mb-4">
-                <Car className="h-6 w-6" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Coordination Complexity</h3>
-              <p className="text-gray-600">
-                Organizing with other parents for carpools, tracking who's responsible for 
-                which days, and ensuring all parents have proper contact information.
-              </p>
-            </div>
-
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <div className="inline-flex items-center justify-center rounded-md bg-primary-50 p-3 text-primary-700 mb-4">
-                <Bell className="h-6 w-6" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Safety Concerns</h3>
-              <p className="text-gray-600">
-                Ensuring children are picked up by authorized adults, 
-                knowing when they've been safely dropped off, and having visibility into their journey.
-              </p>
-            </div>
-
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <div className="inline-flex items-center justify-center rounded-md bg-primary-50 p-3 text-primary-700 mb-4">
-                <Users className="h-6 w-6" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Communication Gaps</h3>
-              <p className="text-gray-600">
-                Maintaining open lines of communication with schools, activity leaders, 
-                and other parents about schedule changes or delays.
-              </p>
-            </div>
-
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <div className="inline-flex items-center justify-center rounded-md bg-primary-50 p-3 text-primary-700 mb-4">
-                <MapPin className="h-6 w-6" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Location Tracking</h3>
-              <p className="text-gray-600">
-                Knowing when drivers are on their way, monitoring for unexpected delays or route changes,
-                and confirming arrivals at destinations.
-              </p>
-            </div>
-
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <div className="inline-flex items-center justify-center rounded-md bg-primary-50 p-3 text-primary-700 mb-4">
-                <CalendarCheck className="h-6 w-6" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Schedule Management</h3>
-              <p className="text-gray-600">
-                Keeping track of changing seasonal activities, different schedules for each child, 
-                and coordinating with family calendars.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Solution Section */}
-      <div className="py-16">
-        <div className="container max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="lg:grid lg:grid-cols-2 lg:gap-16 items-center">
-            <div>
-              <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl mb-6">
-                How Shered Makes Transportation Simpler
+              <h2 className="text-4xl md:text-5xl font-extrabold text-gray-900 leading-tight">
+                Simplify your kids' transportation coordination
               </h2>
-              <p className="text-lg text-gray-600 mb-8">
-                Shered was designed specifically for families facing these transportation challenges,
-                providing tools that bring organization, safety, and peace of mind to your daily routine.
+              <p className="text-xl text-gray-700 mt-4">
+                The smart, reliable way to manage pick-ups and drop-offs for school, activities, and events.
               </p>
-              
-              <ul className="space-y-4">
-                <li className="flex">
-                  <div className="flex-shrink-0">
-                    <div className="h-8 w-8 rounded-full bg-primary-100 flex items-center justify-center">
-                      <CalendarCheck className="h-5 w-5 text-primary-600" />
-                    </div>
-                  </div>
-                  <div className="ml-4">
-                    <h4 className="text-lg font-medium text-gray-900">Unified Schedule Management</h4>
-                    <p className="mt-1 text-gray-600">Create, share and manage recurring pick-up and drop-off schedules that everyone can access.</p>
-                  </div>
-                </li>
-                
-                <li className="flex">
-                  <div className="flex-shrink-0">
-                    <div className="h-8 w-8 rounded-full bg-primary-100 flex items-center justify-center">
-                      <Users className="h-5 w-5 text-primary-600" />
-                    </div>
-                  </div>
-                  <div className="ml-4">
-                    <h4 className="text-lg font-medium text-gray-900">Group Coordination</h4>
-                    <p className="mt-1 text-gray-600">Easily form groups with other parents, assign drivers, and share responsibilities.</p>
-                  </div>
-                </li>
-                
-                <li className="flex">
-                  <div className="flex-shrink-0">
-                    <div className="h-8 w-8 rounded-full bg-primary-100 flex items-center justify-center">
-                      <MapPin className="h-5 w-5 text-primary-600" />
-                    </div>
-                  </div>
-                  <div className="ml-4">
-                    <h4 className="text-lg font-medium text-gray-900">Real-time Location Tracking</h4>
-                    <p className="mt-1 text-gray-600">See where drivers are during transport and receive notifications upon arrival and departure.</p>
-                  </div>
-                </li>
-                
-                <li className="flex">
-                  <div className="flex-shrink-0">
-                    <div className="h-8 w-8 rounded-full bg-primary-100 flex items-center justify-center">
-                      <MessageSquare className="h-5 w-5 text-primary-600" />
-                    </div>
-                  </div>
-                  <div className="ml-4">
-                    <h4 className="text-lg font-medium text-gray-900">Integrated Communication</h4>
-                    <p className="mt-1 text-gray-600">Message group members directly within the app about changes or updates.</p>
-                  </div>
-                </li>
-              </ul>
-
-              <div className="mt-10">
+              <div className="flex flex-col sm:flex-row gap-4 mt-8">
                 <Link href="/auth">
-                  <Button className="px-6 py-3 rounded-md">
-                    Start Organizing Your Schedules
-                  </Button>
+                  <Button className="px-6 py-3 text-lg">Get Started</Button>
                 </Link>
+                <a href="#how-it-works">
+                  <Button variant="outline" className="px-6 py-3 text-lg">
+                    Learn More
+                  </Button>
+                </a>
               </div>
             </div>
-            
-            <div className="mt-10 lg:mt-0 flex justify-center">
+            <div className="md:w-1/2 flex justify-center">
               <div className="relative w-full max-w-md">
-                <div className="absolute inset-0 bg-gradient-to-r from-primary-200 to-primary-300 transform -rotate-6 rounded-2xl"></div>
-                <div className="relative bg-white p-6 rounded-2xl shadow-lg">
-                  <div className="mb-6 pb-6 border-b border-gray-200">
-                    <h3 className="text-lg font-medium text-gray-900">Morning School Drop-off</h3>
-                    <div className="mt-2 flex justify-between items-center">
-                      <div className="flex items-center text-sm text-gray-500">
-                        <Clock className="mr-1 h-4 w-4" /> 
-                        7:30 - 8:15 AM
-                      </div>
-                      <div className="text-sm font-medium text-primary-600">Mon, Wed, Fri</div>
+                <div className="absolute -top-6 -left-6 w-24 h-24 bg-primary/20 rounded-full"></div>
+                <div className="absolute -bottom-6 -right-6 w-32 h-32 bg-primary/10 rounded-full"></div>
+                <div className="bg-white rounded-xl shadow-xl p-6 relative z-10">
+                  <div className="flex items-center gap-4 mb-4 border-b pb-4">
+                    <Car className="text-primary h-12 w-12" />
+                    <div>
+                      <h3 className="font-bold text-lg">School Drop-off</h3>
+                      <p className="text-gray-600">Today • 7:30 AM</p>
+                    </div>
+                    <CheckCircle className="ml-auto text-green-500 h-6 w-6" />
+                  </div>
+                  <div className="space-y-3 mb-4">
+                    <div className="flex items-start gap-3">
+                      <MapPin className="text-gray-400 h-5 w-5 mt-0.5" />
+                      <p className="text-gray-700">Home → Woodland Elementary</p>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <Users className="text-gray-400 h-5 w-5 mt-0.5" />
+                      <p className="text-gray-700">Emma, Michael</p>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <Car className="text-gray-400 h-5 w-5 mt-0.5" />
+                      <p className="text-gray-700">Driver: Jason (confirmed)</p>
                     </div>
                   </div>
-                  
-                  <div className="mb-6">
-                    <div className="flex items-center">
-                      <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center mr-3">
-                        <MapPin className="h-4 w-4 text-green-600" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">Pickup</p>
-                        <p className="text-sm text-gray-500">20613, Northeast 38th Street</p>
-                      </div>
-                    </div>
-                    
-                    <div className="relative h-14 my-2">
-                      <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-200"></div>
-                    </div>
-                    
-                    <div className="flex items-center">
-                      <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center mr-3">
-                        <MapPin className="h-4 w-4 text-blue-600" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">Dropoff</p>
-                        <p className="text-sm text-gray-500">Madison Elementary School</p>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="border-t border-gray-200 pt-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
-                          <Car className="h-4 w-4 text-gray-600" />
-                        </div>
-                        <div className="ml-3">
-                          <p className="text-sm font-medium text-gray-900">Driver</p>
-                          <p className="text-sm text-gray-500">Sarah Johnson</p>
-                        </div>
-                      </div>
-                      <div>
-                        <span className="inline-flex items-center px-3 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          Confirmed
-                        </span>
-                      </div>
-                    </div>
+                  <div className="mt-6">
+                    <Button className="w-full">View Details</Button>
                   </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* CTA Section */}
-      <div className="bg-primary-700 text-white">
-        <div className="container max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-          <div className="text-center">
-            <h2 className="text-3xl font-bold sm:text-4xl mb-4">
-              Ready to simplify your family's transportation?
-            </h2>
-            <p className="text-lg opacity-90 max-w-2xl mx-auto mb-8">
-              Join thousands of families who are using Shered to coordinate pick-ups and drop-offs,
-              ensuring their children get where they need to be safely and on time.
+      {/* Challenge Section */}
+      <section className="py-16" id="challenges">
+        <div className="container mx-auto px-4 md:px-6">
+          <div className="max-w-3xl mx-auto text-center mb-12">
+            <h2 className="text-3xl font-bold mb-4">The Challenges of Transportation Coordination</h2>
+            <p className="text-lg text-gray-600">
+              Managing the logistics of kids' transportation can be overwhelming for families. Here's why:
             </p>
-            <Link href="/auth">
-              <Button size="lg" variant="outline" className="px-8 py-6 text-lg rounded-lg border-white text-white hover:bg-white hover:text-primary-700">
-                Sign Up Now
-              </Button>
-            </Link>
+          </div>
+          
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="bg-white p-6 rounded-lg shadow-md">
+              <div className="bg-primary-100 p-3 rounded-full w-14 h-14 flex items-center justify-center mb-4">
+                <Clock className="h-7 w-7 text-primary" />
+              </div>
+              <h3 className="text-xl font-bold mb-2">Scheduling Complexity</h3>
+              <p className="text-gray-600">
+                Balancing work schedules, school hours, and various activities creates logistical puzzles for parents and guardians.
+              </p>
+            </div>
+            
+            <div className="bg-white p-6 rounded-lg shadow-md">
+              <div className="bg-primary-100 p-3 rounded-full w-14 h-14 flex items-center justify-center mb-4">
+                <Users className="h-7 w-7 text-primary" />
+              </div>
+              <h3 className="text-xl font-bold mb-2">Communication Gaps</h3>
+              <p className="text-gray-600">
+                Coordinating with other parents, caregivers, and schools often leads to miscommunication and missed pickups.
+              </p>
+            </div>
+            
+            <div className="bg-white p-6 rounded-lg shadow-md">
+              <div className="bg-primary-100 p-3 rounded-full w-14 h-14 flex items-center justify-center mb-4">
+                <Calendar className="h-7 w-7 text-primary" />
+              </div>
+              <h3 className="text-xl font-bold mb-2">Last-Minute Changes</h3>
+              <p className="text-gray-600">
+                Unexpected schedule changes, traffic issues, or sick children can disrupt carefully planned transportation arrangements.
+              </p>
+            </div>
           </div>
         </div>
-      </div>
-    </AppShell>
+      </section>
+
+      {/* Solution Section */}
+      <section className="py-16 bg-gray-50" id="how-it-works">
+        <div className="container mx-auto px-4 md:px-6">
+          <div className="max-w-3xl mx-auto text-center mb-12">
+            <h2 className="text-3xl font-bold mb-4">How Shered Makes It Easy</h2>
+            <p className="text-lg text-gray-600">
+              Our platform simplifies transportation coordination with powerful yet easy-to-use features.
+            </p>
+          </div>
+          
+          <div className="grid md:grid-cols-2 gap-8 items-center">
+            <div className="space-y-6">
+              <div className="flex gap-4">
+                <div className="bg-primary text-white rounded-full h-10 w-10 flex items-center justify-center shrink-0">1</div>
+                <div>
+                  <h3 className="text-xl font-bold mb-1">Create Transportation Groups</h3>
+                  <p className="text-gray-600">Form groups with other parents, guardians, or caretakers to share transportation responsibilities.</p>
+                </div>
+              </div>
+              
+              <div className="flex gap-4">
+                <div className="bg-primary text-white rounded-full h-10 w-10 flex items-center justify-center shrink-0">2</div>
+                <div>
+                  <h3 className="text-xl font-bold mb-1">Set Up Regular Schedules</h3>
+                  <p className="text-gray-600">Create recurring pickup and drop-off schedules for school, activities, and events.</p>
+                </div>
+              </div>
+              
+              <div className="flex gap-4">
+                <div className="bg-primary text-white rounded-full h-10 w-10 flex items-center justify-center shrink-0">3</div>
+                <div>
+                  <h3 className="text-xl font-bold mb-1">Assign Drivers</h3>
+                  <p className="text-gray-600">Designate drivers for specific days or trips with built-in confirmation system.</p>
+                </div>
+              </div>
+              
+              <div className="flex gap-4">
+                <div className="bg-primary text-white rounded-full h-10 w-10 flex items-center justify-center shrink-0">4</div>
+                <div>
+                  <h3 className="text-xl font-bold mb-1">Get Real-time Updates</h3>
+                  <p className="text-gray-600">Receive notifications about trip status, route changes, and arrival/departure times.</p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <div className="space-y-4">
+                <div className="bg-primary-50 p-4 rounded-lg">
+                  <h4 className="font-bold text-lg mb-2">✓ Easy Schedule Management</h4>
+                  <p className="text-gray-600">Create, edit, and visualize all your transportation schedules in one place.</p>
+                </div>
+                
+                <div className="bg-primary-50 p-4 rounded-lg">
+                  <h4 className="font-bold text-lg mb-2">✓ Real-time Tracking</h4>
+                  <p className="text-gray-600">Know exactly where your children are during transportation with live location updates.</p>
+                </div>
+                
+                <div className="bg-primary-50 p-4 rounded-lg">
+                  <h4 className="font-bold text-lg mb-2">✓ Smart Notifications</h4>
+                  <p className="text-gray-600">Automated reminders and alerts keep everyone informed and on schedule.</p>
+                </div>
+                
+                <div className="bg-primary-50 p-4 rounded-lg">
+                  <h4 className="font-bold text-lg mb-2">✓ Role-based Access</h4>
+                  <p className="text-gray-600">Control who can view, edit, or manage transportation schedules based on their role.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-16 bg-primary-600 text-white">
+        <div className="container mx-auto px-4 md:px-6 text-center">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">Ready to simplify your transportation coordination?</h2>
+          <p className="text-xl mb-8 max-w-2xl mx-auto">
+            Join Shered today and spend less time managing logistics and more time with your family.
+          </p>
+          <Link href={user ? "/" : "/auth"}>
+            <Button className="bg-white text-primary hover:bg-gray-100 px-8 py-4 text-lg">
+              {user ? 'Go to Dashboard' : 'Get Started Now'}
+            </Button>
+          </Link>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="bg-gray-100 py-8">
+        <div className="container mx-auto px-4 md:px-6">
+          <div className="flex flex-col md:flex-row justify-between items-center">
+            <div className="flex items-center mb-4 md:mb-0">
+              <Plane className="h-6 w-6 text-primary mr-2" />
+              <span className="text-lg font-bold text-primary">Shered</span>
+            </div>
+            <div className="text-gray-600 text-sm">
+              © {new Date().getFullYear()} Shered. All rights reserved.
+            </div>
+          </div>
+        </div>
+      </footer>
+    </div>
   );
 }
