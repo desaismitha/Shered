@@ -3,6 +3,7 @@ import { Plane, Car, Clock, Calendar, Users, MapPin, CheckCircle } from 'lucide-
 import { Button } from '@/components/ui/button';
 import { Link } from 'wouter';
 import { useAuth } from '@/hooks/use-auth';
+import { TrustLoopzLogo } from '@/components/ui/logo';
 
 export default function IntroductionPage() {
   const { user } = useAuth();
@@ -16,7 +17,7 @@ export default function IntroductionPage() {
             <div className="md:w-1/2 space-y-4">
               <div className="flex items-center justify-between w-full mb-4">
                 <div className="flex items-center">
-                  <Plane className="h-8 w-8 text-primary mr-2" />
+                  <TrustLoopzLogo className="h-8 w-8 mr-2" />
                   <h1 className="text-3xl font-bold text-primary">TrustLoopz</h1>
                 </div>
                 <Link href="/auth">
@@ -339,7 +340,7 @@ export default function IntroductionPage() {
         <div className="container mx-auto px-4 md:px-6">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="flex items-center mb-4 md:mb-0">
-              <Plane className="h-6 w-6 text-primary mr-2" />
+              <TrustLoopzLogo className="h-6 w-6 mr-2" />
               <span className="text-lg font-bold text-primary">TrustLoopz</span>
             </div>
             <div className="text-gray-600 text-sm">
