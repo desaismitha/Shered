@@ -24,9 +24,9 @@ export function TrustLoopzLogo({ className = "h-8 w-8 mr-2" }: { className?: str
           fill="none"
         />
         
-        {/* Infinity symbol - more centered and smaller */}
+        {/* Infinity symbol - positioned more to the left */}
         <path
-          d="M35,50 C35,42 42,38 50,38 C58,38 62,46 62,50 C62,54 66,62 74,62 C82,62 85,54 85,50 C85,46 82,38 74,38 C66,38 62,46 62,50 C62,54 58,62 50,62 C42,62 35,58 35,50Z"
+          d="M30,50 C30,42 37,38 45,38 C53,38 57,46 57,50 C57,54 61,62 69,62 C77,62 80,54 80,50 C80,46 77,38 69,38 C61,38 57,46 57,50 C57,54 53,62 45,62 C37,62 30,58 30,50Z"
           stroke="white"
           strokeWidth="7"
           strokeLinecap="round"
