@@ -51,7 +51,7 @@ export function Sidebar() {
     <aside className="hidden md:flex md:w-64 lg:w-72 flex-col fixed inset-y-0 left-0 border-r border-neutral-200 bg-white z-20">
       <div className="flex items-center h-16 px-6 border-b border-neutral-200">
         <div className="flex items-center">
-          <img src="/trustloopz-logo.png" alt="TrustLoopz Logo" className="h-8 w-8 mr-2" />
+          <img src="/images/trustloopz-logo.png" alt="TrustLoopz Logo" className="h-8 w-8 mr-2" />
           <h1 className="text-xl font-bold text-neutral-800">TrustLoopz</h1>
         </div>
         <div className="ml-auto">
