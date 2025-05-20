@@ -187,8 +187,8 @@ export default function AuthPage() {
       setShowVerificationModal(false);
       setRegistrationId('');
       setRegisteredEmail('');
-      // Navigate to home page (dashboard component is rendered at '/')
-      navigate('/');
+      // Navigate to dashboard page
+      navigate('/dashboard');
     }
   }, [registerCompleteMutation.isSuccess, navigate]);
   
@@ -197,7 +197,7 @@ export default function AuthPage() {
     console.log("User already authenticated, redirecting to dashboard from auth page");
     // When a user is already logged in and visits the auth page with invitation parameters,
     // they're automatically redirected to dashboard, ensuring security
-    return <Redirect to="/" />;
+    return <Redirect to="/dashboard" />;
   }
 
   // Submit handlers
