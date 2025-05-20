@@ -17,7 +17,7 @@ export default function IntroductionPage() {
             <TrustLoopzLogo className="h-8 w-8 mr-2" />
             <h1 className="text-2xl font-bold text-primary">TrustLoopz</h1>
           </div>
-          <Link href="/auth">
+          <Link to="/auth">
             <Button className="bg-primary text-white hover:bg-primary/90">
               Login / Sign Up
             </Button>
@@ -39,7 +39,7 @@ export default function IntroductionPage() {
                 The smart, reliable way to manage pick-ups and drop-offs for school, activities, and events.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 mt-8">
-                <Link href="/auth">
+                <Link to="/auth">
                   <Button className="px-6 py-3 text-lg">Get Started</Button>
                 </Link>
                 <a href="#how-it-works">
