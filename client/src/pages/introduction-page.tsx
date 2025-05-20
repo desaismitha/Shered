@@ -17,11 +17,12 @@ export default function IntroductionPage() {
             <TrustLoopzLogo className="h-8 w-8 mr-2" />
             <h1 className="text-2xl font-bold text-primary">TrustLoopz</h1>
           </div>
-          <Link to="/auth">
-            <Button className="bg-primary text-white hover:bg-primary/90">
-              Login / Sign Up
-            </Button>
-          </Link>
+          <Button 
+            className="bg-primary text-white hover:bg-primary/90"
+            onClick={() => window.location.href = "/auth"}
+          >
+            Login / Sign Up
+          </Button>
         </div>
       </div>
       
@@ -39,9 +40,12 @@ export default function IntroductionPage() {
                 The smart, reliable way to manage pick-ups and drop-offs for school, activities, and events.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 mt-8">
-                <Link to="/auth">
-                  <Button className="px-6 py-3 text-lg">Get Started</Button>
-                </Link>
+                <Button 
+                  className="px-6 py-3 text-lg" 
+                  onClick={() => window.location.href = "/auth"}
+                >
+                  Get Started
+                </Button>
                 <a href="#how-it-works">
                   <Button variant="outline" className="px-6 py-3 text-lg">
                     Learn More

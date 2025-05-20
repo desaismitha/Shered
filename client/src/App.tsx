@@ -119,7 +119,6 @@ function Router() {
         {() => <Redirect to="/active-schedules-debug" />}
       </Route>
       
-      <Route path="/auth" component={AuthPage} />
       <Route path="/invite/:groupId/:token">
         {(params) => {
           console.log("Invite route detected with params:", params);
@@ -160,9 +159,7 @@ function Router() {
       <Route path="/invite">
         {() => <Redirect to="/auth" />}
       </Route>
-      <Route path="/forgot-password" component={ForgotPasswordPage} />
-      <Route path="/reset-password/:token" component={ResetPasswordPage} />
-      <Route path="/verify-email" component={VerifyEmailPage} />
+      {/* These routes are already defined above */}
       <Route component={NotFound} />
     </Switch>
   );
