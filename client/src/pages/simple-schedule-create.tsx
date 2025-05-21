@@ -22,12 +22,21 @@ export default function SimpleScheduleCreate() {
   // State for form fields
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [startDate, setStartDate] = useState<Date>(new Date());
-  const [endDate, setEndDate] = useState<Date>(new Date());
+  
+  // Default to 1 hour from now for both dates to avoid any past date issues
+  const futureDate = new Date(new Date().getTime() + 60 * 60 * 1000);
+  const [startDate, setStartDate] = useState<Date>(futureDate);
+  const [endDate, setEndDate] = useState<Date>(new Date(futureDate.getTime() + 60 * 60 * 1000)); // Default end = start + 1 hour
+  
   const [startLocation, setStartLocation] = useState("");
   const [endLocation, setEndLocation] = useState("");
-  const [startTime, setStartTime] = useState("12:00");
-  const [endTime, setEndTime] = useState("13:00");
+  
+  // Default to current hour + 1 and current hour + 2 for time values
+  const defaultStartHour = new Date().getHours() + 1;
+  const defaultEndHour = new Date().getHours() + 2;
+  const [startTime, setStartTime] = useState(`${defaultStartHour.toString().padStart(2, '0')}:00`);
+  const [endTime, setEndTime] = useState(`${defaultEndHour.toString().padStart(2, '0')}:00`);
+  
   const [groupId, setGroupId] = useState<number | undefined>(undefined);
   
   // Get user's groups for the dropdown
