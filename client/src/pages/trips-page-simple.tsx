@@ -125,15 +125,13 @@ export default function TripsPage() {
             </Button>
           </div>
           <div className="flex gap-2 mt-2 sm:mt-0">
-            {isAdmin() && (
-              <Button 
-                onClick={() => navigate("/schedules/new")}
-                className="inline-flex items-center"
-              >
-                <PlusIcon className="h-4 w-4 mr-2" />
-                Create New Schedule
-              </Button>
-            )}
+            <Button 
+              onClick={() => navigate("/schedules/new")}
+              className="inline-flex items-center bg-blue-500 hover:bg-blue-600 text-white"
+            >
+              <PlusIcon className="h-4 w-4 mr-2" />
+              Create New Schedule
+            </Button>
           </div>
         </div>
         
@@ -207,10 +205,10 @@ export default function TripsPage() {
                   {activeTab === "past" && "Your completed schedules will appear here."}
                   {activeTab === "cancelled" && "Cancelled schedules will appear here."}
                 </p>
-                {activeTab === "upcoming" && isAdmin() && (
+                {activeTab === "upcoming" && (
                   <Button 
                     onClick={() => navigate("/schedules/new")}
-                    className="inline-flex items-center"
+                    className="inline-flex items-center bg-blue-500 hover:bg-blue-600 text-white"
                   >
                     <PlusIcon className="h-4 w-4 mr-2" />
                     Create New Schedule
