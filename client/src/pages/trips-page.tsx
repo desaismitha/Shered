@@ -215,15 +215,13 @@ export default function TripsPage() { // Using as SchedulesPage
             </Button>
           </div>
           <div className="flex gap-2 mt-2 sm:mt-0">
-            {isAdmin() && (
-              <Button 
-                onClick={() => navigate("/schedules/new")}
-                className="inline-flex items-center"
-              >
-                <PlusIcon className="h-4 w-4 mr-2" />
-                Create New Schedule
-              </Button>
-            )}
+            <Button 
+              onClick={() => navigate("/schedules/new")}
+              className="inline-flex items-center"
+            >
+              <PlusIcon className="h-4 w-4 mr-2" />
+              Create New Schedule
+            </Button>
           </div>
         </div>
         
