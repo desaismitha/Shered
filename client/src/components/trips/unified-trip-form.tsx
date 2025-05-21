@@ -156,40 +156,23 @@ export function UnifiedTripForm({
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
-    defaultValues: () => {
-      // Create current date for default start date
-      const now = new Date();
-      
-      // Create date 15 minutes later for default end date
-      const later = new Date(now.getTime() + 15 * 60 * 1000);
-      
-      // Format the times for the form
-      const startHours = now.getHours().toString().padStart(2, '0');
-      const startMinutes = now.getMinutes().toString().padStart(2, '0');
-      const startTime = `${startHours}:${startMinutes}`;
-      
-      const endHours = later.getHours().toString().padStart(2, '0');
-      const endMinutes = later.getMinutes().toString().padStart(2, '0');
-      const endTime = `${endHours}:${endMinutes}`;
-      
-      return {
-        name: "",
-        startDate: now,
-        endDate: later,
-        startTime: startTime,
-        endTime: endTime,
-        description: "",
-        status: "planning",
-        isMultiStop: false,
-        startLocation: "",
-        endLocation: "",
-        isRecurring: false,
-        enableEmailNotifications: true,
-        enableMobileNotifications: true,
-        phoneNumber: "",
-        stops: [],
-        ...defaultValues,
-      };
+    defaultValues: {
+      name: "",
+      startDate: new Date(),
+      endDate: new Date(new Date().getTime() + 15 * 60 * 1000),
+      startTime: `${new Date().getHours().toString().padStart(2, '0')}:${new Date().getMinutes().toString().padStart(2, '0')}`,
+      endTime: `${new Date(new Date().getTime() + 15 * 60 * 1000).getHours().toString().padStart(2, '0')}:${new Date(new Date().getTime() + 15 * 60 * 1000).getMinutes().toString().padStart(2, '0')}`,
+      description: "",
+      status: "planning",
+      isMultiStop: false,
+      startLocation: "",
+      endLocation: "",
+      isRecurring: false,
+      enableEmailNotifications: true,
+      enableMobileNotifications: true,
+      phoneNumber: "",
+      stops: [],
+      ...defaultValues,
     },
   });
   
