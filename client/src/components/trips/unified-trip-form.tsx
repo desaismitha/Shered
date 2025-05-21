@@ -35,6 +35,7 @@ type FormSchemaType = {
   endDate: Date;
   description?: string;
   groupId?: number;
+  scheduleType?: "regular" | "event";
   status: "planning" | "confirmed" | "in-progress" | "completed" | "cancelled";
   isMultiStop: boolean;
   startLocation?: string;
@@ -487,31 +488,34 @@ export function UnifiedTripForm({
                     )}
                   />
                   
-                  <FormField
-                    control={form.control}
-                    name="endLocation"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Destination *</FormLabel>
-                        <FormControl>
-                          <MapLocationPicker 
-                            label=""
-                            value={field.value || ""} 
-                            onChange={field.onChange}
-                            placeholder="Enter destination"
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          Where the trip ends
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  {/* Only show destination field for regular schedules */}
+                  {form.watch("scheduleType") !== "event" && (
+                    <FormField
+                      control={form.control}
+                      name="endLocation"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Destination *</FormLabel>
+                          <FormControl>
+                            <MapLocationPicker 
+                              label=""
+                              value={field.value || ""} 
+                              onChange={field.onChange}
+                              placeholder="Enter destination"
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Where the trip ends
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
                 </div>
               )}
               
-              {form.watch("startLocation") && form.watch("endLocation") && (
+              {form.watch("startLocation") && (form.watch("scheduleType") === "event" || form.watch("endLocation")) && (
                 <div className="mt-6">
                   <h3 className="text-sm font-medium mb-2">Route Preview</h3>
                   <div className="h-[300px] border rounded-md overflow-hidden">
