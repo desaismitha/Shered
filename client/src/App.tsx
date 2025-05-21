@@ -13,6 +13,7 @@ import DashboardPage from "@/pages/dashboard-page";
 import TripsPage from "@/pages/trips-page-simple"; // Using as SchedulesPage 
 // Using unified schedule page instead of separate pages
 import UnifiedTripPage from "@/pages/unified-trip-page"; // For creating new schedules
+import SimpleScheduleCreate from "@/pages/simple-schedule-create"; // New simplified schedule creation page
 
 // Use the simplified schedule details page instead of the complex one
 import ScheduleDetailsPage from "@/pages/schedule-details-simple";
@@ -71,6 +72,7 @@ function Router() {
       <ProtectedRoute path="/dashboard" component={DashboardPage} />
       <ProtectedRoute path="/schedules" component={TripsPage} />
       <ProtectedRoute path="/schedules/new" component={UnifiedTripPage} />
+      <ProtectedRoute path="/schedules/simple/new" component={SimpleScheduleCreate} />
       <ProtectedRoute 
         path="/schedules/:scheduleId" 
         component={ScheduleDetailsPage}

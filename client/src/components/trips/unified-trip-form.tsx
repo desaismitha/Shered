@@ -100,25 +100,7 @@ const formSchema = z.object({
   endTime: z.string({
     required_error: "End time is required"
   })
-  .refine(
-    (time, ctx) => {
-      // Skip validation if no start time
-      if (!ctx.data.startTime) return true;
-      
-      // If date is the same, ensure end time is after start time
-      if (ctx.data.startDate && ctx.data.endDate && 
-          ctx.data.startDate.getFullYear() === ctx.data.endDate.getFullYear() &&
-          ctx.data.startDate.getMonth() === ctx.data.endDate.getMonth() &&
-          ctx.data.startDate.getDate() === ctx.data.endDate.getDate()) {
-            return time > ctx.data.startTime;
-      }
-      
-      return true;
-    },
-    {
-      message: "End time must be after start time on the same day",
-    }
-  ),
+,
   isRecurring: z.boolean().default(false),
   recurrencePattern: z.enum(["daily", "weekly", "monthly", "custom"]).optional(),
   recurrenceDays: z.array(z.string()).optional(),
