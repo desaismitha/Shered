@@ -430,38 +430,142 @@ export function UnifiedTripForm({
             </div>
           </Card>
           
-          {/* Hide multi-stop options for Event Schedules */}
+          {/* Hide multi-stop and recurring options for Event Schedules */}
           {form.watch("scheduleType") !== "event" && (
-            <Card className="p-6">
-              <h2 className="text-lg font-medium mb-4">Trip Type</h2>
-              
-              <div className="flex flex-col space-y-4">
-                <FormField
-                  control={form.control}
-                  name="isMultiStop"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between space-x-3 space-y-0 rounded-md border p-4">
-                      <div className="space-y-1">
-                        <FormLabel className="text-base">
-                          {field.value ? "Multi-Stop Schedule" : "Single Stop Schedule"}
-                        </FormLabel>
-                        <FormDescription>
-                          {field.value 
-                            ? "Create a schedule with multiple stops on different days" 
-                            : "Create a simple schedule with one start and end location"}
-                        </FormDescription>
-                      </div>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                    </FormItem>
+            <>
+              <Card className="p-6">
+                <h2 className="text-lg font-medium mb-4">Trip Type</h2>
+                
+                <div className="flex flex-col space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="isMultiStop"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between space-x-3 space-y-0 rounded-md border p-4">
+                        <div className="space-y-1">
+                          <FormLabel className="text-base">
+                            {field.value ? "Multi-Stop Schedule" : "Single Stop Schedule"}
+                          </FormLabel>
+                          <FormDescription>
+                            {field.value 
+                              ? "Create a schedule with multiple stops on different days" 
+                              : "Create a simple schedule with one start and end location"}
+                          </FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </Card>
+
+              {/* Recurring Options Card - Only show for regular schedules */}
+              <Card className="p-6">
+                <h2 className="text-lg font-medium mb-4">Recurring Options</h2>
+                
+                <div className="flex flex-col space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="isRecurring"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between space-x-3 space-y-0 rounded-md border p-4">
+                        <div className="space-y-1">
+                          <FormLabel className="text-base">
+                            {field.value ? "Recurring Schedule" : "One-time Schedule"}
+                          </FormLabel>
+                          <FormDescription>
+                            {field.value 
+                              ? "Schedule repeats based on pattern" 
+                              : "Schedule occurs only once on the selected date"}
+                          </FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  
+                  {form.watch("isRecurring") && (
+                    <div className="mt-4 space-y-4">
+                      <FormField
+                        control={form.control}
+                        name="recurrencePattern"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Recurrence Pattern</FormLabel>
+                            <Select
+                              onValueChange={field.onChange}
+                              defaultValue={field.value}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select pattern" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="daily">Daily</SelectItem>
+                                <SelectItem value="weekly">Weekly</SelectItem>
+                                <SelectItem value="monthly">Monthly</SelectItem>
+                                <SelectItem value="custom">Custom</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormDescription>
+                              How often does this schedule repeat?
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      {form.watch("recurrencePattern") === "weekly" && (
+                        <div className="space-y-2">
+                          <FormLabel>Select Days</FormLabel>
+                          <div className="flex flex-wrap gap-2">
+                            {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day) => (
+                              <Button
+                                key={day}
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className={`${
+                                  form.watch("recurrenceDays")?.includes(day.toLowerCase())
+                                    ? "bg-primary text-primary-foreground"
+                                    : ""
+                                }`}
+                                onClick={() => {
+                                  const currentDays = form.watch("recurrenceDays") || [];
+                                  const dayLower = day.toLowerCase();
+                                  
+                                  if (currentDays.includes(dayLower)) {
+                                    form.setValue(
+                                      "recurrenceDays",
+                                      currentDays.filter((d) => d !== dayLower)
+                                    );
+                                  } else {
+                                    form.setValue("recurrenceDays", [...currentDays, dayLower]);
+                                  }
+                                }}
+                              >
+                                {day.substring(0, 3)}
+                              </Button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   )}
-                />
-              </div>
-            </Card>
+                </div>
+              </Card>
+            </>
           )}
           
           {/* Location Information Card */}
