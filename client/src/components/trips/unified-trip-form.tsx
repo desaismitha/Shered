@@ -476,12 +476,13 @@ export function UnifiedTripForm({
             </div>
           </Card>
           
-          <Card className="p-6">
-            <h2 className="text-lg font-medium mb-4">{tripType === 'event' ? 'Event Type' : 'Schedule Type'}</h2>
-            
-            <div className="flex flex-col space-y-4">
-              {/* Only show multi-stop switch for regular schedules */}
-              {form.watch("scheduleType") === "regular" && (
+          {/* Only show Schedule Type card for regular schedules */}
+          {form.watch("scheduleType") === "regular" && (
+            <Card className="p-6">
+              <h2 className="text-lg font-medium mb-4">Schedule Type</h2>
+              
+              <div className="flex flex-col space-y-4">
+                {/* Only show multi-stop switch for regular schedules */}
                 <FormField
                   control={form.control}
                   name="isMultiStop"
