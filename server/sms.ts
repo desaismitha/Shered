@@ -103,6 +103,31 @@ export async function sendOTPVerificationSMS(
 }
 
 /**
+ * Send a schedule creation notification via SMS
+ * @param phoneNumber The recipient's phone number
+ * @param scheduleName Name of the schedule
+ * @param startDate Date and time when the schedule starts
+ * @returns Promise<boolean> indicating if the SMS was sent successfully
+ */
+export async function sendScheduleCreationSMS(
+  phoneNumber: string,
+  scheduleName: string,
+  startDate: Date
+): Promise<boolean> {
+  // Format the date for easy reading
+  const formattedDate = startDate.toLocaleDateString();
+  const formattedTime = startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  
+  const message = `TrustLoopz: New schedule "${scheduleName}" created. Starts on ${formattedDate} at ${formattedTime}.`;
+  
+  console.log(`[SMS] Sending schedule creation notification to ${phoneNumber}`);
+  return sendSMS({
+    to: phoneNumber,
+    body: message
+  });
+}
+
+/**
  * Helper function to format phone numbers to E.164 format
  * @param phoneNumber Phone number to format
  * @returns Formatted phone number with + prefix
