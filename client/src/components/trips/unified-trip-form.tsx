@@ -25,15 +25,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { DatePicker } from "@/components/ui/date-picker";
 import MapLocationPicker from "@/components/maps/map-location-picker";
 import RouteMapPreview from "@/components/maps/route-map-preview";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { CalendarIcon } from "lucide-react";
-import { format } from "date-fns";
-import { cn } from "@/lib/utils";
 // These forms are not needed for email notifications
 // import { StopItineraryForm } from "./stop-itinerary-form";
 // import { RecurrenceForm } from "./recurrence-form";
@@ -46,7 +37,6 @@ type FormSchemaType = {
   groupId?: number;
   status: "planning" | "confirmed" | "in-progress" | "completed" | "cancelled";
   isMultiStop: boolean;
-  scheduleType: "regular" | "event";  // Added schedule type field
   startLocation?: string;
   endLocation?: string;
   startTime?: string;
@@ -70,37 +60,20 @@ type FormSchemaType = {
   }>;
 };
 
-// Create a schema with conditional validation for endLocation
 const formSchema = z.object({
-  name: z.string().min(1, "Name is required"),
+  name: z.string().min(3, "Name must be at least 3 characters"),
   startDate: z.date({
-    required_error: "Start date is required",
+    required_error: "Start date is required"
   }),
   endDate: z.date({
-    required_error: "End date is required",
+    required_error: "End date is required"
   }),
   description: z.string().optional(),
   groupId: z.number().optional(),
   status: z.enum(["planning", "confirmed", "in-progress", "completed", "cancelled"]).default("planning"),
   isMultiStop: z.boolean().default(false),
-  scheduleType: z.enum(["regular", "event"]).default("regular"),
   startLocation: z.string().min(1, "Start location is required"),
-  // For endLocation, we'll use refine for conditional validation
-  endLocation: z.string().optional().refine(
-    (val, ctx) => {
-      // For regular schedules, require endLocation to be non-empty
-      if (ctx.path[0] === 'endLocation' && 
-          ctx.data.scheduleType === 'regular' && 
-          (!val || val.trim() === '')) {
-        return false;
-      }
-      return true;
-    },
-    {
-      message: "Destination is required for regular schedules",
-      path: ["endLocation"]
-    }
-  ),
+  endLocation: z.string().min(1, "Destination is required"),
   startTime: z.string({
     required_error: "Start time is required"
   }),
@@ -151,150 +124,96 @@ export function UnifiedTripForm({
   isSubmitting = false,
   groupMembers = []
 }: UnifiedTripFormProps) {
-  const [verificationModalOpen, setVerificationModalOpen] = useState(false);
-  const [submittingForm, setSubmittingForm] = useState(false);
-  const [formData, setFormData] = useState<FormData | null>(null);
-  const [isMultiStop, setIsMultiStop] = useState(defaultValues?.isMultiStop || false);
   const { toast } = useToast();
-  const [location, navigate] = useLocation();
+  const [, navigate] = useLocation();
   
-  // Fetch user's phone number and groups
-  const { data: groups = [] } = useQuery<Group[]>({
-    queryKey: ['/api/groups'],
+  // Get current user data
+  const { data: userData } = useQuery<any>({
+    queryKey: ["/api/user"],
   });
-  
-  // Initialize the form
+
+  // No phone verification state needed for email notifications
+
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
-      description: "",
       startDate: new Date(),
       endDate: new Date(),
-      groupId: undefined,
+      description: "",
       status: "planning",
       isMultiStop: false,
       startLocation: "",
       endLocation: "",
-      startTime: "09:00",
-      endTime: "17:00",
       isRecurring: false,
-      recurrencePattern: undefined,
-      recurrenceDays: undefined,
-      enableMobileNotifications: true,
+      enableMobileNotifications: true, // Enable notifications by default for status changes and route deviations
       phoneNumber: "",
       stops: [],
-      ...defaultValues
-    }
+      ...defaultValues,
+    },
   });
   
-  // Watch form values for changes
+  // Add query for groups
+  const { data: groups } = useQuery<Group[]>({
+    queryKey: ["/api/groups"],
+  });
+  
+  // State for stop form
+  const [isMultiStop, setIsMultiStop] = useState(form.getValues("isMultiStop"));
+  
+  // Watch changes to isMultiStop
   useEffect(() => {
     const subscription = form.watch((value, { name }) => {
-      // Watch for isMultiStop changes
-      if (name === 'isMultiStop') {
-        setIsMultiStop(value.isMultiStop || false);
-      }
-      
-      // Watch for scheduleType changes to handle validation
-      if (name === 'scheduleType') {
-        const scheduleType = value.scheduleType;
-        console.log("Schedule type changed to:", scheduleType);
-        
-        // If it's an event schedule, the destination is optional
-        // If it's a regular schedule, validate that destination is required
-        if (scheduleType === 'event') {
-          // For event schedules, clear any validation errors on endLocation
-          form.clearErrors('endLocation');
-          
-          // Update the label/description to indicate destination is optional
-          console.log("Event schedule selected - destination is optional");
-        } else if (scheduleType === 'regular') {
-          // Trigger validation to ensure destination is provided
-          form.trigger('endLocation');
-          console.log("Regular schedule selected - destination is required");
-        }
+      if (name === "isMultiStop") {
+        setIsMultiStop(!!value.isMultiStop);
       }
     });
     
     return () => subscription.unsubscribe();
-  }, [form.watch, form]);
-  
-  // This function will be called when the form is submitted
+  }, [form.watch]);
+
   const handleSubmit = (data: FormData) => {
-    console.log("UnifiedTripForm - handleSubmit called with data:", data);
-    setFormData(data);
+    console.log('Form submitted with data:', data);
+    console.log('Current user data:', userData);
     
-    try {
-      // Add enableMobileNotifications if not present (fix for trip creation)
-      if (data.enableMobileNotifications === undefined) {
-        data.enableMobileNotifications = true;
-      }
-      
-      console.log("UnifiedTripForm - About to call onSubmit with data:", data);
-      onSubmit(data);
-    } catch (error: any) {
-      console.error("Form submission error:", error);
-      toast({
-        title: "Error",
-        description: error.message || "An error occurred while submitting the form.",
-        variant: "destructive"
-      });
-    }
+    // Submit form directly - no phone verification needed for email notifications
+    console.log('Submitting form with email notifications setting:', data.enableMobileNotifications);
+    onSubmit(data);
   };
+
+  // Debug logging (simplified without phone verification)
+  console.log('Form component default values:', defaultValues);
+  console.log('FORM STATE:', { 
+    enableMobileNotifications: form.watch("enableMobileNotifications"),
+    startTime: form.watch("startTime"),
+    endTime: form.watch("endTime"),
+    userData: userData
+  });
   
+  // Log time values received for debugging
+  useEffect(() => {
+    console.log('Default time values received by form:', {
+      startTime: defaultValues?.startTime,
+      endTime: defaultValues?.endTime
+    });
+  }, [defaultValues?.startTime, defaultValues?.endTime]);
+
   return (
-    <div className="w-full max-w-4xl mx-auto">
+    <div className="trip-form-container">
+      <div className="mb-4 text-sm text-gray-600">
+        Fields marked with an asterisk (*) are required.
+      </div>
       <Form {...form}>
         <form 
-          onSubmit={(e) => { 
+          onSubmit={(e) => {
+            console.log('Form submitted via form event');
             e.preventDefault(); 
             form.handleSubmit(handleSubmit)(e);
           }} 
           className="space-y-8">
           
           <Card className="p-6">
-            <h2 className="text-lg font-medium mb-4">{tripType === 'event' ? 'Event Details' : 'Schedule Details'}</h2>
-            
-            {/* Schedule Type Selection */}
-            <div className="mb-4">
-              <FormField
-                control={form.control}
-                name="scheduleType"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Schedule Type</FormLabel>
-                    <Select
-                      onValueChange={(value) => {
-                        console.log("Schedule type selected:", value);
-                        field.onChange(value);
-                        // Clear any errors on endLocation when changing to event type
-                        if (value === "event") {
-                          form.clearErrors("endLocation");
-                        }
-                      }}
-                      value={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger className="bg-white">
-                          <SelectValue placeholder="Select schedule type" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="regular">Regular Schedule</SelectItem>
-                        <SelectItem value="event">Event Schedule</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormDescription>
-                      {field.value === "event" 
-                        ? "For one-time events where destination is optional" 
-                        : "For regular transportation with required start and destination"}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+            <h2 className="text-lg font-medium mb-4">{tripType === 'event' ? 'Event Details' : 'Trip Details'}</h2>
             
             <div className="grid gap-4 sm:grid-cols-2">
               <FormField
@@ -302,9 +221,9 @@ export function UnifiedTripForm({
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{tripType === 'event' ? 'Event Name *' : 'Schedule Name *'}</FormLabel>
+                    <FormLabel>{tripType === 'event' ? 'Event Name *' : 'Trip Name *'}</FormLabel>
                     <FormControl>
-                      <Input placeholder={tripType === 'event' ? 'Enter event name' : 'Enter schedule name'} {...field} />
+                      <Input placeholder={`Enter ${tripType} name`} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -334,7 +253,7 @@ export function UnifiedTripForm({
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="none">No group</SelectItem>
-                        {groups?.map((group: Group) => (
+                        {groups?.map((group) => (
                           <SelectItem key={group.id} value={group.id.toString()}>
                             {group.name}
                           </SelectItem>
@@ -342,7 +261,7 @@ export function UnifiedTripForm({
                       </SelectContent>
                     </Select>
                     <FormDescription>
-                      Group members will be notified about the {tripType}
+                      Choose a group to share this {tripType} with
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -355,16 +274,7 @@ export function UnifiedTripForm({
                 control={form.control}
                 name="startDate"
                 render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <DatePicker 
-                      field={field}
-                      label="Start Date *"
-                    />
-                    <FormDescription>
-                      When will the {tripType === 'event' ? 'event' : 'schedule'} start?
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
+                  <DatePicker field={field} label="Start Date *" />
                 )}
               />
               
@@ -372,16 +282,7 @@ export function UnifiedTripForm({
                 control={form.control}
                 name="endDate"
                 render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <DatePicker 
-                      field={field}
-                      label="End Date *"
-                    />
-                    <FormDescription>
-                      When will the {tripType} end?
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
+                  <DatePicker field={field} label="End Date *" />
                 )}
               />
             </div>
@@ -428,7 +329,7 @@ export function UnifiedTripForm({
                 name="status"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{tripType === 'event' ? 'Event Status *' : 'Schedule Status *'}</FormLabel>
+                    <FormLabel>{tripType === 'event' ? 'Event Status *' : 'Trip Status *'}</FormLabel>
                     <Select
                       onValueChange={field.onChange}
                       defaultValue={field.value}
@@ -447,7 +348,7 @@ export function UnifiedTripForm({
                       </SelectContent>
                     </Select>
                     <FormDescription>
-                      Current status of your {tripType === 'event' ? 'event' : 'schedule'}
+                      Current status of your {tripType}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -476,163 +377,57 @@ export function UnifiedTripForm({
             </div>
           </Card>
           
-          {/* Only show Schedule Type card for regular schedules */}
-          {form.watch("scheduleType") === "regular" && (
-            <Card className="p-6">
-              <h2 className="text-lg font-medium mb-4">Schedule Type</h2>
-              
-              <div className="flex flex-col space-y-4">
-                {/* Only show multi-stop switch for regular schedules */}
-                <FormField
-                  control={form.control}
-                  name="isMultiStop"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between space-x-3 space-y-0 rounded-md border p-4">
-                      <div className="space-y-1">
-                        <FormLabel className="text-base">
-                          {field.value ? "Multi-Stop Schedule" : "Single Stop Schedule"}
-                        </FormLabel>
-                        <FormDescription>
-                          {field.value 
-                            ? "Create a schedule with multiple stops on different days"
-                            : "Create a simple schedule with one start and end location"}
-                        </FormDescription>
-                      </div>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-              )}
-              
-              {/* Only show recurring switch for regular schedules */}
-              {form.watch("scheduleType") === "regular" && (
-                <FormField
-                  control={form.control}
-                  name="isRecurring"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between space-x-3 space-y-0 rounded-md border p-4">
-                      <div className="space-y-1">
-                        <FormLabel className="text-base">
-                          Recurring Schedule
-                        </FormLabel>
-                        <FormDescription>
-                          Enable to set up a repeating schedule
-                        </FormDescription>
-                      </div>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-              )}
-              
-              {form.watch("isRecurring") && (
-                <>
-                  <FormField
-                    control={form.control}
-                    name="recurrencePattern"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Recurrence Pattern</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select frequency" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="daily">Daily</SelectItem>
-                            <SelectItem value="weekly">Weekly</SelectItem>
-                            <SelectItem value="monthly">Monthly</SelectItem>
-                            <SelectItem value="custom">Custom</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormDescription>
-                          How often should this {tripType} repeat?
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  {form.watch("recurrencePattern") === "custom" && (
-                    <FormField
-                      control={form.control}
-                      name="recurrenceDays"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Select Days</FormLabel>
-                          <div className="flex flex-wrap gap-2">
-                            {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map((day) => (
-                              <Button
-                                key={day}
-                                type="button"
-                                variant={(field.value || []).includes(day.toLowerCase()) ? "default" : "outline"}
-                                className="px-3 py-1 h-auto"
-                                onClick={() => {
-                                  const currentValues = field.value || [];
-                                  const dayLower = day.toLowerCase();
-                                  
-                                  if (currentValues.includes(dayLower)) {
-                                    field.onChange(currentValues.filter(d => d !== dayLower));
-                                  } else {
-                                    field.onChange([...currentValues, dayLower]);
-                                  }
-                                }}
-                              >
-                                {day.substring(0, 3)}
-                              </Button>
-                            ))}
-                          </div>
-                          <FormDescription>
-                            Select the days when this {tripType} should occur
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  )}
-                </>
-              )}
+          <Card className="p-6">
+            <h2 className="text-lg font-medium mb-4">{tripType === 'event' ? 'Event Type' : 'Trip Type'}</h2>
+            
+            <div className="flex flex-col space-y-4">
+              <FormField
+                control={form.control}
+                name="isMultiStop"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between space-x-3 space-y-0 rounded-md border p-4">
+                    <div className="space-y-1">
+                      <FormLabel className="text-base">
+                        {field.value 
+                          ? (tripType === 'event' ? "Multi-Day Event" : "Multi-Stop Trip") 
+                          : (tripType === 'event' ? "Single Day Event" : "Single Stop Trip")}
+                      </FormLabel>
+                      <FormDescription>
+                        {field.value 
+                          ? (tripType === 'event' 
+                             ? "Create an event with multiple activities on different days" 
+                             : "Create a trip with multiple stops on different days")
+                          : (tripType === 'event'
+                             ? "Create a simple event with one location"
+                             : "Create a simple trip with one start and end location")}
+                      </FormDescription>
+                    </div>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
             </div>
           </Card>
           
           {/* Location Information Card */}
-          <Card className="p-6">
-            <h2 className="text-lg font-medium mb-4">{tripType === 'event' ? 'Event Location' : 'Location Information'}</h2>
-            
-            {isMultiStop ? (
-              // For multi-stop schedules/events, show just the main/primary location
-              <div className="grid gap-6">
-                <div className="px-4 py-3 rounded-md bg-blue-50 border border-blue-200 mb-4">
-                  <p className="text-sm text-blue-700">
-                    {tripType === 'event' 
-                      ? "This is the main location for your multi-day event. You can add specific locations for each day's activities after creating the event."
-                      : "This is the main location for your multi-stop schedule. You can add specific stops and destinations after creating the schedule."
-                    }
-                  </p>
-                </div>
-                
-                {tripType === 'event' ? (
-                  // For multi-day events, show one location field
+          {!isMultiStop && (
+            <Card className="p-6">
+              <h2 className="text-lg font-medium mb-4">{tripType === 'event' ? 'Event Location' : 'Location Information'}</h2>
+              
+              {tripType === 'event' ? (
+                // For events, just show one location field
+                <div className="grid gap-6">
                   <FormField
                     control={form.control}
                     name="startLocation"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Main Event Location *</FormLabel>
+                        <FormLabel>Event Location *</FormLabel>
                         <FormControl>
                           <MapLocationPicker 
                             label=""
@@ -642,177 +437,80 @@ export function UnifiedTripForm({
                               field.onChange(value);
                               form.setValue("endLocation", value);
                             }}
-                            placeholder="Enter main event location"
+                            placeholder="Enter event location"
                           />
                         </FormControl>
                         <FormDescription>
-                          The primary venue for this multi-day event
+                          Where the event takes place
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                ) : (
-                  // For multi-stop schedules, show both start and end
-                  <div className="grid gap-6 sm:grid-cols-2">
-                    <FormField
-                      control={form.control}
-                      name="startLocation"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Starting Point *</FormLabel>
-                          <FormControl>
-                            <MapLocationPicker 
-                              label=""
-                              value={field.value || ""} 
-                              onChange={field.onChange}
-                              placeholder="Enter starting point"
-                            />
-                          </FormControl>
-                          <FormDescription>
-                            Where your journey begins
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    {/* Only show destination field for regular schedules, or as optional for event schedules */}
-                    {(form.watch("scheduleType") === "regular" || 
-                      (form.watch("scheduleType") === "event" && !isMultiStop)) && (
-                      <FormField
-                        control={form.control}
-                        name="endLocation"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>
-                              {form.watch("scheduleType") === "event" 
-                                ? "Destination (Optional)" 
-                                : "Final Destination *"}
-                            </FormLabel>
-                            <FormControl>
-                              <MapLocationPicker 
-                                label=""
-                                value={field.value || ""} 
-                                onChange={field.onChange}
-                                placeholder={form.watch("scheduleType") === "event" 
-                                  ? "Enter destination (optional)" 
-                                  : "Enter final destination"}
-                              />
-                            </FormControl>
-                            <FormDescription>
-                              {form.watch("scheduleType") === "event"
-                                ? "Optional destination for your event"
-                                : "The final stop of your journey"}
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                </div>
+              ) : (
+                // For trips, show both start and destination
+                <div className="grid gap-6 sm:grid-cols-2">
+                  <FormField
+                    control={form.control}
+                    name="startLocation"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Start Location *</FormLabel>
+                        <FormControl>
+                          <MapLocationPicker 
+                            label=""
+                            value={field.value || ""} 
+                            onChange={field.onChange}
+                            placeholder="Enter start location"
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Where the trip begins
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
                     )}
-                  </div>
-                )}
-              </div>
-            ) : (
-              // For single-stop trips or single-day events
-              <>
-                {tripType === 'event' ? (
-                  // For events, just show one location field
-                  <div className="grid gap-6">
-                    <FormField
-                      control={form.control}
-                      name="startLocation"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Event Location *</FormLabel>
-                          <FormControl>
-                            <MapLocationPicker 
-                              label=""
-                              value={field.value || ""} 
-                              onChange={(value) => {
-                                // Update the startLocation
-                                field.onChange(value);
-                                
-                                // For event schedules, only set endLocation if it's a regular schedule type
-                                if (form.watch("scheduleType") === "regular") {
-                                  form.setValue("endLocation", value);
-                                }
-                              }}
-                              placeholder="Enter event location"
-                            />
-                          </FormControl>
-                          <FormDescription>
-                            Where the event takes place
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                ) : (
-                  // For trips, show both start and destination
-                  <div className="grid gap-6 sm:grid-cols-2">
-                    <FormField
-                      control={form.control}
-                      name="startLocation"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Start Location *</FormLabel>
-                          <FormControl>
-                            <MapLocationPicker 
-                              label=""
-                              value={field.value || ""} 
-                              onChange={field.onChange}
-                              placeholder="Enter start location"
-                            />
-                          </FormControl>
-                          <FormDescription>
-                            Where the trip begins
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="endLocation"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>{form.watch("scheduleType") === "event" ? "Destination (Optional)" : "Destination *"}</FormLabel>
-                          <FormControl>
-                            <MapLocationPicker 
-                              label=""
-                              value={field.value || ""} 
-                              onChange={field.onChange}
-                              placeholder="Enter destination"
-                            />
-                          </FormControl>
-                          <FormDescription>
-                            Where the trip ends
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                )}
-              </>
-            )}
-            
-            {form.watch("startLocation") && form.watch("endLocation") && (
-              <div className="mt-6">
-                <h3 className="text-sm font-medium mb-2">Route Preview</h3>
-                <div className="h-[300px] border rounded-md overflow-hidden">
-                  <RouteMapPreview 
-                    startLocation={form.watch("startLocation") || ""} 
-                    endLocation={form.watch("endLocation") || ""}
-                    showMap={true}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="endLocation"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Destination *</FormLabel>
+                        <FormControl>
+                          <MapLocationPicker 
+                            label=""
+                            value={field.value || ""} 
+                            onChange={field.onChange}
+                            placeholder="Enter destination"
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Where the trip ends
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
                 </div>
-              </div>
-            )}
-          </Card>
+              )}
+              
+              {form.watch("startLocation") && form.watch("endLocation") && (
+                <div className="mt-6">
+                  <h3 className="text-sm font-medium mb-2">Route Preview</h3>
+                  <div className="h-[300px] border rounded-md overflow-hidden">
+                    <RouteMapPreview 
+                      startLocation={form.watch("startLocation") || ""} 
+                      endLocation={form.watch("endLocation") || ""}
+                      showMap={true}
+                    />
+                  </div>
+                </div>
+              )}
+            </Card>
+          )}
           
           {/* Email Notifications Card */}
           <Card className="p-6">
@@ -826,7 +524,7 @@ export function UnifiedTripForm({
                   <FormItem className="flex flex-row items-center justify-between space-x-3 space-y-0 rounded-md border p-4">
                     <div className="space-y-1">
                       <FormLabel className="text-base">
-                        {tripType === 'event' ? 'Event Notifications' : 'Schedule Notifications'}
+                        {tripType === 'event' ? 'Event Notifications' : 'Trip Notifications'}
                       </FormLabel>
                       <FormDescription>
                         Receive email notifications for {tripType} status changes and route deviations
@@ -846,13 +544,11 @@ export function UnifiedTripForm({
                 <div className="px-4 py-3 rounded-md bg-blue-50 border border-blue-200">
                   <p className="text-sm text-blue-700">
                     Email notifications will be sent when:
-                  </p>
-                  <ul className="list-disc ml-6 mt-1 text-sm text-blue-700">
-                    <li>{tripType === 'event' ? 'Event' : 'Schedule'} status changes (planning, confirmed, in-progress, completed)</li>
-                    <li>Someone deviates from the planned route</li>
-                    <li>Important {tripType} updates occur</li>
-                  </ul>
-                  <p className="text-sm text-blue-700 mt-1">
+                    <ul className="list-disc ml-6 mt-1">
+                      <li>{tripType === 'event' ? 'Event' : 'Trip'} status changes (planning, confirmed, in-progress, completed)</li>
+                      <li>Someone deviates from the planned route</li>
+                      <li>Important {tripType} updates occur</li>
+                    </ul>
                     Make sure all group members have verified their email addresses.
                   </p>
                 </div>
@@ -885,8 +581,8 @@ export function UnifiedTripForm({
                 ) : (
                   isEditing ? "Save Changes" : (
                     isMultiStop 
-                      ? (tripType === 'event' ? "Create Multi-Day Event" : "Create Multi-Stop Schedule")
-                      : (tripType === 'event' ? "Create Event" : "Create Schedule")
+                      ? (tripType === 'event' ? "Create Multi-Day Event" : "Create Multi-Stop Trip")
+                      : (tripType === 'event' ? "Create Event" : "Create Trip")
                   )
                 )}
               </button>
@@ -894,6 +590,8 @@ export function UnifiedTripForm({
           </div>
         </form>
       </Form>
+      
+      {/* No phone verification modal needed for email notifications */}
     </div>
   );
 }
