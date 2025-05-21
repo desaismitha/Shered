@@ -8,9 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { DatePicker } from "@/components/ui/date-picker";
+// Using Input for date fields instead of DatePicker for a simpler implementation
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import MapLocationPicker from "@/components/maps/map-location-picker";
+// Using Input instead of MapLocationPicker for a simpler implementation
 import { Group } from "@shared/schema";
 import { Loader2 } from "lucide-react";
 
@@ -164,9 +164,11 @@ export default function SimpleScheduleCreate() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-1">End Date*</label>
-                    <DatePicker
-                      date={endDate}
-                      setDate={setEndDate}
+                    <Input
+                      type="date"
+                      value={endDate.toISOString().split('T')[0]}
+                      onChange={(e) => setEndDate(new Date(e.target.value))}
+                      required
                     />
                   </div>
                 </div>
@@ -210,19 +212,21 @@ export default function SimpleScheduleCreate() {
                 
                 <div>
                   <label className="block text-sm font-medium mb-1">Start Location*</label>
-                  <MapLocationPicker
+                  <Input
                     value={startLocation}
-                    onChange={setStartLocation}
+                    onChange={(e) => setStartLocation(e.target.value)}
                     placeholder="Enter start location"
+                    required
                   />
                 </div>
                 
                 <div>
                   <label className="block text-sm font-medium mb-1">Destination*</label>
-                  <MapLocationPicker
+                  <Input
                     value={endLocation}
-                    onChange={setEndLocation}
+                    onChange={(e) => setEndLocation(e.target.value)}
                     placeholder="Enter destination"
+                    required
                   />
                 </div>
               </div>
