@@ -480,59 +480,59 @@ export function UnifiedTripForm({
             <h2 className="text-lg font-medium mb-4">{tripType === 'event' ? 'Event Type' : 'Schedule Type'}</h2>
             
             <div className="flex flex-col space-y-4">
-              <FormField
-                control={form.control}
-                name="isMultiStop"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between space-x-3 space-y-0 rounded-md border p-4">
-                    <div className="space-y-1">
-                      <FormLabel className="text-base">
-                        {field.value 
-                          ? (tripType === 'event' ? "Multi-Day Event" : "Multi-Stop Schedule") 
-                          : (tripType === 'event' ? "Single Day Event" : "Single Stop Schedule")}
-                      </FormLabel>
-                      <FormDescription>
-                        {field.value 
-                          ? (tripType === 'event' 
-                             ? "Create an event with multiple activities on different days" 
-                             : "Create a schedule with multiple stops on different days")
-                          : (tripType === 'event'
-                             ? "Create a simple event with one location"
-                             : "Create a simple schedule with one start and end location")}
-                      </FormDescription>
-                    </div>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
+              {/* Only show multi-stop switch for regular schedules */}
+              {form.watch("scheduleType") === "regular" && (
+                <FormField
+                  control={form.control}
+                  name="isMultiStop"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between space-x-3 space-y-0 rounded-md border p-4">
+                      <div className="space-y-1">
+                        <FormLabel className="text-base">
+                          {field.value ? "Multi-Stop Schedule" : "Single Stop Schedule"}
+                        </FormLabel>
+                        <FormDescription>
+                          {field.value 
+                            ? "Create a schedule with multiple stops on different days"
+                            : "Create a simple schedule with one start and end location"}
+                        </FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+              )}
               
-              <FormField
-                control={form.control}
-                name="isRecurring"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between space-x-3 space-y-0 rounded-md border p-4">
-                    <div className="space-y-1">
-                      <FormLabel className="text-base">
-                        Recurring {tripType === 'event' ? 'Event' : 'Schedule'}
-                      </FormLabel>
-                      <FormDescription>
-                        Enable to set up a repeating {tripType}
-                      </FormDescription>
-                    </div>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
+              {/* Only show recurring switch for regular schedules */}
+              {form.watch("scheduleType") === "regular" && (
+                <FormField
+                  control={form.control}
+                  name="isRecurring"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between space-x-3 space-y-0 rounded-md border p-4">
+                      <div className="space-y-1">
+                        <FormLabel className="text-base">
+                          Recurring Schedule
+                        </FormLabel>
+                        <FormDescription>
+                          Enable to set up a repeating schedule
+                        </FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+              )}
               
               {form.watch("isRecurring") && (
                 <>
