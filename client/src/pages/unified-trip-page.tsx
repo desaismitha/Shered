@@ -855,16 +855,56 @@ export default function UnifiedTripPage() {
               </TabsContent>
             </Tabs>
           ) : (
-            <UnifiedTripForm
-              onSubmit={(data) => {
-                console.log('Create new schedule form submission:', data);
-                handleSubmit(data);
-              }}
-              defaultValues={defaultValues}
-              isLoading={mutation.isPending}
-              isSubmitting={mutation.isPending}
-              onCancel={() => navigate("/schedules")}
-            />
+            <div className="space-y-6">
+              <h2 className="text-2xl font-bold">Create New Schedule</h2>
+              <p className="text-muted-foreground mb-4">Fill out the form below to create a new schedule.</p>
+              
+              <UnifiedTripForm
+                onSubmit={(data) => {
+                  console.log('Create new schedule form submission:', data);
+                  
+                  // Process basic schedule data
+                  const scheduleData = {
+                    name: data.name,
+                    description: data.description || "",
+                    startDate: data.startDate,
+                    endDate: data.endDate,
+                    startLocation: data.startLocation || "Unknown location",
+                    destination: data.endLocation || "Unknown location",
+                    groupId: data.groupId,
+                    status: "planning",
+                    isRecurring: data.isRecurring || false,
+                    recurrencePattern: data.recurrencePattern || null,
+                    enableMobileNotifications: data.enableMobileNotifications || true,
+                    enableEmailNotifications: data.enableEmailNotifications || true,
+                    
+                    // Create a single itinerary item
+                    itineraryItems: [{
+                      day: 1,
+                      title: data.name,
+                      description: data.description || "",
+                      fromLocation: data.startLocation || "Unknown location",
+                      toLocation: data.endLocation || "Unknown location",
+                      startTime: data.startTime || "",
+                      endTime: data.endTime || "",
+                      isRecurring: data.isRecurring || false,
+                      recurrencePattern: data.recurrencePattern || null,
+                      recurrenceDays: data.recurrenceDays?.length
+                        ? JSON.stringify(data.recurrenceDays)
+                        : null,
+                    }],
+                  };
+                  
+                  // Submit directly using the mutation
+                  console.log("Submitting schedule data:", JSON.stringify(scheduleData));
+                  mutation.mutate(scheduleData);
+                }}
+                defaultValues={defaultValues}
+                isLoading={mutation.isPending}
+                isSubmitting={mutation.isPending}
+                onCancel={() => navigate("/schedules")}
+              />
+            </div>
           )}
         </div>
       </div>
