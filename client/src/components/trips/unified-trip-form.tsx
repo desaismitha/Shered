@@ -361,7 +361,7 @@ export function UnifiedTripForm({
                       label="Start Date *"
                     />
                     <FormDescription>
-                      When will the {tripType} start?
+                      When will the {tripType === 'event' ? 'event' : 'schedule'} start?
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -428,7 +428,7 @@ export function UnifiedTripForm({
                 name="status"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{tripType === 'event' ? 'Event Status *' : 'Trip Status *'}</FormLabel>
+                    <FormLabel>{tripType === 'event' ? 'Event Status *' : 'Schedule Status *'}</FormLabel>
                     <Select
                       onValueChange={field.onChange}
                       defaultValue={field.value}
@@ -447,7 +447,7 @@ export function UnifiedTripForm({
                       </SelectContent>
                     </Select>
                     <FormDescription>
-                      Current status of your {tripType}
+                      Current status of your {tripType === 'event' ? 'event' : 'schedule'}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
