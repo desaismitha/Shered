@@ -2618,11 +2618,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/groups", async (req, res, next) => {
     try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
+      if (!req.isAuthenticated()) {
+        console.log("[GROUPS] User not authenticated when fetching groups");
+        return res.sendStatus(401);
+      }
       
+      console.log(`[GROUPS] Fetching groups for user ID: ${req.user.id}`);
       const groups = await storage.getGroupsByUserId(req.user.id);
+      console.log(`[GROUPS] Found ${groups.length} groups for user ID ${req.user.id}:`, groups);
       res.json(groups);
     } catch (err) {
+      console.error(`[GROUPS] Error fetching groups for user ${req.user?.id}:`, err);
       next(err);
     }
   });

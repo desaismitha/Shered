@@ -376,16 +376,25 @@ export class DatabaseStorage implements IStorage {
 
   async getGroupsByUserId(userId: number): Promise<Group[]> {
     return this.executeDbOperation(async () => {
+      console.log(`[STORAGE] Getting groups for user ID: ${userId}`);
+      
       // Get group IDs the user is a member of
       const memberships = await db.select().from(groupMembers).where(eq(groupMembers.userId, userId));
+      console.log(`[STORAGE] Found ${memberships.length} group memberships for user ${userId}:`, memberships);
+      
       const groupIds = memberships.map(m => m.groupId);
+      console.log(`[STORAGE] Extracted group IDs: ${groupIds.join(', ')}`);
       
       if (groupIds.length === 0) {
+        console.log(`[STORAGE] No group memberships found for user ${userId}`);
         return [];
       }
       
       // Get the groups
-      return await db.select().from(groups).where(inArray(groups.id, groupIds));
+      const foundGroups = await db.select().from(groups).where(inArray(groups.id, groupIds));
+      console.log(`[STORAGE] Retrieved ${foundGroups.length} groups:`, foundGroups);
+      
+      return foundGroups;
     });
   }
 
