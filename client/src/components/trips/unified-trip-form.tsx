@@ -71,16 +71,20 @@ const formSchema = z.object({
   }),
   description: z.string().optional(),
   groupId: z.number().optional(),
+  // Add scheduleType field
+  scheduleType: z.enum(["regular", "event"]).default("regular"),
   status: z.enum(["planning", "confirmed", "in-progress", "completed", "cancelled"]).default("planning"),
   isMultiStop: z.boolean().default(false),
   startLocation: z.string().min(1, "Start location is required"),
   // For endLocation, only require it for regular schedules
   endLocation: z.string().refine(
     (val, ctx) => {
+      // For event schedules, we don't require an end location
+      if (ctx.data?.scheduleType === 'event') {
+        return true;
+      }
       // For regular schedules, require endLocation to be non-empty
-      if (ctx.path[0] === 'endLocation' && 
-          ctx.data?.scheduleType === 'regular' && 
-          (!val || val.trim() === '')) {
+      if ((!val || val.trim() === '')) {
         return false;
       }
       return true;
@@ -341,10 +345,44 @@ export function UnifiedTripForm({
             <div className="grid gap-4 sm:grid-cols-2 mt-4">
               <FormField
                 control={form.control}
+                name="scheduleType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Schedule Type *</FormLabel>
+                    <Select
+                      onValueChange={(value) => {
+                        field.onChange(value);
+                        // When switching to event type, clear destination field
+                        if (value === "event") {
+                          form.setValue("endLocation", "");
+                        }
+                      }}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="regular">Regular Schedule</SelectItem>
+                        <SelectItem value="event">Event Schedule</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      Choose between a regular trip or an event
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
                 name="status"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{tripType === 'event' ? 'Event Status *' : 'Schedule Status *'}</FormLabel>
+                    <FormLabel>{form.watch("scheduleType") === 'event' ? 'Event Status *' : 'Schedule Status *'}</FormLabel>
                     <Select
                       onValueChange={field.onChange}
                       defaultValue={field.value}
@@ -363,7 +401,7 @@ export function UnifiedTripForm({
                       </SelectContent>
                     </Select>
                     <FormDescription>
-                      Current status of your {tripType}
+                      Current status of your {form.watch("scheduleType") === 'event' ? 'event' : 'schedule'}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -392,49 +430,46 @@ export function UnifiedTripForm({
             </div>
           </Card>
           
-          <Card className="p-6">
-            <h2 className="text-lg font-medium mb-4">{tripType === 'event' ? 'Event Type' : 'Trip Type'}</h2>
-            
-            <div className="flex flex-col space-y-4">
-              <FormField
-                control={form.control}
-                name="isMultiStop"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between space-x-3 space-y-0 rounded-md border p-4">
-                    <div className="space-y-1">
-                      <FormLabel className="text-base">
-                        {field.value 
-                          ? (tripType === 'event' ? "Multi-Day Event" : "Multi-Stop Trip") 
-                          : (tripType === 'event' ? "Single Day Event" : "Single Stop Trip")}
-                      </FormLabel>
-                      <FormDescription>
-                        {field.value 
-                          ? (tripType === 'event' 
-                             ? "Create an event with multiple activities on different days" 
-                             : "Create a trip with multiple stops on different days")
-                          : (tripType === 'event'
-                             ? "Create a simple event with one location"
-                             : "Create a simple trip with one start and end location")}
-                      </FormDescription>
-                    </div>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-            </div>
-          </Card>
+          {/* Hide multi-stop options for Event Schedules */}
+          {form.watch("scheduleType") !== "event" && (
+            <Card className="p-6">
+              <h2 className="text-lg font-medium mb-4">Trip Type</h2>
+              
+              <div className="flex flex-col space-y-4">
+                <FormField
+                  control={form.control}
+                  name="isMultiStop"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between space-x-3 space-y-0 rounded-md border p-4">
+                      <div className="space-y-1">
+                        <FormLabel className="text-base">
+                          {field.value ? "Multi-Stop Schedule" : "Single Stop Schedule"}
+                        </FormLabel>
+                        <FormDescription>
+                          {field.value 
+                            ? "Create a schedule with multiple stops on different days" 
+                            : "Create a simple schedule with one start and end location"}
+                        </FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </Card>
+          )}
           
           {/* Location Information Card */}
           {!isMultiStop && (
             <Card className="p-6">
-              <h2 className="text-lg font-medium mb-4">{tripType === 'event' ? 'Event Location' : 'Location Information'}</h2>
+              <h2 className="text-lg font-medium mb-4">{form.watch("scheduleType") === 'event' ? 'Event Location' : 'Location Information'}</h2>
               
-              {tripType === 'event' ? (
+              {form.watch("scheduleType") === 'event' ? (
                 // For events, just show one location field
                 <div className="grid gap-6">
                   <FormField
