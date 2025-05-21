@@ -27,7 +27,7 @@ export function Sidebar() {
   const navItems = [
     { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
     { icon: Users, label: "My Groups", href: "/groups" },
-    { icon: Calendar, label: "Upcoming Schedules", href: "/schedules" },
+    { icon: Calendar, label: "My Schedules", href: "/schedules" },
     { icon: Navigation, label: "Active Schedules", href: "/active-schedules" },
     { icon: CheckCircle, label: "Check-in", href: "/check-in" },
     { icon: Car, label: "My Vehicles", href: "/vehicles" },

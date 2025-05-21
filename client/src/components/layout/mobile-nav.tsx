@@ -58,7 +58,7 @@ export function MobileMenu({ isOpen, onClose }: { isOpen: boolean; onClose: () =
   const navItems = [
     { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
     { icon: Users, label: "My Groups", href: "/groups" },
-    { icon: Calendar, label: "Upcoming Trips", href: "/trips" },
+    { icon: Calendar, label: "My Schedules", href: "/trips" },
     { icon: Navigation, label: "Active Trips", href: "/active-trips" },
     { icon: Car, label: "My Vehicles", href: "/vehicles" },
     { icon: Users, label: "Import Members", href: "/bulk-import" },
@@ -159,7 +159,7 @@ export function MobileNav() {
   const navItems = [
     { icon: LayoutDashboard, label: "Dashboard", href: "/" },
     { icon: Users, label: "Groups", href: "/groups" },
-    { icon: Calendar, label: "Trips", href: "/trips" },
+    { icon: Calendar, label: "My Schedules", href: "/trips" },
     { icon: Navigation, label: "Active", href: "/active-trips" },
     { icon: MessageSquare, label: "Messages", href: "/messages" },
   ];
