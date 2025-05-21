@@ -86,12 +86,59 @@ export default function SimpleScheduleCreate() {
       return;
     }
     
-    // Prepare schedule data
+    // Validate dates are not in the past
+    const now = new Date();
+    if (startDate < now) {
+      toast({
+        title: "Date Error",
+        description: "Start date cannot be in the past. Please select a future date.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (endDate < startDate) {
+      toast({
+        title: "Date Error",
+        description: "End date must be after start date.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Validate times
+    const startDateTime = new Date(startDate);
+    const endDateTime = new Date(endDate);
+    const [startHour, startMinute] = startTime.split(':').map(Number);
+    const [endHour, endMinute] = endTime.split(':').map(Number);
+    
+    startDateTime.setHours(startHour, startMinute, 0, 0);
+    endDateTime.setHours(endHour, endMinute, 0, 0);
+    
+    if (startDateTime < now) {
+      toast({
+        title: "Time Error",
+        description: "Start time cannot be in the past. Please select a future time.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (endDateTime <= startDateTime) {
+      toast({
+        title: "Time Error",
+        description: "End time must be after start time.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Use the validated date/time values we created above
     const scheduleData = {
       name,
       description,
-      startDate,
-      endDate,
+      startDate: startDateTime.toISOString(), // Use the full validated datetime
+      endDate: endDateTime.toISOString(),     // Use the full validated datetime
       startLocation,
       destination: endLocation,
       groupId,
