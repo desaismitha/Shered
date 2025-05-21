@@ -46,6 +46,7 @@ type FormSchemaType = {
   groupId?: number;
   status: "planning" | "confirmed" | "in-progress" | "completed" | "cancelled";
   isMultiStop: boolean;
+  scheduleType: "regular" | "event";  // Added schedule type field
   startLocation?: string;
   endLocation?: string;
   startTime?: string;
@@ -69,7 +70,9 @@ type FormSchemaType = {
   }>;
 };
 
-const formSchema = z.object({
+// Create a schema with conditional validation for endLocation
+// Base schema with all fields
+const baseSchema = z.object({
   name: z.string().min(1, "Name is required"),
   startDate: z.date({
     required_error: "Start date is required",
@@ -81,8 +84,9 @@ const formSchema = z.object({
   groupId: z.number().optional(),
   status: z.enum(["planning", "confirmed", "in-progress", "completed", "cancelled"]).default("planning"),
   isMultiStop: z.boolean().default(false),
+  scheduleType: z.enum(["regular", "event"]).default("regular"),
   startLocation: z.string().min(1, "Start location is required"),
-  endLocation: z.string().min(1, "Destination is required"),
+  endLocation: z.string().optional(), // Will be conditionally validated based on scheduleType
   startTime: z.string({
     required_error: "Start time is required"
   }),
