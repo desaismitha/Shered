@@ -85,7 +85,22 @@ const formSchema = z.object({
   isMultiStop: z.boolean().default(false),
   scheduleType: z.enum(["regular", "event"]).default("regular"),
   startLocation: z.string().min(1, "Start location is required"),
-  endLocation: z.string().optional(), // Will be conditionally validated based on scheduleType
+  // For endLocation, we'll use refine for conditional validation
+  endLocation: z.string().optional().refine(
+    (val, ctx) => {
+      // For regular schedules, require endLocation to be non-empty
+      if (ctx.path[0] === 'endLocation' && 
+          ctx.data.scheduleType === 'regular' && 
+          (!val || val.trim() === '')) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: "Destination is required for regular schedules",
+      path: ["endLocation"]
+    }
+  ),
   startTime: z.string({
     required_error: "Start time is required"
   }),
@@ -189,12 +204,15 @@ export function UnifiedTripForm({
         // If it's an event schedule, the destination is optional
         // If it's a regular schedule, validate that destination is required
         if (scheduleType === 'event') {
+          // For event schedules, clear any validation errors on endLocation
           form.clearErrors('endLocation');
-        } else if (scheduleType === 'regular' && !value.endLocation) {
-          form.setError('endLocation', { 
-            type: 'required', 
-            message: 'Destination is required for regular schedules' 
-          });
+          
+          // Update the label/description to indicate destination is optional
+          console.log("Event schedule selected - destination is optional");
+        } else if (scheduleType === 'regular') {
+          // Trigger validation to ensure destination is provided
+          form.trigger('endLocation');
+          console.log("Regular schedule selected - destination is required");
         }
       }
     });
