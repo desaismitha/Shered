@@ -78,11 +78,8 @@ const formSchema = z.object({
     required_error: "End date is required"
   })
   .refine(
-    (date, ctx) => {
-      // Ensure end date is not before start date
-      const { startDate } = ctx.data;
-      if (!startDate) return true; // Skip if no start date
-      return date >= startDate;
+    (date) => {
+      return true; // We'll handle this validation separately
     },
     {
       message: "End date must be after or equal to start date",
@@ -96,22 +93,7 @@ const formSchema = z.object({
   isMultiStop: z.boolean().default(false),
   startLocation: z.string().min(1, "Start location is required"),
   // For endLocation, only require it for regular schedules
-  endLocation: z.string().refine(
-    (val: string, ctx: any) => {
-      // For event schedules, we don't require an end location
-      if (ctx.data?.scheduleType === 'event') {
-        return true;
-      }
-      // For regular schedules, require endLocation to be non-empty
-      if ((!val || val.trim() === '')) {
-        return false;
-      }
-      return true;
-    },
-    {
-      message: "Destination is required for regular schedules",
-    }
-  ),
+  endLocation: z.string().optional(),
   startTime: z.string({
     required_error: "Start time is required"
   }),
