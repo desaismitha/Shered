@@ -41,6 +41,7 @@ type FormSchemaType = {
   isRecurring: boolean;
   recurrencePattern?: "daily" | "weekly" | "monthly" | "custom";
   recurrenceDays?: string[];
+  enableEmailNotifications: boolean;
   enableMobileNotifications: boolean;
   phoneNumber?: string;
   stops?: Array<{
@@ -61,10 +62,32 @@ const formSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters"),
   startDate: z.date({
     required_error: "Start date is required"
-  }),
+  })
+  .refine(
+    (date) => {
+      // Ensure start date is not in the past
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Set to beginning of day
+      return date >= today;
+    },
+    {
+      message: "Start date cannot be in the past",
+    }
+  ),
   endDate: z.date({
     required_error: "End date is required"
-  }),
+  })
+  .refine(
+    (date, ctx) => {
+      // Ensure end date is not before start date
+      const { startDate } = ctx.data;
+      if (!startDate) return true; // Skip if no start date
+      return date >= startDate;
+    },
+    {
+      message: "End date must be after or equal to start date",
+    }
+  ),
   description: z.string().optional(),
   groupId: z.number().optional(),
   // Add scheduleType field
@@ -94,10 +117,30 @@ const formSchema = z.object({
   }),
   endTime: z.string({
     required_error: "End time is required"
-  }),
+  })
+  .refine(
+    (time, ctx) => {
+      // Skip validation if no start time
+      if (!ctx.data.startTime) return true;
+      
+      // If date is the same, ensure end time is after start time
+      if (ctx.data.startDate && ctx.data.endDate && 
+          ctx.data.startDate.getFullYear() === ctx.data.endDate.getFullYear() &&
+          ctx.data.startDate.getMonth() === ctx.data.endDate.getMonth() &&
+          ctx.data.startDate.getDate() === ctx.data.endDate.getDate()) {
+            return time > ctx.data.startTime;
+      }
+      
+      return true;
+    },
+    {
+      message: "End time must be after start time on the same day",
+    }
+  ),
   isRecurring: z.boolean().default(false),
   recurrencePattern: z.enum(["daily", "weekly", "monthly", "custom"]).optional(),
   recurrenceDays: z.array(z.string()).optional(),
+  enableEmailNotifications: z.boolean().default(true),
   enableMobileNotifications: z.boolean().default(true),
   phoneNumber: z.string().optional(),
   stops: z.array(
@@ -159,6 +202,7 @@ export function UnifiedTripForm({
       startLocation: "",
       endLocation: "",
       isRecurring: false,
+      enableEmailNotifications: true,
       enableMobileNotifications: true,
       phoneNumber: "",
       stops: [],
@@ -401,12 +445,12 @@ export function UnifiedTripForm({
                     <FormItem className="flex flex-row items-center justify-between space-x-3 space-y-0">
                       <div className="space-y-1">
                         <FormLabel className="text-base">
-                          {field.value ? "Recurring Schedule" : "One-time Schedule"}
+                          Recurring Schedule
                         </FormLabel>
                         <FormDescription>
                           {field.value 
                             ? "Schedule repeats based on pattern" 
-                            : "Schedule occurs only once on the selected date"}
+                            : "One-time schedule that occurs only on the selected date"}
                         </FormDescription>
                       </div>
                       <FormControl>
@@ -542,12 +586,12 @@ export function UnifiedTripForm({
                     <FormItem className="flex flex-row items-center justify-between space-x-3 space-y-0">
                       <div className="space-y-1">
                         <FormLabel className="text-base">
-                          {field.value ? "Multi-Stop Schedule" : "Single Stop Schedule"}
+                          Multi-Stop Schedule
                         </FormLabel>
                         <FormDescription>
                           {field.value 
-                            ? "Create a schedule with multiple stops on different days" 
-                            : "Create a simple schedule with one start and end location"}
+                            ? "Schedule includes multiple stops on different days" 
+                            : "Single schedule with one start and end location"}
                         </FormDescription>
                       </div>
                       <FormControl>
@@ -656,14 +700,14 @@ export function UnifiedTripForm({
             )}
           </Card>
           
-          {/* Email Notifications Card */}
+          {/* Notifications Card */}
           <Card className="p-6">
-            <h2 className="text-lg font-medium mb-4">Email Notifications</h2>
+            <h2 className="text-lg font-medium mb-4">Notifications</h2>
             
             <div className="flex flex-col space-y-4">
               <FormField
                 control={form.control}
-                name="enableMobileNotifications"
+                name="enableEmailNotifications"
                 render={({ field }) => (
                   <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                     <div className="space-y-0.5">
@@ -671,7 +715,30 @@ export function UnifiedTripForm({
                         Email Notifications
                       </FormLabel>
                       <FormDescription>
-                        Receive email notifications for schedule status changes
+                        Receive email notifications for schedule status changes and route deviations
+                      </FormDescription>
+                    </div>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="enableMobileNotifications"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                      <FormLabel className="text-base">
+                        Mobile Notifications
+                      </FormLabel>
+                      <FormDescription>
+                        Receive SMS notifications for important schedule updates
                       </FormDescription>
                     </div>
                     <FormControl>
