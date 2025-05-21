@@ -249,11 +249,19 @@ export function UnifiedTripForm({
       </div>
       <Form {...form}>
         <form 
-          onSubmit={(e) => {
-            console.log('Form submitted via form event');
-            e.preventDefault(); 
-            form.handleSubmit(handleSubmit)(e);
-          }} 
+          onSubmit={form.handleSubmit((data) => {
+            console.log('Form submitted successfully!', data);
+            
+            // Explicitly add notification settings
+            const formattedData = {
+              ...data,
+              enableEmailNotifications: data.enableEmailNotifications === undefined ? true : data.enableEmailNotifications,
+              enableMobileNotifications: data.enableMobileNotifications === undefined ? true : data.enableMobileNotifications
+            };
+            
+            // Call the onSubmit handler with the formatted data
+            onSubmit(formattedData);
+          })}
           className="space-y-8">
           
           {/* Basic Details Card */}
