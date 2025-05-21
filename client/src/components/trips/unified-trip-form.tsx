@@ -778,7 +778,7 @@ export function UnifiedTripForm({
                       name="endLocation"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Destination *</FormLabel>
+                          <FormLabel>{form.watch("scheduleType") === "event" ? "Destination (Optional)" : "Destination *"}</FormLabel>
                           <FormControl>
                             <MapLocationPicker 
                               label=""
