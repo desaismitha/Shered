@@ -125,13 +125,24 @@ export default function TripsPage() {
             </Button>
           </div>
           <div className="flex gap-2 mt-2 sm:mt-0">
-            <Button 
-              onClick={() => navigate("/schedules/new")}
-              className="inline-flex items-center bg-blue-500 hover:bg-blue-600 text-white"
-            >
-              <PlusIcon className="h-4 w-4 mr-2" />
-              Create New Schedule
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                onClick={() => navigate("/schedules/new")}
+                className="inline-flex items-center bg-blue-500 hover:bg-blue-600 text-white"
+              >
+                <PlusIcon className="h-4 w-4 mr-2" />
+                Create Schedule
+              </Button>
+              
+              <Button 
+                onClick={() => navigate("/schedules/simple/new")}
+                variant="outline"
+                className="inline-flex items-center"
+              >
+                <PlusIcon className="h-4 w-4 mr-2" />
+                Simple Create (Future Dates)
+              </Button>
+            </div>
           </div>
         </div>
         

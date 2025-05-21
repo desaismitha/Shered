@@ -23,19 +23,24 @@ export default function SimpleScheduleCreate() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   
-  // Default to 1 hour from now for both dates to avoid any past date issues
-  const futureDate = new Date(new Date().getTime() + 60 * 60 * 1000);
-  const [startDate, setStartDate] = useState<Date>(futureDate);
-  const [endDate, setEndDate] = useState<Date>(new Date(futureDate.getTime() + 60 * 60 * 1000)); // Default end = start + 1 hour
+  // Default to tomorrow at 7:00 AM for start date to avoid any past date issues
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  tomorrow.setHours(7, 0, 0, 0); // 7:00 AM
+  
+  // Default end date to tomorrow at 8:00 AM (1 hour after start)
+  const tomorrowEnd = new Date(tomorrow);
+  tomorrowEnd.setHours(8, 0, 0, 0); // 8:00 AM
+  
+  const [startDate, setStartDate] = useState<Date>(tomorrow);
+  const [endDate, setEndDate] = useState<Date>(tomorrowEnd);
   
   const [startLocation, setStartLocation] = useState("");
   const [endLocation, setEndLocation] = useState("");
   
-  // Default to current hour + 1 and current hour + 2 for time values
-  const defaultStartHour = new Date().getHours() + 1;
-  const defaultEndHour = new Date().getHours() + 2;
-  const [startTime, setStartTime] = useState(`${defaultStartHour.toString().padStart(2, '0')}:00`);
-  const [endTime, setEndTime] = useState(`${defaultEndHour.toString().padStart(2, '0')}:00`);
+  // Use fixed times for tomorrow morning to match our date defaults
+  const [startTime, setStartTime] = useState("07:00");
+  const [endTime, setEndTime] = useState("08:00");
   
   const [groupId, setGroupId] = useState<number | undefined>(undefined);
   
