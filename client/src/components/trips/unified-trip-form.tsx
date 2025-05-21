@@ -73,7 +73,21 @@ const formSchema = z.object({
   status: z.enum(["planning", "confirmed", "in-progress", "completed", "cancelled"]).default("planning"),
   isMultiStop: z.boolean().default(false),
   startLocation: z.string().min(1, "Start location is required"),
-  endLocation: z.string().min(1, "Destination is required"),
+  // For endLocation, only require it for regular schedules
+  endLocation: z.string().refine(
+    (val, ctx) => {
+      // For regular schedules, require endLocation to be non-empty
+      if (ctx.path[0] === 'endLocation' && 
+          ctx.data?.scheduleType === 'regular' && 
+          (!val || val.trim() === '')) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: "Destination is required for regular schedules",
+    }
+  ),
   startTime: z.string({
     required_error: "Start time is required"
   }),
@@ -329,7 +343,7 @@ export function UnifiedTripForm({
                 name="status"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{tripType === 'event' ? 'Event Status *' : 'Trip Status *'}</FormLabel>
+                    <FormLabel>{tripType === 'event' ? 'Event Status *' : 'Schedule Status *'}</FormLabel>
                     <Select
                       onValueChange={field.onChange}
                       defaultValue={field.value}
