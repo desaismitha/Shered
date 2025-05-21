@@ -265,11 +265,18 @@ export function UnifiedTripForm({
                   <FormItem>
                     <FormLabel>Schedule Type</FormLabel>
                     <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
+                      onValueChange={(value) => {
+                        console.log("Schedule type selected:", value);
+                        field.onChange(value);
+                        // Clear any errors on endLocation when changing to event type
+                        if (value === "event") {
+                          form.clearErrors("endLocation");
+                        }
+                      }}
+                      value={field.value}
                     >
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="bg-white">
                           <SelectValue placeholder="Select schedule type" />
                         </SelectTrigger>
                       </FormControl>
