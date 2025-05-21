@@ -255,7 +255,7 @@ export default function TripsPage() { // Using as SchedulesPage
             {ErrorNotice}
             
             {/* Ultra-fast loading UI - simple skeleton that appears instantly */}
-            {(isLoading && !trips) || showingInstantUI ? (
+            {(isLoading && !trips) || showSkeleton ? (
               <div className="space-y-1 border rounded overflow-hidden">
                 {[...Array(3)].map((_, i) => (
                   <div key={i} className="bg-white border-b overflow-hidden">
@@ -301,7 +301,7 @@ export default function TripsPage() { // Using as SchedulesPage
             {ErrorNotice}
             
             {/* Ultra-fast loading UI - simple skeleton */}
-            {(isLoading && !trips) || showingInstantUI ? (
+            {(isLoading && !trips) || showSkeleton ? (
               <div className="space-y-1 border rounded overflow-hidden">
                 {[...Array(2)].map((_, i) => (
                   <div key={i} className="bg-white border-b overflow-hidden">
