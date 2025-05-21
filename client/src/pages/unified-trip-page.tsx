@@ -863,30 +863,41 @@ export default function UnifiedTripPage() {
                 onSubmit={(data) => {
                   console.log('Create new schedule form submission:', data);
                   
-                  // Process basic schedule data
+                  // Process basic schedule data with better field handling
+                  console.log("Raw form data:", data);
+                  
+                  // Make sure location data is properly formatted
+                  const startLoc = data.startLocation && data.startLocation.trim() !== "" 
+                    ? data.startLocation 
+                    : "Unknown location";
+                    
+                  const endLoc = data.endLocation && data.endLocation.trim() !== ""
+                    ? data.endLocation
+                    : "Unknown location";
+                  
                   const scheduleData = {
                     name: data.name,
                     description: data.description || "",
                     startDate: data.startDate,
                     endDate: data.endDate,
-                    startLocation: data.startLocation || "Unknown location",
-                    destination: data.endLocation || "Unknown location",
+                    startLocation: startLoc,
+                    destination: endLoc,
                     groupId: data.groupId,
                     status: "planning",
                     isRecurring: data.isRecurring || false,
                     recurrencePattern: data.recurrencePattern || null,
-                    enableMobileNotifications: data.enableMobileNotifications || true,
-                    enableEmailNotifications: data.enableEmailNotifications || true,
+                    enableMobileNotifications: data.enableMobileNotifications === undefined ? true : data.enableMobileNotifications,
+                    enableEmailNotifications: data.enableEmailNotifications === undefined ? true : data.enableEmailNotifications,
                     
-                    // Create a single itinerary item
+                    // Create a single itinerary item with properly formatted time values
                     itineraryItems: [{
                       day: 1,
                       title: data.name,
                       description: data.description || "",
-                      fromLocation: data.startLocation || "Unknown location",
-                      toLocation: data.endLocation || "Unknown location",
-                      startTime: data.startTime || "",
-                      endTime: data.endTime || "",
+                      fromLocation: startLoc,
+                      toLocation: endLoc,
+                      startTime: data.startTime || "12:00", // Default to noon if not provided
+                      endTime: data.endTime || "13:00", // Default to 1pm if not provided
                       isRecurring: data.isRecurring || false,
                       recurrencePattern: data.recurrencePattern || null,
                       recurrenceDays: data.recurrenceDays?.length
