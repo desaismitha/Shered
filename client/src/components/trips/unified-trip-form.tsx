@@ -71,8 +71,7 @@ type FormSchemaType = {
 };
 
 // Create a schema with conditional validation for endLocation
-// Base schema with all fields
-const baseSchema = z.object({
+const formSchema = z.object({
   name: z.string().min(1, "Name is required"),
   startDate: z.date({
     required_error: "Start date is required",
@@ -174,15 +173,34 @@ export function UnifiedTripForm({
     }
   });
   
-  // Watch isMultiStop value
+  // Watch form values for changes
   useEffect(() => {
     const subscription = form.watch((value, { name }) => {
+      // Watch for isMultiStop changes
       if (name === 'isMultiStop') {
         setIsMultiStop(value.isMultiStop || false);
       }
+      
+      // Watch for scheduleType changes to handle validation
+      if (name === 'scheduleType') {
+        const scheduleType = value.scheduleType;
+        console.log("Schedule type changed to:", scheduleType);
+        
+        // If it's an event schedule, the destination is optional
+        // If it's a regular schedule, validate that destination is required
+        if (scheduleType === 'event') {
+          form.clearErrors('endLocation');
+        } else if (scheduleType === 'regular' && !value.endLocation) {
+          form.setError('endLocation', { 
+            type: 'required', 
+            message: 'Destination is required for regular schedules' 
+          });
+        }
+      }
     });
+    
     return () => subscription.unsubscribe();
-  }, [form.watch]);
+  }, [form.watch, form]);
   
   // This function will be called when the form is submitted
   const handleSubmit = (data: FormData) => {
@@ -219,6 +237,39 @@ export function UnifiedTripForm({
           
           <Card className="p-6">
             <h2 className="text-lg font-medium mb-4">{tripType === 'event' ? 'Event Details' : 'Schedule Details'}</h2>
+            
+            {/* Schedule Type Selection */}
+            <div className="mb-4">
+              <FormField
+                control={form.control}
+                name="scheduleType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Schedule Type</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select schedule type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="regular">Regular Schedule</SelectItem>
+                        <SelectItem value="event">Event Schedule</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      {field.value === "event" 
+                        ? "For one-time events where destination is optional" 
+                        : "For regular transportation with required start and destination"}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
             
             <div className="grid gap-4 sm:grid-cols-2">
               <FormField
