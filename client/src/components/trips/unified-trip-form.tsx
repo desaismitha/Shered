@@ -651,27 +651,39 @@ export function UnifiedTripForm({
                       )}
                     />
                     
-                    <FormField
-                      control={form.control}
-                      name="endLocation"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Final Destination *</FormLabel>
-                          <FormControl>
-                            <MapLocationPicker 
-                              label=""
-                              value={field.value || ""} 
-                              onChange={field.onChange}
-                              placeholder="Enter final destination"
-                            />
-                          </FormControl>
-                          <FormDescription>
-                            The final stop of your journey
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                    {/* Only show destination field for regular schedules, or as optional for event schedules */}
+                    {(form.watch("scheduleType") === "regular" || 
+                      (form.watch("scheduleType") === "event" && !isMultiStop)) && (
+                      <FormField
+                        control={form.control}
+                        name="endLocation"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>
+                              {form.watch("scheduleType") === "event" 
+                                ? "Destination (Optional)" 
+                                : "Final Destination *"}
+                            </FormLabel>
+                            <FormControl>
+                              <MapLocationPicker 
+                                label=""
+                                value={field.value || ""} 
+                                onChange={field.onChange}
+                                placeholder={form.watch("scheduleType") === "event" 
+                                  ? "Enter destination (optional)" 
+                                  : "Enter final destination"}
+                              />
+                            </FormControl>
+                            <FormDescription>
+                              {form.watch("scheduleType") === "event"
+                                ? "Optional destination for your event"
+                                : "The final stop of your journey"}
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
                   </div>
                 )}
               </div>
@@ -692,9 +704,13 @@ export function UnifiedTripForm({
                               label=""
                               value={field.value || ""} 
                               onChange={(value) => {
-                                // Update both startLocation and endLocation with the same value
+                                // Update the startLocation
                                 field.onChange(value);
-                                form.setValue("endLocation", value);
+                                
+                                // For event schedules, only set endLocation if it's a regular schedule type
+                                if (form.watch("scheduleType") === "regular") {
+                                  form.setValue("endLocation", value);
+                                }
                               }}
                               placeholder="Enter event location"
                             />
