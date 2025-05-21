@@ -233,8 +233,16 @@ export function UnifiedTripForm({
     console.log('Form submitted with data:', data);
     console.log('Current user data:', userData);
     
-    console.log('Submitting form with email notifications setting:', data.enableMobileNotifications);
-    onSubmit(data);
+    // Make sure the email notifications setting is included
+    console.log('Submitting form with email notifications setting:', data.enableEmailNotifications);
+    console.log('Submitting form with mobile notifications setting:', data.enableMobileNotifications);
+    
+    // Call the onSubmit prop provided by the parent component
+    onSubmit({
+      ...data,
+      enableEmailNotifications: data.enableEmailNotifications === undefined ? true : data.enableEmailNotifications,
+      enableMobileNotifications: data.enableMobileNotifications === undefined ? true : data.enableMobileNotifications
+    });
   };
 
   // Debug logging

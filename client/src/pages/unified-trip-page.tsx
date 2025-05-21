@@ -199,6 +199,15 @@ export default function UnifiedTripPage() {
   const mutation = useMutation({
     mutationFn: async (formData: any) => {
       console.log('MUTATION START - Form data received:', formData);
+      
+      // Ensure form data has both notification settings
+      if (formData.enableEmailNotifications === undefined) {
+        formData.enableEmailNotifications = true;
+      }
+      if (formData.enableMobileNotifications === undefined) {
+        formData.enableMobileNotifications = true;
+      }
+      
       if (tripId) {
         // Update existing trip
         console.log("PATCH request payload:", JSON.stringify(formData));
