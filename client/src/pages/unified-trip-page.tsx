@@ -856,9 +856,14 @@ export default function UnifiedTripPage() {
             </Tabs>
           ) : (
             <UnifiedTripForm
-              onSubmit={handleSubmit}
+              onSubmit={(data) => {
+                console.log('Create new schedule form submission:', data);
+                handleSubmit(data);
+              }}
               defaultValues={defaultValues}
               isLoading={mutation.isPending}
+              isSubmitting={mutation.isPending}
+              onCancel={() => navigate("/schedules")}
             />
           )}
         </div>
